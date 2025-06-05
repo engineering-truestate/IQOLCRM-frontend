@@ -1,19 +1,24 @@
 import Tabs from "./design-elements/Tabs";
+import Dropdown from "./design-elements/Dropdown";
 
 interface PlatformsProps {
   onPlatformSelect: (platform: string) => void;
 }
 
 const Platforms = ({ onPlatformSelect }: PlatformsProps) => {
-  const tabs = ["truestate", "acn", "vault"];
+  const tabs = [
+    { label: "Truestate", value: "truestate" },
+    { label: "ACN", value: "acn" },
+    { label: "Vault", value: "vault" },
+    { label: "Canvas Homes", value: "canvas-homes" },
+  ];
   return (
     <div>
       <h3>Platforms</h3>
-      <div className="flex gap-2">
-        {tabs.map((tab) => {
-          return <Tabs key={tab} onClick={() => onPlatformSelect(tab)}>{tab}</Tabs>;
-        })}
-      </div>
+      <Dropdown
+        options={tabs}
+        onSelect={(platform) => onPlatformSelect(platform)}
+      />
     </div>
   );
 };

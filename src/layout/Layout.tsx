@@ -6,7 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 const Layout = ({ children, loading }: { children?: React.ReactNode; loading: boolean }) => {
   return (
     <>
-      <div className="flex flex-col min-h-screen">
+      <div className="flex min-h-screen">
         <Sidebar />
         {loading ? (
           <div className="flex-grow flex items-center justify-center">
