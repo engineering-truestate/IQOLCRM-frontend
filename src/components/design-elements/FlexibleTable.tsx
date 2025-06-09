@@ -418,7 +418,7 @@ export function FlexibleTable({
                             data.map((row, index) => {
                                 const isSelected = selectedRows.includes(row.id)
                                 const rowClasses = [
-                                    hoverable ? 'hover:bg-gray-50' : '',
+                                    hoverable ? 'hover:bg-gray-90' : '',
                                     striped && index % 2 === 0 ? 'bg-gray-50' : '',
                                     rowClassName,
                                 ]
