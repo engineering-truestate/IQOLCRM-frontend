@@ -1,4 +1,3 @@
-const firebaseConfig = {
-};
+const firebaseConfig = {}
 
-export default firebaseConfig;
+export default firebaseConfig
