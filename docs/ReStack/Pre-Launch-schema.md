@@ -120,11 +120,11 @@ Stores detailed information about pre-launch real estate projects, including apa
 
 ### Metadata
 
-| Field       | Type          | Options / Enum             | Example      |
-| ----------- | ------------- | -------------------------- | ------------ |
-| areaUnit    | string (enum) | sqft, sqm, acres, hectares | "sqft"       |
-| lastUpdated | string (ISO)  | –                          | "2024-06-07" |
-| createdAt   | string (ISO)  | –                          | "2024-06-07" |
+| Field       | Type                   | Options / Enum             | Example      |
+| ----------- | ---------------------- | -------------------------- | ------------ |
+| areaUnit    | string (enum)          | sqft, sqm, acres, hectares | "sqft"       |
+| lastUpdated | string (unixTimeStamp) | –                          | "1749518450" |
+| createdAt   | string (unixTimeStamp) | –                          | "1749518450" |
 
 ---
 
