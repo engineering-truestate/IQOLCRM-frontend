@@ -19,7 +19,7 @@ Stores detailed information about pre-launch real estate projects, including apa
 | Field            | Type                   | Options / Enum                                  | Example                   |
 | ---------------- | ---------------------- | ----------------------------------------------- | ------------------------- |
 | projectName\*    | string                 | –                                               | "Green Valley Residences" |
-| projectType\*    | string (enum)          | Residential, Commercial, Mixed-Use              | "Residential"             |
+| projectType\*    | string (enum)          | Residential, Commercial,plotted, Mixed-Use      | "Residential"             |
 | stage\*          | string (enum)          | EC, Pre-Launch                                  | "EC"                      |
 | status           | string (enum)          | Pre-Launch, Launched, Under Construction, Ready | "Pre-Launch"              |
 | developerName    | string                 | –                                               | "Sunrise Developers"      |
@@ -132,7 +132,8 @@ Stores detailed information about pre-launch real estate projects, including apa
 ### Project Types
 
 - **Residential**: Primarily residential units (apartments, villas, plots)
-- **Commercial**: Office spaces, retail, warehouses -**plotted**: Subdivided land plots with basic infrastructure
+- **Commercial**: Office spaces, retail, warehouses
+- **plotted**: Subdivided land plots with basic infrastructure
 - **Mixed-Use**: Combination of residential and commercial
 
 ### Project Stages
