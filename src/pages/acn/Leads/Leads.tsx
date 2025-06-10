@@ -3,15 +3,16 @@
 import React from 'react'
 
 import { useState, useEffect } from 'react'
-import Layout from '../../layout/Layout'
-import { FlexibleTable, type TableColumn, type DropdownOption } from '../../components/design-elements/FlexibleTable'
-import Dropdown from '../../components/design-elements/Dropdown'
-import Button from '../../components/design-elements/Button'
-import StateBaseTextField from '../../components/design-elements/StateBaseTextField'
-import NotesModal from '../../components/acn/NotesModal'
-import CallResultModal from '../../components/acn/CallModal'
-import VerificationModal from '../../components/acn/VerificationModal'
-import AddLeadModal from '../../components/acn/AddLeadModal'
+import Layout from '../../../layout/Layout'
+import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
+import Dropdown from '../../../components/design-elements/Dropdown'
+import Button from '../../../components/design-elements/Button'
+import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import NotesModal from '../../../components/acn/NotesModal'
+import CallResultModal from '../../../components/acn/CallModal'
+import VerificationModal from '../../../components/acn/VerificationModal'
+import AddLeadModal from '../../../components/acn/AddLeadModal'
+import { generateLeads, type Lead, type LeadStatus } from '../../dummy_data/acn_leads_dummy_data'
 import phoneic from '/icons/acn/phone.svg'
 import notesic from '/icons/acn/notes.svg'
 import verifyic from '/icons/acn/verify.svg'
@@ -112,37 +113,14 @@ const LeadsPage = () => {
     const [isCallResultModalOpen, setIsCallResultModalOpen] = useState(false)
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false)
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
-    const [selectedRowData, setSelectedRowData] = useState<any>(null)
-    const [paginatedData, setPaginatedData] = useState<any[]>([])
+    const [selectedRowData, setSelectedRowData] = useState<Lead | null>(null)
+    const [paginatedData, setPaginatedData] = useState<Lead[]>([])
 
     // Items per page
     const ITEMS_PER_PAGE = 50
 
-    // Generate 50 leads for demonstration
-    const generateLeads = () => {
-        const sources = ['WhatsApp', 'Instagram', 'Facebook', 'Classified', 'Organic', 'Referral']
-        const statuses = ['Interested', 'Not Interested', 'No Contact Yet']
-        const connectStatuses = ['Connected', 'Not Contact', 'RNR-1', 'RNR-2', 'RNR-3', 'RNR-4']
-        const kams = ['Samarth', 'Priya', 'Raj']
-        const yesNo = ['Yes', 'No']
-
-        return Array.from({ length: 200 }, (_, i) => ({
-            id: `LD${String(i + 1).padStart(3, '0')}`,
-            agentName: `Lead ${i + 1}`,
-            contactNumber: `555-${String(Math.floor(100 + Math.random() * 900))}-${String(Math.floor(1000 + Math.random() * 9000))}`,
-            lastTried: `${Math.floor(1 + Math.random() * 30)} May 2025`,
-            lastConnect: `${Math.floor(1 + Math.random() * 30)} Apr 2025`,
-            leadStatus: statuses[Math.floor(Math.random() * statuses.length)],
-            connectStatus: connectStatuses[Math.floor(Math.random() * connectStatuses.length)],
-            kamAssigned: kams[Math.floor(Math.random() * kams.length)],
-            leadSource: sources[Math.floor(Math.random() * sources.length)],
-            joinedCommunity: yesNo[Math.floor(Math.random() * yesNo.length)],
-            onBroadcast: yesNo[Math.floor(Math.random() * yesNo.length)],
-        }))
-    }
-
-    // Expanded dummy data with all fields
-    const [leadsData, setLeadsData] = useState(generateLeads())
+    // Initialize leads data using the imported function
+    const [leadsData, setLeadsData] = useState<Lead[]>(() => generateLeads(200))
 
     // Calculate total pages
     const totalPages = Math.ceil(leadsData.length / ITEMS_PER_PAGE)
@@ -155,7 +133,7 @@ const LeadsPage = () => {
     }, [currentPage, leadsData])
 
     // Helper function to update a specific row's data
-    const updateRowData = (rowId: string, field: string, value: string) => {
+    const updateRowData = (rowId: string, field: keyof Lead, value: string) => {
         setLeadsData((prevData) => prevData.map((row) => (row.id === rowId ? { ...row, [field]: value } : row)))
     }
 
@@ -197,7 +175,7 @@ const LeadsPage = () => {
         {
             label: 'No Contact Yet',
             value: 'No Contact Yet',
-            color: '#FFC8B8', // Light red background
+            color: '#FEECED', // Light red background
             textColor: '#991B1B', // Dark red text
         },
     ]
@@ -253,7 +231,7 @@ const LeadsPage = () => {
                 options: leadStatusDropdownOptions,
                 placeholder: 'Select Status',
                 onChange: (value, row) => {
-                    updateRowData(row.id, 'leadStatus', value)
+                    updateRowData(row.id, 'leadStatus', value as LeadStatus)
                     console.log('Lead status changed:', value, row)
                 },
             },
@@ -357,11 +335,11 @@ const LeadsPage = () => {
     return (
         <Layout loading={false}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='p-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
-                    <div className='mb-6'>
-                        <div className='flex items-center justify-between mb-6'>
-                            <h1 className='text-2xl font-semibold text-black'>Leads (200)</h1>
+                    <div className='mb-4'>
+                        <div className='flex items-center justify-between mb-2'>
+                            <h1 className='text-lg font-semibold text-black'>Leads ({leadsData.length})</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
                                     <StateBaseTextField
@@ -383,22 +361,23 @@ const LeadsPage = () => {
                                         placeholder='Search name and number'
                                         value={searchValue}
                                         onChange={(e) => setSearchValue(e.target.value)}
+                                        className='h-8'
                                     />
                                 </div>
                                 <Button
                                     leftIcon={<img src={leadaddic} alt='Add Lead Icon' className='w-5 h-5' />}
                                     bgColor='bg-[#F3F3F3]'
                                     textColor='text-[#3A3A47]'
-                                    className='px-4 py-2 font-semibold'
+                                    className='px-4 h-8 font-semibold'
                                     onClick={() => setIsAddLeadModalOpen(true)}
                                 >
                                     Add Lead
                                 </Button>
                             </div>
                         </div>
-
+                        <hr className='border-gray-200 mb-4' />
                         {/* Filters */}
-                        <div className='flex items-center gap-2 mb-6'>
+                        <div className='flex items-center gap-2 mb-2'>
                             <button className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md'>
                                 <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
                             </button>
@@ -449,8 +428,8 @@ const LeadsPage = () => {
                     </div>
 
                     {/* Table with fixed actions column and vertical scrolling */}
-                    <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
-                        <div className='h-[60vh] overflow-y-auto'>
+                    <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
+                        <div className='h-[75vh] overflow-y-auto'>
                             <FlexibleTable
                                 data={paginatedData}
                                 columns={columns}
@@ -462,7 +441,7 @@ const LeadsPage = () => {
                                     cells: false,
                                     outer: false,
                                 }}
-                                maxHeight='60vh'
+                                maxHeight='75vh'
                                 className='rounded-lg'
                                 stickyHeader={true}
                             />

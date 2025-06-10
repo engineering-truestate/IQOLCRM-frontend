@@ -1,6 +1,6 @@
 import app from './firebase'
 import { Suspense, useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router'
 import Layout from './layout/Layout'
 import { authRoutes, protectedRoutes, unprotectedRoutes } from './Routes'
 
