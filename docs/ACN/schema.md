@@ -74,7 +74,7 @@ Stores detailed profiles of registered channel partners, including business acti
 | activity                             | string       | active, nudge, no activity                                        | "active"                    |
 | agentStatus                          | string       | interested, not interested, not contact yet                       | "interested"                |
 | verified                             | boolean      | –                                                                 | true                        |
-| verficationDate                      | number (TS)  | –                                                                 | 1717833600000               |
+| verificationDate                      | number (TS)  | –                                                                 | 1717833600000               |
 | blackListed                          | boolean      | –                                                                 | false                       |
 | trialUsed                            | boolean      | –                                                                 | true                        |
 | trialStartedAt                       | number (TS)  | –                                                                 | 1717750000000               |
@@ -87,6 +87,7 @@ Stores detailed profiles of registered channel partners, including business acti
 | noOfEnquiries                        | number       | –                                                                 | 120                         |
 | noOfrequirements                     | number       | –                                                                 | 35                          |
 | noOfleagalLeads                      | number       | –                                                                 | 8                           |
+| lastConnected                        | number (TS)  | –                                                                 | 1717905000000               |
 | lastEnquiry                          | number (TS)  | –                                                                 | 1717916400000               |
 | payStatus                            | string       | will pay, paid, will not, paid by team                           | "paid"                      |
 | planExpiry                           | number (TS)  | –                                                                 | 1725667200000               |
