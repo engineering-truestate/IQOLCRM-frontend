@@ -26,16 +26,16 @@ Stores detailed information about pre-launch real estate projects, including apa
 | projectSize\*    | number                 | –                                               | 15                        |
 | projectSizeUnit  | string (enum)          | acres, hectares, sqft, sqm                      | "acres"                   |
 | pricePerSqft     | number                 | –                                               | 12000                     |
-| projectStartDate | string (unixTimeStamp) | –                                               | "1749518450"              |
-| handoverDate     | string (unixTimeStamp) | –                                               | "1749518450"              |
+| projectStartDate | number (unixTimeStamp) | –                                               | 1749518450                |
+| handoverDate     | numner (unixTimeStamp) | –                                               | 1749518450                |
 
 ### Location Details
 
 | Field     | Type   | Options / Enum | Example                             |
 | --------- | ------ | -------------- | ----------------------------------- |
 | address\* | string | –              | "123 Oak Avenue, Pleasantville, CA" |
-| Lag       | string | –              | "34.0522° N"                        |
-| Long      | string | –              | "118.2437° W"                       |
+| Lag       | number | –              | 34.0522                             |
+| Long      | number | –              | 118.2437                            |
 | mapLink   | string | –              | ""https://www.google.com/maps/..."  |
 
 ### Project Specifications
@@ -119,11 +119,11 @@ Stores detailed information about pre-launch real estate projects, including apa
 
 ### Metadata
 
-| Field       | Type                   | Options / Enum             | Example      |
-| ----------- | ---------------------- | -------------------------- | ------------ |
-| areaUnit    | string (enum)          | sqft, sqm, acres, hectares | "sqft"       |
-| lastUpdated | string (unixTimeStamp) | –                          | "1749518450" |
-| createdAt   | string (unixTimeStamp) | –                          | "1749518450" |
+| Field       | Type                   | Options / Enum             | Example    |
+| ----------- | ---------------------- | -------------------------- | ---------- |
+| areaUnit    | string (enum)          | sqft, sqm, acres, hectares | "sqft"     |
+| lastUpdated | number (unixTimeStamp) | –                          | 1749518450 |
+| createdAt   | number (unixTimeStamp) | –                          | 1749518450 |
 
 ---
 

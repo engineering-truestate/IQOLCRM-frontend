@@ -61,8 +61,8 @@ Stores comprehensive information about real estate projects with detailed config
 | Field          | Type   | Options / Enum | Example                             |
 | -------------- | ------ | -------------- | ----------------------------------- |
 | address\*      | string | –              | "123 Oak Avenue, Pleasantville, CA" |
-| Lat            | string | –              | "34.0522° N"                        |
-| Long           | string | –              | "118.2437° W"                       |
+| Lat            | number | –              | 34.0522                             |
+| Long           | number | –              | 118.2437                            |
 | mapLink        | string | –              | "www.google.com"                    |
 | district       | string | –              | "Bangalore Urban"                   |
 | taluk          | string | –              | "Bangalore North"                   |
@@ -80,12 +80,12 @@ Stores comprehensive information about real estate projects with detailed config
 | Field                 | Type   | Options / Enum | Example |
 | --------------------- | ------ | -------------- | ------- |
 | areaDetails           | object | –              | –       |
-| ├─ totalOpenArea      | number | –              | 5000    |
-| ├─ totalCoveredArea   | number | –              | 5000    |
-| ├─ totalLandArea      | number | –              | 10000   |
-| ├─ totalBuiltUpArea   | number | –              | 8000    |
-| ├─ totalCarpetArea    | number | –              | 7000    |
-| ├─ totalPlinthArea    | number | –              | 6000    |
+| ├─ openArea           | number | –              | 5000    |
+| ├─ CoveredArea        | number | –              | 5000    |
+| ├─ landArea           | number | –              | 10000   |
+| ├─ BuiltUpArea        | number | –              | 8000    |
+| ├─ carpetArea         | number | –              | 7000    |
+| ├─ plinthArea         | number | –              | 6000    |
 | ├─ openParkingArea    | number | –              | 500     |
 | ├─ coveredParkingArea | number | –              | 1000    |
 | ├─ garageArea         | number | –              | 200     |
