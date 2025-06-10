@@ -336,7 +336,7 @@ Stores quality review records for property listings, including approval status, 
 
 ---
 
-## rental_inventories
+## rental_inventories (collection Name - rental-inventories)
 
 Inventories available for rent.
 
