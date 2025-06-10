@@ -6,11 +6,11 @@ This document describes the simplified data schema for real estate project listi
 
 ## Schema Overview
 
-The **pre Rera properties** collection stores essential information about real estate projects for listing views, search results, and summary displays. This schema focuses on key project details without the comprehensive regulatory and financial information.
+The **pre_rera_properties** collection stores essential information about real estate projects for listing views, search results, and summary displays. This schema focuses on key project details without the comprehensive regulatory and financial information.
 
 ---
 
-## pre-rera-properties (Collection Name - pre-rera-properties)
+## pre_rera_properties (Collection Name - pre_rera_properties)
 
 Stores essential project information for public listings, search results, and summary views.
 
