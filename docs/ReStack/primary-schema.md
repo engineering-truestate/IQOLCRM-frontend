@@ -225,19 +225,21 @@ Stores comprehensive information about real estate projects with detailed config
 ### Legal Information
 
 | Field                   | Type          | Options / Enum | Example                    |
-| ----------------------- | ------------- | -------------- | -------------------------- | --- |
+| ----------------------- | ------------- | -------------- | -------------------------- |
 | litigation              | string (enum) | Yes, No        | "Yes"                      |
 | affidavitLink           | string        | –              | "google/cno"               |
 | Complaints              | object        | –              | –                          |
 | ├─ complaintsOnProject  | array<object> | –              | –                          |
-| │ ├─ registrationNo     | string        | –              | "REG123"                   |     |
+| │ ├─ registrationNo     | string        | –              | "REG123"                   |
+| │ ├─ serialNo           | number        | –              | 1                          |
 | │ ├─ complaintNo        | string        | –              | "COMP001"                  |
 | │ ├─ complaintBy        | string        | –              | "Sophia Clark"             |
 | │ ├─ complaintDate      | string (ISO)  | –              | "2023-01-15"               |
 | │ ├─ complaintSubject   | string        | –              | "Delay in possession"      |
 | │ └─ projectName        | string        | –              | "Green Meadows"            |
 | └─ complaintsOnPromoter | array<object> | –              | –                          |
-| ├─ registrationNo       | string        | –              | "REG678"                   |     |
+| ├─ registrationNo       | string        | –              | "REG678"                   |
+| ├─ serialNo             | number        | –              | 1                          |
 | ├─ complaintNo          | string        | –              | "COMP006"                  |
 | ├─ complaintBy          | string        | –              | "Ethan Hayes"              |
 | ├─ complaintDate        | string (ISO)  | –              | "2023-06-10"               |
