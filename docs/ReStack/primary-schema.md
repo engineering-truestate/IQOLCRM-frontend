@@ -119,59 +119,44 @@ Stores comprehensive information about real estate projects with detailed config
 
 #### Apartments Configuration
 
-| Field                  | Type          | Options / Enum                | Example  |
-| ---------------------- | ------------- | ----------------------------- | -------- |
-| ConfingurationDetails  | object        | –                             | –        |
-| apartments             | array<object> | –                             | –        |
-| ├─ type                | string (enum) | 1BHK, 2BHK, 3BHK, 4BHK, 5+BHK | "2BHK"   |
-| ├─ currentPricePerSqft | number        | –                             | 2000     |
-| ├─ sbua                | number        | –                             | 1500     |
-| ├─ carpetArea          | number        | –                             | 2000     |
-| └─ totalAreasqft       | number        | –                             | 2000     |
-| ├─ totalPrice          | number        | –                             | 45000000 |
+| Field                  | Type          | Options / Enum                             | Example           |
+| ---------------------- | ------------- | ------------------------------------------ | ----------------- |
+| ConfingurationDetails  | object        | –                                          | –                 |
+| apartments             | array<object> | –                                          | –                 |
+| ├─ aptType             | string (enum) | Simplex, Duplex, Triplex, Penthouse        | "Simplex"         |
+| ├─ typology            | string (enum) | Studio, 1 BHK, 2 BHK, 3 BHK, 4 BHK, 5+ BHK | "Studio"          |
+| ├─ superBuiltUpArea    | number        | –                                          | 1200              |
+| ├─ carpetArea          | number        | –                                          | 900               |
+| ├─ currentPricePerSqft | number        | –                                          | 2000              |
+| ├─ totalPrice          | number        | –                                          | 2400000           |
+| ├─ floorPlan           | string        | –                                          | "studio_plan.pdf" |
 
 #### Villa Configuration
 
-| Field                  | Type          | Options / Enum                                   | Example          |
-| ---------------------- | ------------- | ------------------------------------------------ | ---------------- |
-| villa                  | array<object> | –                                                | –                |
-| ├─ type                | string (enum) | 2BHK, 3BHK, 4BHK, 5+BHK                          | "3BHK"           |
-| ├─ villaType           | string (enum) | Independent, Row House, Twin Villa, Corner Villa | "Independent"    |
-| ├─ plotSize            | number        | –                                                | 4000             |
-| ├─ builtUpArea         | number        | –                                                | 2500             |
-| ├─ carpetArea          | number        | –                                                | 2000             |
-| ├─ currentPricePerSqft | number        | –                                                | 15000            |
-| ├─ totalPrice          | number        | –                                                | 45000000         |
-| ├─ numberOfFloors      | number        | –                                                | 2                |
-| ├─ uds                 | number        | –                                                | 1500             |
-| ├─ furnishingStatus    | string (enum) | Fully Furnished, Semi Furnished, Unfurnished     | "Semi Furnished" |
-| └─ gardenArea          | number        | –                                                | 500              |
-
-#### Flat Configuration
-
-| Field                  | Type          | Options / Enum                               | Example       |
-| ---------------------- | ------------- | -------------------------------------------- | ------------- |
-| flat                   | array<object> | –                                            | –             |
-| ├─ type                | string (enum) | 1BHK, 2BHK, 3BHK, 4BHK, 5+BHK                | "2BHK"        |
-| ├─ flatType            | string (enum) | Regular, Corner, Penthouse, Studio           | "Corner"      |
-| ├─ builtUpArea         | number        | –                                            | 1200          |
-| ├─ carpetArea          | number        | –                                            | 900           |
-| ├─ balconyArea         | number        | –                                            | 80            |
-| ├─ currentPricePerSqft | number        | –                                            | 8000          |
-| ├─ totalPrice          | number        | –                                            | 9600000       |
-| ├─ floorNumber         | string        | –                                            | "12th Floor"  |
-| ├─ furnishingStatus    | string (enum) | Fully Furnished, Semi Furnished, Unfurnished | "Unfurnished" |
-| └─ parkingType         | string (enum) | Covered, Open, Stilt, Mechanical             | "Covered"     |
+| Field                  | Type          | Options / Enum               | Example           |
+| ---------------------- | ------------- | ---------------------------- | ----------------- |
+| villa                  | array<object> | –                            | –                 |
+| ├─ villaType           | string (enum) | UDS, Plot, Independent Villa | "UDS"             |
+| ├─ typology            | string (enum) | 2 BHK, 3 BHK, 4 BHK, 5+ BHK  | "3 BHK"           |
+| ├─ plotSize            | number        | –                            | 1200              |
+| ├─ builtUpArea         | number        | –                            | 1800              |
+| ├─ uds                 | string        | –                            | "25% (450 sq ft)" |
+| ├─ udsPercentage       | number        | –                            | 25                |
+| ├─ udsArea             | number        | –                            | 450               |
+| ├─ numberOfFloors      | number        | –                            | 2                 |
+| ├─ currentPricePerSqft | number        | –                            | 15000             |
+| ├─ totalPrice          | number        | –                            | 27000000          |
+| ├─ carpetArea          | number        | –                            | 1400              |
 
 #### Plot Configuration
 
-| Field                  | Type          | Options / Enum                                    | Example       |
-| ---------------------- | ------------- | ------------------------------------------------- | ------------- |
-| plot                   | array<object> | –                                                 | –             |
-| ├─ plotType            | string (enum) | Residential, Commercial, Industrial, Agricultural | "Residential" |
-| ├─ plotSize            | number        | –                                                 | 2400          |
-| ├─ currentPricePerSqft | number        | –                                                 | 5000          |
-| ├─ totalPrice          | number        | –                                                 | 12000000      |
+| Field                  | Type          | Options / Enum         | Example    |
+| ---------------------- | ------------- | ---------------------- | ---------- |
+| plot                   | array<object> | –                      | –          |
+| ├─ plotType            | string (enum) | ODD PLOT, "9.14x15.24" | "ODD PLOT" |
+| ├─ plotArea            | number        | –                      | 456.51     |
+| ├─ currentPricePerSqft | number        | –                      | 5000       |
+| ├─ totalPrice          | number        | –                      | 2282550    |
 
 ### Tower Details
 
@@ -239,11 +224,25 @@ Stores comprehensive information about real estate projects with detailed config
 
 ### Legal Information
 
-| Field         | Type          | Options / Enum | Example      |
-| ------------- | ------------- | -------------- | ------------ |
-| litigation    | string (enum) | Yes, No        | "Yes"        |
-| affidavitLink | string        | –              | "google/cno" |
-| Complaints    | array<string> | –              | []           |
+| Field                   | Type          | Options / Enum | Example                    |
+| ----------------------- | ------------- | -------------- | -------------------------- | --- |
+| litigation              | string (enum) | Yes, No        | "Yes"                      |
+| affidavitLink           | string        | –              | "google/cno"               |
+| Complaints              | object        | –              | –                          |
+| ├─ complaintsOnProject  | array<object> | –              | –                          |
+| │ ├─ registrationNo     | string        | –              | "REG123"                   |     |
+| │ ├─ complaintNo        | string        | –              | "COMP001"                  |
+| │ ├─ complaintBy        | string        | –              | "Sophia Clark"             |
+| │ ├─ complaintDate      | string (ISO)  | –              | "2023-01-15"               |
+| │ ├─ complaintSubject   | string        | –              | "Delay in possession"      |
+| │ └─ projectName        | string        | –              | "Green Meadows"            |
+| └─ complaintsOnPromoter | array<object> | –              | –                          |
+| ├─ registrationNo       | string        | –              | "REG678"                   |     |
+| ├─ complaintNo          | string        | –              | "COMP006"                  |
+| ├─ complaintBy          | string        | –              | "Ethan Hayes"              |
+| ├─ complaintDate        | string (ISO)  | –              | "2023-06-10"               |
+| ├─ complaintSubject     | string        | –              | "Financial irregularities" |
+| └─ projectName          | string        | –              | "Green Meadows"            |
 
 ### Metadata
 
