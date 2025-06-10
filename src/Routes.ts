@@ -3,7 +3,10 @@ import React from 'react'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import Dashboard from './pages/canvas-homes/Dashboard'
-import LeadsPage from './pages/acn/Leads'
+import LeadsPage from './pages/acn/Leads/Leads'
+import RequirementsPage from './pages/acn/Requirements/Requirements'
+import RequirementDetailsPage from './pages/acn/Requirements/RequirementDetails'
+import RequirementPropertiesSelectionPage from './pages/acn/Requirements/RequirementPropertiesSelection'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -24,6 +27,22 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/acn/leads',
         element: React.createElement(React.Suspense, null, React.createElement(LeadsPage, null)),
+    },
+    {
+        path: '/acn/requirements',
+        element: React.createElement(React.Suspense, null, React.createElement(RequirementsPage, null)),
+    },
+    {
+        path: '/acn/requirements/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(RequirementDetailsPage, null)),
+    },
+    {
+        path: '/acn/requirements/:id/properties',
+        element: React.createElement(
+            React.Suspense,
+            null,
+            React.createElement(RequirementPropertiesSelectionPage, null),
+        ),
     },
 ]
 

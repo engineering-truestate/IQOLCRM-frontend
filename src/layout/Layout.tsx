@@ -13,7 +13,7 @@ const Layout = ({ children, loading }: { children?: React.ReactNode; loading: bo
                         <ClipLoader color='#17294D' size={50} />
                     </div>
                 ) : (
-                    <main className='flex-grow mt-12 max-w-[84%]'>{children}</main>
+                    <main className='flex-grow mt-0 max-w-[84%]'>{children}</main>
                 )}
             </div>
             <ToastContainer />

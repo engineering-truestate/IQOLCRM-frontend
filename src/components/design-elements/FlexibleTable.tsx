@@ -145,7 +145,7 @@ const TableDropdown = ({
         const bgColor = selectedOption.color
         return {
             className:
-                'flex items-center justify-between w-full px-3 py-1 text-sm  rounded-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 whitespace-nowrap font-semibold',
+                'flex items-center justify-between w-full px-3 py-1 text-sm  rounded-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 whitespace-nowrap font-normal',
             style: {
                 backgroundColor: bgColor,
                 color: '#000000',
@@ -265,25 +265,26 @@ export function FlexibleTable({
     }
 
     // Border styling
-    const getBorderClasses = () => {
-        const borderClasses = []
+    // const getBorderClasses = () => {
+    //     const borderClasses = []
 
-        if (borders.outer !== false) {
-            const borderWidth = borders.width === 'thick' ? 'border-2' : borders.width === 'thin' ? 'border' : 'border'
-            const borderColor = borders.color || 'border-gray-200'
-            const borderStyle =
-                borders.style === 'dashed' ? 'border-dashed' : borders.style === 'dotted' ? 'border-dotted' : ''
-            borderClasses.push(borderWidth, borderColor, borderStyle)
-        }
+    //     if (borders.outer !== false) {
+    //         const borderWidth = ''
+    //         //const borderWidth = borders.width === 'thick' ? 'border-2' : borders.width === 'thin' ? 'border' : 'border'
+    //         const borderColor = borders.color || 'border-gray-200'
+    //         const borderStyle =
+    //             borders.style === 'dashed' ? 'border-dashed' : borders.style === 'dotted' ? 'border-dotted' : ''
+    //         borderClasses.push(borderWidth, borderColor, borderStyle)
+    //     }
 
-        return borderClasses.filter(Boolean).join(' ')
-    }
+    //     return borderClasses.filter(Boolean).join(' ')
+    // }
 
     const getTableClasses = () => {
-        const classes = ['w-full border-collapse']
-        if (borders.table !== false) {
-            classes.push('border-separate border-spacing-0')
-        }
+        const classes = ['w-full']
+        // if (borders.table !== false) {
+        //     classes.push('border-separate border-spacing-0')
+        // }
         return classes.join(' ')
     }
 
@@ -295,7 +296,7 @@ export function FlexibleTable({
         }
 
         if (isHeader && borders.header !== false) {
-            classes.push('border-b-2 border-gray-300')
+            classes.push('border-b-0 border-gray-300')
         } else if (!isHeader && borders.rows !== false) {
             classes.push('border-b border-gray-200')
         }
@@ -324,14 +325,14 @@ export function FlexibleTable({
             : {}
 
     return (
-        <div className={`w-full ${getBorderClasses()} rounded-lg overflow-hidden ${className}`}>
+        <div className={`w-full border-none rounded-lg overflow-hidden ${className}`}>
             <div className='overflow-auto' style={containerStyle}>
                 <table className={getTableClasses()}>
-                    <thead className={stickyHeader ? 'sticky top-0 z-30 bg-[#FAFAFA] shadow-sm' : ''}>
+                    <thead className={stickyHeader ? 'rounded-lg sticky top-0 z-30 bg-[#F3F3F3] shadow-sm' : ''}>
                         <tr className={`${stickyHeader ? 'bg-white' : ''} ${headerClassName}`}>
                             {showCheckboxes && (
                                 <th
-                                    className={`w-12 px-4 py-2 text-center bg-[#FAFAFA] ${hasLeftFixedColumns ? 'sticky left-0 z-40' : ''} ${getCellBorderClasses(true)}`}
+                                    className={`rounded-lg w-12 px-4 py-2 text-center bg-[#F3F3F3] ${hasLeftFixedColumns ? 'sticky left-0 z-40' : ''} ${getCellBorderClasses(true)}`}
                                     style={hasLeftFixedColumns ? { boxShadow: '2px 0 4px -2px rgba(0,0,0,0.1)' } : {}}
                                 >
                                     <input
@@ -350,7 +351,7 @@ export function FlexibleTable({
                             {leftFixedColumns.map((column, index) => (
                                 <th
                                     key={column.key}
-                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#FAFAFA] sticky z-20 ${getCellBorderClasses(true)} ${
+                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] sticky z-20 ${getCellBorderClasses(true)} ${
                                         column.width ? `w-${column.width}` : ''
                                     } ${column.minWidth ? `min-w-${column.minWidth}` : ''}`}
                                     style={{
@@ -371,7 +372,7 @@ export function FlexibleTable({
                             {scrollableColumns.map((column) => (
                                 <th
                                     key={column.key}
-                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#FAFAFA] ${getCellBorderClasses(true)} ${
+                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] ${getCellBorderClasses(true)} ${
                                         column.width ? `w-${column.width}` : ''
                                     } ${column.minWidth ? `min-w-${column.minWidth}` : ''}`}
                                 >
@@ -383,7 +384,7 @@ export function FlexibleTable({
                             {rightFixedColumns.map((column, index) => (
                                 <th
                                     key={column.key}
-                                    className={`px-4 py-2 text-center whitespace-nowrap text-sm font-medium text-black bg-[#FAFAFA] sticky z-20 border-l ${getCellBorderClasses(true)} ${
+                                    className={`px-4 py-2 text-center whitespace-nowrap text-sm font-medium text-black bg-[#F3F3F3] sticky z-20 border-l ${getCellBorderClasses(true)} ${
                                         column.width ? `w-${column.width}` : ''
                                     } ${column.minWidth ? `min-w-${column.minWidth}` : ''}`}
                                     style={{
@@ -397,7 +398,7 @@ export function FlexibleTable({
 
                             {actions.length > 0 && (
                                 <th
-                                    className={`w-32 px-4 py-2 text-center text-sm font-medium text-gray-600 bg-[#FAFAFA] ${getCellBorderClasses(true)}`}
+                                    className={`w-32 px-4 py-2 text-center text-sm font-medium text-gray-600 bg-[#F3F3F3] ${getCellBorderClasses(true)}`}
                                 >
                                     Action
                                 </th>
