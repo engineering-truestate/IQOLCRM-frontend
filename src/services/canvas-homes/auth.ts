@@ -6,7 +6,7 @@ import {
     signOut,
     sendPasswordResetEmail,
 } from 'firebase/auth'
-import app from '../../firebase'
+import { app } from '../../firebase'
 
 const auth = getAuth(app)
 
