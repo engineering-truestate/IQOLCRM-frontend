@@ -10,7 +10,7 @@ The **pre_rera_properties** collection stores essential information about real e
 
 ---
 
-## pre_rera_properties (Collection Name - pre_rera_properties)
+## restack_pre_rera_properties (Collection Name - restack_pre_rera_properties)
 
 Stores essential project information for public listings, search results, and summary views.
 
@@ -73,11 +73,11 @@ Stores essential project information for public listings, search results, and su
 
 ### Documentation and Media
 
-| Field         | Type          | Options / Enum | Example             |
-| ------------- | ------------- | -------------- | ------------------- |
-| brochureURL   | string        | –              | "brochureURL.pdf"   |
-| masterPlanURL | string        | –              | "masterPlanURL.pdf" |
-| unitandfloor  | array<string> | –              | []                  |
+| Field           | Type          | Options / Enum | Example |
+| --------------- | ------------- | -------------- | ------- |
+| brochureURL     | array<string> | –              | []      |
+| masterPlanURL   | array<string> | –              | []      |
+| unitandfloorURL | array<string> | –              | []      |
 
 ### Legal and Regulatory
 

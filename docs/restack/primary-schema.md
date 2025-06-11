@@ -10,7 +10,7 @@ The **primary properties** collection stores detailed information about real est
 
 ---
 
-## primary_properties (Collection Name - primary_properties)
+## restack_primary_properties (Collection Name - restack_primary_properties)
 
 Stores comprehensive information about real estate projects with detailed configurations, regulatory compliance, and development specifications.
 
@@ -30,7 +30,7 @@ Stores comprehensive information about real estate projects with detailed config
 
 | Field                | Type          | Options / Enum                            | Example             |
 | -------------------- | ------------- | ----------------------------------------- | ------------------- |
-| reraID\*             | string        | –                                         | "RERA-KA-2024-XXXX" |
+| reraId\*             | string        | –                                         | "RERA-KA-2024-XXXX" |
 | acknowledgeNumber\*  | string        | –                                         | "ACK-2024-001"      |
 | reraStatus\*         | string (enum) | Approved, Pending, Rejected, Not Required | "Approved"          |
 | localAuthority\*     | string        | –                                         | "BBMP"              |
@@ -54,7 +54,7 @@ Stores comprehensive information about real estate projects with detailed config
 | Field               | Type   | Options / Enum | Example |
 | ------------------- | ------ | -------------- | ------- |
 | currentPricePerSqft | number | –              | 2000    |
-| launchPricePerSqft  | string | –              | "1800"  |
+| launchPricePerSqft  | number | –              | 1800    |
 
 ### Location Details
 
@@ -79,11 +79,10 @@ Stores comprehensive information about real estate projects with detailed config
 
 | Field                 | Type   | Options / Enum | Example |
 | --------------------- | ------ | -------------- | ------- |
-| areaDetails           | object | –              | –       |
 | ├─ openArea           | number | –              | 5000    |
-| ├─ CoveredArea        | number | –              | 5000    |
+| ├─ coveredArea        | number | –              | 5000    |
 | ├─ landArea           | number | –              | 10000   |
-| ├─ BuiltUpArea        | number | –              | 8000    |
+| ├─ builtUpArea        | number | –              | 8000    |
 | ├─ carpetArea         | number | –              | 7000    |
 | ├─ plinthArea         | number | –              | 6000    |
 | ├─ openParkingArea    | number | –              | 500     |
@@ -109,72 +108,69 @@ Stores comprehensive information about real estate projects with detailed config
 | Field                   | Type   | Options / Enum | Example |
 | ----------------------- | ------ | -------------- | ------- |
 | DevelopmentDetails      | object | –              | –       |
-| ├─ TypeOfInventory      | string | –              | "2 BHK" |
-| ├─ NumberOfInventory    | number | –              | 50      |
-| ├─ CarpetAreaSqMtr      | number | –              | 150     |
-| ├─ BalconyVerandahSqMtr | number | –              | 20      |
-| └─ OpenTerraceSqMtr     | number | –              | 10      |
+| ├─ typeOfInventory      | string | –              | "2 BHK" |
+| ├─ numberOfInventory    | number | –              | 50      |
+| ├─ carpetAreaSqMtr      | number | –              | 150     |
+| ├─ balconyVerandahSqMtr | number | –              | 20      |
+| └─ openTerraceSqMtr     | number | –              | 10      |
 
 ### Configuration Details
 
 #### Apartments Configuration
 
-| Field                  | Type          | Options / Enum                             | Example           |
-| ---------------------- | ------------- | ------------------------------------------ | ----------------- |
-| ConfingurationDetails  | object        | –                                          | –                 |
-| apartments             | array<object> | –                                          | –                 |
-| ├─ aptType             | string (enum) | Simplex, Duplex, Triplex, Penthouse        | "Simplex"         |
-| ├─ typology            | string (enum) | Studio, 1 BHK, 2 BHK, 3 BHK, 4 BHK, 5+ BHK | "Studio"          |
-| ├─ superBuiltUpArea    | number        | –                                          | 1200              |
-| ├─ carpetArea          | number        | –                                          | 900               |
-| ├─ currentPricePerSqft | number        | –                                          | 2000              |
-| ├─ totalPrice          | number        | –                                          | 2400000           |
-| ├─ floorPlan           | string        | –                                          | "studio_plan.pdf" |
+| Field                 | Type          | Options / Enum                             | Example           |
+| --------------------- | ------------- | ------------------------------------------ | ----------------- |
+| ConfingurationDetails | object        | –                                          | –                 |
+| apartments            | array<object> | –                                          | –                 |
+| ├─ apartmentType      | string (enum) | Simplex, Duplex, Triplex, Penthouse        | "Simplex"         |
+| ├─ configuration      | string (enum) | Studio, 1 BHK, 2 BHK, 3 BHK, 4 BHK, 5+ BHK | "Studio"          |
+| ├─ superBuiltUpArea   | number        | –                                          | 1200              |
+| ├─ carpetArea         | number        | –                                          | 900               |
+| ├─ pricePerSqft       | number        | –                                          | 2000              |
+| ├─ floorPlan          | string        | –                                          | "studio_plan.pdf" |
 
 #### Villa Configuration
 
-| Field                  | Type          | Options / Enum               | Example           |
-| ---------------------- | ------------- | ---------------------------- | ----------------- |
-| villa                  | array<object> | –                            | –                 |
-| ├─ villaType           | string (enum) | UDS, Plot, Independent Villa | "UDS"             |
-| ├─ typology            | string (enum) | 2 BHK, 3 BHK, 4 BHK, 5+ BHK  | "3 BHK"           |
-| ├─ plotSize            | number        | –                            | 1200              |
-| ├─ builtUpArea         | number        | –                            | 1800              |
-| ├─ uds                 | string        | –                            | "25% (450 sq ft)" |
-| ├─ udsPercentage       | number        | –                            | 25                |
-| ├─ udsArea             | number        | –                            | 450               |
-| ├─ numberOfFloors      | number        | –                            | 2                 |
-| ├─ currentPricePerSqft | number        | –                            | 15000             |
-| ├─ totalPrice          | number        | –                            | 27000000          |
-| ├─ carpetArea          | number        | –                            | 1400              |
+| Field             | Type          | Options / Enum               | Example           |
+| ----------------- | ------------- | ---------------------------- | ----------------- |
+| villa             | array<object> | –                            | –                 |
+| ├─ villaType      | string (enum) | UDS, Plot, Independent Villa | "UDS"             |
+| ├─ configuration  | string (enum) | 2 BHK, 3 BHK, 4 BHK, 5+ BHK  | "3 BHK"           |
+| ├─ plotSize       | number        | –                            | 1200              |
+| ├─ builtUpArea    | number        | –                            | 1800              |
+| ├─ uds            | string        | –                            | "25% (450 sq ft)" |
+| ├─ udsPercentage  | number        | –                            | 25                |
+| ├─ udsArea        | number        | –                            | 450               |
+| ├─ numberOfFloors | number        | –                            | 2                 |
+| ├─ pricePerSqft   | number        | –                            | 15000             |
+| ├─ carpetArea     | number        | –                            | 1400              |
 
 #### Plot Configuration
 
-| Field                  | Type          | Options / Enum         | Example    |
-| ---------------------- | ------------- | ---------------------- | ---------- |
-| plot                   | array<object> | –                      | –          |
-| ├─ plotType            | string (enum) | ODD PLOT, "9.14x15.24" | "ODD PLOT" |
-| ├─ plotArea            | number        | –                      | 456.51     |
-| ├─ currentPricePerSqft | number        | –                      | 5000       |
-| ├─ totalPrice          | number        | –                      | 2282550    |
+| Field           | Type          | Options / Enum         | Example    |
+| --------------- | ------------- | ---------------------- | ---------- |
+| plot            | array<object> | –                      | –          |
+| ├─ plotType     | string (enum) | ODD PLOT, "9.14x15.24" | "ODD PLOT" |
+| ├─ plotArea     | number        | –                      | 456.51     |
+| ├─ pricePerSqft | number        | –                      | 5000       |
 
 ### Tower Details
 
-| Field                  | Type          | Options / Enum | Example         |
-| ---------------------- | ------------- | -------------- | --------------- |
-| TowerDetails           | array<object> | –              | –               |
-| ├─ TowerName           | string        | –              | "Tower A"       |
-| ├─ TypeOfTower         | string        | –              | "Residential"   |
-| ├─ floors              | number        | –              | 2               |
-| ├─ units               | number        | –              | 20              |
-| ├─ stilts              | number        | –              | 12              |
-| ├─ slabs               | number        | –              | 9               |
-| ├─ basements           | number        | –              | 2               |
-| ├─ TotalParking        | number        | –              | 20              |
-| ├─ TowerHeightInMeters | number        | –              | 213             |
-| └─ floorplan           | object        | –              | –               |
-| ├─ FloorNo             | string        | –              | "FloorNumber"   |
-| └─ NoOfUnits           | string        | –              | "NumberOfUnits" |
+| Field                  | Type          | Options / Enum | Example       |
+| ---------------------- | ------------- | -------------- | ------------- |
+| TowerDetails           | array<object> | –              | –             |
+| ├─ TowerName           | string        | –              | "Tower A"     |
+| ├─ TypeOfTower         | string        | –              | "Residential" |
+| ├─ floors              | number        | –              | 2             |
+| ├─ units               | number        | –              | 20            |
+| ├─ stilts              | number        | –              | 12            |
+| ├─ slabs               | number        | –              | 9             |
+| ├─ basements           | number        | –              | 2             |
+| ├─ TotalParking        | number        | –              | 20            |
+| ├─ TowerHeightInMeters | number        | –              | 213           |
+| └─ floorplan           | object        | –              | –             |
+| ├─ FloorNo             | number        | –              | 10            |
+| └─ Units               | number        | –              | 10            |
 
 ### Banking Details
 
@@ -193,10 +189,10 @@ Stores comprehensive information about real estate projects with detailed config
 | Field            | Type          | Options / Enum | Example                    |
 | ---------------- | ------------- | -------------- | -------------------------- |
 | Images           | array<string> | –              | ["img1.jpg", "img2.jpg"]   |
-| Typology&UnitPan | array<string> | –              | ["plan1.pdf", "plan2.pdf"] |
-| CDPMapURL        | string        | –              | "ggoogg.pdf"               |
-| costSheet        | string        | –              | "costsheet.pdf"            |
-| brochure         | string        | –              | "brochure.pdf"             |
+| typology&UnitPan | array<string> | –              | ["plan1.pdf", "plan2.pdf"] |
+| cdpMapURL        | array<string> | –              | ["CDP Map"]                |
+| costSheetURL     | array<string> | –              | ["costsheet.pdf" ]         |
+| brochureURL      | array<string> | –              | ["brochure.pdf"]           |
 
 ### Documents
 
@@ -204,7 +200,7 @@ Stores comprehensive information about real estate projects with detailed config
 | ------------------- | ------------- | -------------- | ---------------------------- |
 | documents           | object        | –              | –                            |
 | ├─ projectDocuments | array<string> | –              | ["doc1.pdf", "doc2.pdf"]     |
-| ├─ NOCDocuments     | array<string> | –              | ["noc1.pdf", "noc2.pdf"]     |
+| ├─ nocDocuments     | array<string> | –              | ["noc1.pdf", "noc2.pdf"]     |
 | └─ otherDocuments   | array<string> | –              | ["other1.pdf", "other2.pdf"] |
 
 ### Amenities and Facilities
@@ -231,7 +227,6 @@ Stores comprehensive information about real estate projects with detailed config
 | Complaints              | object        | –              | –                          |
 | ├─ complaintsOnProject  | array<object> | –              | –                          |
 | │ ├─ registrationNo     | string        | –              | "REG123"                   |
-| │ ├─ serialNo           | number        | –              | 1                          |
 | │ ├─ complaintNo        | string        | –              | "COMP001"                  |
 | │ ├─ complaintBy        | string        | –              | "Sophia Clark"             |
 | │ ├─ complaintDate      | string (ISO)  | –              | "2023-01-15"               |
@@ -239,7 +234,6 @@ Stores comprehensive information about real estate projects with detailed config
 | │ └─ projectName        | string        | –              | "Green Meadows"            |
 | └─ complaintsOnPromoter | array<object> | –              | –                          |
 | ├─ registrationNo       | string        | –              | "REG678"                   |
-| ├─ serialNo             | number        | –              | 1                          |
 | ├─ complaintNo          | string        | –              | "COMP006"                  |
 | ├─ complaintBy          | string        | –              | "Ethan Hayes"              |
 | ├─ complaintDate        | string (ISO)  | –              | "2023-06-10"               |

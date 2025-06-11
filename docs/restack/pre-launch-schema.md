@@ -10,7 +10,7 @@ The **pre-launch properties** collection stores comprehensive information about 
 
 ---
 
-## pre_launch_properties (Collection Name - pre_launch_properties)
+## restack_pre_launch_properties (Collection Name - restack_pre_launch_properties)
 
 Stores detailed information about pre-launch real estate projects, including apartments, villas, and plots with their specifications, pricing, and regulatory details.
 
@@ -34,7 +34,7 @@ Stores detailed information about pre-launch real estate projects, including apa
 | Field     | Type   | Options / Enum | Example                             |
 | --------- | ------ | -------------- | ----------------------------------- |
 | address\* | string | –              | "123 Oak Avenue, Pleasantville, CA" |
-| Lag       | number | –              | 34.0522                             |
+| Lat       | number | –              | 34.0522                             |
 | Long      | number | –              | 118.2437                            |
 | mapLink   | string | –              | ""https://www.google.com/maps/..."  |
 
@@ -67,38 +67,37 @@ Stores detailed information about pre-launch real estate projects, including apa
 | Field              | Type          | Options / Enum                     | Example              |
 | ------------------ | ------------- | ---------------------------------- | -------------------- |
 | apartments         | array<object> | –                                  | –                    |
-| ├─ Configuration\* | string (enum) | 1 BHK, 2 BHK, 3 BHK, 4 BHK, 5+ BHK | "2 BHK"              |
+| ├─ configuration\* | string (enum) | 1 BHK, 2 BHK, 3 BHK, 4 BHK, 5+ BHK | "2 BHK"              |
 | ├─ apartmentType   | string (enum) | simplex, duplex, penthouse         | "simplex"            |
 | ├─ sbua\*          | number        | –                                  | 1200                 |
 | ├─ carpetArea\*    | number        | –                                  | 900                  |
+| ├─ builtUpArea     | number        | –                                  | 2500                 |
 | ├─ pricePerSqft    | number        | –                                  | 10000                |
-| ├─ totalPrice      | number        | –                                  | 12000000             |
 | └─ floorPlan       | string        | –                                  | "2bhk_floorplan.pdf" |
 
 #### Villas Configuration
 
-| Field              | Type          | Options / Enum          | Example  |
-| ------------------ | ------------- | ----------------------- | -------- |
-| villas             | array<object> | –                       | –        |
-| ├─ Configuration\* | string (enum) | 2BHK, 3BHK, 4BHK, 5+BHK | "3BHK"   |
-| ├─ VillaType       | string (enum) | UDS, Plot, Independent  | "UDS"    |
-| ├─ plotSize\*      | number        | –                       | 4000     |
-| ├─ builtUpArea     | number        | –                       | 2500     |
-| ├─ carpetArea      | number        | –                       | 2000     |
-| ├─ pricePerSqft    | number        | –                       | 15000    |
-| ├─ totalPrice      | number        | –                       | 45000000 |
-| ├─ uds             | number        | –                       | 1500     |
-| └─ numberOfFloors  | number        | –                       | 2        |
+| Field              | Type          | Options / Enum          | Example |
+| ------------------ | ------------- | ----------------------- | ------- |
+| villas             | array<object> | –                       | –       |
+| ├─ configuration\* | string (enum) | 2BHK, 3BHK, 4BHK, 5+BHK | "3BHK"  |
+| ├─ villaType       | string (enum) | UDS, Plot, Independent  | "UDS"   |
+| ├─ plotSize\*      | number        | –                       | 4000    |
+| ├─ builtUpArea     | number        | –                       | 2500    |
+| ├─ sbua            | number        | –                       | 2500    |
+| ├─ carpetArea      | number        | –                       | 2000    |
+| ├─ pricePerSqft    | number        | –                       | 15000   |
+| ├─ uds             | number        | –                       | 1500    |
+| └─ numberOfFloors  | number        | –                       | 2       |
 
 #### Plots Configuration
 
-| Field           | Type          | Options / Enum | Example    |
-| --------------- | ------------- | -------------- | ---------- |
-| plots           | array<object> | –              | –          |
-| ├─ plotType\*   | string        | –              | "ODD Plot" |
-| ├─ plotArea\*   | number        | –              | 1500       |
-| ├─ pricePerSqft | number        | –              | 8000       |
-| └─ totalPrice   | number        | –              | 12000000   |
+| Field           | Type          | Options / Enum         | Example    |
+| --------------- | ------------- | ---------------------- | ---------- |
+| plots           | array<object> | –                      | –          |
+| ├─ plotType     | string (enum) | ODD PLOT, "9.14x15.24" | "ODD PLOT" |
+| ├─ plotArea\*   | number        | –                      | 1500       |
+| ├─ pricePerSqft | number        | –                      | 8000       |
 
 ### Amenities and Features
 
@@ -108,22 +107,22 @@ Stores detailed information about pre-launch real estate projects, including apa
 
 ### Documentation
 
-| Field                | Type          | Options / Enum | Example               |
-| -------------------- | ------------- | -------------- | --------------------- |
-| documents            | object        | –              | –                     |
-| ├─ villageMaps       | array<string> | –              | ["Village Map"]       |
-| ├─ cdpMaps           | array<string> | –              | ["CDP Map"]           |
-| ├─ masterPlan        | string        | –              | "Master Plan"         |
-| ├─ projectLayoutPlan | string        | –              | "Project Layout Plan" |
-| └─ brochure          | string        | –              | "Brochure"            |
+| Field                | Type          | Options / Enum | Example                 |
+| -------------------- | ------------- | -------------- | ----------------------- |
+| documents            | object        | –              | –                       |
+| ├─ villageMaps       | array<string> | –              | ["Village Map"]         |
+| ├─ cdpMapURL         | array<string> | –              | ["CDP Map"]             |
+| ├─ masterPlanURL     | array<string> | –              | ["Master Plan"]         |
+| ├─ projectLayoutPlan | array<string> | –              | ["Project Layout Plan"] |
+| └─ brochureURL       | array<string> | –              | ["Brochure"]            |
 
 ### Metadata
 
-| Field       | Type                   | Options / Enum             | Example    |
-| ----------- | ---------------------- | -------------------------- | ---------- |
-| areaUnit    | string (enum)          | sqft, sqm, acres, hectares | "sqft"     |
-| lastUpdated | number (unixTimeStamp) | –                          | 1749518450 |
-| createdAt   | number (unixTimeStamp) | –                          | 1749518450 |
+| Field       | Type                   | Options / Enum               | Example    |
+| ----------- | ---------------------- | ---------------------------- | ---------- |
+| areaUnit    | string (enum)          | sqft, sqMtr, acres, hectares | "sqft"     |
+| lastUpdated | number (unixTimeStamp) | –                            | 1749518450 |
+| createdAt   | number (unixTimeStamp) | –                            | 1749518450 |
 
 ---
 

@@ -10,34 +10,34 @@ The **post-RERA properties in stock** collection stores detailed information abo
 
 ---
 
-## post_rera_properties (Collection Name - post_rera_properties)
+## restack_post_rera_properties (Collection Name - restack_post_rera_properties)
 
 Stores comprehensive information about RERA-approved real estate projects with available inventory, including phase-wise development tracking and detailed unit configurations.
 
 ### Basic Project Information
 
-| Field              | Type          | Options / Enum                            | Example                      |
-| ------------------ | ------------- | ----------------------------------------- | ---------------------------- |
-| projectId          | string        | –                                         | "PA001"                      |
-| projectName        | string        | –                                         | "shobha daffodil"            |
-| projectType        | string (enum) | Residential, Commercial, Mixed,plotted    | "Residential"                |
-| projectDescription | string        | –                                         | "Luxury residential complex" |
-| projectSubType     | string (enum) | apartments, villa, flat, plot, commercial | "apartments"                 |
-| projectStatus      | string (enum) | active, inactive, completed, on-hold      | "active"                     |
-| projectStartDate   | number (TS)   | –                                         | 1749518450                   |
-| handoverDate       | number (TS)   | –                                         | 1749518450                   |
+| Field            | Type          | Options / Enum                            | Example                      |
+| ---------------- | ------------- | ----------------------------------------- | ---------------------------- |
+| projectId\*      | string        | –                                         | "PA001"                      |
+| projectName\*    | string        | –                                         | "shobha daffodil"            |
+| projectType      | string (enum) | Residential, Commercial, Mixed,plotted    | "Residential"                |
+| description      | string        | –                                         | "Luxury residential complex" |
+| projectSubType   | string (enum) | apartments, villa, flat, plot, commercial | "apartments"                 |
+| projectStatus    | string (enum) | active, inactive, completed, on-hold      | "active"                     |
+| projectStartDate | number (TS)   | –                                         | 1749518450                   |
+| handoverDate     | number (TS)   | –                                         | 1749518450                   |
 
 ### RERA and Regulatory Information
 
-| Field              | Type          | Options / Enum                            | Example             |
-| ------------------ | ------------- | ----------------------------------------- | ------------------- |
-| reraID             | string        | –                                         | "RERA-KA-2024-XXXX" |
-| acknowledgeNumber  | string        | –                                         | "ACK-2024-001"      |
-| reraStatus         | string (enum) | Approved, Pending, Rejected, Not Required | "Approved"          |
-| localAuthority     | string        | –                                         | "BBMP"              |
-| approvingAuthority | string        | –                                         | "BDA"               |
-| planApprovalDate   | string        | –                                         | "2024-01-15"        |
-| approvedPlanNumber | string        | –                                         | "PLAN-2024-001"     |
+| Field                | Type          | Options / Enum                            | Example             |
+| -------------------- | ------------- | ----------------------------------------- | ------------------- |
+| reraId\*             | string        | –                                         | "RERA-KA-2024-XXXX" |
+| acknowledgeNumber\*  | string        | –                                         | "ACK-2024-001"      |
+| reraStatus\*         | string (enum) | Approved, Pending, Rejected, Not Required | "Approved"          |
+| localAuthority\*     | string        | –                                         | "BBMP"              |
+| approvingAuthority\* | string        | –                                         | "BDA"               |
+| planApprovalDate\*   | string        | –                                         | "2024-01-15"        |
+| approvedPlanNumber\* | string        | –                                         | "PLAN-2024-001"     |
 
 ### Developer and Promoter Details
 
@@ -50,18 +50,11 @@ Stores comprehensive information about RERA-approved real estate projects with a
 | developerTransferFee | number        | –              | 50000                     |
 | developerTier        | string (enum) | A, B, C, D     | "A"                       |
 
-### Pricing Information
-
-| Field               | Type   | Options / Enum | Example |
-| ------------------- | ------ | -------------- | ------- |
-| currentPricePerSqft | number | –              | 2000    |
-| launchPricePerSqft  | number | –              | 1800    |
-
 ### Location Details
 
 | Field          | Type   | Options / Enum | Example                             |
 | -------------- | ------ | -------------- | ----------------------------------- |
-| address        | string | –              | "123 Oak Avenue, Pleasantville, CA" |
+| address\*      | string | –              | "123 Oak Avenue, Pleasantville, CA" |
 | Lat            | float  | –              | 34.0522                             |
 | Long           | float  | –              | 118.2437                            |
 | mapLink        | string | –              | "www.google.com"                    |
@@ -82,19 +75,19 @@ Stores comprehensive information about RERA-approved real estate projects with a
 | --------------------- | ------------- | ------------------------------------------------------------ | --------------------------- |
 | phaseDetails          | array<object> | –                                                            | –                           |
 | ├─ phaseName          | string        | –                                                            | "Shobha Dream Acres Wing 2" |
-| └─ constructionUpdate | string (enum) | Ready to Move, Under Construction, Planning Stage, Completed | "Ready to Move"             |
+| ├─ constructionUpdate | string (enum) | Ready to Move, Under Construction, Planning Stage, Completed | "Ready to Move"             |
+| └─ primaryPropertyId  | string        | -                                                            | "PA001"                     |
 
 ### Area Details
 
 | Field                 | Type   | Options / Enum | Example |
 | --------------------- | ------ | -------------- | ------- |
-| areaDetails           | object | –              | –       |
-| ├─ totalOpenArea      | number | –              | 5000    |
-| ├─ totalCoveredArea   | number | –              | 5000    |
-| ├─ totalLandArea      | number | –              | 10000   |
-| ├─ totalBuiltUpArea   | number | –              | 8000    |
-| ├─ totalCarpetArea    | number | –              | 7000    |
-| ├─ totalPlinthArea    | number | –              | 6000    |
+| ├─ openArea           | number | –              | 5000    |
+| ├─ coveredArea        | number | –              | 5000    |
+| ├─ landArea           | number | –              | 10000   |
+| ├─ builtUpArea        | number | –              | 8000    |
+| ├─ carpetArea         | number | –              | 7000    |
+| ├─ plinthArea         | number | –              | 6000    |
 | ├─ openParkingArea    | number | –              | 500     |
 | ├─ coveredParkingArea | number | –              | 1000    |
 | ├─ garageArea         | number | –              | 200     |
@@ -118,73 +111,74 @@ Stores comprehensive information about RERA-approved real estate projects with a
 | Field                   | Type   | Options / Enum | Example |
 | ----------------------- | ------ | -------------- | ------- |
 | DevelopmentDetails      | object | –              | –       |
-| ├─ TypeOfInventory      | string | –              | "2 BHK" |
-| ├─ NumberOfInventory    | number | –              | 50      |
-| ├─ CarpetAreaSqMtr      | number | –              | 150     |
-| ├─ BalconyVerandahSqMtr | number | –              | 20      |
-| └─ OpenTerraceSqMtr     | number | –              | 10      |
+| ├─ typeOfInventory      | string | –              | "2 BHK" |
+| ├─ numberOfInventory    | number | –              | 50      |
+| ├─ carpetAreaSqMtr      | number | –              | 150     |
+| ├─ balconyVerandahSqMtr | number | –              | 20      |
+| └─ openTerraceSqMtr     | number | –              | 10      |
 
 ### Configuration Details
 
 #### Apartments Configuration
 
-| Field                  | Type          | Options / Enum                        | Example |
-| ---------------------- | ------------- | ------------------------------------- | ------- |
-| ConfingurationDetails  | object        | –                                     | –       |
-| apartments             | array<object> | –                                     | –       |
-| ├─ type                | string (enum) | 1BHK, 2BHK, 3BHK, 4BHK, 5+BHK, Studio | "2BHK"  |
-| ├─ currentPricePerSqft | number        | –                                     | 2000    |
-| └─ totalAreasqft       | number        | –                                     | 2000    |
+| Field                 | Type          | Options / Enum                        | Example |
+| --------------------- | ------------- | ------------------------------------- | ------- |
+| ConfingurationDetails | object        | –                                     | –       |
+| apartments            | array<object> | –                                     | –       |
+| ├─ configuration      | string (enum) | 1BHK, 2BHK, 3BHK, 4BHK, 5+BHK, Studio | "2BHK"  |
+| ├─ pricePerSqft       | number        | –                                     | 2000    |
+| ├─ builtUpArea        | number        | –                                     | 1200    |
+| ├─ sbua               | number        | –                                     | 1200    |
+| ├─ carpetArea         | number        | –                                     | 900     |
+| └─ totalAreasqft      | number        | –                                     | 2000    |
 
 #### Villa Configuration
 
-| Field                  | Type          | Options / Enum               | Example  |
-| ---------------------- | ------------- | ---------------------------- | -------- |
-| villa                  | array<object> | –                            | []       |
-| ├─ type                | string (enum) | 2BHK, 3BHK, 4BHK, 5+BHK      | "3BHK"   |
-| ├─ villaType           | string (enum) | UDS, Plot, Independent Villa | "UDS"    |
-| ├─ plotSize            | number        | –                            | 4000     |
-| ├─ builtUpArea         | number        | –                            | 2500     |
-| ├─ carpetArea          | number        | –                            | 2000     |
-| ├─ currentPricePerSqft | number        | –                            | 15000    |
-| └─ totalPrice          | number        | –                            | 45000000 |
+| Field            | Type          | Options / Enum               | Example |
+| ---------------- | ------------- | ---------------------------- | ------- |
+| villa            | array<object> | –                            | []      |
+| ├─ configuration | string (enum) | 2BHK, 3BHK, 4BHK, 5+BHK      | "3BHK"  |
+| ├─ villaType     | string (enum) | UDS, Plot, Independent Villa | "UDS"   |
+| ├─ plotSize      | number        | –                            | 4000    |
+| ├─ builtUpArea   | number        | –                            | 2500    |
+| ├─ sbua          | number        | –                            | 1200    |
+| ├─ carpetArea    | number        | –                            | 2000    |
+| ├─ pricePerSqft  | number        | –                            | 15000   |
 
 #### Flat Configuration
 
-| Field                  | Type          | Options / Enum                        | Example  |
-| ---------------------- | ------------- | ------------------------------------- | -------- |
-| flat                   | array<object> | –                                     | []       |
-| ├─ type                | string (enum) | 1BHK, 2BHK, 3BHK, 4BHK, 5+BHK, Studio | "2BHK"   |
-| ├─ flatType            | string (enum) | Regular, Corner, Penthouse, Studio    | "Corner" |
-| ├─ builtUpArea         | number        | –                                     | 1200     |
-| ├─ carpetArea          | number        | –                                     | 900      |
-| ├─ currentPricePerSqft | number        | –                                     | 8000     |
-| └─ totalPrice          | number        | –                                     | 9600000  |
+| Field            | Type          | Options / Enum                        | Example  |
+| ---------------- | ------------- | ------------------------------------- | -------- |
+| flat             | array<object> | –                                     | []       |
+| ├─ configuration | string (enum) | 1BHK, 2BHK, 3BHK, 4BHK, 5+BHK, Studio | "2BHK"   |
+| ├─ flatType      | string (enum) | Regular, Corner, Penthouse, Studio    | "Corner" |
+| ├─ builtUpArea   | number        | –                                     | 1200     |
+| ├─ carpetArea    | number        | –                                     | 900      |
+| ├─ pricePerSqft  | number        | –                                     | 8000     |
 
 #### Plot Configuration
 
-| Field                  | Type          | Options / Enum       | Example    |
-| ---------------------- | ------------- | -------------------- | ---------- | --- |
-| plot                   | array<object> | –                    | []         |
-| ├─ plotType            | string (enum) | ODD PLOT, 9.14x15.24 | "ODD PLOT" |     |
-| ├─ plotArea            | number        | –                    | 456.51     |
-| ├─ currentPricePerSqft | number        | –                    | 5000       |
-| └─ totalPrice          | number        | –                    | 2282550    |
+| Field           | Type          | Options / Enum       | Example    |
+| --------------- | ------------- | -------------------- | ---------- | --- |
+| plot            | array<object> | –                    | []         |
+| ├─ plotType     | string (enum) | ODD PLOT, 9.14x15.24 | "ODD PLOT" |     |
+| ├─ plotArea     | number        | –                    | 456.51     |
+| ├─ pricePerSqft | number        | –                    | 5000       |
 
 ### Tower Details
 
 | Field                  | Type          | Options / Enum | Example            |
 | ---------------------- | ------------- | -------------- | ------------------ |
 | TowerDetails           | array<object> | –              | –                  |
-| ├─ TowerName           | string        | –              | "Tower A"          |
-| ├─ TypeOfTower         | string        | –              | "Residential"      |
+| ├─ towerName           | string        | –              | "Tower A"          |
+| ├─ typeOfTower         | string        | –              | "Residential"      |
 | ├─ floors              | number        | –              | 2                  |
 | ├─ units               | number        | –              | 20                 |
 | ├─ stilts              | number        | –              | 12                 |
 | ├─ slabs               | number        | –              | 9                  |
 | ├─ basements           | number        | –              | 2                  |
-| ├─ TotalParking        | number        | –              | 20                 |
-| ├─ TowerHeightInMeters | number        | –              | 213                |
+| ├─ totalParking        | number        | –              | 20                 |
+| ├─ towerHeightInMeters | number        | –              | 213                |
 | └─ floorplan           | string        | –              | "floorPlanurl.pdf" |
 
 ### Media and Documents
@@ -192,8 +186,8 @@ Stores comprehensive information about RERA-approved real estate projects with a
 | Field            | Type          | Options / Enum | Example                    |
 | ---------------- | ------------- | -------------- | -------------------------- |
 | Images           | array<string> | –              | ["img1.jpg", "img2.jpg"]   |
-| Typology&UnitPan | array<string> | –              | ["plan1.pdf", "plan2.pdf"] |
-| CDPMapURL        | string        | –              | "ggoogg.pdf"               |
+| typology&UnitPan | array<string> | –              | ["plan1.pdf", "plan2.pdf"] |
+| cdpMapURL        | string        | –              | "ggoogg.pdf"               |
 | costSheet        | string        | –              | "costsheet.pdf"            |
 | brochure         | string        | –              | "brochure.pdf"             |
 
@@ -203,11 +197,11 @@ Stores comprehensive information about RERA-approved real estate projects with a
 | -------------------------- | ------------- | -------------- | ----------------------------- |
 | documents                  | array<object> | –              | –                             |
 | ├─ phaseName               | string        | –              | "Wing 2"                      |
-| ├─ CommencementCertificate | string        | –              | "CommencementCertificate.pdf" |
-| ├─ ApprovalCertificate     | string        | –              | "ApprovalCertificate.pdf"     |
-| ├─ OccupancyCertificate    | string        | –              | "OccupancyCertificate.pdf"    |
-| ├─ ApprovedBuildingPlan    | string        | –              | "ApprovedBuildingPlan.pdf"    |
-| ├─ EnvironmentalClearance  | string        | –              | "EnvironmentalClearance.pdf"  |
+| ├─ commencementCertificate | string        | –              | "CommencementCertificate.pdf" |
+| ├─ approvalCertificate     | string        | –              | "ApprovalCertificate.pdf"     |
+| ├─ occupancyCertificate    | string        | –              | "OccupancyCertificate.pdf"    |
+| ├─ approvedBuildingPlan    | string        | –              | "ApprovedBuildingPlan.pdf"    |
+| ├─ environmentalClearance  | string        | –              | "EnvironmentalClearance.pdf"  |
 
 ### Amenities and Facilities
 
@@ -223,8 +217,6 @@ Stores comprehensive information about RERA-approved real estate projects with a
 | ├─ name          | string        | –              | "Sports Club"  |
 | ├─ sizeSqft      | number        | –              | 12000          |
 | └─ floor         | string        | –              | "Ground Floor" |
-
-                           |
 
 ### Metadata
 
@@ -243,6 +235,7 @@ Stores comprehensive information about RERA-approved real estate projects with a
 - **Residential**: Primarily residential units (apartments, villas, plots)
 - **Commercial**: Office spaces, retail, warehouses
 - **Mixed**: Combination of residential and commercial
+- **plotted**: Subdivided land plots with basic infrastructure
 
 ### Project Sub Types
 
@@ -288,18 +281,6 @@ Stores comprehensive information about RERA-approved real estate projects with a
 - **4BHK**: 4 Bedroom, Hall, Kitchen
 - **5+BHK**: 5 or more Bedroom, Hall, Kitchen
 - **Studio**: Studio apartment
-
----
-
-## Usage Context
-
-This schema is designed for:
-
-1. **Post-RERA Compliance**: Properties that have received RERA approval and compliance
-2. **Inventory Management**: Tracking available units across multiple phases
-3. **Phase-wise Development**: Managing multi-phase project development
-4. **Sales Management**: Properties actively available for sale
-5. **Regulatory Reporting**: RERA compliance and regulatory reporting
 
 ---
 
