@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { loginUser } from '../../services/canvas-homes/auth'
 import { useNavigate } from 'react-router-dom'
+import ForgotPassword from './ForgotPassword'
 
 const Login = () => {
     const [email, setEmail] = useState('')
@@ -15,6 +16,13 @@ const Login = () => {
             console.log(`Login failed: ${error.message}`)
         } finally {
             navigate('/canvas-homes/dashboard')
+        }
+    }
+    const handleForgotPassword = async () => {
+        try {
+            navigate('/forgotPassword')
+        } catch (error) {
+            console.log(error)
         }
     }
 
@@ -58,7 +66,7 @@ const Login = () => {
                     </button>
                     <a
                         className='inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800'
-                        href='#'
+                        onClick={handleForgotPassword}
                     >
                         Forgot Password?
                     </a>

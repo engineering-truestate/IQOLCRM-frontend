@@ -7,6 +7,8 @@ import LeadsPage from './pages/acn/Leads/Leads'
 import RequirementsPage from './pages/acn/Requirements/Requirements'
 import RequirementDetailsPage from './pages/acn/Requirements/RequirementDetails'
 import RequirementPropertiesSelectionPage from './pages/acn/Requirements/RequirementPropertiesSelection'
+import Logout from './pages/auth/Logout'
+import ForgotPassword from './pages/auth/ForgotPassword'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -16,6 +18,14 @@ export const authRoutes: RouteObject[] = [
     {
         path: '/register',
         element: React.createElement(React.Suspense, null, React.createElement(Register, null)),
+    },
+    {
+        path: '/logout',
+        element: React.createElement(React.Suspense, null, React.createElement(Logout, null)),
+    },
+    {
+        path: '/forgotPassword',
+        element: React.createElement(React.Suspense, null, React.createElement(ForgotPassword, null)),
     },
 ]
 
