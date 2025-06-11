@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { loginUser } from '../../services/canvas-homes/auth'
 import { useNavigate } from 'react-router-dom'
 import ForgotPassword from './ForgotPassword'
+import design from '../../../images/design.png'
 
 const Login = () => {
     const [email, setEmail] = useState('')
@@ -27,50 +28,58 @@ const Login = () => {
     }
 
     return (
-        <div className='flex flex-col items-center justify-center h-screen bg-gray-100'>
-            <div className='bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4'>
-                <h2 className='text-2xl font-bold mb-4'>Login</h2>
+        <div
+            className='flex flex-col items-center justify-center min-h-screen'
+            style={{
+                backgroundImage: `url(${design})`,
+                backgroundSize: 'cover',
+                backgroundRepeat: 'no-repeat',
+                // reduce opacity here
+            }}
+        >
+            <div className='bg-white w-[380px] h-[380px] rounded-[3%] p-6 text-center font-sans shadow-lg'>
+                <h2 className='text-[26px] text-[#09342e] font-bold'>Log in</h2>
+                <p className='text-[15px] text-[#6d7071] mb-4'>Fill in your log in details below.</p>
+
                 <div className='mb-4'>
-                    <label className='block text-gray-700 text-sm font-bold mb-2' htmlFor='email'>
-                        Email
-                    </label>
                     <input
-                        className='shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'
+                        className='w-[300px] h-[45px] rounded-[10px] border border-[#e3e5e5] px-3 text-[#706f6c] font-medium text-[15px]'
                         id='email'
                         type='email'
-                        placeholder='Email'
+                        placeholder='Your email'
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                     />
                 </div>
-                <div className='mb-6'>
-                    <label className='block text-gray-700 text-sm font-bold mb-2' htmlFor='password'>
-                        Password
-                    </label>
+
+                <div className='mb-4'>
                     <input
-                        className='shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'
+                        className='w-[300px] h-[45px] rounded-[10px] border border-[#e3e5e5] px-3 text-[#706f6c] font-medium text-[15px]'
                         id='password'
                         type='password'
-                        placeholder='Password'
+                        placeholder='Your password'
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
-                <div className='flex items-center justify-between'>
-                    <button
-                        className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline'
-                        type='button'
-                        onClick={handleLogin}
-                    >
-                        Sign In
-                    </button>
-                    <a
-                        className='inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800'
-                        onClick={handleForgotPassword}
-                    >
-                        Forgot Password?
+
+                <button
+                    className='w-[300px] h-[45px] rounded-[10px] text-white font-bold text-[19px] bg-gradient-to-l from-[#0f3d2e] to-[#1b5e3c] hover:bg-gray-600 transition-all duration-300'
+                    onClick={handleLogin}
+                >
+                    Log In
+                </button>
+
+                <div className='mt-4 text-[15px] text-[#b2b7ba]'>
+                    Don't have an account?{' '}
+                    <a href='/signup' className='hover:underline'>
+                        Sign Up
                     </a>
                 </div>
+
+                <a className='mt-2 text-[15px] text-[#ebebeb] hover:underline block' onClick={handleForgotPassword}>
+                    Forgot your password?
+                </a>
             </div>
         </div>
     )
