@@ -159,9 +159,9 @@ Stores comprehensive information about RERA-approved real estate projects with a
 #### Plot Configuration
 
 | Field           | Type          | Options / Enum       | Example    |
-| --------------- | ------------- | -------------------- | ---------- | --- |
+| --------------- | ------------- | -------------------- | ---------- |
 | plot            | array<object> | –                    | []         |
-| ├─ plotType     | string (enum) | ODD PLOT, 9.14x15.24 | "ODD PLOT" |     |
+| ├─ plotType     | string (enum) | ODD PLOT, 9.14x15.24 | "ODD PLOT" |
 | ├─ plotArea     | number        | –                    | 456.51     |
 | ├─ pricePerSqft | number        | –                    | 5000       |
 
@@ -187,9 +187,9 @@ Stores comprehensive information about RERA-approved real estate projects with a
 | ---------------- | ------------- | -------------- | -------------------------- |
 | Images           | array<string> | –              | ["img1.jpg", "img2.jpg"]   |
 | typology&UnitPan | array<string> | –              | ["plan1.pdf", "plan2.pdf"] |
-| cdpMapURL        | string        | –              | "ggoogg.pdf"               |
-| costSheet        | string        | –              | "costsheet.pdf"            |
-| brochure         | string        | –              | "brochure.pdf"             |
+| cdpMapURL        | array<string> | –              | ["ggoogg.pdf"]             |
+| costSheet        | array<string> | –              | ["costsheet.pdf" ]         |
+| brochureURL      | array<string> | –              | [ "brochure.pdf" ]         |
 
 ### Documents
 
@@ -205,9 +205,9 @@ Stores comprehensive information about RERA-approved real estate projects with a
 
 ### Amenities and Facilities
 
-| Field            | Type          | Options / Enum | Example                                     |
-| ---------------- | ------------- | -------------- | ------------------------------------------- |
-| projectAmenities | array<string> | –              | ["Swimming Pool", "Gymnasium", "Clubhouse"] |
+| Field     | Type          | Options / Enum | Example                                     |
+| --------- | ------------- | -------------- | ------------------------------------------- |
+| amenities | array<string> | –              | ["Swimming Pool", "Gymnasium", "Clubhouse"] |
 
 ### Club House Details
 

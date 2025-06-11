@@ -21,6 +21,7 @@ Stores detailed information about pre-launch real estate projects, including apa
 | projectName\*    | string                 | –                                               | "Green Valley Residences" |
 | projectType\*    | string (enum)          | Residential, Commercial,plotted, Mixed-Use      | "Residential"             |
 | stage\*          | string (enum)          | EC, Pre-Launch                                  | "EC"                      |
+| projectId        | string                 | –                                               | "PA001"                   |
 | status           | string (enum)          | Pre-Launch, Launched, Under Construction, Ready | "Pre-Launch"              |
 | developerName    | string                 | –                                               | "Sunrise Developers"      |
 | projectSize\*    | number                 | –                                               | 15                        |

@@ -20,6 +20,7 @@ Stores comprehensive information about real estate projects with detailed config
 | ------------------ | ------------- | ------------------------------------------ | ---------------------------- |
 | projectName\*      | string        | –                                          | "shobha daffodil"            |
 | projectType\*      | string (enum) | Residential, Commercial,plotted, Mixed-Use | "Residential"                |
+| projectId          | string        | –                                          | "PA001"                      |
 | projectDescription | string        | –                                          | "Luxury residential complex" |
 | projectSubType     | string (enum) | apartments, villa, flat, plot, commercial  | "apartments"                 |
 | projectStatus\*    | string (enum) | active, inactive, completed, on-hold       | "active"                     |
@@ -119,31 +120,31 @@ Stores comprehensive information about real estate projects with detailed config
 #### Apartments Configuration
 
 | Field                 | Type          | Options / Enum                             | Example           |
-| --------------------- | ------------- | ------------------------------------------ | ----------------- |
+| --------------------- | ------------- | ------------------------------------------ | ----------------- | ---- |
 | ConfingurationDetails | object        | –                                          | –                 |
 | apartments            | array<object> | –                                          | –                 |
 | ├─ apartmentType      | string (enum) | Simplex, Duplex, Triplex, Penthouse        | "Simplex"         |
 | ├─ configuration      | string (enum) | Studio, 1 BHK, 2 BHK, 3 BHK, 4 BHK, 5+ BHK | "Studio"          |
 | ├─ superBuiltUpArea   | number        | –                                          | 1200              |
+| ├                     | ─ sbua        | number                                     | –                 | 1800 |
 | ├─ carpetArea         | number        | –                                          | 900               |
 | ├─ pricePerSqft       | number        | –                                          | 2000              |
 | ├─ floorPlan          | string        | –                                          | "studio_plan.pdf" |
 
 #### Villa Configuration
 
-| Field             | Type          | Options / Enum               | Example           |
-| ----------------- | ------------- | ---------------------------- | ----------------- |
-| villa             | array<object> | –                            | –                 |
-| ├─ villaType      | string (enum) | UDS, Plot, Independent Villa | "UDS"             |
-| ├─ configuration  | string (enum) | 2 BHK, 3 BHK, 4 BHK, 5+ BHK  | "3 BHK"           |
-| ├─ plotSize       | number        | –                            | 1200              |
-| ├─ builtUpArea    | number        | –                            | 1800              |
-| ├─ uds            | string        | –                            | "25% (450 sq ft)" |
-| ├─ udsPercentage  | number        | –                            | 25                |
-| ├─ udsArea        | number        | –                            | 450               |
-| ├─ numberOfFloors | number        | –                            | 2                 |
-| ├─ pricePerSqft   | number        | –                            | 15000             |
-| ├─ carpetArea     | number        | –                            | 1400              |
+| Field             | Type          | Options / Enum               | Example |
+| ----------------- | ------------- | ---------------------------- | ------- | ---- |
+| villa             | array<object> | –                            | –       |
+| ├─ villaType      | string (enum) | UDS, Plot, Independent Villa | "UDS"   |
+| ├─ configuration  | string (enum) | 2 BHK, 3 BHK, 4 BHK, 5+ BHK  | "3 BHK" |
+| ├─ plotSize       | number        | –                            | 1200    |
+| ├─ builtUpArea    | number        | –                            | 1800    |
+|                   | ─ sbua        | number                       | –       | 1800 |
+| ├─ uds            | number        | –                            | 25      |
+| ├─ numberOfFloors | number        | –                            | 2       |
+| ├─ pricePerSqft   | number        | –                            | 15000   |
+| ├─ carpetArea     | number        | –                            | 1400    |
 
 #### Plot Configuration
 
@@ -159,18 +160,17 @@ Stores comprehensive information about real estate projects with detailed config
 | Field                  | Type          | Options / Enum | Example       |
 | ---------------------- | ------------- | -------------- | ------------- |
 | TowerDetails           | array<object> | –              | –             |
-| ├─ TowerName           | string        | –              | "Tower A"     |
-| ├─ TypeOfTower         | string        | –              | "Residential" |
+| ├─ towerName           | string        | –              | "Tower A"     |
+| ├─ typeOfTower         | string        | –              | "Residential" |
 | ├─ floors              | number        | –              | 2             |
-| ├─ units               | number        | –              | 20            |
 | ├─ stilts              | number        | –              | 12            |
 | ├─ slabs               | number        | –              | 9             |
 | ├─ basements           | number        | –              | 2             |
-| ├─ TotalParking        | number        | –              | 20            |
-| ├─ TowerHeightInMeters | number        | –              | 213           |
+| ├─ totalParking        | number        | –              | 20            |
+| ├─ towerHeightInMeters | number        | –              | 213           |
 | └─ floorplan           | object        | –              | –             |
-| ├─ FloorNo             | number        | –              | 10            |
-| └─ Units               | number        | –              | 10            |
+| ├─ floorNo             | number        | –              | 10            |
+| └─ units               | number        | –              | 10            |
 
 ### Banking Details
 
@@ -205,9 +205,9 @@ Stores comprehensive information about real estate projects with detailed config
 
 ### Amenities and Facilities
 
-| Field            | Type          | Options / Enum | Example                                     |
-| ---------------- | ------------- | -------------- | ------------------------------------------- |
-| projectAmenities | array<string> | –              | ["Swimming Pool", "Gymnasium", "Clubhouse"] |
+| Field     | Type          | Options / Enum | Example                                     |
+| --------- | ------------- | -------------- | ------------------------------------------- |
+| amenities | array<string> | –              | ["Swimming Pool", "Gymnasium", "Clubhouse"] |
 
 ### Club House Details
 
@@ -221,7 +221,7 @@ Stores comprehensive information about real estate projects with detailed config
 ### Legal Information
 
 | Field                   | Type          | Options / Enum | Example                    |
-| ----------------------- | ------------- | -------------- | -------------------------- |
+| ----------------------- | ------------- | -------------- | -------------------------- | ------------- |
 | litigation              | string (enum) | Yes, No        | "Yes"                      |
 | affidavitLink           | string        | –              | "google/cno"               |
 | Complaints              | object        | –              | –                          |
@@ -235,7 +235,7 @@ Stores comprehensive information about real estate projects with detailed config
 | └─ complaintsOnPromoter | array<object> | –              | –                          |
 | ├─ registrationNo       | string        | –              | "REG678"                   |
 | ├─ complaintNo          | string        | –              | "COMP006"                  |
-| ├─ complaintBy          | string        | –              | "Ethan Hayes"              |
+|                         | ─ complaintBy | string         | –                          | "Ethan Hayes" |
 | ├─ complaintDate        | string (ISO)  | –              | "2023-06-10"               |
 | ├─ complaintSubject     | string        | –              | "Financial irregularities" |
 | └─ projectName          | string        | –              | "Green Meadows"            |
