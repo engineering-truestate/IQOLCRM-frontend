@@ -605,7 +605,7 @@ const RequirementDetailsPage = () => {
                                     {/* Previous Notes */}
                                     <div>
                                         <h4 className='text-sm font-medium text-gray-700 mb-2'>Previous Notes</h4>
-                                        <div className='max-h-64 overflow-y-auto space-y-3'>
+                                        <div className='max-h-90 overflow-y-auto space-y-3'>
                                             {notes.length > 0 ? (
                                                 notes.map((note) => (
                                                     <div
