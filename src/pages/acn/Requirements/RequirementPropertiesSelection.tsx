@@ -3,67 +3,59 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import { generateProperties, type PropertyData } from '../../dummy_data/acn_properties_dummy_data'
+import { fetchPropertiesBatch } from '../../../services/acn/properties/propertiesService'
 import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
 import resetic from '/icons/acn/rotate-left.svg'
-// import writeic from '/icons/acn/write.svg'
-// import shareic from '/icons/acn/share.svg'
-
-// Custom status badge component
-// const StatusBadge = ({ status }: { status: string }) => {
-//     const getStatusColors = () => {
-//         switch (status) {
-//             case 'Available':
-//                 return 'bg-[#E1F6DF] text-black border-[#9DE695]'
-//             case 'Sold':
-//                 return 'bg-[#F5F5F5] text-black border-[#CCCBCB]'
-//             case 'Hold':
-//                 return 'bg-[#FFF4E6] text-black border-[#FCCE74]'
-//             case 'De-Listed':
-//                 return 'bg-[#FFC8B8] text-black border-[#FF8A65]'
-//             default:
-//                 return 'border-gray-400 text-gray-600 bg-gray-50'
-//         }
-//     }
-
-//     return (
-//         <span
-//             className={`inline-flex items-center rounded-full border px-3 py-2 text-xs font-medium whitespace-nowrap ${getStatusColors()}`}
-//         >
-//             {status}
-//         </span>
-//     )
-// }
+import type { AppDispatch, RootState } from '../../../store/index'
+import type { IInventory } from '../../../store/reducers/types'
 
 const PropertiesSelectionPage = () => {
     const navigate = useNavigate()
     const { id } = useParams() // requirement ID
+    const dispatch = useDispatch<AppDispatch>()
 
+    // Redux state
+    const {
+        properties: propertiesData,
+        loading,
+        error,
+        hasMore,
+        isLoadingMore,
+    } = useSelector((state: RootState) => state.properties)
+
+    // Local state
     const [searchValue, setSearchValue] = useState('')
     const [activeTab, setActiveTab] = useState('resale')
     const [selectedInventoryStatus, setSelectedInventoryStatus] = useState('')
     const [selectedKAM, setSelectedKAM] = useState('')
     const [selectedSort, setSelectedSort] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
-    const [paginatedData, setPaginatedData] = useState<PropertyData[]>([])
-    const [filteredData, setFilteredData] = useState<PropertyData[]>([])
+    const [paginatedData, setPaginatedData] = useState<IInventory[]>([])
+    const [filteredData, setFilteredData] = useState<IInventory[]>([])
     const [selectedProperties, setSelectedProperties] = useState<Set<string>>(new Set())
     const [_, setRequirement] = useState<RequirementData | null>(null)
 
     // Items per page
     const ITEMS_PER_PAGE = 50
+    const BATCH_SIZE = 100
 
     // Load properties and requirement data
-    const [propertiesData, setPropertiesData] = useState<PropertyData[]>([])
-
     useEffect(() => {
-        const properties = generateProperties()
-        setPropertiesData(properties)
+        const loadInitialData = async () => {
+            try {
+                await dispatch(fetchPropertiesBatch(BATCH_SIZE, false))
+            } catch (error) {
+                console.error('Failed to load properties:', error)
+            }
+        }
+
+        loadInitialData()
 
         // Load requirement data
         if (id) {
@@ -75,13 +67,62 @@ const PropertiesSelectionPage = () => {
                 setSelectedProperties(new Set(foundRequirement.matchedPropertyIds))
             }
         }
-    }, [id])
+    }, [dispatch, id])
 
-    // Filter data based on active tab (for now, showing all properties)
+    // Filter data based on search and other filters
     useEffect(() => {
-        setFilteredData(propertiesData)
+        const filtered = [...propertiesData]
+
+        // Apply search filter
+        // if (searchValue.trim()) {
+        //     const searchLower = searchValue.toLowerCase()
+        //     filtered = filtered.filter(
+        //         (property) =>
+        //             property.propertyId?.toLowerCase().includes(searchLower) ||
+        //             property.propertyName?.toLowerCase().includes(searchLower) ||
+        //             property.micromarket?.toLowerCase().includes(searchLower) ||
+        //             property.agentName?.toLowerCase().includes(searchLower)
+        //     )
+        // }
+
+        // Apply inventory status filter
+        // if (selectedInventoryStatus) {
+        //     filtered = filtered.filter(
+        //         (property) => property.status?.toLowerCase() === selectedInventoryStatus.toLowerCase()
+        //     )
+        // }
+
+        // Apply KAM filter
+        // if (selectedKAM) {
+        //     filtered = filtered.filter(
+        //         (property) => property.kam?.toLowerCase().includes(selectedKAM.toLowerCase())
+        //     )
+        // }
+
+        // Apply sorting
+        // if (selectedSort) {
+        //     switch (selectedSort) {
+        //         case 'price_asc':
+        //             filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
+        //             break
+        //         case 'price_desc':
+        //             filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
+        //             break
+        //         case 'recent':
+        //             filtered.sort((a, b) => {
+        //                 const dateA = a.dateOfInventoryAdded ? new Date(a.dateOfInventoryAdded).getTime() : 0
+        //                 const dateB = b.dateOfInventoryAdded ? new Date(b.dateOfInventoryAdded).getTime() : 0
+        //                 return dateB - dateA
+        //             })
+        //             break
+        //         default:
+        //             break
+        //     }
+        // }
+
+        setFilteredData(filtered)
         setCurrentPage(1)
-    }, [activeTab, propertiesData])
+    }, [propertiesData, searchValue, selectedInventoryStatus, selectedKAM, selectedSort])
 
     // Calculate total pages based on filtered data
     const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
@@ -90,8 +131,16 @@ const PropertiesSelectionPage = () => {
     useEffect(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
         const endIndex = startIndex + ITEMS_PER_PAGE
-        setPaginatedData(filteredData.slice(startIndex, endIndex))
-    }, [currentPage, filteredData])
+        const currentPageData = filteredData.slice(startIndex, endIndex)
+
+        setPaginatedData(currentPageData)
+
+        // Load more data if we're approaching the end and there's more to load
+        const remainingItems = filteredData.length - endIndex
+        if (remainingItems < ITEMS_PER_PAGE && hasMore && !isLoadingMore) {
+            dispatch(fetchPropertiesBatch(BATCH_SIZE, true))
+        }
+    }, [currentPage, filteredData, hasMore, isLoadingMore, dispatch])
 
     // Handle property selection
     const togglePropertySelection = (propertyId: string) => {
@@ -112,14 +161,14 @@ const PropertiesSelectionPage = () => {
             // Deselect all current page items
             setSelectedProperties((prev) => {
                 const newSet = new Set(prev)
-                paginatedData.forEach((item) => newSet.delete(item.propertyId))
+                paginatedData.forEach((item) => newSet.delete(item.propertyId || item.id))
                 return newSet
             })
         } else {
             // Select all current page items
             setSelectedProperties((prev) => {
                 const newSet = new Set(prev)
-                paginatedData.forEach((item) => newSet.add(item.propertyId))
+                paginatedData.forEach((item) => newSet.add(item.propertyId || item.id))
                 return newSet
             })
         }
@@ -127,16 +176,48 @@ const PropertiesSelectionPage = () => {
 
     // Handle save selected properties
     const saveSelectedProperties = () => {
-        // In a real app, this would make an API call to update the requirement
         console.log('Saving selected properties:', Array.from(selectedProperties))
         navigate(`/acn/requirements/${id}/details`)
     }
 
     // Helper function to update a specific row's data
-    const updateRowData = (propertyId: string, field: keyof PropertyData, value: string) => {
-        setPropertiesData((prevData) =>
-            prevData.map((row) => (row.propertyId === propertyId ? { ...row, [field]: value } : row)),
-        )
+    const updateRowData = (propertyId: string, field: keyof IInventory, value: string) => {
+        // You can implement this to update the property in Redux store
+        console.log('Update property:', propertyId, field, value)
+        // Example: dispatch an action to update the property
+    }
+
+    // Format currency
+    const formatCurrency = (amount: number | undefined | null) => {
+        if (!amount) return '₹0'
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0,
+        }).format(amount)
+    }
+
+    // Format date
+    const formatDate = (date: any) => {
+        if (!date) return '-'
+        let dateObj: Date
+
+        if (date?.toDate) {
+            // Firestore Timestamp
+            dateObj = date.toDate()
+        } else if (typeof date === 'string') {
+            dateObj = new Date(date)
+        } else if (date instanceof Date) {
+            dateObj = date
+        } else {
+            return '-'
+        }
+
+        return dateObj.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        })
     }
 
     // Dropdown options
@@ -167,26 +248,26 @@ const PropertiesSelectionPage = () => {
         {
             label: 'Available',
             value: 'Available',
-            color: '#E1F6DF', // Light green background
-            textColor: '#065F46', // Dark green text
+            color: '#E1F6DF',
+            textColor: '#065F46',
         },
         {
             label: 'Sold',
             value: 'Sold',
-            color: '#F5F5F5', // Light gray background
-            textColor: '#374151', // Dark gray text
+            color: '#F5F5F5',
+            textColor: '#374151',
         },
         {
             label: 'Hold',
             value: 'Hold',
-            color: '#FFF4E6', // Light yellow background
-            textColor: '#92400E', // Dark yellow text
+            color: '#FFF4E6',
+            textColor: '#92400E',
         },
         {
             label: 'De-Listed',
             value: 'De-Listed',
-            color: '#FFC8B8', // Light red background
-            textColor: '#991B1B', // Dark red text
+            color: '#FFC8B8',
+            textColor: '#991B1B',
         },
     ]
 
@@ -198,8 +279,8 @@ const PropertiesSelectionPage = () => {
             render: (_, row) => (
                 <input
                     type='checkbox'
-                    checked={selectedProperties.has(row.propertyId)}
-                    onChange={() => togglePropertySelection(row.propertyId)}
+                    checked={selectedProperties.has(row.propertyId || row.id)}
+                    onChange={() => togglePropertySelection(row.propertyId || row.id)}
                     className='rounded'
                 />
             ),
@@ -207,53 +288,59 @@ const PropertiesSelectionPage = () => {
         {
             key: 'propertyId',
             header: 'Property ID',
-            render: (value) => <span className='whitespace-nowrap text-gray-600 text-sm font-normal'>{value}</span>,
+            render: (value, row) => (
+                <span className='whitespace-nowrap text-gray-600 text-sm font-normal'>{value || row.id}</span>
+            ),
         },
         {
-            key: 'propertyName',
+            key: 'nameOfTheProperty',
             header: 'Property Name',
             render: (value) => (
-                <div className='max-w-[180px] truncate text-sm font-semibold' title={value}>
-                    {value}
+                <div className='max-w-[180px] truncate text-sm font-semibold' title={value || ''}>
+                    {value || '-'}
                 </div>
             ),
         },
         {
             key: 'assetType',
             header: 'Asset Type',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value || '-'}</span>,
         },
         {
             key: 'price',
             header: 'Price',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{formatCurrency(value)}</span>,
         },
         {
             key: 'sbua',
             header: 'SBUA',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal'>{value ? `${value} sq ft` : '-'}</span>
+            ),
         },
         {
             key: 'plotSize',
             header: 'Plot Size',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal'>{value ? `${value} sq ft` : '-'}</span>
+            ),
         },
         {
             key: 'facing',
             header: 'Facing',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value || '-'}</span>,
         },
         {
             key: 'enquiries',
             header: 'Enquiries',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value || '0'}</span>,
         },
         {
             key: 'micromarket',
             header: 'Micromarket',
             render: (value) => (
-                <div className='max-w-[120px] truncate text-sm font-normal' title={value}>
-                    {value}
+                <div className='max-w-[120px] truncate text-sm font-normal' title={value || ''}>
+                    {value || '-'}
                 </div>
             ),
         },
@@ -264,52 +351,65 @@ const PropertiesSelectionPage = () => {
                 options: statusDropdownOptions,
                 placeholder: 'Select Status',
                 onChange: (value, row) => {
-                    updateRowData(row.propertyId, 'status', value)
-                    console.log('Property status changed:', value, row)
+                    updateRowData(row.propertyId || row.id, 'status', value)
                 },
             },
         },
         {
             key: 'lastCheck',
             header: 'Last check',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (value, row) => (
+                <span className='whitespace-nowrap text-sm font-normal'>
+                    {formatDate(value || row.dateOfInventoryAdded)}
+                </span>
+            ),
         },
         {
             key: 'agentName',
             header: 'Agent Name',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value || '-'}</span>,
         },
-        // {
-        //     key: 'actions',
-        //     header: 'Actions',
-        //     fixed: true,
-        //     fixedPosition: 'right',
-        //     render: (_, row) => (
-        //         <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
-        //             <button
-        //                 className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-        //                 onClick={() => {
-        //                     //setSelectedRowData(row)
-        //                     //setIsCallResultModalOpen(true)
-        //                 }}
-        //                 title='Call'
-        //             >
-        //                 <img src={writeic} alt='Phone Icon' className='w-7 h-7 flex-shrink-0' />
-        //             </button>
-        //             <button
-        //                 className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-        //                 onClick={() => {
-        //                     //setSelectedRowData(row)
-        //                     //setIsNotesModalOpen(true)
-        //                 }}
-        //                 title='Notes'
-        //             >
-        //                 <img src={shareic} alt='Notes Icon' className='w-7 h-7 flex-shrink-0' />
-        //             </button>
-        //         </div>
-        //     ),
-        // },
     ]
+
+    // Reset filters
+    const resetFilters = () => {
+        setSearchValue('')
+        setSelectedInventoryStatus('')
+        setSelectedKAM('')
+        setSelectedSort('')
+    }
+
+    if (loading && propertiesData.length === 0) {
+        return (
+            <Layout loading={true}>
+                <div className='flex items-center justify-center h-64'>
+                    <div className='text-center'>
+                        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
+                        <p className='text-gray-600'>Loading properties...</p>
+                    </div>
+                </div>
+            </Layout>
+        )
+    }
+
+    if (error) {
+        return (
+            <Layout loading={false}>
+                <div className='flex items-center justify-center h-64'>
+                    <div className='text-center'>
+                        <p className='text-red-600 mb-4'>Error loading properties: {error}</p>
+                        <Button
+                            bgColor='bg-blue-600'
+                            textColor='text-white'
+                            onClick={() => dispatch(fetchPropertiesBatch(BATCH_SIZE, false))}
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                </div>
+            </Layout>
+        )
+    }
 
     return (
         <Layout loading={false}>
@@ -349,7 +449,7 @@ const PropertiesSelectionPage = () => {
                                                 />
                                             </svg>
                                         }
-                                        placeholder='Search'
+                                        placeholder='Search properties...'
                                         value={searchValue}
                                         onChange={(e) => setSearchValue(e.target.value)}
                                         className='h-8'
@@ -387,7 +487,11 @@ const PropertiesSelectionPage = () => {
 
                             {/* Other Filters */}
                             <div className='flex items-center gap-2'>
-                                <button className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md'>
+                                <button
+                                    className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md hover:bg-gray-200'
+                                    onClick={resetFilters}
+                                    title='Reset Filters'
+                                >
                                     <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
                                 </button>
 
@@ -434,6 +538,15 @@ const PropertiesSelectionPage = () => {
                                 </Button>
                             </div>
                         </div>
+
+                        {/* Data Summary */}
+                        <div className='flex items-center gap-4 text-sm text-gray-600 mb-2'>
+                            <span>Total: {filteredData.length} properties</span>
+                            {isLoadingMore && <span className='text-blue-600'>Loading more...</span>}
+                            {!hasMore && propertiesData.length > 0 && (
+                                <span className='text-green-600'>All properties loaded</span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Save Button - Shows when properties are selected */}
@@ -466,13 +579,15 @@ const PropertiesSelectionPage = () => {
                                         type='checkbox'
                                         checked={
                                             paginatedData.length > 0 &&
-                                            paginatedData.every((item) => selectedProperties.has(item.propertyId))
+                                            paginatedData.every((item) =>
+                                                selectedProperties.has(item.propertyId || item.id),
+                                            )
                                         }
                                         onChange={toggleSelectAll}
                                         className='rounded'
                                     />
                                     {paginatedData.length > 0 &&
-                                    paginatedData.every((item) => selectedProperties.has(item.propertyId))
+                                    paginatedData.every((item) => selectedProperties.has(item.propertyId || item.id))
                                         ? 'Deselect All'
                                         : 'Select All'}{' '}
                                     ({paginatedData.length} on this page)

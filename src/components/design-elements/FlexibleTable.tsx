@@ -329,7 +329,7 @@ export function FlexibleTable({
             <div className='overflow-auto' style={containerStyle}>
                 <table className={getTableClasses()}>
                     <thead className={stickyHeader ? 'rounded-lg sticky top-0 z-30 bg-[#F3F3F3] shadow-sm' : ''}>
-                        <tr className={`${stickyHeader ? 'bg-white' : ''} ${headerClassName}`}>
+                        <tr className={`rounded-lg ${stickyHeader ? 'bg-white' : ''} ${headerClassName}`}>
                             {showCheckboxes && (
                                 <th
                                     className={`rounded-lg w-12 px-4 py-2 text-center bg-[#F3F3F3] ${hasLeftFixedColumns ? 'sticky left-0 z-40' : ''} ${getCellBorderClasses(true)}`}
