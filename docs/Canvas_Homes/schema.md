@@ -71,36 +71,32 @@ Stores marketing campaign details including campaign metadata, budget, dates, an
 
 Tracks property enquiries made by leads, current status of enquiry, activity history, and notes by agents.
 
-| Field            | Type           | Example          | Options                                                                                                      |
-| ---------------- | -------------- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
-| enquiryId        | string         | "enq_001"        | —                                                                                                            |
-| leadId           | string         | "lead_123"       | —                                                                                                            |
-| agentId          | string         | "agent_456"      | —                                                                                                            |
-| propertyName     | string         | "Green Villas"   | —                                                                                                            |
-| source           | string         | "Facebook Ads"   | —                                                                                                            |
-| status           | string         | "interested"     | interested \| follow up \| not interested \| not connected \| visit unsuccessful \| visit dropped \| eoi dropped \| booking dropped \| requirement collected |
-| stage            | string         | "lead registered"| lead registered \| initial contacted \| site visited \| eoi collected \| booking confirmed                     |
-
-| agentHistory     | array (object) | —                |                                                                                                              |
-| ├─ agentHistory[].timestamp | number (TS)    | 1717905000000    | —                                                                                                            |
-| ├─ agentHistory[].agentId | string         | "Rahul Mehta"    | —                                                                                                            |
-| └─ agentHistory[].lastStage | string         | "site visited"   | —                                                                                                            |
-
-| notes            | array (object) | —                |                                                                                                              |
-| ├─ notes[].timestamp        | number (TS)    | 1717906000000    | —                                                                                                            |
-| ├─ notes[].agentId          | string         | "agent_456"      | —                                                                                                            |
-| └─ notes[].note             | string         | "Follow up call" | —                                                                                                            |
-
-| activityHistory  | array (object) | —                |                                                                                                              |
-| ├─ activityHistory[].timestamp    | number (TS)    | 1717907000000    | —                                                                                                            |
-| ├─ activityHistory[].agentId      | string         | "agent_456"      | —                                                                                                            |
-| ├─ activityHistory[].activityType | string         | "call"           | —                                                                                                            |
-| ├─ activityHistory[].activityStatus| string        | "completed"      | —                                                                                                            |
-| └─ activityHistory[].activityNote | string         | "Left voicemail" | —                                                                                                            |
-
-| tag              | string         | "hot"            | cold \| potential \| hot \| super hot                                                                        |
-| added            | number (TS)    | 1717833600000    | —                                                                                                            |
-| lastModified     | number (TS)    | 1717916400000    | —                                                                                                            |
+| Field                | Type         | Example          | Options                                                                                                      |
+| -------------------- | ------------ | ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| enquiryId            | string       | "enq_001"        | —                                                                                                            |
+| leadId               | string       | "lead_123"       | —                                                                                                            |
+| agentId              | string       | "agent_456"      | —                                                                                                            |
+| propertyName         | string       | "Green Villas"   | —                                                                                                            |
+| source               | string       | "Facebook Ads"   | —                                                                                                            |
+| status               | string       | "interested"     | interested \| follow up \| not interested \| not connected \| visit unsuccessful \| visit dropped \| eoi dropped \| booking dropped \| requirement collected |
+| stage                | string       | "lead registered"| lead registered \| initial contacted \| site visited \| eoi collected \| booking confirmed                     |
+| agentHistory         | array        | Array of objects | —                                                                                                            |
+| ├─ agentHistory[].timestamp | number (TS) | 1717905000000    | —                                                                                                            |
+| ├─ agentHistory[].agentId  | string      | "Rahul Mehta"    | —                                                                                                            |
+| └─ agentHistory[].lastStage  | string      | "site visited"   | —                                                                                                            |
+| notes                | array        | Array of objects | —                                                                                                            |
+| ├─ notes[].timestamp         | number (TS) | 1717906000000    | —                                                                                                            |
+| ├─ notes[].agentId           | string      | "agent_456"      | —                                                                                                            |
+| └─ notes[].note              | string      | "Follow up call" | —                                                                                                            |
+| activityHistory      | array        | Array of objects | —                                                                                                            |
+| ├─ activityHistory[].timestamp    | number (TS) | 1717907000000    | —                                                                                                            |
+| ├─ activityHistory[].agentId      | string      | "agent_456"      | —                                                                                                            |
+| ├─ activityHistory[].activityType | string      | "call"           | —                                                                                                            |
+| ├─ activityHistory[].activityStatus | string    | "completed"      | —                                                                                                            |
+| └─ activityHistory[].activityNote | string      | "Left voicemail" | —                                                                                                            |
+| tag                  | string       | "hot"            | cold \| potential \| hot \| super hot                                                                        |
+| added                | number (TS)  | 1717833600000    | —                                                                                                            |
+| lastModified         | number (TS)  | 1717916400000    | —                                                                                                            |
 
 ---
 
