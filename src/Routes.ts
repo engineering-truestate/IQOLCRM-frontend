@@ -9,6 +9,7 @@ import RequirementDetailsPage from './pages/acn/Requirements/RequirementDetails'
 import RequirementPropertiesSelectionPage from './pages/acn/Requirements/RequirementPropertiesSelection'
 import Logout from './pages/auth/Logout'
 import ForgotPassword from './pages/auth/ForgotPassword'
+import PreLaunchPage from './pages/restack/PreLaunch/PreLaunch'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -53,6 +54,10 @@ export const protectedRoutes: RouteObject[] = [
             null,
             React.createElement(RequirementPropertiesSelectionPage, null),
         ),
+    },
+    {
+        path: '/restack/prelaunch',
+        element: React.createElement(React.Suspense, null, React.createElement(PreLaunchPage, null)),
     },
 ]
 
