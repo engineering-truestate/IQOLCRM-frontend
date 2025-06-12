@@ -12,6 +12,7 @@ import {
     generatePreLaunchProjects,
     type PreLaunchProject,
 } from '../../dummy_data/restack_prelaunch_dummy_data'
+import PreLaunchModal, { type PreLaunchFormData } from '../../../components/restack/AddPreLaunchProjectModal'
 
 const PreLaunchPage = () => {
     const [searchValue, setSearchValue] = useState('')
@@ -23,7 +24,7 @@ const PreLaunchPage = () => {
     const ITEMS_PER_PAGE = 50
 
     // Initialize projects data
-    const [projectsData] = useState<PreLaunchProject[]>(() => {
+    const [projectsData, setProjectsData] = useState<PreLaunchProject[]>(() => {
         // Use sample data that matches the image, then add more generated data
         const additionalProjects = generatePreLaunchProjects(50)
         return [...samplePreLaunchProjects, ...additionalProjects]
@@ -94,6 +95,19 @@ const PreLaunchPage = () => {
             ),
         },
     ]
+    const [showModal, setShowModal] = useState(false)
+
+    const handleAddProject = (data: PreLaunchFormData) => {
+        const total = projectsData.length
+        const offset = Math.floor(Math.random() * 100) + 1
+        const newProject: PreLaunchProject = {
+            id: `PRE-${(total + offset).toString().padStart(3, '0')}`,
+            pId: `P${(total + offset).toString().padStart(4, '0')}`,
+            ...data,
+        }
+        setProjectsData((prev) => [newProject, ...prev])
+        setShowModal(false)
+    }
 
     return (
         <Layout loading={false}>
@@ -131,10 +145,8 @@ const PreLaunchPage = () => {
                                     bgColor='bg-gray-200'
                                     textColor='text-gray-600'
                                     className='px-6 h-8 font-medium transition-colors'
-                                    onClick={() => {
-                                        console.log('Add new project')
-                                        // Handle add project action
-                                    }}
+                                    onClick={() => setShowModal(true)}
+                                    // Handle add project action
                                 >
                                     Add
                                 </Button>
@@ -260,6 +272,9 @@ const PreLaunchPage = () => {
                     </div>
                 </div>
             </div>
+            {showModal && (
+                <PreLaunchModal isOpen={showModal} onClose={() => setShowModal(false)} onSave={handleAddProject} />
+            )}
         </Layout>
     )
 }

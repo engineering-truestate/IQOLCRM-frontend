@@ -13,7 +13,7 @@ export interface PreLaunchProject {
 }
 
 // Sample developers and locations for variety
-const developers = [
+export const developers = [
     'Sunrise Developers',
     'Shobha Limited',
     'Godrej Properties',
@@ -23,7 +23,7 @@ const developers = [
     'Sobha Limited',
 ]
 
-const locations = [
+export const locations = [
     'Whitefield',
     'Electronic City',
     'Hebbal',
@@ -36,7 +36,7 @@ const locations = [
     'Yelahanka',
 ]
 
-const projectTypes = [
+export const projectTypes = [
     'Residential Apartment',
     'Villa Community',
     'Plotted Development',
