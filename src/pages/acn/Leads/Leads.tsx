@@ -24,6 +24,17 @@ import whatsappic from '/icons/acn/whatsapp.svg'
 import instagramic from '/icons/acn/insta.svg'
 import referic from '/icons/acn/referral.svg'
 import organicic from '/icons/acn/organic.svg'
+import MetricsCards from '../../../components/design-elements/MetricCards'
+
+const sampleMetrics = [
+    { label: 'Total Leads', value: 50 },
+    { label: 'Not Contacted', value: 2 },
+    { label: 'Total Interested', value: 100 },
+    { label: 'Total Verified', value: 350 },
+    { label: 'Calls', value: 125 },
+    { label: 'Connects', value: 125 },
+    { label: 'RNR', value: 10 },
+]
 
 // Custom status badge component with outline design
 const StatusBadge = ({ status, type }: { status: string; type: 'lead' | 'connect' }) => {
@@ -376,6 +387,7 @@ const LeadsPage = () => {
                             </div>
                         </div>
                         <hr className='border-gray-200 mb-4' />
+                        <MetricsCards metrics={sampleMetrics} className='mb-2' />
                         {/* Filters */}
                         <div className='flex items-center gap-2 mb-2'>
                             <button className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md'>
@@ -429,7 +441,7 @@ const LeadsPage = () => {
 
                     {/* Table with fixed actions column and vertical scrolling */}
                     <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                        <div className='h-[75vh] overflow-y-auto'>
+                        <div className='h-[65vh] overflow-y-auto'>
                             <FlexibleTable
                                 data={paginatedData}
                                 columns={columns}
@@ -441,7 +453,7 @@ const LeadsPage = () => {
                                     cells: false,
                                     outer: false,
                                 }}
-                                maxHeight='75vh'
+                                maxHeight='65vh'
                                 className='rounded-lg'
                                 stickyHeader={true}
                             />
