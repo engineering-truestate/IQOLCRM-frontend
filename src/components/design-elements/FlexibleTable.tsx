@@ -351,9 +351,10 @@ export function FlexibleTable({
                             {leftFixedColumns.map((column, index) => (
                                 <th
                                     key={column.key}
-                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] sticky z-20 ${getCellBorderClasses(true)} ${
-                                        column.width ? `w-${column.width}` : ''
-                                    } ${column.minWidth ? `min-w-${column.minWidth}` : ''}`}
+                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] sticky z-20 
+                                        ${headerClassName} ${getCellBorderClasses(true)} ${
+                                            column.width ? `w-${column.width}` : ''
+                                        } ${column.minWidth ? `min-w-${column.minWidth}` : ''}`}
                                     style={{
                                         left: showCheckboxes
                                             ? `${48 + leftFixedColumns.slice(0, index).reduce((acc, col) => acc + getColumnWidth(col), 0)}px`
@@ -372,7 +373,7 @@ export function FlexibleTable({
                             {scrollableColumns.map((column) => (
                                 <th
                                     key={column.key}
-                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] ${getCellBorderClasses(true)} ${
+                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] ${headerClassName} ${getCellBorderClasses(true)} ${
                                         column.width ? `w-${column.width}` : ''
                                     } ${column.minWidth ? `min-w-${column.minWidth}` : ''}`}
                                 >
@@ -384,7 +385,7 @@ export function FlexibleTable({
                             {rightFixedColumns.map((column, index) => (
                                 <th
                                     key={column.key}
-                                    className={`px-4 py-2 text-center whitespace-nowrap text-sm font-medium text-black bg-[#F3F3F3] sticky z-20 border-l ${getCellBorderClasses(true)} ${
+                                    className={`px-4 py-2 text-center whitespace-nowrap text-sm font-medium text-black bg-[#F3F3F3] sticky z-20 border-l ${headerClassName} ${getCellBorderClasses(true)} ${
                                         column.width ? `w-${column.width}` : ''
                                     } ${column.minWidth ? `min-w-${column.minWidth}` : ''}`}
                                     style={{
@@ -419,7 +420,7 @@ export function FlexibleTable({
                             data.map((row, index) => {
                                 const isSelected = selectedRows.includes(row.id)
                                 const rowClasses = [
-                                    hoverable ? 'hover:bg-gray-90' : '',
+                                    hoverable ? 'hover:bg-gray-50' : '',
                                     striped && index % 2 === 0 ? 'bg-gray-50' : '',
                                     rowClassName,
                                 ]
@@ -450,7 +451,8 @@ export function FlexibleTable({
                                         {leftFixedColumns.map((column, colIndex) => (
                                             <td
                                                 key={column.key}
-                                                className={`py-2 px-4 text-sm text-center items-center mx-auto justify-center bg-white sticky z-10 ${getCellBorderClasses()} ${cellClassName}`}
+                                                className={`py-2 px-4 text-sm text-center items-center mx-auto justify-center bg-white sticky z-10 
+                                                    ${getCellBorderClasses()} ${cellClassName}`}
                                                 style={{
                                                     left: showCheckboxes
                                                         ? `${48 + leftFixedColumns.slice(0, colIndex).reduce((acc, col) => acc + getColumnWidth(col), 0)}px`
@@ -518,7 +520,9 @@ export function FlexibleTable({
                                                         />
                                                     </div>
                                                 ) : column.render ? (
-                                                    column.render(row[column.key], row)
+                                                    <div className='w-auto whitespace-nowrap'>
+                                                        {column.render(row[column.key], row)}
+                                                    </div>
                                                 ) : (
                                                     row[column.key]
                                                 )}
