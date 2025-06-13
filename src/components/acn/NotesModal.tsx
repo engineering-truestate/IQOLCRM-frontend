@@ -57,7 +57,7 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
 
             setNotes([note, ...notes])
             setInternalNote('')
-            onClose() // Close modal after adding note
+            onClose()
         }
     }
 

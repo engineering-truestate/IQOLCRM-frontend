@@ -4,6 +4,7 @@ import { acnMenuItems } from './menu-options/acn'
 import { canvasHomesMenuItems } from './menu-options/canvas-homes'
 import { truestateMenuItems } from './menu-options/truestate'
 import { vaultMenuItems } from './menu-options/vault'
+import { restackMenuItems } from './menu-options/restack'
 import { useNavigate } from 'react-router-dom'
 
 interface MenuItem {
@@ -30,6 +31,9 @@ const Sidebar = () => {
                 break
             case 'vault':
                 menuItems = vaultMenuItems
+                break
+            case 'restack':
+                menuItems = restackMenuItems
                 break
             default:
                 menuItems = []

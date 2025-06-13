@@ -3,6 +3,7 @@ import StateBaseTextFieldTest from '../../components/design-elements/StateBaseTe
 import ButtonTestExamples from '../../components/design-elements/Button_Test'
 import SelectionButtonsGroupTest from '../../components/design-elements/SelectionButtonsGroup_Test'
 import FlexibleTableTest from '../../components/design-elements/FlexibleTable_Test'
+import MetricCardsTest from '../../components/design-elements/MetricCards_Test'
 
 const Dashboard = () => {
     return (
@@ -11,6 +12,7 @@ const Dashboard = () => {
             <ButtonTestExamples />
             <SelectionButtonsGroupTest />
             <FlexibleTableTest />
+            <MetricCardsTest />
         </Layout>
     )
 }

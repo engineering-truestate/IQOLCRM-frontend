@@ -3,6 +3,7 @@
 import React from 'react'
 
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
@@ -20,6 +21,7 @@ const RequirementsPage = () => {
     const [currentPage, setCurrentPage] = useState(1)
     const [paginatedData, setPaginatedData] = useState<RequirementData[]>([])
     const [filteredData, setFilteredData] = useState<RequirementData[]>([])
+    const navigate = useNavigate()
 
     // Items per page
     const ITEMS_PER_PAGE = 50
@@ -109,12 +111,12 @@ const RequirementsPage = () => {
             key: 'reqId',
             header: 'Req ID',
             render: (value, row) => (
-                <a
-                    href={`/acn/requirements/${row.reqId}/details`}
+                <span
+                    onClick={() => navigate(`/acn/requirements/${row.reqId}/details`)}
                     className='whitespace-nowrap text-black hover:text-blue-800 text-sm font-normal w-auto cursor-pointer transition-colors'
                 >
                     {value}
-                </a>
+                </span>
             ),
         },
         {
@@ -122,13 +124,13 @@ const RequirementsPage = () => {
             header: 'Project Name/Location',
             render: (value, row) => (
                 <div className='relative group'>
-                    <a
-                        href={`/acn/requirements/${row.reqId}/details`}
+                    <span
+                        onClick={() => navigate(`/acn/requirements/${row.reqId}/details`)}
                         className='block max-w-70 truncate text-black hover:text-blue-800 text-sm font-semibold cursor-pointer transition-colors'
                         title={value}
                     >
                         {value}
-                    </a>
+                    </span>
                     {/* Tooltip */}
                     <div className='absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-normal max-w-xs break-words'>
                         {value}
@@ -196,7 +198,7 @@ const RequirementsPage = () => {
             fixedPosition: 'right',
             render: (_, row) => (
                 <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
-                    <a href={`/acn/requirements/${row.reqId}/details`}>
+                    <span onClick={() => navigate(`/acn/requirements/${row.reqId}/details`)}>
                         <Button
                             bgColor='bg-[#F3F3F3]'
                             textColor='text-[#3A3A47]'
@@ -205,7 +207,7 @@ const RequirementsPage = () => {
                         >
                             View Details
                         </Button>
-                    </a>
+                    </span>
                 </div>
             ),
         },
