@@ -6,7 +6,6 @@ import Dashboard from './pages/canvas_homes/Dashboard'
 import Marketing from './pages/canvas_homes/marketing_dashboard/Marketing'
 import MarketingDetails from './pages/canvas_homes/marketing_dashboard/MarketingDetails'
 import Sales from './pages/canvas_homes/sales_dashboard/Sales'
-
 import LeadsPage from './pages/acn/Leads/Leads'
 import RequirementsPage from './pages/acn/Requirements/Requirements'
 import RequirementDetailsPage from './pages/acn/Requirements/RequirementDetails'
