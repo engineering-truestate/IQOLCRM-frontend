@@ -11,9 +11,9 @@ export interface PreLaunchFormData {
     projectName: string
     stage: ProjectStage
     tentativeStartDate: string
-    location?: string
-    developer?: string
-    projectType?: string
+    location: string
+    developer: string
+    projectType: string
 }
 
 interface PreLaunchModalProps {

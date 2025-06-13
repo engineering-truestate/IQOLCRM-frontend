@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import { getPreLaunchPropertyById, updatePreLaunchProperty } from '../../../store/actions/restack/preLaunchActions'
+import type { Property } from '../../../store/reducers/restack/types'
+import type { AppDispatch, RootState } from '../../../store'
 import {
-    generateProjectDetails,
-    type ProjectDetails,
     projectTypes,
     projectStages,
     apartmentTypologies,
@@ -42,9 +44,13 @@ const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?:
 const PreLaunchDetailsPage = () => {
     const navigate = useNavigate()
     const { pId } = useParams()
+    const dispatch = useDispatch<AppDispatch>()
 
-    const [projectDetails, setProjectDetails] = useState<ProjectDetails | null>(null)
-    const [originalDetails, setOriginalDetails] = useState<ProjectDetails | null>(null)
+    // Redux state
+    const { properties, selectedProperty, loading, error } = useSelector((state: RootState) => state.preLaunch)
+
+    const [projectDetails, setProjectDetails] = useState<Property | null>(null)
+    const [originalDetails, setOriginalDetails] = useState<Property | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [activeTab, setActiveTab] = useState<'apartment' | 'villa' | 'plot'>('apartment')
     const [editingRowId, setEditingRowId] = useState<string | null>(null)
@@ -53,11 +59,25 @@ const PreLaunchDetailsPage = () => {
     // Load project data based on pId
     useEffect(() => {
         if (pId) {
-            const details = generateProjectDetails(pId)
-            setProjectDetails(details)
-            setOriginalDetails(details)
+            // First try to find in existing properties
+            const existingProperty = properties.find((prop) => prop.projectId === pId)
+            if (existingProperty) {
+                setProjectDetails(existingProperty)
+                setOriginalDetails(existingProperty)
+            } else {
+                // If not found, fetch from API
+                dispatch(getPreLaunchPropertyById(pId))
+            }
         }
-    }, [pId])
+    }, [pId, properties, dispatch])
+
+    // Update local state when selectedProperty changes (from Redux)
+    useEffect(() => {
+        if (selectedProperty && selectedProperty.projectId === pId) {
+            setProjectDetails(selectedProperty)
+            setOriginalDetails(selectedProperty)
+        }
+    }, [selectedProperty, pId])
 
     // Handle field updates
     const updateField = (field: string, value: string) => {
@@ -80,128 +100,164 @@ const PreLaunchDetailsPage = () => {
     }
 
     // Handle save changes
-    const handleSave = () => {
-        if (projectDetails) {
-            setOriginalDetails(projectDetails)
-            setIsEditing(false)
-            setEditingRowId(null)
-            setIsAddingRow(false)
-            console.log('Saving project details:', projectDetails)
+    const handleSave = async () => {
+        if (projectDetails && pId) {
+            try {
+                // Create updates object with only changed fields
+                const updates: Partial<Property> = {}
+
+                // Compare with original and only include changed fields
+                if (originalDetails) {
+                    Object.keys(projectDetails).forEach((key) => {
+                        const typedKey = key as keyof Property
+                        if (projectDetails[typedKey] !== originalDetails[typedKey]) {
+                            ;(updates as any)[typedKey] = projectDetails[typedKey]
+                        }
+                    })
+                }
+
+                // Dispatch update action
+                const result = await dispatch(
+                    updatePreLaunchProperty({
+                        projectId: pId,
+                        updates,
+                    }),
+                )
+
+                if (result.meta.requestStatus === 'fulfilled') {
+                    setOriginalDetails(projectDetails)
+                    setIsEditing(false)
+                    setEditingRowId(null)
+                    setIsAddingRow(false)
+                    console.log('Project details saved successfully')
+                }
+            } catch (error) {
+                console.error('Error saving project details:', error)
+            }
         }
     }
 
-    // Handle unit updates
+    // Handle unit updates - Note: This needs to be adapted to work with Property interface
+    // For now, keeping the structure but this would need proper implementation
+    // based on how configurations are stored in the Property interface
     const updateUnit = (unitType: 'apartment' | 'villa' | 'plot', unitId: string, field: string, value: string) => {
         if (!projectDetails) return
 
-        const fieldName = `${unitType}Units` as keyof ProjectDetails
-        const units = projectDetails[fieldName] as any[]
-        const updatedUnits = units.map((unit) => (unit.id === unitId ? { ...unit, [field]: value } : unit))
+        // This is a simplified implementation - you may need to adapt based on
+        // how configurations are actually structured in your Property interface
+        const updatedConfigurations = { ...projectDetails.configurations }
 
-        setProjectDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      [fieldName]: updatedUnits,
-                  }
-                : null,
-        )
+        if (unitType === 'apartment') {
+            updatedConfigurations.apartments = updatedConfigurations.apartments.map((unit) =>
+                (unit as any).id === unitId ? { ...unit, [field]: value } : unit,
+            )
+        } else if (unitType === 'villa') {
+            updatedConfigurations.villas = updatedConfigurations.villas.map((unit) =>
+                (unit as any).id === unitId ? { ...unit, [field]: value } : unit,
+            )
+        } else if (unitType === 'plot') {
+            updatedConfigurations.plots = updatedConfigurations.plots.map((unit) =>
+                (unit as any).id === unitId ? { ...unit, [field]: value } : unit,
+            )
+        }
+
+        setProjectDetails((prev) => (prev ? { ...prev, configurations: updatedConfigurations } : null))
     }
 
-    // Handle adding new unit
+    // Handle adding new unit - adapted for Property interface
     const addNewUnit = (unitType: 'apartment' | 'villa' | 'plot') => {
         if (!projectDetails) return
 
         const newId = `${unitType}_${Date.now()}`
+        const updatedConfigurations = { ...projectDetails.configurations }
         let newUnit: any
 
         switch (unitType) {
             case 'apartment':
                 newUnit = {
                     id: newId,
-                    aptType: '',
-                    typology: '',
-                    superBuiltUpArea: '',
-                    carpetArea: '',
-                    pricePerSqft: '',
-                    totalPrice: '',
+                    Configuration: '',
+                    apartmentType: '',
+                    sbua: 0,
+                    carpetArea: 0,
+                    pricePerSqft: 0,
+                    totalPrice: 0,
                     floorPlan: '',
                 }
+                updatedConfigurations.apartments = [...updatedConfigurations.apartments, newUnit]
                 break
             case 'villa':
                 newUnit = {
                     id: newId,
-                    villaType: '',
-                    typology: '',
-                    plotSize: '',
-                    builtUpArea: '',
-                    carpetArea: '',
-                    pricePerSqft: '',
-                    totalPrice: '',
-                    uds: '',
-                    noOfFloors: '',
-                    floorPlan: '',
+                    Configuration: '',
+                    VillaType: '',
+                    plotSize: 0,
+                    builtUpArea: 0,
+                    carpetArea: 0,
+                    pricePerSqft: 0,
+                    totalPrice: 0,
+                    uds: 0,
+                    numberOfFloors: 0,
                 }
+                updatedConfigurations.villas = [...updatedConfigurations.villas, newUnit]
                 break
             case 'plot':
                 newUnit = {
                     id: newId,
                     plotType: '',
-                    plotArea: '',
-                    pricePerSqft: '',
-                    totalPrice: '',
+                    plotArea: 0,
+                    pricePerSqft: 0,
+                    totalPrice: 0,
                 }
+                updatedConfigurations.plots = [...updatedConfigurations.plots, newUnit]
                 break
         }
 
-        const fieldName = `${unitType}Units` as keyof ProjectDetails
-        const units = projectDetails[fieldName] as any[]
-
-        setProjectDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      [fieldName]: [...units, newUnit],
-                  }
-                : null,
-        )
+        setProjectDetails((prev) => (prev ? { ...prev, configurations: updatedConfigurations } : null))
 
         setEditingRowId(newId)
         setIsAddingRow(true)
     }
 
-    // Handle delete unit
+    // Handle delete unit - adapted for Property interface
     const deleteUnit = (unitType: 'apartment' | 'villa' | 'plot', unitId: string) => {
         if (!projectDetails) return
 
-        const fieldName = `${unitType}Units` as keyof ProjectDetails
-        const units = projectDetails[fieldName] as any[]
-        const updatedUnits = units.filter((unit) => unit.id !== unitId)
+        const updatedConfigurations = { ...projectDetails.configurations }
 
-        setProjectDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      [fieldName]: updatedUnits,
-                  }
-                : null,
-        )
+        if (unitType === 'apartment') {
+            updatedConfigurations.apartments = updatedConfigurations.apartments.filter(
+                (unit: any) => unit.id !== unitId,
+            )
+        } else if (unitType === 'villa') {
+            updatedConfigurations.villas = updatedConfigurations.villas.filter((unit: any) => unit.id !== unitId)
+        } else if (unitType === 'plot') {
+            updatedConfigurations.plots = updatedConfigurations.plots.filter((unit: any) => unit.id !== unitId)
+        }
+
+        setProjectDetails((prev) => (prev ? { ...prev, configurations: updatedConfigurations } : null))
     }
 
-    // Update maps/plans
-    const updateMapPlan = (mapId: string, field: string, value: string) => {
+    // Update maps/plans - adapted for Property interface
+    const updateMapPlan = (mapType: string, value: string) => {
         if (!projectDetails) return
 
-        const updatedMaps = projectDetails.mapsPlans.map((map) => (map.id === mapId ? { ...map, [field]: value } : map))
+        const updatedDocuments = { ...projectDetails.documents }
 
-        setProjectDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      mapsPlans: updatedMaps,
-                  }
-                : null,
-        )
+        switch (mapType) {
+            case 'masterPlan':
+                updatedDocuments.masterPlan = value
+                break
+            case 'projectLayoutPlan':
+                updatedDocuments.projectLayoutPlan = value
+                break
+            case 'brochure':
+                updatedDocuments.brochure = value
+                break
+            // Add more cases as needed
+        }
+
+        setProjectDetails((prev) => (prev ? { ...prev, documents: updatedDocuments } : null))
     }
 
     // Render field based on edit mode
@@ -529,12 +585,35 @@ const PreLaunchDetailsPage = () => {
         },
     ]
 
-    if (!projectDetails) {
+    if (loading || !projectDetails) {
         return (
             <Layout loading={true}>
                 <div className='py-2 px-6 bg-white min-h-screen'>
                     <div className='flex items-center justify-center h-64'>
                         <div className='text-gray-500'>Loading project details...</div>
+                    </div>
+                </div>
+            </Layout>
+        )
+    }
+
+    if (error) {
+        return (
+            <Layout loading={false}>
+                <div className='py-2 px-6 bg-white min-h-screen'>
+                    <div className='flex items-center justify-center h-64'>
+                        <div className='text-center'>
+                            <div className='text-red-600 mb-2'>Error loading project details</div>
+                            <div className='text-gray-500 text-sm'>{error}</div>
+                            <Button
+                                bgColor='bg-blue-600'
+                                textColor='text-white'
+                                className='mt-4 px-4 py-2'
+                                onClick={() => navigate('/restack/prelaunch')}
+                            >
+                                Back to Pre-Launch
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </Layout>
@@ -558,7 +637,7 @@ const PreLaunchDetailsPage = () => {
                                         Pre-Launch
                                     </button>
                                     <span className='mx-2'>/</span>
-                                    <span className='text-black font-medium'>{projectDetails.pId}</span>
+                                    <span className='text-black font-medium'>{projectDetails.projectId}</span>
                                 </div>
                             </div>
                             <div className='flex gap-2'>
@@ -603,7 +682,7 @@ const PreLaunchDetailsPage = () => {
                             <div className='space-y-4'>
                                 {renderField('Project Name', projectDetails.projectName, 'projectName')}
                                 {renderField('Stage', projectDetails.stage, 'stage', projectStages)}
-                                {renderField('Project Size (acres)', projectDetails.projectSize, 'projectSize')}
+                                {renderField('Project Size', projectDetails.projectSize.toString(), 'projectSize')}
                                 {renderField(
                                     'Project Start Date',
                                     projectDetails.projectStartDate,
@@ -614,12 +693,12 @@ const PreLaunchDetailsPage = () => {
                             </div>
                             <div className='space-y-4'>
                                 {renderField('Project Type', projectDetails.projectType, 'projectType', projectTypes)}
+                                {renderField('Developer / Promoter', projectDetails.developerName, 'developerName')}
                                 {renderField(
-                                    'Developer / Promoter',
-                                    projectDetails.developerPromoter,
-                                    'developerPromoter',
+                                    'Price (per sqft)',
+                                    projectDetails.pricePerSqft.toString(),
+                                    'pricePerSqft',
                                 )}
-                                {renderField('Price (per sqft)', projectDetails.pricePerSqft, 'pricePerSqft')}
                                 {renderField(
                                     'Proposed Completion Date',
                                     projectDetails.proposedCompletionDate,
@@ -637,11 +716,11 @@ const PreLaunchDetailsPage = () => {
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                             <div className='space-y-4'>
                                 {renderField('Address', projectDetails.address, 'address')}
-                                {renderField('Latitude', projectDetails.latitude, 'latitude')}
+                                {renderField('Latitude', projectDetails.lat, 'lat')}
                             </div>
                             <div className='space-y-4'>
-                                {renderField('Google Map', projectDetails.googleMap, 'googleMap')}
-                                {renderField('Longitude', projectDetails.longitude, 'longitude')}
+                                {renderField('Google Map', projectDetails.mapLink, 'mapLink')}
+                                {renderField('Longitude', projectDetails.long, 'long')}
                             </div>
                         </div>
                     </div>
@@ -651,14 +730,26 @@ const PreLaunchDetailsPage = () => {
                         <h2 className='text-lg font-semibold text-black mb-4'>Key Metrics</h2>
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                             <div className='space-y-4'>
-                                {renderField('Total Units', projectDetails.totalUnits, 'totalUnits')}
-                                {renderField('No. of Floors', projectDetails.noOfFloors, 'noOfFloors')}
-                                {renderField('Car Parking (total)', projectDetails.carParking, 'carParking')}
+                                {renderField('Total Units', projectDetails.totalUnits.toString(), 'totalUnits')}
+                                {renderField(
+                                    'No. of Floors',
+                                    projectDetails.numberOfFloors.toString(),
+                                    'numberOfFloors',
+                                )}
+                                {renderField(
+                                    'Car Parking (total)',
+                                    projectDetails.totalParking.toString(),
+                                    'totalParking',
+                                )}
                             </div>
                             <div className='space-y-4'>
-                                {renderField('EOI Amount (₹)', projectDetails.eoiAmount, 'eoiAmount')}
-                                {renderField('No. of Towers', projectDetails.noOfTowers, 'noOfTowers')}
-                                {renderField('Open Space', projectDetails.openSpace, 'openSpace')}
+                                {renderField('EOI Amount (₹)', projectDetails.eoiAmount.toString(), 'eoiAmount')}
+                                {renderField(
+                                    'No. of Towers',
+                                    projectDetails.numberOfTowers.toString(),
+                                    'numberOfTowers',
+                                )}
+                                {renderField('Open Space', projectDetails.openArea, 'openArea')}
                             </div>
                         </div>
                     </div>
@@ -717,7 +808,7 @@ const PreLaunchDetailsPage = () => {
                         <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
                             {activeTab === 'apartment' && (
                                 <FlexibleTable
-                                    data={projectDetails.apartmentUnits}
+                                    data={projectDetails.configurations.apartments}
                                     columns={getApartmentColumns()}
                                     hoverable={true}
                                     borders={{
@@ -732,7 +823,7 @@ const PreLaunchDetailsPage = () => {
                             )}
                             {activeTab === 'villa' && (
                                 <FlexibleTable
-                                    data={projectDetails.villaUnits}
+                                    data={projectDetails.configurations.villas}
                                     columns={getVillaColumns()}
                                     hoverable={true}
                                     borders={{
@@ -747,7 +838,7 @@ const PreLaunchDetailsPage = () => {
                             )}
                             {activeTab === 'plot' && (
                                 <FlexibleTable
-                                    data={projectDetails.plotUnits}
+                                    data={projectDetails.configurations.plots}
                                     columns={getPlotColumns()}
                                     hoverable={true}
                                     borders={{
@@ -767,28 +858,66 @@ const PreLaunchDetailsPage = () => {
                     <div className='mb-8'>
                         <h2 className='text-lg font-semibold text-black mb-4'>Maps & Plans</h2>
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            {projectDetails.mapsPlans.map((map) => (
-                                <div key={map.id}>
-                                    <label className='text-sm text-gray-600 block mb-1'>{map.name}</label>
-                                    {isEditing ? (
-                                        <StateBaseTextField
-                                            value={map.url}
-                                            onChange={(e) => updateMapPlan(map.id, 'url', e.target.value)}
-                                            className='w-full text-sm'
-                                            placeholder={`Enter ${map.name} URL`}
-                                        />
-                                    ) : (
-                                        <a
-                                            href={map.url}
-                                            target='_blank'
-                                            rel='noopener noreferrer'
-                                            className='text-sm text-blue-600 hover:text-blue-800 underline'
-                                        >
-                                            {map.name}
-                                        </a>
-                                    )}
-                                </div>
-                            ))}
+                            <div>
+                                <label className='text-sm text-gray-600 block mb-1'>Master Plan</label>
+                                {isEditing ? (
+                                    <StateBaseTextField
+                                        value={projectDetails.documents.masterPlan}
+                                        onChange={(e) => updateMapPlan('masterPlan', e.target.value)}
+                                        className='w-full text-sm'
+                                        placeholder='Enter Master Plan URL'
+                                    />
+                                ) : (
+                                    <a
+                                        href={projectDetails.documents.masterPlan}
+                                        target='_blank'
+                                        rel='noopener noreferrer'
+                                        className='text-sm text-blue-600 hover:text-blue-800 underline'
+                                    >
+                                        Master Plan
+                                    </a>
+                                )}
+                            </div>
+                            <div>
+                                <label className='text-sm text-gray-600 block mb-1'>Project Layout Plan</label>
+                                {isEditing ? (
+                                    <StateBaseTextField
+                                        value={projectDetails.documents.projectLayoutPlan}
+                                        onChange={(e) => updateMapPlan('projectLayoutPlan', e.target.value)}
+                                        className='w-full text-sm'
+                                        placeholder='Enter Project Layout Plan URL'
+                                    />
+                                ) : (
+                                    <a
+                                        href={projectDetails.documents.projectLayoutPlan}
+                                        target='_blank'
+                                        rel='noopener noreferrer'
+                                        className='text-sm text-blue-600 hover:text-blue-800 underline'
+                                    >
+                                        Project Layout Plan
+                                    </a>
+                                )}
+                            </div>
+                            <div>
+                                <label className='text-sm text-gray-600 block mb-1'>Brochure</label>
+                                {isEditing ? (
+                                    <StateBaseTextField
+                                        value={projectDetails.documents.brochure}
+                                        onChange={(e) => updateMapPlan('brochure', e.target.value)}
+                                        className='w-full text-sm'
+                                        placeholder='Enter Brochure URL'
+                                    />
+                                ) : (
+                                    <a
+                                        href={projectDetails.documents.brochure}
+                                        target='_blank'
+                                        rel='noopener noreferrer'
+                                        className='text-sm text-blue-600 hover:text-blue-800 underline'
+                                    >
+                                        Brochure
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
