@@ -11,6 +11,9 @@ import Logout from './pages/auth/Logout'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import PreLaunchPage from './pages/restack/PreLaunch/PreLaunch'
 import PreLaunchDetailsPage from './pages/restack/PreLaunch/PreLaunchDetails'
+import PropertiesPage from './pages/acn/Properties/Properties'
+import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
+import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -63,6 +66,22 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/restack/prelaunch/:pId',
         element: React.createElement(React.Suspense, null, React.createElement(PreLaunchDetailsPage, null)),
+    },
+    {
+        path: '/acn/properties',
+        element: React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
+    },
+    {
+        path: '/acn/properties/addinv',
+        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+    },
+    {
+        path: '/acn/properties/:pId/edit',
+        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+    },
+    {
+        path: '/acn/properties/:pId/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PropertyDetailsPage, null)),
     },
 ]
 
