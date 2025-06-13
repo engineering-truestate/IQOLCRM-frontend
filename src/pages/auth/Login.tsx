@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { loginUser } from '../../services/canvas-homes/auth'
+import { loginUser } from '../../services/auth'
 import { useNavigate } from 'react-router-dom'
 import ForgotPassword from './ForgotPassword'
 

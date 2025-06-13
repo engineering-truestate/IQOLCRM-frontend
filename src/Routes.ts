@@ -11,6 +11,8 @@ import Logout from './pages/auth/Logout'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import PreLaunchPage from './pages/restack/PreLaunch/PreLaunch'
 import PreLaunchDetailsPage from './pages/restack/PreLaunch/PreLaunchDetails'
+import Home from './Home'
+import AgentsPage from './pages/acn/Agents/AgentsPage'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -41,6 +43,10 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(LeadsPage, null)),
     },
     {
+        path: '/acn/agents',
+        element: React.createElement(React.Suspense, null, React.createElement(AgentsPage, null)),
+    },
+    {
         path: '/acn/requirements',
         element: React.createElement(React.Suspense, null, React.createElement(RequirementsPage, null)),
     },
@@ -66,4 +72,9 @@ export const protectedRoutes: RouteObject[] = [
     },
 ]
 
-export const unprotectedRoutes: RouteObject[] = []
+export const unprotectedRoutes: RouteObject[] = [
+    {
+        path: '/',
+        element: React.createElement(React.Suspense, null, React.createElement(Home, null)),
+    },
+]
