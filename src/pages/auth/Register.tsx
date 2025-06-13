@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { registerUser } from '../../services/canvas-homes/auth'
+import { registerUser } from '../../services/auth'
 import Dropdown from '../../components/design-elements/Dropdown'
 
 const Register = () => {

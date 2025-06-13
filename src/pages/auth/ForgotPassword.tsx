@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { sendForgotPasswordEmail } from '../../services/canvas-homes/auth'
+import { sendForgotPasswordEmail } from '../../services/auth'
 import { useNavigate } from 'react-router-dom'
 // Adjust path as needed
 
