@@ -18,6 +18,7 @@ This document describes the data schema for the Canvas-Homes CRM system, coverin
 
 Stores basic information about users including contact details and timestamps for creation and last modification.
 
+
 | Field        | Type        | Example              | Options |
 | ------------ | ----------- | -------------------- | ------- |
 | userId       | string      | "user_001"           | —       |
@@ -33,18 +34,18 @@ Stores basic information about users including contact details and timestamps fo
 
 Stores information about CRM leads, their contact status, interest level, and communication history.
 
-| Field        | Type        | Example             | Options                                                                                    |
-| ------------ | ----------- | ------------------- | ------------------------------------------------------------------------------------------ |
-| leadId       | string      | "lead_001"          | —                                                                                          |
-| agentId      | string      | "agent_123"         | —                                                                                          |
-| agentName    | string      | "Rahul Mehta"       | —                                                                                          |
-| userId       | string      | "user_789"          | —                                                                                          |
-| source       | string      | "Facebook Ads"      | —                                                                                          |
-| stage        | string      | "lead registered"   | lead registered \| initial contacted \| site visited \| eoi collected \| booking confirmed |
-| taskType     | string      | "lead registration" | lead registration \| initial contact \| site visit \| eoi collection \| booking            |
-| status       | string      | "open"              | open \| closed \| fresh \| dropped                                                         |
-| added        | number (TS) | 1717833600000       | —                                                                                          |
-| lastModified | number (TS) | 1717916400000       | —                                                                                          |
+| Field        | Type        | Example           | Options                                                                                    |
+| ------------ | ----------- | ----------------- | ------------------------------------------------------------------------------------------ |
+| leadId       | string      | "lead_001"        | —                                                                                          |
+| agentId      | string      | "agent_123"       | —                                                                                          |
+| agentName    | string      | "Rahul Mehta"     | —                                                                                          |
+| userId       | string      | "user_789"        | —                                                                                          |
+| source       | string      | "Facebook Ads"    | —                                                                                          |
+| stage        | string      | "lead registered" | lead registered \| initial contacted \| site visited \| eoi collected \| booking confirmed |
+| taskType     | string      | "lead registration"| lead registration \| initial contact \| site visit \| eoi collection \| booking             |
+| status       | string      | "open"            | open \| closed \| fresh \| dropped                                                         |
+| added        | number (TS) | 1717833600000     | —                                                                                          |
+| lastModified | number (TS) | 1717916400000     | —                                                                                          |
 
 ## campaigns (collection Name - canvas_homes-campaigns)
 
