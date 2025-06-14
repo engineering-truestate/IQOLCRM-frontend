@@ -10,28 +10,39 @@ import StateBaseTextField from '../../../../components/design-elements/StateBase
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../../../store'
 import { stockData, type StockProject } from '../../../dummy_data/restack_prerera_dummy_data'
+import usePreRera from '../../../../hooks/restack/usePreRera'
+import { formatUnixDate, formatUnixTime } from '../../../../components/helper/getUnixDateTime'
 
 const PreReraPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [paginatedData, setPaginatedData] = useState<StockProject[]>([])
     const [filteredData, setFilteredData] = useState<StockProject[]>([])
-    const [loading, setLoading] = useState(false)
+    // const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
     const dispatch = useDispatch<AppDispatch>()
 
+    const {
+        properties,
+        selectedProperty,
+        loading,
+        error,
+        hasProperties,
+        propertyStats,
+        fetchProperties,
+        selectProperty,
+        clearSelectedProperty,
+        setFilters,
+        clearFilters,
+    } = usePreRera()
+    // setPaginatedData(properties) // Removed because types are incompatible
+    useEffect(() => {
+        // Fetch properties when component mounts
+        fetchProperties()
+    }, [fetchProperties])
+
     // Items per page
     const ITEMS_PER_PAGE = 50
-
-    // Load data on component mount
-    useEffect(() => {
-        setLoading(true)
-        // Simulate API call
-        setTimeout(() => {
-            setFilteredData(stockData)
-            setLoading(false)
-        }, 500)
-    }, [])
 
     // Filter data based on search
     useEffect(() => {
@@ -74,14 +85,14 @@ const PreReraPage = () => {
             ),
         },
         {
-            key: 'projectStartDate',
+            key: 'startDate',
             header: 'Project Start Date',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{formatUnixDate(value)}</span>,
         },
         {
-            key: 'projectCompletionDate',
+            key: 'handoverDate',
             header: 'Project Completion Date',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{formatUnixDate(value)}</span>,
         },
         {
             key: 'projectType',
@@ -89,7 +100,7 @@ const PreReraPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
-            key: 'ageOfBuilding',
+            key: 'ageOfBuildinginYears',
             header: 'Age of the Building',
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
@@ -151,7 +162,7 @@ const PreReraPage = () => {
                     <div className='bg-white rounded-lg overflow-hidden'>
                         <div className='h-[80vh] overflow-y-auto'>
                             <FlexibleTable
-                                data={paginatedData}
+                                data={properties}
                                 columns={columns}
                                 hoverable={true}
                                 borders={{

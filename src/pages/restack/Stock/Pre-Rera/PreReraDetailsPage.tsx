@@ -1,16 +1,33 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Layout from '../../../../layout/Layout'
 import Button from '../../../../components/design-elements/Button'
-import { stockData, type StockProject } from '../../../../pages/dummy_data/restack_prerera_dummy_data'
+// import { stockData, type StockProject } from '../../../../pages/dummy_data/restack_prerera_dummy_data'
+import usePreRera from '../../../../hooks/restack/usePreRera'
 
 const PreReraProjectDetails = () => {
     const { id } = useParams()
     const navigate = useNavigate()
-
-    const project = stockData.find((p) => p.id === id)
+    const {
+        properties,
+        selectedProperty,
+        loading,
+        error,
+        hasProperties,
+        propertyStats,
+        fetchProperties,
+        selectProperty,
+        clearSelectedProperty,
+        setFilters,
+        clearFilters,
+    } = usePreRera()
+    const project = properties.find((p: any) => String(p.id) === String(id))
+    useEffect(() => {
+        // Fetch properties when component mounts
+        fetchProperties()
+    }, [fetchProperties])
 
     if (!project) {
         return (
@@ -147,11 +164,11 @@ const PreReraProjectDetails = () => {
                                 </div>
                                 <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Latitude</span>
-                                    <span className='text-gray-900'>{project.latitude}</span>
+                                    <span className='text-gray-900'>{project.lat}</span>
                                 </div>
                                 <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Longitude</span>
-                                    <span className='text-gray-900'>{project.longitude}</span>
+                                    <span className='text-gray-900'>{project.long}</span>
                                 </div>
                             </div>
                         </div>
@@ -170,7 +187,7 @@ const PreReraProjectDetails = () => {
                                 </div>
                                 <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Age of Building</span>
-                                    <span className='text-gray-900'>{project.ageOfBuildingYears}</span>
+                                    <span className='text-gray-900'>{project.ageOfBuildinginYears}</span>
                                 </div>
                             </div>
                         </div>
@@ -195,7 +212,7 @@ const PreReraProjectDetails = () => {
                                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
                                     <div className='font-medium text-gray-700'>Tower</div>
                                     <div className='font-medium text-gray-700'>Floors per Tower</div>
-                                    {project.towers.map((tower, index) => (
+                                    {project.TowerDetails.map((tower, index) => (
                                         <React.Fragment key={index}>
                                             <div className='text-gray-900'>{tower.name}</div>
                                             <div className='text-gray-900'>{tower.floors}</div>
@@ -212,19 +229,19 @@ const PreReraProjectDetails = () => {
                                 <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Brochure</span>
                                     <span className='text-blue-600 cursor-pointer hover:underline'>
-                                        {project.brochure}
+                                        {project?.brochureURL?.[0]}
                                     </span>
                                 </div>
                                 <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Master Plan</span>
                                     <span className='text-blue-600 cursor-pointer hover:underline'>
-                                        {project.masterPlan}
+                                        {project?.masterPlanURL?.[0]}
                                     </span>
                                 </div>
                                 <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Units and Floor plan</span>
                                     <span className='text-blue-600 cursor-pointer hover:underline'>
-                                        {project.unitsAndFloorPlan}
+                                        {project.unitandfloorURL?.[0]}
                                     </span>
                                 </div>
                             </div>
@@ -254,7 +271,7 @@ const PreReraProjectDetails = () => {
                                 </div>
                                 <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Legal Name</span>
-                                    <span className='text-gray-900'>{project.legalName}</span>
+                                    <span className='text-gray-900'>{project.developerLegalName}</span>
                                 </div>
                                 <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Developer Tier</span>
