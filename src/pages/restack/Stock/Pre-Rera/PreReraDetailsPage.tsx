@@ -124,32 +124,32 @@ const PreReraProjectDetails = () => {
                         </div>
                     )}
 
-                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+                    <div className='grid grid-cols-1 lg:grid-cols-1 gap-8'>
                         {/* Project Location */}
                         <div className='bg-white'>
                             <h2 className='text-lg font-semibold text-gray-900 mb-4'>Project Location</h2>
                             <div className='space-y-3'>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className=' grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Address</span>
                                     <span className='text-gray-900'>{project.address}</span>
                                 </div>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>District</span>
                                     <span className='text-gray-900'>{project.district}</span>
                                 </div>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Micromarket</span>
                                     <span className='text-gray-900'>{project.micromarket}</span>
                                 </div>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Zone</span>
                                     <span className='text-gray-900'>{project.zone}</span>
                                 </div>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Latitude</span>
                                     <span className='text-gray-900'>{project.latitude}</span>
                                 </div>
-                                <div className='flex justify-between py-2'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Longitude</span>
                                     <span className='text-gray-900'>{project.longitude}</span>
                                 </div>
@@ -160,15 +160,15 @@ const PreReraProjectDetails = () => {
                         <div className='bg-white'>
                             <h2 className='text-lg font-semibold text-gray-900 mb-4'>Project Timeline</h2>
                             <div className='space-y-3'>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Project Start Date</span>
                                     <span className='text-gray-900'>{project.launchDate}</span>
                                 </div>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Handover Date</span>
                                     <span className='text-gray-900'>{project.handoverDate}</span>
                                 </div>
-                                <div className='flex justify-between py-2'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Age of Building</span>
                                     <span className='text-gray-900'>{project.ageOfBuildingYears}</span>
                                 </div>
@@ -176,23 +176,23 @@ const PreReraProjectDetails = () => {
                         </div>
                     </div>
 
-                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8'>
+                    <div className='grid grid-cols-1 lg:grid-cols-1 gap-8 mt-8'>
                         {/* Project Configuration */}
                         <div className='bg-white'>
                             <h2 className='text-lg font-semibold text-gray-900 mb-4'>Project Configuration</h2>
                             <div className='space-y-3 mb-6'>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Project Size</span>
                                     <span className='text-gray-900'>{project.projectSize}</span>
                                 </div>
-                                <div className='flex justify-between py-2'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Total Units</span>
                                     <span className='text-gray-900'>{project.totalUnits}</span>
                                 </div>
                             </div>
 
                             <div className='bg-gray-50 rounded-lg p-4'>
-                                <div className='grid grid-cols-2 gap-4'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
                                     <div className='font-medium text-gray-700'>Tower</div>
                                     <div className='font-medium text-gray-700'>Floors per Tower</div>
                                     {project.towers.map((tower, index) => (
@@ -209,19 +209,19 @@ const PreReraProjectDetails = () => {
                         <div className='bg-white'>
                             <h2 className='text-lg font-semibold text-gray-900 mb-4'>Project Resources</h2>
                             <div className='space-y-3'>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Brochure</span>
                                     <span className='text-blue-600 cursor-pointer hover:underline'>
                                         {project.brochure}
                                     </span>
                                 </div>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Master Plan</span>
                                     <span className='text-blue-600 cursor-pointer hover:underline'>
                                         {project.masterPlan}
                                     </span>
                                 </div>
-                                <div className='flex justify-between py-2'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Units and Floor plan</span>
                                     <span className='text-blue-600 cursor-pointer hover:underline'>
                                         {project.unitsAndFloorPlan}
@@ -243,20 +243,20 @@ const PreReraProjectDetails = () => {
                         </div>
                     </div>
 
-                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8'>
+                    <div className='grid grid-cols-1 lg:grid-cols-1 gap-8 mt-8'>
                         {/* Developer Details */}
                         <div className='bg-white'>
                             <h2 className='text-lg font-semibold text-gray-900 mb-4'>Developer Details</h2>
                             <div className='space-y-3'>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Developer Name</span>
                                     <span className='text-gray-900'>{project.developerName}</span>
                                 </div>
-                                <div className='flex justify-between py-2 border-b border-gray-100'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2 border-b border-gray-100'>
                                     <span className='text-gray-600'>Legal Name</span>
                                     <span className='text-gray-900'>{project.legalName}</span>
                                 </div>
-                                <div className='flex justify-between py-2'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Developer Tier</span>
                                     <span className='text-gray-900'>{project.developerTier}</span>
                                 </div>
@@ -267,7 +267,7 @@ const PreReraProjectDetails = () => {
                         <div className='bg-white'>
                             <h2 className='text-lg font-semibold text-gray-900 mb-4'>Khata Details</h2>
                             <div className='space-y-3'>
-                                <div className='flex justify-between py-2'>
+                                <div className='grid grid-cols-1 lg:grid-cols-2 py-2'>
                                     <span className='text-gray-600'>Khata Type</span>
                                     <span className='text-gray-900'>{project.khataType}</span>
                                 </div>

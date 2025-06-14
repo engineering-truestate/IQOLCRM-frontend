@@ -6,6 +6,7 @@ import Layout from '../../../../layout/Layout'
 import Button from '../../../../components/design-elements/Button'
 import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
 import { stockData, type StockProject } from '../../../../pages/dummy_data/restack_prerera_dummy_data'
+import DateInput from '../../../../components/design-elements/DateInputUnixTimestamps'
 
 const PreReraProjectEdit = () => {
     const { id } = useParams()
@@ -247,7 +248,7 @@ const PreReraProjectEdit = () => {
                         </div>
                     </div>
 
-                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+                    <div className='grid grid-cols-1 lg:grid-cols-1 gap-8'>
                         {/* Project Location */}
                         <div className='bg-white'>
                             <h2 className='text-lg font-semibold text-gray-900 mb-4'>Project Location</h2>
@@ -304,14 +305,18 @@ const PreReraProjectEdit = () => {
                             <h2 className='text-lg font-semibold text-gray-900 mb-4'>Project Timeline</h2>
                             <div className='space-y-4'>
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-1'>
-                                        Project Start Date
-                                    </label>
-                                    <StateBaseTextField
-                                        value={project.projectStartDate}
-                                        onChange={(e) => updateProject('projectStartDate', e.target.value)}
-                                        type='date'
-                                        className='w-full'
+                                    <DateInput
+                                        label='Project Start Date'
+                                        placeholder='Select date'
+                                        value={
+                                            typeof project.projectStartDate === 'string'
+                                                ? Number(project.projectStartDate)
+                                                : project.projectStartDate
+                                        }
+                                        onSelect={(e) =>
+                                            updateProject('projectStartDate', (e.target as HTMLInputElement).value)
+                                        }
+                                        fullWidth
                                     />
                                 </div>
                                 <div>
@@ -338,7 +343,7 @@ const PreReraProjectEdit = () => {
                         </div>
                     </div>
 
-                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8'>
+                    <div className='flex flex-col gap-8 mt-8'>
                         {/* Project Configuration */}
                         <div className='bg-white'>
                             <h2 className='text-lg font-semibold text-gray-900 mb-4'>Project Configuration</h2>
@@ -373,6 +378,7 @@ const PreReraProjectEdit = () => {
                                                 onChange={(e) => updateTower(index, 'name', e.target.value)}
                                                 placeholder='Tower name'
                                                 className='w-full'
+                                                fullWidth={true}
                                             />
                                             <div className='flex gap-2'>
                                                 <StateBaseTextField
@@ -380,6 +386,7 @@ const PreReraProjectEdit = () => {
                                                     onChange={(e) => updateTower(index, 'floors', e.target.value)}
                                                     placeholder='Floors'
                                                     className='w-full'
+                                                    fullWidth={true}
                                                 />
                                                 <button
                                                     onClick={() => removeTower(index)}
@@ -447,7 +454,7 @@ const PreReraProjectEdit = () => {
                     </div>
 
                     {/* Amenities */}
-                    <div className='mt-8'>
+                    <div className='mt-8 mb-10'>
                         <div className='flex justify-between items-center mb-4'>
                             <h2 className='text-lg font-semibold text-gray-900'>Amenities</h2>
                             <Button
@@ -466,6 +473,7 @@ const PreReraProjectEdit = () => {
                                         value={amenity}
                                         onChange={(e) => updateAmenity(index, e.target.value)}
                                         className='flex-1'
+                                        fullWidth={true}
                                         placeholder='Enter amenity'
                                     />
                                     <button
