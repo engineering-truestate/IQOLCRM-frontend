@@ -3,15 +3,11 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import Layout from '../../../../layout/Layout'
-import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
-import Button from '../../../../components/design-elements/Button'
-import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
-import {
-    sampleRERAProjects,
-    generateRERAProjects,
-    type RERAProject,
-} from '../../../dummy_data/restack_primary_dummy_data'
+import Layout from '../../../layout/Layout'
+import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
+import Button from '../../../components/design-elements/Button'
+import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import { sampleRERAProjects, generateRERAProjects, type RERAProject } from '../../dummy_data/restack_primary_dummy_data'
 
 const PrimaryPage = () => {
     const [searchValue, setSearchValue] = useState('')

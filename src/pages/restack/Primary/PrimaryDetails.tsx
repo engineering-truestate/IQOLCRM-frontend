@@ -3,15 +3,11 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import Layout from '../../../../layout/Layout'
-import {
-    FlexibleTable,
-    type TableColumn,
-    type DropdownOption,
-} from '../../../../components/design-elements/FlexibleTable'
-import Dropdown from '../../../../components/design-elements/Dropdown'
-import Button from '../../../../components/design-elements/Button'
-import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
+import Layout from '../../../layout/Layout'
+import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
+import Dropdown from '../../../components/design-elements/Dropdown'
+import Button from '../../../components/design-elements/Button'
+import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import {
     generateProjectDetails,
     type ProjectDetails,
@@ -19,7 +15,7 @@ import {
     type VillaUnit,
     type PlotUnit,
     type MapsPlan,
-} from '../../../dummy_data/restack_primary_details_dummy_data.ts'
+} from '../../dummy_data/restack_primary_details_dummy_data.ts'
 
 // Helper data for dropdowns (based on similar files like PreLaunchDetails)
 const projectTypes = [
