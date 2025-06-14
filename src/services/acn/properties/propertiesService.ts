@@ -1,6 +1,183 @@
-import type { IInventory } from '../../../store/reducers/types'
-import { collection, getDocs, query, where, QueryConstraint } from 'firebase/firestore'
+// store/services/propertiesService.ts
+import { createAsyncThunk } from '@reduxjs/toolkit'
+import {
+    doc,
+    getDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    updateDoc,
+    setDoc,
+    runTransaction,
+    QueryConstraint,
+} from 'firebase/firestore'
 import { db } from '../../../firebase'
+import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
+
+// Helper function to get current Unix timestamp in milliseconds
+const getCurrentTimestamp = () => Date.now()
+
+// Helper function to remove undefined values
+const removeUndefinedFields = (obj: any): any => {
+    const cleaned: any = {}
+
+    Object.keys(obj).forEach((key) => {
+        const value = obj[key]
+
+        if (value !== undefined) {
+            if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+                const cleanedNested = removeUndefinedFields(value)
+                if (Object.keys(cleanedNested).length > 0) {
+                    cleaned[key] = cleanedNested
+                }
+            } else {
+                cleaned[key] = value
+            }
+        }
+    })
+
+    return cleaned
+}
+
+// Helper function to set default values
+const setDefaultValues = (propertyData: Partial<IInventory>): Partial<IInventory> => {
+    return {
+        ...propertyData,
+        nameOfTheProperty: propertyData.nameOfTheProperty || '',
+        area: propertyData.area || '',
+        micromarket: propertyData.micromarket || '',
+        mapLocation: propertyData.mapLocation || '',
+        assetType: propertyData.assetType || 'apartment',
+        unitType: propertyData.unitType || '',
+        subType: propertyData.subType || '',
+        sbua: propertyData.sbua || 0,
+        totalAskPrice: propertyData.totalAskPrice || 0,
+        askPricePerSqft: propertyData.askPricePerSqft || 0,
+        floorNo: propertyData.floorNo || '',
+        facing: propertyData.facing || '',
+        status: propertyData.status || 'Available',
+        currentStatus: propertyData.currentStatus || 'Available',
+        cpId: propertyData.cpId || '',
+        cpCode: propertyData.cpCode || '',
+        extraDetails: propertyData.extraDetails || '',
+        driveLink: propertyData.driveLink || '',
+        photo: propertyData.photo || [],
+        video: propertyData.video || [],
+        document: propertyData.document || [],
+        _geoloc: propertyData._geoloc || { lat: 0, lng: 0 },
+        tenanted: propertyData.tenanted !== undefined ? propertyData.tenanted : false,
+        ocReceived: propertyData.ocReceived !== undefined ? propertyData.ocReceived : false,
+    }
+}
+
+// Convert any timestamp to Unix milliseconds
+const convertTimestampToUnix = (timestamp: any): number => {
+    if (!timestamp) return getCurrentTimestamp()
+
+    if (typeof timestamp === 'number') return timestamp
+
+    if (timestamp.seconds !== undefined) {
+        return timestamp.seconds * 1000 + Math.floor(timestamp.nanoseconds / 1000000)
+    }
+
+    if (timestamp instanceof Date) {
+        return timestamp.getTime()
+    }
+
+    if (typeof timestamp === 'string') {
+        const parsed = new Date(timestamp).getTime()
+        return isNaN(parsed) ? getCurrentTimestamp() : parsed
+    }
+
+    return getCurrentTimestamp()
+}
+
+// Generate unique property ID using admin collection
+const generateUniquePropertyId = async (): Promise<string> => {
+    return await runTransaction(db, async (transaction) => {
+        console.log('🔢 Generating unique property ID from admin collection')
+
+        const adminDocRef = doc(db, 'acn-admin', 'lastPropId')
+        const adminDoc = await transaction.get(adminDocRef)
+
+        if (!adminDoc.exists()) {
+            const initialData = {
+                count: 5269,
+                label: 'P',
+                prefix: 'A',
+            }
+            transaction.set(adminDocRef, initialData)
+            const newPropertyId = `${initialData.prefix}${initialData.label}${initialData.count + 1}`
+            console.log('🆕 Initialized admin document and generated first property ID:', newPropertyId)
+            return newPropertyId
+        }
+
+        const adminData = adminDoc.data()
+        const currentCount = adminData.count || 5269
+        const label = adminData.label || 'P'
+        const prefix = adminData.prefix || 'A'
+
+        const newCount = currentCount + 1
+        const newPropertyId = `${label}${prefix}${newCount}`
+
+        transaction.update(adminDocRef, { count: newCount })
+
+        console.log('✅ Generated unique property ID:', newPropertyId, 'with count:', newCount)
+        return newPropertyId
+    })
+}
+
+// Add new property with unique ID generation - FIXED VERSION
+export const addProperty = createAsyncThunk(
+    'properties/add',
+    async (propertyData: Partial<IInventory>, { rejectWithValue }) => {
+        try {
+            console.log('➕ Adding new property:', propertyData)
+
+            // Generate unique property ID from admin collection
+            const propertyId = await generateUniquePropertyId()
+            const currentTime = getCurrentTimestamp()
+
+            // Set default values and use Unix timestamps
+            const propertyWithDefaults = setDefaultValues({
+                ...propertyData,
+                propertyId,
+                dateOfInventoryAdded: currentTime, // Use Unix timestamp directly
+                dateOfStatusLastChecked: currentTime, // Use Unix timestamp directly
+                ageOfInventory: 0,
+                ageOfStatus: 0,
+                handoverDate: propertyData.handoverDate ? convertTimestampToUnix(propertyData.handoverDate) : null,
+            })
+
+            // Remove undefined fields
+            const cleanedProperty = removeUndefinedFields(propertyWithDefaults)
+
+            console.log('🧹 Cleaned property data with ID:', propertyId, cleanedProperty)
+
+            // Use setDoc with the propertyId as document ID
+            const docRef = doc(db, 'acn-properties', propertyId)
+            await setDoc(docRef, cleanedProperty)
+
+            console.log('✅ Property added successfully with document ID:', propertyId)
+
+            // Return the property with Unix timestamps only (NO Firebase Timestamp objects)
+            const returnProperty: IInventory = {
+                ...cleanedProperty,
+                id: propertyId,
+                propertyId: propertyId,
+                dateOfInventoryAdded: currentTime, // Ensure Unix timestamp
+                dateOfStatusLastChecked: currentTime, // Ensure Unix timestamp
+            } as IInventory
+
+            console.log('🔄 Returning property to Redux:', returnProperty)
+            return returnProperty
+        } catch (error: any) {
+            console.error('❌ Error adding property:', error)
+            return rejectWithValue(error.message || 'Failed to add property')
+        }
+    },
+)
 
 export const fetchAllProperties = async (filters: any) => {
     try {
@@ -38,13 +215,186 @@ export const fetchAllProperties = async (filters: any) => {
     }
 }
 
-export const fetchPropertiesBatch =
-    (batchSize: number, loadMore: boolean = false) =>
-    async () => {
-        try {
-            console.log('fetchPropertiesBatch not implemented yet')
-            return { success: true, data: [], hasMore: false }
-        } catch (error: any) {
-            return { success: false, error: error.message }
+// Get next property ID preview
+export const getNextPropertyId = createAsyncThunk('properties/getNextId', async (_, { rejectWithValue }) => {
+    try {
+        console.log('🔍 Getting next property ID preview')
+
+        const adminDocRef = doc(db, 'acn-admin', 'lastPropId')
+        const adminDoc = await getDoc(adminDocRef)
+
+        if (!adminDoc.exists()) {
+            return 'AP5270'
         }
+
+        const adminData = adminDoc.data()
+        const currentCount = adminData.count || 5269
+        const label = adminData.label || 'P'
+        const prefix = adminData.prefix || 'A'
+
+        const nextId = `${label}${prefix}${currentCount + 1}`
+        console.log('📋 Next property ID will be:', nextId)
+
+        return nextId
+    } catch (error: any) {
+        console.error('Error getting next property', error)
+        return rejectWithValue(error.message || 'Failed to get next property ID')
     }
+})
+
+// Fetch single property by ID
+export const fetchPropertyById = createAsyncThunk(
+    'properties/fetchById',
+    async (propertyId: string, { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching property with ID:', propertyId)
+
+            // Try to get by document ID (which should match propertyId)
+            const docRef = doc(db, 'acn-properties', propertyId)
+            const docSnap = await getDoc(docRef)
+
+            if (docSnap.exists()) {
+                const data = docSnap.data() as any
+                console.log('✅ Property data fetched by document ID:', data)
+
+                const convertedData: IInventory = {
+                    ...data,
+                    id: docSnap.id,
+                    dateOfInventoryAdded: convertTimestampToUnix(data.dateOfInventoryAdded),
+                    dateOfStatusLastChecked: convertTimestampToUnix(data.dateOfStatusLastChecked),
+                    handoverDate: data.handoverDate ? convertTimestampToUnix(data.handoverDate) : null,
+                }
+
+                return convertedData
+            }
+
+            // If not found by document ID, try to find by propertyId field
+            console.log('🔍 Document not found by ID, searching by propertyId field...')
+            const q = query(collection(db, 'acn-properties'), where('propertyId', '==', propertyId))
+            const querySnapshot = await getDocs(q)
+
+            if (!querySnapshot.empty) {
+                const doc = querySnapshot.docs[0]
+                const data = doc.data() as any
+                console.log('✅ Property data fetched by propertyId field:', data)
+
+                const convertedData: IInventory = {
+                    ...data,
+                    id: doc.id,
+                    dateOfInventoryAdded: convertTimestampToUnix(data.dateOfInventoryAdded),
+                    dateOfStatusLastChecked: convertTimestampToUnix(data.dateOfStatusLastChecked),
+                    handoverDate: data.handoverDate ? convertTimestampToUnix(data.handoverDate) : null,
+                }
+
+                return convertedData
+            }
+
+            console.log('❌ No property found with ID:', propertyId)
+            throw new Error(`Property with ID ${propertyId} not found`)
+        } catch (error: any) {
+            console.error('❌ Error fetching property:', error)
+            return rejectWithValue(error.message || 'Failed to fetch property')
+        }
+    },
+)
+
+// Update existing property
+export const updateProperty = createAsyncThunk(
+    'properties/update',
+    async ({ id, updates }: { id: string; updates: Partial<IInventory> }, { rejectWithValue }) => {
+        try {
+            console.log('📝 Updating property:', id, updates)
+
+            const docRef = doc(db, 'acn-properties', id)
+
+            const updatesWithDefaults = setDefaultValues({
+                ...updates,
+                dateOfStatusLastChecked: getCurrentTimestamp(),
+                handoverDate: updates.handoverDate
+                    ? convertTimestampToUnix(updates.handoverDate)
+                    : updates.handoverDate,
+            })
+
+            if (updates.status) {
+                updatesWithDefaults.ageOfStatus = 0
+                updatesWithDefaults.currentStatus = updates.status
+            }
+
+            const cleanedUpdates = removeUndefinedFields(updatesWithDefaults)
+
+            console.log('🧹 Cleaned update data:', cleanedUpdates)
+
+            await updateDoc(docRef, cleanedUpdates)
+
+            console.log('✅ Property updated successfully')
+
+            return { id, updates: cleanedUpdates }
+        } catch (error: any) {
+            console.error('❌ Error updating property:', error)
+            return rejectWithValue(error.message || 'Failed to update property')
+        }
+    },
+)
+
+// Other thunks...
+export const fetchPropertiesByIds = createAsyncThunk(
+    'properties/fetchByIds',
+    async (propertyIds: string[], { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching properties with IDs:', propertyIds)
+
+            if (propertyIds.length === 0) {
+                return []
+            }
+
+            const docPromises = propertyIds.map(async (propertyId) => {
+                const docRef = doc(db, 'acn-properties', propertyId)
+                const docSnap = await getDoc(docRef)
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data() as any
+                    return {
+                        ...data,
+                        id: docSnap.id,
+                        dateOfInventoryAdded: convertTimestampToUnix(data.dateOfInventoryAdded),
+                        dateOfStatusLastChecked: convertTimestampToUnix(data.dateOfStatusLastChecked),
+                        handoverDate: data.handoverDate ? convertTimestampToUnix(data.handoverDate) : null,
+                    } as IInventory
+                }
+                return null
+            })
+
+            const results = await Promise.all(docPromises)
+            const allProperties = results.filter((result) => result !== null) as IInventory[]
+
+            console.log('✅ Properties fetched successfully:', allProperties.length, 'properties')
+            return allProperties
+        } catch (error: any) {
+            console.error('❌ Error fetching properties:', error)
+            return rejectWithValue(error.message || 'Failed to fetch properties')
+        }
+    },
+)
+
+export const updatePropertyStatus = createAsyncThunk(
+    'properties/updateStatus',
+    async ({ propertyId, status }: { propertyId: string; status: string }, { rejectWithValue }) => {
+        try {
+            console.log('📝 Updating property status:', propertyId, status)
+
+            const docRef = doc(db, 'acn-properties', propertyId)
+            await updateDoc(docRef, {
+                status: status,
+                currentStatus: status,
+                dateOfStatusLastChecked: getCurrentTimestamp(),
+                ageOfStatus: 0,
+            })
+
+            console.log('✅ Property status updated successfully')
+            return { propertyId, status }
+        } catch (error: any) {
+            console.error('❌ Error updating property status:', error)
+            return rejectWithValue(error.message || 'Failed to fetch properties')
+        }
+    },
+)

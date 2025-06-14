@@ -1,12 +1,22 @@
+// AddEditInventoryPage.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '../../../store/index'
+import {
+    fetchPropertyById,
+    addProperty,
+    updateProperty,
+    getNextPropertyId,
+} from '../../../services/acn/properties/propertiesService'
+import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
 import Layout from '../../../layout/Layout'
 import Button from '../../../components/design-elements/Button'
 import FormFieldRenderer from './AddInventoryRenderer'
 import { formConfigs, type PropertyType } from './add-inventory_config'
-import { generateProperties, type Property } from '../../../pages/dummy_data/acn_properties_inventory_dummy_data'
+import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 
 // Asset type options
 const assetTypes: { label: string; value: PropertyType; icon: string }[] = [
@@ -18,50 +28,110 @@ const assetTypes: { label: string; value: PropertyType; icon: string }[] = [
     { label: 'Independent Building', value: 'independent', icon: '🏛️' },
 ]
 
+// Helper function to format Unix timestamp to readable date
+const formatUnixTimestamp = (timestamp: number | null | undefined): string => {
+    if (!timestamp) return ''
+    const date = new Date(timestamp)
+    return date.toISOString().split('T')[0] // Returns YYYY-MM-DD format
+}
+
 // Helper function to map property data to form fields
-const mapPropertyToFormData = (property: Property): Record<string, any> => {
+const mapPropertyToFormData = (property: IInventory): Record<string, any> => {
     return {
         // Basic Information
-        communityType: 'gated', // Default or derive from property
-        projectName: property.propertyName,
-        sbua: property.sbua?.replace(/[^\d]/g, ''), // Remove non-numeric characters
-        carpetArea: '', // Not available in current property structure
-        floorNo: '', // Not available in current property structure
-        doorFacing: property.facing?.toLowerCase(),
+        communityType: 'gated',
+        projectName: property.nameOfTheProperty || property.area,
+        sbua: property.sbua?.toString() || '',
+        carpetArea: property.carpet?.toString() || '',
+        floorNo: property.floorNo || '',
+        doorFacing: property.facing?.toLowerCase() || '',
         unitNo: property.propertyId,
-        furnishing: '', // Not available in current property structure
+        furnishing: '',
 
         // Property type specific
-        bedrooms: property.assetType?.includes('BHK') ? property.assetType.charAt(0) : '',
-        apartmentType: 'simplex', // Default
+        bedrooms: property.unitType?.includes('BHK') ? property.unitType.charAt(0) : '',
+        apartmentType: 'simplex',
 
         // Pricing
-        totalAskPrice: property.salePrice || property.monthlyRent,
-        handoverDate: property.possessionDate,
-        readyToMove: false, // Default
+        totalAskPrice: property.totalAskPrice?.toString() || '',
+        handoverDate: formatUnixTimestamp(property.handoverDate),
+        readyToMove: false,
 
         // Additional details
-        balconyFacing: 'outside', // Default
-        ageOfBuilding: '', // Not available
-        insideOutsideFacing: 'outside', // Default
-        ups: '', // Not available
-        carPark: '', // Not available
-        cornerUnit: false, // Default
-        ocReceived: false, // Default
-        tenanted: false, // Default
-        rentalIncome: '', // Not available
-        exclusive: false, // Default
+        balconyFacing: 'outside',
+        ageOfBuilding: property.buildingAge?.toString() || '',
+        insideOutsideFacing: 'outside',
+        ups: '',
+        carPark: '',
+        cornerUnit: false,
+        ocReceived: property.ocReceived || false,
+        tenanted: property.tenanted || false,
+        rentalIncome: '',
+        exclusive: false,
 
         // Legal documents
-        buildingKhata: 'a_khata', // Default
-        landKhata: 'a_khata', // Default
-        eKhata: false, // Default
-        biappaApprovedKhata: false, // Default
-        bdaApprovedKhata: false, // Default
+        buildingKhata: property.buildingKhata || 'a_khata',
+        landKhata: property.landKhata || 'a_khata',
+        eKhata: false,
+        biappaApprovedKhata: false,
+        bdaApprovedKhata: false,
 
         // Files and notes
-        fileUpload: [],
-        extraDetails: '',
+        fileUpload: property.photo || [],
+        extraDetails: property.extraDetails || '',
+
+        // Location
+        micromarket: property.micromarket || '',
+        area: property.area || '',
+        mapLocation: property.mapLocation || '',
+
+        // Additional IInventory fields
+        unitType: property.unitType || '',
+        subType: property.subType || '',
+        plotSize: property.plotSize?.toString() || '',
+        askPricePerSqft: property.askPricePerSqft?.toString() || '',
+        status: property.status || 'Available',
+        builder_name: property.builder_name || '',
+        driveLink: property.driveLink || '',
+        video: property.video || [],
+        document: property.document || [],
+    }
+}
+
+// Helper function to map form data to IInventory
+const mapFormDataToProperty = (formData: Record<string, any>, assetType: PropertyType): Partial<IInventory> => {
+    return {
+        nameOfTheProperty: formData.projectName || '',
+        area: formData.area || formData.projectName || '',
+        micromarket: formData.micromarket || '',
+        mapLocation: formData.mapLocation || '',
+        assetType: assetType,
+        unitType: formData.unitType || (formData.bedrooms ? `${formData.bedrooms} BHK` : ''),
+        subType: formData.subType || '',
+        sbua: formData.sbua ? parseInt(formData.sbua) : 0,
+        carpet: formData.carpetArea ? parseInt(formData.carpetArea) : null,
+        plotSize: formData.plotSize ? parseInt(formData.plotSize) : null,
+        buildingAge: formData.ageOfBuilding ? parseInt(formData.ageOfBuilding) : null,
+        floorNo: formData.floorNo || '',
+        facing: formData.doorFacing || '',
+        tenanted: Boolean(formData.tenanted),
+        totalAskPrice: formData.totalAskPrice ? parseInt(formData.totalAskPrice) : 0,
+        askPricePerSqft: formData.askPricePerSqft ? parseInt(formData.askPricePerSqft) : 0,
+        status: formData.status || 'Available',
+        currentStatus: formData.status || 'Available',
+        builder_name: formData.builder_name || null,
+        handoverDate: formData.handoverDate ? new Date(formData.handoverDate).getTime() : null,
+        buildingKhata: formData.buildingKhata || null,
+        landKhata: formData.landKhata || null,
+        ocReceived: Boolean(formData.ocReceived),
+        photo: Array.isArray(formData.fileUpload) ? formData.fileUpload : [],
+        video: Array.isArray(formData.video) ? formData.video : [],
+        document: Array.isArray(formData.document) ? formData.document : [],
+        driveLink: formData.driveLink || '',
+        extraDetails: formData.extraDetails || '',
+        cpId: 'CURRENT_USER_ID', // Replace with actual user ID
+        cpCode: 'CURRENT_USER_CODE', // Replace with actual user code
+        _geoloc: { lat: 0, lng: 0 }, // Default coordinates
     }
 }
 
@@ -85,52 +155,63 @@ const getPropertyTypeFromAssetType = (assetType: string): PropertyType => {
 const AddEditInventoryPage = () => {
     const navigate = useNavigate()
     const { pId } = useParams<{ pId: string }>()
+    const dispatch = useDispatch<AppDispatch>()
     const isEditMode = Boolean(pId)
+
+    // Redux state
+    const { currentProperty: property, loading, error } = useSelector((state: RootState) => state.properties)
 
     const [selectedAssetType, setSelectedAssetType] = useState<PropertyType>('apartments')
     const [formData, setFormData] = useState<Record<string, any>>({})
     const [errors, setErrors] = useState<Record<string, string>>({})
-    const [loading, setLoading] = useState(false)
-    const [property, setProperty] = useState<Property | null>(null)
+    const [successMessage, setSuccessMessage] = useState('')
+    const [nextPropertyId, setNextPropertyId] = useState<string>('')
+    const [loadingNextId, setLoadingNextId] = useState(false)
 
-    // Load property data if in edit mode
+    // Load property data if in edit mode or get next property ID for new properties
     useEffect(() => {
         if (isEditMode && pId) {
-            setLoading(true)
-
-            // Simulate API call - replace with actual API call
-            const fetchProperty = async () => {
-                try {
-                    // For demo purposes, generate sample data and find the property
-                    // In real app, you'd make an API call here
-                    const sampleData = generateProperties(200, 'Resale')
-                    const foundProperty = sampleData.find((p) => p.id === pId)
-
-                    if (foundProperty) {
-                        setProperty(foundProperty)
-
-                        // Determine property type from asset type
-                        const propertyType = getPropertyTypeFromAssetType(foundProperty.assetType)
-                        setSelectedAssetType(propertyType)
-
-                        // Map property data to form fields
-                        const mappedData = mapPropertyToFormData(foundProperty)
-                        setFormData(mappedData)
-                    } else {
-                        console.error('Property not found')
-                        // Optionally redirect back to properties page
-                        navigate('/acn/properties')
-                    }
-                } catch (error) {
-                    console.error('Error fetching property:', error)
-                } finally {
-                    setLoading(false)
-                }
-            }
-
-            fetchProperty()
+            console.log('🔄 Loading property for edit:', pId)
+            dispatch(fetchPropertyById(pId))
+        } else {
+            // Get next property ID for new properties
+            setLoadingNextId(true)
+            dispatch(getNextPropertyId())
+                .unwrap()
+                .then((nextId) => {
+                    console.log('📋 Next property ID received:', nextId)
+                    setNextPropertyId(nextId)
+                })
+                .catch((error) => {
+                    console.error('❌ Error getting next property ID:', error)
+                    setNextPropertyId('AP5270') // Fallback
+                })
+                .finally(() => {
+                    setLoadingNextId(false)
+                })
         }
-    }, [isEditMode, pId, navigate])
+
+        // Cleanup on unmount
+        return () => {
+            console.log('🧹 Clearing current property on unmount')
+            dispatch(clearCurrentProperty())
+        }
+    }, [isEditMode, pId, dispatch])
+
+    // Update form data when property is loaded
+    useEffect(() => {
+        if (property && isEditMode) {
+            console.log('📋 Property loaded, updating form data:', property)
+
+            // Determine property type from asset type
+            const propertyType = getPropertyTypeFromAssetType(property.assetType)
+            setSelectedAssetType(propertyType)
+
+            // Map property data to form fields
+            const mappedData = mapPropertyToFormData(property)
+            setFormData(mappedData)
+        }
+    }, [property, isEditMode])
 
     const handleFieldChange = (fieldId: string, value: any) => {
         setFormData((prev) => ({
@@ -165,42 +246,82 @@ const AddEditInventoryPage = () => {
 
     const handleSubmit = async () => {
         if (validateForm()) {
-            setLoading(true)
             try {
-                if (isEditMode) {
-                    // Update existing property
-                    console.log('Updating property:', pId, formData)
-                    // Make API call to update property
-                    // await updateProperty(pId, formData)
-                } else {
-                    // Create new property
-                    console.log('Creating new property:', formData)
-                    // Make API call to create property
-                    // await createProperty(formData)
-                }
+                const propertyData = mapFormDataToProperty(formData, selectedAssetType)
 
-                // Navigate back to properties page
-                navigate('/acn/properties')
+                if (isEditMode && property) {
+                    console.log('📝 Updating property:', property.id, propertyData)
+                    const updatedProperty = await dispatch(
+                        updateProperty({
+                            id: property.id,
+                            updates: propertyData,
+                        }),
+                    ).unwrap()
+
+                    console.log('✅ Property updated successfully')
+                    setSuccessMessage('Property updated successfully!')
+
+                    // Navigate to the updated property's details page using propertyId
+                    setTimeout(() => {
+                        navigate(`/acn/properties/${property.propertyId}/details`)
+                    }, 1500)
+                } else {
+                    console.log('➕ Creating new property:', propertyData)
+                    const newProperty = await dispatch(addProperty(propertyData)).unwrap()
+
+                    console.log('✅ Property created successfully:', newProperty)
+                    setSuccessMessage('Property created successfully!')
+
+                    // Navigate to the new property's details page using propertyId
+                    setTimeout(() => {
+                        navigate(`/acn/properties/${newProperty.propertyId}/details`)
+                    }, 1500)
+                }
             } catch (error) {
-                console.error('Error saving property:', error)
-            } finally {
-                setLoading(false)
+                console.error('❌ Error saving property:', error)
             }
         }
     }
 
-    const handleSaveDraft = () => {
-        console.log('Draft saved:', formData)
-        // Handle save draft
-    }
-
     const currentConfig = formConfigs[selectedAssetType]
 
-    if (loading) {
+    // Loading state
+    if (loading && isEditMode && !property) {
         return (
             <Layout loading={true}>
                 <div className='flex items-center justify-center min-h-screen'>
-                    <div className='text-lg'>Loading...</div>
+                    <div className='text-lg'>Loading property data...</div>
+                </div>
+            </Layout>
+        )
+    }
+
+    // Error state
+    if (error && isEditMode) {
+        return (
+            <Layout loading={false}>
+                <div className='flex items-center justify-center min-h-screen'>
+                    <div className='text-center'>
+                        <div className='text-lg text-red-600 mb-4'>Error loading property</div>
+                        <div className='text-sm text-gray-600 mb-4'>{error}</div>
+                        <div className='flex gap-2 justify-center'>
+                            <button
+                                onClick={() => {
+                                    dispatch(clearError())
+                                    if (pId) dispatch(fetchPropertyById(pId))
+                                }}
+                                className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => navigate('/acn/properties')}
+                                className='px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600'
+                            >
+                                Back to Properties
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </Layout>
         )
@@ -215,10 +336,77 @@ const AddEditInventoryPage = () => {
                         <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
                             {isEditMode ? 'Edit Inventory' : 'Add Inventory'}
                         </h1>
+
                         {isEditMode && property && (
                             <p className='text-gray-600 mb-6'>
-                                Editing: {property.propertyName} ({property.propertyId})
+                                Editing: {property.nameOfTheProperty || property.area} ({property.propertyId})
                             </p>
+                        )}
+
+                        {!isEditMode && (
+                            <div className='mb-6'>
+                                {loadingNextId ? (
+                                    <p className='text-gray-600'>
+                                        <span className='inline-flex items-center gap-2'>
+                                            <svg className='animate-spin h-4 w-4' fill='none' viewBox='0 0 24 24'>
+                                                <circle
+                                                    className='opacity-25'
+                                                    cx='12'
+                                                    cy='12'
+                                                    r='10'
+                                                    stroke='currentColor'
+                                                    strokeWidth='4'
+                                                ></circle>
+                                                <path
+                                                    className='opacity-75'
+                                                    fill='currentColor'
+                                                    d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                                                ></path>
+                                            </svg>
+                                            Loading next property ID...
+                                        </span>
+                                    </p>
+                                ) : nextPropertyId ? (
+                                    <p className='text-gray-600'>
+                                        Next Property ID:{' '}
+                                        <span className='font-semibold text-blue-600'>{nextPropertyId}</span>
+                                    </p>
+                                ) : (
+                                    <p className='text-gray-600'>
+                                        Next Property ID:{' '}
+                                        <span className='font-semibold text-gray-400'>Loading...</span>
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Success/Error Messages */}
+                        {successMessage && (
+                            <div className='mb-4 p-3 bg-green-50 border border-green-200 rounded-lg'>
+                                <div className='flex items-center gap-2'>
+                                    <svg
+                                        className='w-5 h-5 text-green-600'
+                                        fill='none'
+                                        stroke='currentColor'
+                                        viewBox='0 0 24 24'
+                                    >
+                                        <path
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                            strokeWidth={2}
+                                            d='M5 13l4 4L19 7'
+                                        />
+                                    </svg>
+                                    <div className='text-sm text-green-700'>{successMessage}</div>
+                                </div>
+                                <div className='text-xs text-green-600 mt-1'>Redirecting to property details...</div>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                                <div className='text-sm text-red-700'>{error}</div>
+                            </div>
                         )}
 
                         {/* Asset Type Selection */}
@@ -229,7 +417,7 @@ const AddEditInventoryPage = () => {
                                     <button
                                         key={type.value}
                                         onClick={() => setSelectedAssetType(type.value)}
-                                        disabled={isEditMode} // Disable asset type change in edit mode
+                                        disabled={isEditMode}
                                         className={`p-4 rounded-lg border-2 transition-all duration-200 ${
                                             selectedAssetType === type.value
                                                 ? 'border-blue-500 bg-blue-50 text-blue-700'
@@ -270,22 +458,48 @@ const AddEditInventoryPage = () => {
                     {/* Action Buttons */}
                     <div className='flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200'>
                         <Button
-                            bgColor='bg-white'
-                            textColor='text-gray-700'
-                            className='px-6 py-2 border border-gray-300 hover:bg-gray-50'
-                            onClick={handleSaveDraft}
-                            disabled={loading}
-                        >
-                            Save as draft
-                        </Button>
-                        <Button
-                            bgColor='bg-gray-900'
+                            bgColor={loading ? 'bg-gray-400' : successMessage ? 'bg-green-600' : 'bg-gray-900'}
                             textColor='text-white'
-                            className='px-6 py-2 hover:bg-gray-800'
+                            className='px-8 py-3 hover:bg-gray-800 text-base font-medium'
                             onClick={handleSubmit}
-                            disabled={loading}
+                            disabled={loading || successMessage !== ''}
                         >
-                            {loading ? 'Saving...' : isEditMode ? 'Update' : 'Submit'}
+                            {loading ? (
+                                <div className='flex items-center gap-2'>
+                                    <svg className='animate-spin h-4 w-4' fill='none' viewBox='0 0 24 24'>
+                                        <circle
+                                            className='opacity-25'
+                                            cx='12'
+                                            cy='12'
+                                            r='10'
+                                            stroke='currentColor'
+                                            strokeWidth='4'
+                                        ></circle>
+                                        <path
+                                            className='opacity-75'
+                                            fill='currentColor'
+                                            d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                                        ></path>
+                                    </svg>
+                                    {isEditMode ? 'Updating...' : 'Creating...'}
+                                </div>
+                            ) : successMessage ? (
+                                <div className='flex items-center gap-2'>
+                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                        <path
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                            strokeWidth={2}
+                                            d='M5 13l4 4L19 7'
+                                        />
+                                    </svg>
+                                    {isEditMode ? 'Updated!' : 'Created!'}
+                                </div>
+                            ) : isEditMode ? (
+                                'Update Property'
+                            ) : (
+                                'Add Property'
+                            )}
                         </Button>
                     </div>
                 </div>

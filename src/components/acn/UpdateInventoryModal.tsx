@@ -82,20 +82,20 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
         onClose()
     }
 
-    const getStatusColor = (status: PropertyStatus) => {
-        switch (status) {
-            case 'Available':
-                return 'bg-green-500'
-            case 'Sold':
-                return 'bg-red-500'
-            case 'Hold':
-                return 'bg-orange-500'
-            case 'Delisted':
-                return 'bg-gray-500'
-            default:
-                return 'bg-gray-500'
-        }
-    }
+    // const getStatusColor = (status: PropertyStatus) => {
+    //     switch (status) {
+    //         case 'Available':
+    //             return 'bg-green-500'
+    //         case 'Sold':
+    //             return 'bg-red-500'
+    //         case 'Hold':
+    //             return 'bg-orange-500'
+    //         case 'Delisted':
+    //             return 'bg-gray-500'
+    //         default:
+    //             return 'bg-gray-500'
+    //     }
+    // }
 
     return (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>

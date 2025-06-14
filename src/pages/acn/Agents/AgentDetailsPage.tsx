@@ -39,11 +39,11 @@ const AgentDetailsPage = () => {
     useEffect(() => {
         const fetchData = async () => {
             if (!agentId) return
-            const filters = { cpId: 'CPA022' }
+            const filters = { cpId: 'INT001' }
 
             // Fetch properties
             const propertiesResponse = await fetchAllProperties(filters)
-            if (propertiesResponse.success && propertiesResponse.data) {
+            if (propertiesResponse.success && propertiesResponse?.data) {
                 setInventoryData(propertiesResponse.data)
             } else {
                 console.error('Failed to fetch properties:', propertiesResponse.error)
@@ -135,7 +135,7 @@ const AgentDetailsPage = () => {
                                 onClick={() => handleTabClick('Enquiry')}
                                 className={`cursor-pointer ${activeTab === 'Enquiry' ? 'border-b-2 border-black' : ''}`}
                             >
-                                Enquiry (10)
+                                Enquiry ({enquiryData.length})
                             </div>
                         </div>
                         <div>

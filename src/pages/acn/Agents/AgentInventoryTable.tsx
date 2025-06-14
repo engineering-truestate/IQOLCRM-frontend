@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import type { IInventory } from '../../../store/reducers/types'
+import { useNavigate } from 'react-router-dom'
 
 interface AgentInventoryTableProps {
     inventoryData: IInventory[]
@@ -10,6 +11,7 @@ interface AgentInventoryTableProps {
 
 const AgentInventoryTable: React.FC<AgentInventoryTableProps> = ({ inventoryData, agentId }) => {
     const [selectedInventoryStatus, setSelectedInventoryStatus] = useState('')
+    const navigate = useNavigate()
 
     const getInventoryStatusOptions = () => {
         return [
@@ -28,7 +30,14 @@ const AgentInventoryTable: React.FC<AgentInventoryTableProps> = ({ inventoryData
                 key: 'propertyId',
                 header: 'Property ID',
                 render: (value) => (
-                    <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                    <span
+                        onClick={() => {
+                            navigate(`/acn/properties/${value}/details`)
+                        }}
+                        className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'
+                    >
+                        {value}
+                    </span>
                 ),
             },
             {

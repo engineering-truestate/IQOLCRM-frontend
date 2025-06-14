@@ -22,8 +22,10 @@ import PrimaryDetailsPage from './pages/restack/PreLaunch/Primary/PrimaryDetails
 import PropertiesPage from './pages/acn/Properties/Properties'
 import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
 import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
-import ErrorPage from './404'
 import AgentDetailsPage from './pages/acn/Agents/AgentDetailsPage'
+import QCDashboardPage from './pages/acn/QCDashboard/QCDashboardPage'
+import QCPropertyDetailsPage from './pages/acn/QCDashboard/QCPropertyDetails'
+import ErrorPage from './404'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -188,6 +190,14 @@ export const protectedRoutes: RouteObject[] = [
             null,
             React.createElement(React.Suspense, null, React.createElement(PropertyDetailsPage, null)),
         ),
+    },
+    {
+        path: '/acn/qc/dashboard',
+        element: React.createElement(React.Suspense, null, React.createElement(QCDashboardPage, null)),
+    },
+    {
+        path: '/acn/qc/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(QCPropertyDetailsPage, null)),
     },
 ]
 
