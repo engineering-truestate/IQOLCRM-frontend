@@ -6,6 +6,7 @@ import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import { generateRequirements, type RequirementData, type Note } from '../../dummy_data/acn_requirements_dummy_data'
+import Breadcrumb from '../../../components/acn/Breadcrumb'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
 import noteic from '/icons/acn/note.svg'
@@ -63,6 +64,8 @@ const RequirementDetailsPage = () => {
     const navigate = useNavigate()
     const { id } = useParams()
 
+    console.log('RequirementDetailsPage - id:', id)
+
     const [requirement, setRequirement] = useState<RequirementData | null>(null)
     const [originalRequirement, setOriginalRequirement] = useState<RequirementData | null>(null)
     const [matchingProperties, setMatchingProperties] = useState<any[]>([])
@@ -118,7 +121,7 @@ const RequirementDetailsPage = () => {
                 setMatchingProperties(dummyMatchingProperties)
             }
         }
-    }, [id])
+    }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // Status dropdown options
     const statusDropdownOptions: DropdownOption[] = [
@@ -322,13 +325,7 @@ const RequirementDetailsPage = () => {
                 <div className='py-2 px-6 bg-white min-h-screen'>
                     {/* Breadcrumb */}
                     <div className='mb-4'>
-                        <div className='text-sm text-gray-500 mb-2'>
-                            <a href='/acn/requirements' className='hover:text-gray-700'>
-                                Requirements
-                            </a>
-                            <span className='mx-2'>/</span>
-                            <span className='text-black font-medium'>{requirement.reqId}</span>
-                        </div>
+                        <Breadcrumb link='/acn/requirements' parent='Requirements' child={requirement.reqId} />
 
                         {/* Header */}
                         <div className='flex items-center justify-between mb-4'>

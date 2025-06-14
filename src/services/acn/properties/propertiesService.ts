@@ -1,93 +1,50 @@
-import {
-    collection,
-    getDocs,
-    query,
-    orderBy,
-    limit,
-    startAfter,
-    QueryDocumentSnapshot,
-    QueryConstraint,
-} from 'firebase/firestore'
-import { db } from '../../../firebase'
-import {
-    fetchPropertiesStart,
-    fetchPropertiesSuccess,
-    fetchPropertiesFailure,
-    fetchPropertiesBatchStart,
-    fetchPropertiesBatchSuccess,
-    fetchPropertiesBatchFailure,
-    fetchPropertiesBatchMore,
-} from '../../../store/reducers/acn/propertiesReducers'
-import type { AppDispatch, RootState } from '../../../store/index'
 import type { IInventory } from '../../../store/reducers/types'
+import { collection, getDocs, query, where, QueryConstraint } from 'firebase/firestore'
+import { db } from '../../../firebase'
 
-// === fetch-all (no pagination) ===
-export const fetchAllProperties = () => async (dispatch: AppDispatch) => {
-    dispatch(fetchPropertiesStart())
+export const fetchAllProperties = async (filters: any) => {
     try {
-        const colRef = collection(db, 'acn-properties')
-        const snapshot = await getDocs(colRef)
+        const constraints: QueryConstraint[] = []
+
+        if (filters && Object.keys(filters).length > 0) {
+            Object.entries(filters).forEach(([field, value]) => {
+                if (Array.isArray(value)) {
+                    constraints.push(where(field, 'in', value))
+                } else {
+                    constraints.push(where(field, '==', value))
+                }
+            })
+        }
+
+        console.log(filters)
+        const q = query(collection(db, 'acn-properties'), ...constraints)
+
+        const snapshot = await getDocs(q)
 
         const properties = snapshot.docs.map((doc) => {
-            const data = doc.data() as IInventory // Ensure typing for doc.data() as IInventory
+            const data = doc.data() as IInventory
+
             return {
-                ...data, // Spread properties data
-                id: doc.id, // Add the id manually
+                ...data,
+                id: doc.id,
             }
         })
 
-        dispatch(fetchPropertiesSuccess({ properties, total: properties.length }))
+        console.log([properties, 'hello'])
 
         return { success: true, data: properties }
     } catch (error: any) {
-        dispatch(fetchPropertiesFailure(error.message))
         return { success: false, error: error.message }
     }
 }
 
-// === batched/paginated fetch ===
 export const fetchPropertiesBatch =
     (batchSize: number, loadMore: boolean = false) =>
-    async (dispatch: AppDispatch, getState: () => RootState) => {
-        const { properties } = getState()
-        dispatch(loadMore ? fetchPropertiesBatchMore() : fetchPropertiesBatchStart())
-
+    async () => {
         try {
-            const constraints: QueryConstraint[] = [orderBy('dateOfInventoryAdded', 'desc'), limit(batchSize)]
-
-            if (loadMore && properties.lastDocument) {
-                constraints.push(startAfter(properties.lastDocument)) // Pass the correct lastDocument
-            }
-
-            const q = query(collection(db, 'acn-properties'), ...constraints)
-            const snapshot = await getDocs(q)
-
-            const propertiesBatch = snapshot.docs.map((doc) => {
-                const data = doc.data() as IInventory // Ensure typing for doc.data() as IInventory
-                return {
-                    ...data, // Spread properties data
-                    id: doc.id, // Add the id manually
-                }
-            })
-
-            const lastDoc = snapshot.docs.length
-                ? (snapshot.docs[snapshot.docs.length - 1] as QueryDocumentSnapshot<IInventory>) // Type cast here
-                : null
-            const hasMore = snapshot.docs.length === batchSize
-
-            dispatch(
-                fetchPropertiesBatchSuccess({
-                    properties: propertiesBatch,
-                    lastDocument: lastDoc, // Correctly typed lastDocument
-                    hasMore,
-                    isLoadingMore: loadMore,
-                    batchSize: propertiesBatch.length,
-                }),
-            )
-
-            return { success: true, data: propertiesBatch, hasMore }
+            console.log('fetchPropertiesBatch not implemented yet')
+            return { success: true, data: [], hasMore: false }
         } catch (error: any) {
-            dispatch(fetchPropertiesBatchFailure(error.message))
             return { success: false, error: error.message }
         }
     }
