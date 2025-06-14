@@ -16,6 +16,8 @@ export interface QCProperty {
     kamReviewDate?: string
     dataReviewDate?: string
     createdDate: string
+    stage?: string
+    status?: string
 }
 
 const projectNames = [
@@ -136,6 +138,8 @@ export const generateQCProperties = (count: number): QCProperty[] => {
             kamReviewDate: kamReviewed !== 'pending' ? getRandomDate(30) : undefined,
             dataReviewDate: dataReviewed !== 'pending' && kamReviewed === 'approved' ? getRandomDate(15) : undefined,
             createdDate: getRandomDate(60),
+            stage: kamReviewed === 'pending' ? 'pending' : kamReviewed === 'approved' ? 'approved' : 'rejected',
+            status: 'active',
         }
 
         properties.push(property)
