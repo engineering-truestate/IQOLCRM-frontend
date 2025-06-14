@@ -190,7 +190,7 @@ const RequirementsPage = () => {
             header: 'Req ID',
             render: (value, row) => (
                 <span
-                    onClick={() => navigate(`/acn/requirements/${row.reqId}/details`)}
+                    onClick={() => navigate(`/acn/requirements/${row.requirementId}/details`)}
                     className='whitespace-nowrap text-black hover:text-blue-800 text-sm font-normal w-auto cursor-pointer transition-colors'
                 >
                     {value}
@@ -203,7 +203,7 @@ const RequirementsPage = () => {
             render: (value, row) => (
                 <div className='relative group'>
                     <span
-                        onClick={() => navigate(`/acn/requirements/${row.reqId}/details`)}
+                        onClick={() => navigate(`/acn/requirements/${row.requirementId}/details`)}
                         className='block max-w-70 truncate text-black hover:text-blue-800 text-sm font-semibold cursor-pointer transition-colors'
                         title={value}
                     >
@@ -280,7 +280,7 @@ const RequirementsPage = () => {
             fixedPosition: 'right',
             render: (_, row) => (
                 <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
-                    <span onClick={() => navigate(`/acn/requirements/${row.reqId}/details`)}>
+                    <span onClick={() => navigate(`/acn/requirements/${row.requirementId}/details`)}>
                         <Button
                             bgColor='bg-[#F3F3F3]'
                             textColor='text-[#3A3A47]'
