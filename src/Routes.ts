@@ -23,6 +23,9 @@ import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
 import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
 import QCDashboardPage from './pages/acn/QCDashboard/QCDashboardPage'
 import QCPropertyDetailsPage from './pages/acn/QCDashboard/QCPropertyDetails'
+import PreReraPage from './pages/restack/Stock/Pre-Rera/PreReraPage'
+import PreReraDetailsPage from './pages/restack/Stock/Pre-Rera/PreReraDetailsPage'
+import PreReraEditPage from './pages/restack/Stock/Pre-Rera/PreReraEditPage'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -99,6 +102,18 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/restack/primary/:id',
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera/:id/edit',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
     },
     {
         path: '/acn/properties',
