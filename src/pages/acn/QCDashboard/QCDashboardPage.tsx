@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
@@ -55,15 +55,16 @@ const QCDashboardPage = () => {
         }
     }
 
-    const currentData = getFilteredData()
+    // Calculate currentData using useMemo to prevent unnecessary recalculations
+    const currentData = useMemo(() => getFilteredData(), [activeTab, allQCData])
     const totalPages = Math.ceil(currentData.length / ITEMS_PER_PAGE)
 
-    // Update paginated data when page changes, data changes, or tab changes
+    // Update paginated data when page changes or data changes
     useEffect(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
         const endIndex = startIndex + ITEMS_PER_PAGE
         setPaginatedData(currentData.slice(startIndex, endIndex))
-    }, [currentPage, currentData, activeTab])
+    }, [currentPage, currentData])
 
     // Reset to first page when changing tabs
     useEffect(() => {
