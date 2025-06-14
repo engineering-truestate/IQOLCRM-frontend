@@ -135,14 +135,19 @@ const PrimaryPage = () => {
         {
             key: 'action',
             header: 'Action',
-            render: (_, row) => (
-                <button
-                    className='text-gray-900 text-sm font-medium transition-colors'
-                    onClick={() => navigate(`/restack/primary/${row.id}`)}
-                >
-                    View Details
-                </button>
-            ),
+            render: (_, row) => {
+                const lastSegment = row.registrationNumber.split('/').pop()
+                const pId = lastSegment ? `P${lastSegment}` : row.registrationNumber // Prepend 'P' if a segment is found
+
+                return (
+                    <button
+                        className='text-gray-900 text-sm font-medium transition-colors hover:text-blue-600'
+                        onClick={() => navigate(`/restack/primary/${pId}`)}
+                    >
+                        View Details
+                    </button>
+                )
+            },
         },
     ]
 

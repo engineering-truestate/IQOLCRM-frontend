@@ -13,6 +13,7 @@ import PreLaunchPage from './pages/restack/PreLaunch/PreLaunch'
 import PreLaunchDetailsPage from './pages/restack/PreLaunch/PreLaunchDetails'
 import PrimaryPage from './pages/restack/PreLaunch/Primary/Primary'
 import PrimaryDetailsPage from './pages/restack/PreLaunch/Primary/PrimaryDetails'
+import TypologyPage from './pages/restack/PreLaunch/Primary/TypologyPage'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -71,8 +72,12 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryPage, null)),
     },
     {
-        path: '/restack/primary/:id',
+        path: '/restack/primary/:pId',
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
+    },
+    {
+        path: '/restack/primary/:pId/typology',
+        element: React.createElement(React.Suspense, null, React.createElement(TypologyPage, null)),
     },
 ]
 
