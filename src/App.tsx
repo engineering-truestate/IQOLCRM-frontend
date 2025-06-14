@@ -4,7 +4,8 @@ import { BrowserRouter, Routes, Route } from 'react-router'
 import Layout from './layout/Layout'
 import { authRoutes, protectedRoutes, unprotectedRoutes } from './Routes'
 import { Provider } from 'react-redux'
-import store from './store' // Import your Redux store
+import store, { persistor } from './store' // Import your Redux store
+import { PersistGate } from 'redux-persist/integration/react'
 
 function App() {
     useEffect(() => {
@@ -16,19 +17,21 @@ function App() {
             {' '}
             {/* Wrap your app with Provider */}
             <Suspense fallback={<Layout loading={true} />}>
-                <BrowserRouter>
-                    <Routes>
-                        {authRoutes.map((route, index) => (
-                            <Route key={index} path={route.path} element={route.element} />
-                        ))}
-                        {protectedRoutes.map((route, index) => (
-                            <Route key={index} path={route.path} element={route.element} />
-                        ))}
-                        {unprotectedRoutes.map((route, index) => (
-                            <Route key={index} path={route.path} element={route.element} />
-                        ))}
-                    </Routes>
-                </BrowserRouter>
+                <PersistGate loading={null} persistor={persistor}>
+                    <BrowserRouter>
+                        <Routes>
+                            {authRoutes.map((route, index) => (
+                                <Route key={index} path={route.path} element={route.element} />
+                            ))}
+                            {protectedRoutes.map((route, index) => (
+                                <Route key={index} path={route.path} element={route.element} />
+                            ))}
+                            {unprotectedRoutes.map((route, index) => (
+                                <Route key={index} path={route.path} element={route.element} />
+                            ))}
+                        </Routes>
+                    </BrowserRouter>
+                </PersistGate>
             </Suspense>
         </Provider>
     )

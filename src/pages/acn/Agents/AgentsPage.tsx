@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { Link } from 'react-router'
 
 import { useState, useEffect } from 'react'
 import Layout from '../../../layout/Layout'
@@ -209,7 +210,11 @@ const AgentsPage = () => {
         {
             key: 'agentName',
             header: 'Lead Name',
-            render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
+            render: (value, row) => (
+                <Link to={`/acn/agents/${row.id}`} className='whitespace-nowrap text-sm font-semibold w-auto'>
+                    {value}
+                </Link>
+            ),
         },
         {
             key: 'contactNumber',

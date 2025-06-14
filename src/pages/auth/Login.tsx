@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { loginUser } from '../../services/auth'
 import { useNavigate } from 'react-router-dom'
-import ForgotPassword from './ForgotPassword'
 import design from '../../../images/design.png'
 
 const Login = () => {
@@ -13,10 +12,9 @@ const Login = () => {
         try {
             await loginUser(email, password)
             console.log('Login successful!')
+            navigate('/canvas-homes/dashboard')
         } catch (error: any) {
             console.log(`Login failed: ${error.message}`)
-        } finally {
-            navigate('/canvas-homes/dashboard')
         }
     }
     const handleForgotPassword = async () => {
@@ -39,7 +37,9 @@ const Login = () => {
         >
             <div className='bg-white w-[380px] h-[380px] rounded-[3%] p-6 text-center font-sans shadow-lg'>
                 <h2 className='text-[26px] text-[#09342e] font-bold'>Log in</h2>
-                <p className='text-[15px] text-[#6d7071] mb-4'>Fill in your log in details below.</p>
+                <p className='text-[15px] text-[#6d7071] mb-4'>
+                    दिलों के बाज़ार में हम अपना दिल लेकर निकले,दिल वहीं चोरी हो गया, दाम वहीं नहीं मिला।
+                </p>
 
                 <div className='mb-4'>
                     <input

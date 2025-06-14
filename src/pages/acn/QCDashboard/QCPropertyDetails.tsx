@@ -64,7 +64,7 @@ const QCPropertyDetailsPage = () => {
                         setProperty(foundProperty)
                     } else {
                         console.error('Property not found')
-                        navigate('/acn/qc')
+                        navigate('/acn/qc/dashboard')
                     }
                 } catch (error) {
                     console.error('Error fetching property:', error)
@@ -101,7 +101,7 @@ const QCPropertyDetailsPage = () => {
 
             // Navigate back to QC dashboard after a brief delay to show the change
             setTimeout(() => {
-                navigate('/acn/qc')
+                navigate('/acn/qc/dashboard')
             }, 1500)
         }
     }
@@ -122,7 +122,7 @@ const QCPropertyDetailsPage = () => {
 
             // Navigate back to QC dashboard after a brief delay to show the change
             setTimeout(() => {
-                navigate('/acn/qc')
+                navigate('/acn/qc/dashboard')
             }, 1500)
         }
     }
@@ -146,7 +146,7 @@ const QCPropertyDetailsPage = () => {
 
             // Navigate back to QC dashboard after a brief delay to show the change
             setTimeout(() => {
-                navigate('/acn/qc')
+                navigate('/acn/qc/dashboard')
             }, 1500)
         }
     }
