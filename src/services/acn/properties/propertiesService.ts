@@ -1,6 +1,17 @@
 // store/services/propertiesService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, setDoc, runTransaction } from 'firebase/firestore'
+import {
+    doc,
+    getDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    updateDoc,
+    setDoc,
+    runTransaction,
+    QueryConstraint,
+} from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 
@@ -168,6 +179,42 @@ export const addProperty = createAsyncThunk(
     },
 )
 
+export const fetchAllProperties = async (filters: any) => {
+    try {
+        const constraints: QueryConstraint[] = []
+
+        if (filters && Object.keys(filters).length > 0) {
+            Object.entries(filters).forEach(([field, value]) => {
+                if (Array.isArray(value)) {
+                    constraints.push(where(field, 'in', value))
+                } else {
+                    constraints.push(where(field, '==', value))
+                }
+            })
+        }
+
+        console.log(filters)
+        const q = query(collection(db, 'acn-properties'), ...constraints)
+
+        const snapshot = await getDocs(q)
+
+        const properties = snapshot.docs.map((doc) => {
+            const data = doc.data() as IInventory
+
+            return {
+                ...data,
+                id: doc.id,
+            }
+        })
+
+        console.log([properties, 'hello'])
+
+        return { success: true, data: properties }
+    } catch (error: any) {
+        return { success: false, error: error.message }
+    }
+}
+
 // Get next property ID preview
 export const getNextPropertyId = createAsyncThunk('properties/getNextId', async (_, { rejectWithValue }) => {
     try {
@@ -190,7 +237,7 @@ export const getNextPropertyId = createAsyncThunk('properties/getNextId', async 
 
         return nextId
     } catch (error: any) {
-        console.error('❌ Error getting next property ID:', error)
+        console.error('Error getting next property', error)
         return rejectWithValue(error.message || 'Failed to get next property ID')
     }
 })
@@ -347,7 +394,7 @@ export const updatePropertyStatus = createAsyncThunk(
             return { propertyId, status }
         } catch (error: any) {
             console.error('❌ Error updating property status:', error)
-            return rejectWithValue(error.message || 'Failed to update property status')
+            return rejectWithValue(error.message || 'Failed to fetch properties')
         }
     },
 )

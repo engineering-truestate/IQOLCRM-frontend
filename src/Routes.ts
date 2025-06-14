@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router-dom'
 import React from 'react'
+import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import Dashboard from './pages/canvas_homes/Dashboard'
@@ -21,8 +22,10 @@ import PrimaryDetailsPage from './pages/restack/PreLaunch/Primary/PrimaryDetails
 import PropertiesPage from './pages/acn/Properties/Properties'
 import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
 import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
+import AgentDetailsPage from './pages/acn/Agents/AgentDetailsPage'
 import QCDashboardPage from './pages/acn/QCDashboard/QCDashboardPage'
 import QCPropertyDetailsPage from './pages/acn/QCDashboard/QCPropertyDetails'
+import ErrorPage from './404'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -46,75 +49,147 @@ export const authRoutes: RouteObject[] = [
 export const protectedRoutes: RouteObject[] = [
     {
         path: '/canvas-homes/dashboard',
-        element: React.createElement(React.Suspense, null, React.createElement(Dashboard, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(Dashboard, null)),
+        ),
     },
     {
         path: '/canvas-homes/marketing',
-        element: React.createElement(React.Suspense, null, React.createElement(Marketing, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(Marketing, null)),
+        ),
     },
     {
         path: '/canvas-homes/marketingdetails',
-        element: React.createElement(React.Suspense, null, React.createElement(MarketingDetails, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(MarketingDetails, null)),
+        ),
     },
     {
         path: '/canvas-homes/sales',
-        element: React.createElement(React.Suspense, null, React.createElement(Sales, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(Sales, null)),
+        ),
     },
     {
         path: '/acn/leads',
-        element: React.createElement(React.Suspense, null, React.createElement(LeadsPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(LeadsPage, null)),
+        ),
     },
     {
         path: '/acn/agents',
-        element: React.createElement(React.Suspense, null, React.createElement(AgentsPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(AgentsPage, null)),
+        ),
+    },
+    {
+        path: '/acn/agents/:agentId',
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(AgentDetailsPage, null)),
+        ),
     },
     {
         path: '/acn/requirements',
-        element: React.createElement(React.Suspense, null, React.createElement(RequirementsPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(RequirementsPage, null)),
+        ),
     },
     {
         path: '/acn/requirements/:id/details',
-        element: React.createElement(React.Suspense, null, React.createElement(RequirementDetailsPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(RequirementDetailsPage, null)),
+        ),
     },
     {
         path: '/acn/requirements/:id/properties',
         element: React.createElement(
-            React.Suspense,
+            ProtectedRoute,
             null,
-            React.createElement(RequirementPropertiesSelectionPage, null),
+            React.createElement(React.Suspense, null, React.createElement(RequirementPropertiesSelectionPage, null)),
         ),
     },
     {
         path: '/restack/prelaunch',
-        element: React.createElement(React.Suspense, null, React.createElement(PreLaunchPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PreLaunchPage, null)),
+        ),
     },
     {
         path: '/restack/prelaunch/:pId',
-        element: React.createElement(React.Suspense, null, React.createElement(PreLaunchDetailsPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PreLaunchDetailsPage, null)),
+        ),
     },
     {
         path: '/restack/primary',
-        element: React.createElement(React.Suspense, null, React.createElement(PrimaryPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PrimaryPage, null)),
+        ),
     },
     {
         path: '/restack/primary/:id',
-        element: React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
+        ),
     },
     {
         path: '/acn/properties',
-        element: React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
+        ),
     },
     {
         path: '/acn/properties/addinv',
-        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+        ),
     },
     {
         path: '/acn/properties/:pId/edit',
-        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+        ),
     },
     {
         path: '/acn/properties/:pId/details',
-        element: React.createElement(React.Suspense, null, React.createElement(PropertyDetailsPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PropertyDetailsPage, null)),
+        ),
     },
     {
         path: '/acn/qc/dashboard',
@@ -130,5 +205,9 @@ export const unprotectedRoutes: RouteObject[] = [
     {
         path: '/',
         element: React.createElement(React.Suspense, null, React.createElement(Home, null)),
+    },
+    {
+        path: '*',
+        element: React.createElement(React.Suspense, null, React.createElement(ErrorPage, null)),
     },
 ]

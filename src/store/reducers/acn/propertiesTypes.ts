@@ -50,6 +50,12 @@ export interface IInventory {
     propertyName?: string
 }
 
+// === Requirement shape ===
+export interface IRequirement {
+    id: string
+    // Add requirement properties here
+}
+
 // === Redux slice state ===
 export interface PropertiesState {
     properties: IInventory[]
@@ -78,3 +84,12 @@ export interface PropertiesState {
 
 // Action types can now be inferred using PayloadAction
 export type PropertiesAction<T> = PayloadAction<T>
+
+export interface IEnquiry {
+    propertyId: string
+    propertyName: string
+    buyerAgentName: string
+    buyerAgentNumber: string
+    dateOfEnquiry: string
+    status: string
+}

@@ -34,7 +34,7 @@ const Button: React.FC<ButtonProps> = ({
             disabled={disabled}
             className={`
         inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium
-        transition-all duration-200 ease-in-out
+        transition-all duration-200 ease-in-out cursor-pointer
         ${bgColor} ${textColor} ${borderClasses}
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90 active:scale-95'}
         ${!hasText && icon ? 'aspect-square p-2' : ''}
