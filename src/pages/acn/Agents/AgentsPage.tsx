@@ -59,9 +59,9 @@ const StatusBadge = ({ status, type }: { status: string; type: 'lead' | 'connect
                     return 'border-[#CCCBCB]'
                 default:
                     // For RNR statuses (RNR-1, RNR-2, etc.)
-                    if (status.startsWith('RNR')) {
-                        return 'border-[#FCCE74]'
-                    }
+                    // if (status.startsWith('RNR')) {
+                    //     return 'border-[#FCCE74]'
+                    // }
                     return 'border-gray-400 text-gray-600 bg-gray-50'
             }
         }
@@ -113,7 +113,7 @@ const LeadSourceCell = ({ source }: { source: string }) => {
     )
 }
 
-const LeadsPage = () => {
+const AgentsPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [selectedKAM, setSelectedKAM] = useState('')
     const [selectedSort, setSelectedSort] = useState('')
@@ -207,13 +207,6 @@ const LeadsPage = () => {
     // Table columns configuration with all fields and fixed actions column
     const columns: TableColumn[] = [
         {
-            key: 'id',
-            header: 'Lead ID',
-            render: (value) => (
-                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
-            ),
-        },
-        {
             key: 'agentName',
             header: 'Lead Name',
             render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
@@ -226,8 +219,50 @@ const LeadsPage = () => {
             ),
         },
         {
+            key: 'agentID',
+            header: 'Agent ID',
+            render: (value) => (
+                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+            ),
+        },
+        {
             key: 'lastTried',
             header: 'Last Tried',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'agentActivity',
+            header: 'Agent Activity',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'planDetails',
+            header: 'Plan Details',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'inventories',
+            header: 'Inventories',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'requirement',
+            header: 'Requirement',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'enquiry',
+            header: 'Enquiry',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'legalLeads',
+            header: 'Legal Leads',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'credits',
+            header: 'Credits',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
@@ -236,8 +271,33 @@ const LeadsPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
-            key: 'leadStatus',
-            header: 'Lead Status',
+            key: 'lastTried',
+            header: 'Last Tried',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'lastConnectStatus',
+            header: 'Last Connect Status',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'lastSeen',
+            header: 'Last Seen',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'lastEnquired',
+            header: 'Last Enquired',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'lastEnqRec',
+            header: 'Last Enq Rec',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'agentStatus',
+            header: 'Agent Status',
             dropdown: {
                 options: leadStatusDropdownOptions,
                 placeholder: 'Select Status',
@@ -248,8 +308,8 @@ const LeadsPage = () => {
             },
         },
         {
-            key: 'connectStatus',
-            header: 'Connect Status',
+            key: 'payStatus',
+            header: 'Pay Status',
             render: (value) => (
                 <div className='whitespace-nowrap w-auto'>
                     <StatusBadge status={value} type='connect' />
@@ -265,39 +325,6 @@ const LeadsPage = () => {
                 onChange: (value, row) => {
                     updateRowData(row.id, 'kamAssigned', value)
                     console.log('KAM changed:', value, row)
-                },
-            },
-        },
-        {
-            key: 'leadSource',
-            header: 'Lead Source',
-            render: (value) => (
-                <div className='whitespace-nowrap w-auto'>
-                    <LeadSourceCell source={value} />
-                </div>
-            ),
-        },
-        {
-            key: 'joinedCommunity',
-            header: 'Joined Community',
-            checkbox: {
-                trueValue: 'Yes',
-                falseValue: 'No',
-                onChange: (checked, row) => {
-                    updateRowData(row.id, 'joinedCommunity', checked ? 'Yes' : 'No')
-                    console.log('Joined Community changed:', checked, row)
-                },
-            },
-        },
-        {
-            key: 'onBroadcast',
-            header: 'On Broadcast',
-            checkbox: {
-                trueValue: 'Yes',
-                falseValue: 'No',
-                onChange: (checked, row) => {
-                    updateRowData(row.id, 'onBroadcast', checked ? 'Yes' : 'No')
-                    console.log('On Broadcast changed:', checked, row)
                 },
             },
         },
@@ -328,16 +355,6 @@ const LeadsPage = () => {
                     >
                         <img src={notesic} alt='Notes Icon' className='w-7 h-7 flex-shrink-0' />
                     </button>
-                    <button
-                        className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                        onClick={() => {
-                            setSelectedRowData(row)
-                            setIsVerificationModalOpen(true)
-                        }}
-                        title='Profile'
-                    >
-                        <img src={verifyic} alt='Verify Icon' className='w-7 h-7 flex-shrink-0' />
-                    </button>
                 </div>
             ),
         },
@@ -350,7 +367,7 @@ const LeadsPage = () => {
                     {/* Header */}
                     <div className='mb-4'>
                         <div className='flex items-center justify-between mb-2'>
-                            <h1 className='text-lg font-semibold text-black'>Leads ({leadsData.length})</h1>
+                            <h1 className='text-lg font-semibold text-black'>Agents ({leadsData.length})</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
                                     <StateBaseTextField
@@ -382,7 +399,7 @@ const LeadsPage = () => {
                                     className='px-4 h-8 font-semibold'
                                     onClick={() => setIsAddLeadModalOpen(true)}
                                 >
-                                    Add Lead
+                                    Add Agent
                                 </Button>
                             </div>
                         </div>
@@ -577,4 +594,4 @@ const LeadsPage = () => {
     )
 }
 
-export default LeadsPage
+export default AgentsPage

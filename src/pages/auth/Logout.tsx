@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { logoutUser } from '../../services/canvas-homes/auth'
+import { logoutUser } from '../../services/auth'
 import { useNavigate } from 'react-router-dom'
 
 const Logout = () => {

@@ -10,6 +10,7 @@ const Platforms = ({ onPlatformSelect }: PlatformsProps) => {
         { label: 'ACN', value: 'acn' },
         { label: 'Vault', value: 'vault' },
         { label: 'Canvas Homes', value: 'canvas-homes' },
+        { label: 'Restack', value: 'restack' },
     ]
     return (
         <div>

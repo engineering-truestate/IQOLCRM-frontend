@@ -3,5 +3,6 @@ export const acnMenuItems = [
     { label: 'Users', path: '/acn/users' },
     { label: 'Leads', path: '/acn/leads' },
     { label: 'Requirements', path: '/acn/requirements' },
-    { label: 'Settings', path: '/acn/settings' },
+    { label: 'Properties', path: '/acn/properties' },
+    { label: 'QC Dashboard', path: '/acn/qc/dashboard' },
 ]

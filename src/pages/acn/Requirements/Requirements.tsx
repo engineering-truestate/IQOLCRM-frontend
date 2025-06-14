@@ -3,6 +3,7 @@
 import React from 'react'
 
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
@@ -12,17 +13,96 @@ import { generateRequirements, type RequirementData } from '../../dummy_data/acn
 import resetic from '/icons/acn/rotate-left.svg'
 import leadaddic from '/icons/acn/user-add.svg'
 
+import algoliaRequirementsService, {
+    type RequirementSearchFilters,
+    type AlgoliaRequirementSearchResponse,
+    type RequirementFacetValue,
+} from '../../../services/acn/requirements/algoliaAcnReqService'
+
 const RequirementsPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [activeTab, setActiveTab] = useState('resale')
-    const [selectedRequirementStatus, setSelectedRequirementStatus] = useState('')
-    const [selectedAssetType, setSelectedAssetType] = useState('')
+    const [selectedRequirementStatus] = useState('')
+    const [selectedAssetType] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [paginatedData, setPaginatedData] = useState<RequirementData[]>([])
     const [filteredData, setFilteredData] = useState<RequirementData[]>([])
+    const navigate = useNavigate()
 
     // Items per page
     const ITEMS_PER_PAGE = 50
+
+    const [searchResults, setSearchResults] = useState<AlgoliaRequirementSearchResponse | null>(null)
+    const [, setSearchLoading] = useState(false)
+    const [, setSearchError] = useState<string | null>(null)
+    const [filters, setFilters] = useState<RequirementSearchFilters>({})
+
+    // Facets for filtering
+    const [, setFacets] = useState<Record<string, RequirementFacetValue[]>>({})
+
+    // Perform Algolia search
+    const performSearch = async () => {
+        setSearchLoading(true)
+        setSearchError(null)
+
+        try {
+            const response = await algoliaRequirementsService.searchRequirements({
+                query: searchValue,
+                filters: filters,
+                page: currentPage - 1, // Algolia is zero-indexed for page
+                hitsPerPage: ITEMS_PER_PAGE,
+            })
+
+            setSearchResults(response)
+
+            console.log('sfdsdafdsfsfds', response.hits)
+
+            // Update the filtered data based on the response
+            setFilteredData(response.hits)
+
+            // Update facets for filtering options
+            setFacets(
+                response.facets
+                    ? Object.fromEntries(
+                          Object.entries(response.facets).map(([facetName, facetValues]) => [
+                              facetName,
+                              Object.entries(facetValues).map(([value, count]) => ({
+                                  value,
+                                  count,
+                              })),
+                          ]),
+                      )
+                    : {},
+            )
+        } catch (error) {
+            console.error('Search failed:', error)
+            setSearchError(error instanceof Error ? error.message : 'Search failed')
+        } finally {
+            setSearchLoading(false)
+        }
+    }
+    useEffect(() => {
+        performSearch()
+    }, [searchValue, filters, currentPage])
+    let totalPages: number = 1
+    if (searchResults?.nbHits) {
+        totalPages = Math.ceil(searchResults.nbHits / ITEMS_PER_PAGE)
+    }
+
+    // Update filters when dropdown selections change
+    const updateFilter = (filterType: keyof RequirementSearchFilters, value: string | null) => {
+        setFilters((prev) => {
+            const newFilters = { ...prev }
+
+            if (value === null || value === '') {
+                delete newFilters[filterType]
+            } else {
+                newFilters[filterType] = [value]
+            }
+
+            return newFilters
+        })
+    }
 
     // Use imported data generation function
     const [requirementsData, setRequirementsData] = useState<RequirementData[]>(generateRequirements())
@@ -35,7 +115,7 @@ const RequirementsPage = () => {
     }, [activeTab, requirementsData])
 
     // Calculate total pages based on filtered data
-    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
+    // const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
 
     // Update paginated data when page changes or filtered data changes
     useEffect(() => {
@@ -106,29 +186,29 @@ const RequirementsPage = () => {
     // Table columns configuration with all fields and fixed actions column
     const columns: TableColumn[] = [
         {
-            key: 'reqId',
+            key: 'requirementId',
             header: 'Req ID',
             render: (value, row) => (
-                <a
-                    href={`/acn/requirements/${row.reqId}/details`}
+                <span
+                    onClick={() => navigate(`/acn/requirements/${row.requirementId}/details`)}
                     className='whitespace-nowrap text-black hover:text-blue-800 text-sm font-normal w-auto cursor-pointer transition-colors'
                 >
                     {value}
-                </a>
+                </span>
             ),
         },
         {
-            key: 'projectName',
+            key: 'propertyName',
             header: 'Project Name/Location',
             render: (value, row) => (
                 <div className='relative group'>
-                    <a
-                        href={`/acn/requirements/${row.reqId}/details`}
+                    <span
+                        onClick={() => navigate(`/acn/requirements/${row.requirementId}/details`)}
                         className='block max-w-70 truncate text-black hover:text-blue-800 text-sm font-semibold cursor-pointer transition-colors'
                         title={value}
                     >
                         {value}
-                    </a>
+                    </span>
                     {/* Tooltip */}
                     <div className='absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-normal max-w-xs break-words'>
                         {value}
@@ -146,7 +226,11 @@ const RequirementsPage = () => {
         {
             key: 'budget',
             header: 'Budget',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                    {`from ${value.from} to ${value.to}`}
+                </span>
+            ),
         },
         {
             key: 'status',
@@ -178,7 +262,7 @@ const RequirementsPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
-            key: 'agentName',
+            key: 'agentCpid',
             header: 'Agent Name',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
@@ -196,7 +280,7 @@ const RequirementsPage = () => {
             fixedPosition: 'right',
             render: (_, row) => (
                 <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
-                    <a href={`/acn/requirements/${row.reqId}/details`}>
+                    <span onClick={() => navigate(`/acn/requirements/${row.requirementId}/details`)}>
                         <Button
                             bgColor='bg-[#F3F3F3]'
                             textColor='text-[#3A3A47]'
@@ -205,7 +289,7 @@ const RequirementsPage = () => {
                         >
                             View Details
                         </Button>
-                    </a>
+                    </span>
                 </div>
             ),
         },
@@ -289,7 +373,7 @@ const RequirementsPage = () => {
 
                                 <Dropdown
                                     options={requirementStatusOptions}
-                                    onSelect={setSelectedRequirementStatus}
+                                    onSelect={(value) => updateFilter('status', value)}
                                     defaultValue={selectedRequirementStatus}
                                     placeholder='Requirement Status'
                                     className='relative inline-block'
@@ -300,7 +384,7 @@ const RequirementsPage = () => {
 
                                 <Dropdown
                                     options={assetTypeOptions}
-                                    onSelect={setSelectedAssetType}
+                                    onSelect={(value) => updateFilter('assetType', value)}
                                     defaultValue={selectedAssetType}
                                     placeholder='Asset Type'
                                     className='relative inline-block'

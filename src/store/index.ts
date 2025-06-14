@@ -1,10 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit'
 import propertiesReducer from './reducers/acn/propertiesReducers'
+import requirementsReducer from './reducers/acn/requirementsReducers'
 
 // Create the store using configureStore from Redux Toolkit
 const store = configureStore({
     reducer: {
-        properties: propertiesReducer, // your slice reducer
+        properties: propertiesReducer,
+        requirements: requirementsReducer,
     },
 })
 
