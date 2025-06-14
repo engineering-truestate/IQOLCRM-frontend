@@ -6,6 +6,7 @@ import Dashboard from './pages/canvas_homes/Dashboard'
 import Marketing from './pages/canvas_homes/marketing_dashboard/Marketing'
 import MarketingDetails from './pages/canvas_homes/marketing_dashboard/MarketingDetails'
 import Sales from './pages/canvas_homes/sales_dashboard/Sales'
+import LeadDetails from './pages/canvas_homes/sales_dashboard/LeadDetails'
 import LeadsPage from './pages/acn/Leads/Leads'
 import RequirementsPage from './pages/acn/Requirements/Requirements'
 import RequirementDetailsPage from './pages/acn/Requirements/RequirementDetails'
@@ -48,6 +49,10 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/canvas-homes/sales',
         element: React.createElement(React.Suspense, null, React.createElement(Sales, null)),
+    },
+    {
+        path: '/canvas-homes/sales/leaddetails',
+        element: React.createElement(React.Suspense, null, React.createElement(LeadDetails, null)),
     },
     {
         path: '/acn/leads',
