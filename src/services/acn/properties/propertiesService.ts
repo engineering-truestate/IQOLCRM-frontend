@@ -1,93 +1,96 @@
-import {
-    collection,
-    getDocs,
-    query,
-    orderBy,
-    limit,
-    startAfter,
-    QueryDocumentSnapshot,
-    QueryConstraint,
-} from 'firebase/firestore'
+// store/services/propertiesService.ts
+import { createAsyncThunk } from '@reduxjs/toolkit'
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import {
-    fetchPropertiesStart,
-    fetchPropertiesSuccess,
-    fetchPropertiesFailure,
-    fetchPropertiesBatchStart,
-    fetchPropertiesBatchSuccess,
-    fetchPropertiesBatchFailure,
-    fetchPropertiesBatchMore,
-} from '../../../store/reducers/acn/propertiesReducers'
-import type { AppDispatch, RootState } from '../../../store/index'
-import type { IInventory } from '../../../store/reducers/types'
+import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 
-// === fetch-all (no pagination) ===
-export const fetchAllProperties = () => async (dispatch: AppDispatch) => {
-    dispatch(fetchPropertiesStart())
-    try {
-        const colRef = collection(db, 'acn-properties')
-        const snapshot = await getDocs(colRef)
-
-        const properties = snapshot.docs.map((doc) => {
-            const data = doc.data() as IInventory // Ensure typing for doc.data() as IInventory
-            return {
-                ...data, // Spread properties data
-                id: doc.id, // Add the id manually
-            }
-        })
-
-        dispatch(fetchPropertiesSuccess({ properties, total: properties.length }))
-
-        return { success: true, data: properties }
-    } catch (error: any) {
-        dispatch(fetchPropertiesFailure(error.message))
-        return { success: false, error: error.message }
-    }
-}
-
-// === batched/paginated fetch ===
-export const fetchPropertiesBatch =
-    (batchSize: number, loadMore: boolean = false) =>
-    async (dispatch: AppDispatch, getState: () => RootState) => {
-        const { properties } = getState()
-        dispatch(loadMore ? fetchPropertiesBatchMore() : fetchPropertiesBatchStart())
-
+// Fetch single property by ID
+export const fetchPropertyById = createAsyncThunk(
+    'properties/fetchById',
+    async (propertyId: string, { rejectWithValue }) => {
         try {
-            const constraints: QueryConstraint[] = [orderBy('dateOfInventoryAdded', 'desc'), limit(batchSize)]
+            console.log('🔍 Fetching property with ID:', propertyId)
 
-            if (loadMore && properties.lastDocument) {
-                constraints.push(startAfter(properties.lastDocument)) // Pass the correct lastDocument
+            const docRef = doc(db, 'acn-properties', propertyId)
+            const docSnap = await getDoc(docRef)
+
+            if (docSnap.exists()) {
+                const data = docSnap.data() as IInventory
+                console.log('✅ Property data fetched successfully:', data)
+                return { ...data, id: docSnap.id }
+            } else {
+                console.log('❌ No property found with ID:', propertyId)
+                throw new Error(`Property with ID ${propertyId} not found`)
+            }
+        } catch (error: any) {
+            console.error('❌ Error fetching property:', error)
+            return rejectWithValue(error.message || 'Failed to fetch property')
+        }
+    },
+)
+
+// Fetch multiple properties by IDs (for matching properties table)
+export const fetchPropertiesByIds = createAsyncThunk(
+    'properties/fetchByIds',
+    async (propertyIds: string[], { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching properties with IDs:', propertyIds)
+
+            if (propertyIds.length === 0) {
+                return []
             }
 
-            const q = query(collection(db, 'acn-properties'), ...constraints)
-            const snapshot = await getDocs(q)
+            // Firebase 'in' queries are limited to 10 items, so we need to batch them
+            const batchSize = 10
+            const batches: Promise<IInventory[]>[] = []
 
-            const propertiesBatch = snapshot.docs.map((doc) => {
-                const data = doc.data() as IInventory // Ensure typing for doc.data() as IInventory
-                return {
-                    ...data, // Spread properties data
-                    id: doc.id, // Add the id manually
-                }
+            for (let i = 0; i < propertyIds.length; i += batchSize) {
+                const batch = propertyIds.slice(i, i + batchSize)
+
+                const batchQuery = query(collection(db, 'acn-properties'), where('propertyId', 'in', batch))
+
+                const batchPromise = getDocs(batchQuery).then((querySnapshot) => {
+                    const properties: IInventory[] = []
+                    querySnapshot.forEach((doc) => {
+                        properties.push({ id: doc.id, ...doc.data() } as IInventory)
+                    })
+                    return properties
+                })
+
+                batches.push(batchPromise)
+            }
+
+            // Wait for all batches to complete
+            const batchResults = await Promise.all(batches)
+            const allProperties = batchResults.flat()
+
+            console.log('✅ Properties fetched successfully:', allProperties.length, 'properties')
+            return allProperties
+        } catch (error: any) {
+            console.error('❌ Error fetching properties:', error)
+            return rejectWithValue(error.message || 'Failed to fetch properties')
+        }
+    },
+)
+
+// Update property status (bonus functionality)
+export const updatePropertyStatus = createAsyncThunk(
+    'properties/updateStatus',
+    async ({ propertyId, status }: { propertyId: string; status: string }, { rejectWithValue }) => {
+        try {
+            console.log('📝 Updating property status:', propertyId, status)
+
+            const docRef = doc(db, 'acn-properties', propertyId)
+            await updateDoc(docRef, {
+                status: status,
+                dateOfStatusLastChecked: new Date(),
             })
 
-            const lastDoc = snapshot.docs.length
-                ? (snapshot.docs[snapshot.docs.length - 1] as QueryDocumentSnapshot<IInventory>) // Type cast here
-                : null
-            const hasMore = snapshot.docs.length === batchSize
-
-            dispatch(
-                fetchPropertiesBatchSuccess({
-                    properties: propertiesBatch,
-                    lastDocument: lastDoc, // Correctly typed lastDocument
-                    hasMore,
-                    isLoadingMore: loadMore,
-                    batchSize: propertiesBatch.length,
-                }),
-            )
-
-            return { success: true, data: propertiesBatch, hasMore }
+            console.log('✅ Property status updated successfully')
+            return { propertyId, status }
         } catch (error: any) {
-            dispatch(fetchPropertiesBatchFailure(error.message))
-            return { success: false, error: error.message }
+            console.error('❌ Error updating property status:', error)
+            return rejectWithValue(error.message || 'Failed to update property status')
         }
-    }
+    },
+)

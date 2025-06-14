@@ -6,7 +6,8 @@ export interface IInventory {
     id: string
     propertyId: string
     cpId: string
-    propertyName: string
+    cpCode: string // Added for agent code
+    nameOfTheProperty: string // Changed from propertyName
     _geoloc: { lat: number; lng: number }
     area: string
     micromarket: string
@@ -39,10 +40,17 @@ export interface IInventory {
     ageOfInventory: number
     ageOfStatus: number
     extraDetails: string
+
+    // Additional properties used in your components
+    objectID?: string // For Algolia search results
+    enquiries?: number // Used in table columns
+    lastCheck?: Timestamp // Used in table columns
+
+    // Optional properties for backward compatibility
+    propertyName?: string // Keep as optional for backward compatibility
 }
 
 // === Redux slice state ===
-// Updated type for lastDocument
 export interface PropertiesState {
     properties: IInventory[]
     currentProperty: IInventory | null
@@ -51,9 +59,21 @@ export interface PropertiesState {
     totalFetched: number
 
     // pagination
-    lastDocument: QueryDocumentSnapshot<IInventory> | null // Fixed type here
+    lastDocument: QueryDocumentSnapshot<IInventory> | null
     hasMore: boolean
     isLoadingMore: boolean
+
+    // Algolia search state
+    searchResults: IInventory[]
+    totalHits: number
+    totalPages: number
+    currentPage: number
+    facets: Record<string, Record<string, number>>
+    processingTime: number
+    searching: boolean
+    searchQuery: string
+    activeFilters: Record<string, any>
+    facetValues: Record<string, Record<string, number>>
 }
 
 // Action types can now be inferred using PayloadAction

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Button from '../../../components/design-elements/Button'
@@ -10,8 +10,9 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 
 import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
 import resetic from '/icons/acn/rotate-left.svg'
-import type { RootState } from '../../../store/index'
-import type { IInventory } from '../../../store/reducers/types'
+import type { AppDispatch, RootState } from '../../../store/index'
+import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
+import { addPropertiesToRequirement } from '../../../services/acn/requirements/requirementsService'
 
 // Import our Algolia service
 import algoliaService, {
@@ -26,6 +27,9 @@ const PropertiesSelectionPage = () => {
 
     // Redux state (for fallback data)
     const { isLoadingMore } = useSelector((state: RootState) => state.properties)
+    const dispatch = useDispatch<AppDispatch>()
+
+    const { addingProperties, error } = useSelector((state: RootState) => state.requirements)
 
     // Algolia search state
     const [searchQuery, setSearchQuery] = useState('')
@@ -580,9 +584,41 @@ const PropertiesSelectionPage = () => {
         }
     }
 
-    const saveSelectedProperties = () => {
-        console.log('Saving selected properties:', Array.from(selectedProperties))
-        navigate(`/acn/requirements/${id}/details`)
+    const saveSelectedProperties = async () => {
+        if (!id) {
+            console.error('❌ No requirement ID found in URL')
+            return
+        }
+
+        const selectedPropertyIds = Array.from(selectedProperties)
+
+        if (selectedPropertyIds.length === 0) {
+            console.log('ℹ️ No properties selected')
+            return
+        }
+
+        console.log('💾 Saving selected properties:', selectedPropertyIds)
+        console.log('📋 For requirement ID:', id)
+
+        try {
+            // Dispatch the thunk to add properties to requirement
+            await dispatch(
+                addPropertiesToRequirement({
+                    requirementId: id,
+                    propertyIds: selectedPropertyIds,
+                }),
+            ).unwrap()
+
+            console.log('✅ Properties successfully added to requirement')
+
+            // Show success message (you can add a toast notification here)
+
+            // Navigate back to requirement details page
+            navigate(`/acn/requirements/${id}/details`)
+        } catch (error) {
+            console.error('❌ Failed to save selected properties:', error)
+            // Show error message (you can add a toast notification here)
+        }
     }
 
     const updateRowData = (propertyId: string, field: keyof IInventory, value: string) => {
@@ -886,13 +922,21 @@ const PropertiesSelectionPage = () => {
                                 {selectedProperties.size} propert{selectedProperties.size === 1 ? 'y' : 'ies'} selected
                             </div>
                             <Button
-                                bgColor='bg-blue-600'
+                                bgColor={addingProperties ? 'bg-blue-400' : 'bg-blue-600'}
                                 textColor='text-white'
                                 className='px-4 h-8 font-medium'
                                 onClick={saveSelectedProperties}
+                                disabled={addingProperties}
                             >
-                                💾 Save Selected Properties
+                                {addingProperties ? '⏳ Saving...' : '💾 Save Selected Properties'}
                             </Button>
+                        </div>
+                    )}
+
+                    {/* Show error if API call fails */}
+                    {error && (
+                        <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                            <div className='text-sm text-red-700'>Error: {error}</div>
                         </div>
                     )}
 
