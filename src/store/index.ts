@@ -3,6 +3,8 @@ import propertiesReducer from './reducers/acn/propertiesReducers'
 import platformReducer from './reducers/platformSlice'
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
+import userReducer from './reducers/user/userReducer'
+import qcReducer from './reducers/acn/qcReducer'
 
 const persistConfig = {
     key: 'root',
@@ -21,6 +23,8 @@ const store = configureStore({
         platform: persistedPlatformReducer,
         preLaunch: preLaunchReducer,
         requirements: requirementsReducer,
+        user: userReducer,
+        qc: qcReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
