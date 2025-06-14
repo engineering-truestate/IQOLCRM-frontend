@@ -21,7 +21,6 @@ interface Note {
 const QCPropertyDetailsPage = () => {
     const navigate = useNavigate()
     const { id } = useParams<{ id: string }>()
-    console.log('id', id)
 
     const [property, setProperty] = useState<QCProperty | null>(null)
     const [loading, setLoading] = useState(true)
