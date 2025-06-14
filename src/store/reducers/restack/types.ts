@@ -51,23 +51,22 @@ export interface Property {
     projectSize: number
     projectSizeUnit: string
     pricePerSqft: number
-    projectStartDate: string
-    proposedCompletionDate: string
+    projectStartDate: number
+    handoverDate: number
     address: string
-    lat: string
-    long: string
+    lat: number
+    long: number
     mapLink: string
     totalUnits: number
     eoiAmount: number
     numberOfFloors: number
     numberOfTowers: number
     totalParking: number
-    openParking: string
-    coveredParking: string
-    openArea: string
+    openParking: number
+    coveredParking: number
+    openArea: number
     reraId: string
     reraStatus: string
-    isReraApproved: string
     environmentalClearance: string
     buildingPermission: string
     configurations: PropertyConfigurations

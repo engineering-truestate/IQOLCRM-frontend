@@ -1,5 +1,5 @@
 // Pre-launch project types
-export type ProjectStage = 'Pre Launch' | 'EC' | 'Under Construction' | 'Ready to Move' | 'Launched'
+export type ProjectStage = 'Pre Launch' | 'EC'
 
 export interface PreLaunchProject {
     id: string
@@ -83,7 +83,7 @@ const getRandomItem = <T>(array: T[]): T => {
 
 // Function to generate a single pre-launch project
 export const generateProject = (id: number): PreLaunchProject => {
-    const stages: ProjectStage[] = ['Pre Launch', 'EC', 'Under Construction']
+    const stages: ProjectStage[] = ['Pre Launch', 'EC']
 
     return {
         id: `PRE-${id.toString().padStart(3, '0')}`,

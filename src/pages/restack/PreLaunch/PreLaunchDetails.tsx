@@ -6,6 +6,7 @@ import { FlexibleTable, type TableColumn } from '../../../components/design-elem
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+
 import { getPreLaunchPropertyById, updatePreLaunchProperty } from '../../../store/actions/restack/preLaunchActions'
 import type { Property } from '../../../store/reducers/restack/types'
 import type { AppDispatch, RootState } from '../../../store'
@@ -18,6 +19,9 @@ import {
 } from '../../dummy_data/restack_prelaunch_details_dummy_data'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
+import NumberInput from '../../../components/design-elements/StateBaseNumberField'
+import DateInput from '../../../components/design-elements/DateInputUnixTimestamps'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 
 // Floor plan image component
 const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
@@ -79,8 +83,8 @@ const PreLaunchDetailsPage = () => {
         }
     }, [selectedProperty, pId])
 
-    // Handle field updates
-    const updateField = (field: string, value: string) => {
+    // Handle field updates with proper type handling
+    const updateField = (field: string, value: string | number | null) => {
         if (projectDetails) {
             setProjectDetails((prev) => (prev ? { ...prev, [field]: value } : null))
         }
@@ -137,14 +141,15 @@ const PreLaunchDetailsPage = () => {
         }
     }
 
-    // Handle unit updates - Note: This needs to be adapted to work with Property interface
-    // For now, keeping the structure but this would need proper implementation
-    // based on how configurations are stored in the Property interface
-    const updateUnit = (unitType: 'apartment' | 'villa' | 'plot', unitId: string, field: string, value: string) => {
+    // Handle unit updates
+    const updateUnit = (
+        unitType: 'apartment' | 'villa' | 'plot',
+        unitId: string,
+        field: string,
+        value: string | number,
+    ) => {
         if (!projectDetails) return
 
-        // This is a simplified implementation - you may need to adapt based on
-        // how configurations are actually structured in your Property interface
         const updatedConfigurations = { ...projectDetails.configurations }
 
         if (unitType === 'apartment') {
@@ -164,7 +169,7 @@ const PreLaunchDetailsPage = () => {
         setProjectDetails((prev) => (prev ? { ...prev, configurations: updatedConfigurations } : null))
     }
 
-    // Handle adding new unit - adapted for Property interface
+    // Handle adding new unit
     const addNewUnit = (unitType: 'apartment' | 'villa' | 'plot') => {
         if (!projectDetails) return
 
@@ -219,7 +224,7 @@ const PreLaunchDetailsPage = () => {
         setIsAddingRow(true)
     }
 
-    // Handle delete unit - adapted for Property interface
+    // Handle delete unit
     const deleteUnit = (unitType: 'apartment' | 'villa' | 'plot', unitId: string) => {
         if (!projectDetails) return
 
@@ -238,7 +243,7 @@ const PreLaunchDetailsPage = () => {
         setProjectDetails((prev) => (prev ? { ...prev, configurations: updatedConfigurations } : null))
     }
 
-    // Update maps/plans - adapted for Property interface
+    // Update maps/plans
     const updateMapPlan = (mapType: string, value: string) => {
         if (!projectDetails) return
 
@@ -254,19 +259,18 @@ const PreLaunchDetailsPage = () => {
             case 'brochure':
                 updatedDocuments.brochure = value
                 break
-            // Add more cases as needed
         }
 
         setProjectDetails((prev) => (prev ? { ...prev, documents: updatedDocuments } : null))
     }
 
-    // Render field based on edit mode
+    // Render field based on edit mode with proper type handling
     const renderField = (
         label: string,
-        value: string,
+        value: string | number | null,
         fieldKey: string,
         options?: { label: string; value: string }[],
-        type: 'text' | 'date' = 'text',
+        fieldType: 'text' | 'date' | 'number' = 'text',
     ) => {
         if (isEditing) {
             if (options) {
@@ -276,7 +280,7 @@ const PreLaunchDetailsPage = () => {
                         <Dropdown
                             options={options}
                             onSelect={(selectedValue) => updateField(fieldKey, selectedValue)}
-                            defaultValue={value}
+                            defaultValue={value as string}
                             placeholder={`Select ${label}`}
                             className='relative w-full'
                             triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
@@ -285,24 +289,51 @@ const PreLaunchDetailsPage = () => {
                         />
                     </div>
                 )
+            } else if (fieldType === 'date') {
+                return (
+                    <DateInput
+                        label={label}
+                        placeholder='Select date'
+                        value={value as number | null}
+                        onChange={(timestamp) => updateField(fieldKey, timestamp)}
+                        minDate={new Date().toISOString().split('T')[0]}
+                        fullWidth
+                    />
+                )
+            } else if (fieldType === 'number') {
+                return (
+                    <NumberInput
+                        label={label}
+                        placeholder={`Enter ${label.toLowerCase()}`}
+                        value={value as number}
+                        onChange={(numValue) => updateField(fieldKey, numValue ?? 0)}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
+                    />
+                )
             } else {
                 return (
                     <div>
                         <label className='text-sm text-black block mb-1'>{label}</label>
                         <StateBaseTextField
-                            value={value}
+                            value={value?.toString() ?? ''}
                             onChange={(e) => updateField(fieldKey, e.target.value)}
                             className='w-full text-sm'
-                            type={type}
                         />
                     </div>
                 )
             }
         } else {
+            let displayValue = value?.toString() ?? ''
+            if (fieldType === 'date' && typeof value === 'number') {
+                displayValue = formatUnixDate(value) ?? ''
+            }
+
             return (
                 <div>
                     <label className='text-sm text-gray-600 block mb-1'>{label}</label>
-                    <div className='text-sm text-black font-medium'>{value}</div>
+                    <div className='text-sm text-black font-medium'>{displayValue}</div>
                 </div>
             )
         }
@@ -310,11 +341,12 @@ const PreLaunchDetailsPage = () => {
 
     // Render table cell based on edit mode
     const renderTableCell = (
-        value: string,
+        value: string | number,
         unitId: string,
         field: string,
         unitType: 'apartment' | 'villa' | 'plot',
         options?: { label: string; value: string }[],
+        fieldType: 'text' | 'number' = 'text',
     ) => {
         const isEditingThisRow = editingRowId === unitId
 
@@ -322,9 +354,9 @@ const PreLaunchDetailsPage = () => {
             if (field === 'floorPlan') {
                 return (
                     <div className='flex items-center gap-2'>
-                        <FloorPlanImage imageUrl={value} />
+                        <FloorPlanImage imageUrl={value as string} />
                         <StateBaseTextField
-                            value={value}
+                            value={value as string}
                             onChange={(e) => updateUnit(unitType, unitId, field, e.target.value)}
                             className='flex-1 text-xs'
                             placeholder='Image URL'
@@ -336,7 +368,7 @@ const PreLaunchDetailsPage = () => {
                     <Dropdown
                         options={options}
                         onSelect={(selectedValue) => updateUnit(unitType, unitId, field, selectedValue)}
-                        defaultValue={value}
+                        defaultValue={value as string}
                         placeholder='Select'
                         className='relative w-full'
                         triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded text-xs text-black hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-500 w-full cursor-pointer'
@@ -344,10 +376,21 @@ const PreLaunchDetailsPage = () => {
                         optionClassName='px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 cursor-pointer'
                     />
                 )
+            } else if (fieldType === 'number') {
+                return (
+                    <NumberInput
+                        value={value as number}
+                        onChange={(numValue) => updateUnit(unitType, unitId, field, numValue ?? 0)}
+                        numberType='decimal'
+                        min={0}
+                        className='w-full text-xs'
+                        placeholder='0'
+                    />
+                )
             } else {
                 return (
                     <StateBaseTextField
-                        value={value}
+                        value={value?.toString() ?? ''}
                         onChange={(e) => updateUnit(unitType, unitId, field, e.target.value)}
                         className='w-full text-xs'
                     />
@@ -355,7 +398,7 @@ const PreLaunchDetailsPage = () => {
             }
         } else {
             if (field === 'floorPlan') {
-                return <FloorPlanImage imageUrl={value} />
+                return <FloorPlanImage imageUrl={value as string} />
             }
             return <span className='text-sm'>{value}</span>
         }
@@ -376,22 +419,23 @@ const PreLaunchDetailsPage = () => {
         {
             key: 'superBuiltUpArea',
             header: 'Super built-up area',
-            render: (value, row) => renderTableCell(value, row.id, 'superBuiltUpArea', 'apartment'),
+            render: (value, row) =>
+                renderTableCell(value, row.id, 'superBuiltUpArea', 'apartment', undefined, 'number'),
         },
         {
             key: 'carpetArea',
             header: 'Carpet area',
-            render: (value, row) => renderTableCell(value, row.id, 'carpetArea', 'apartment'),
+            render: (value, row) => renderTableCell(value, row.id, 'carpetArea', 'apartment', undefined, 'number'),
         },
         {
             key: 'pricePerSqft',
             header: 'Price / sqft',
-            render: (value, row) => renderTableCell(value, row.id, 'pricePerSqft', 'apartment'),
+            render: (value, row) => renderTableCell(value, row.id, 'pricePerSqft', 'apartment', undefined, 'number'),
         },
         {
             key: 'totalPrice',
             header: 'Total Price (PLC & FRC Extra)',
-            render: (value, row) => renderTableCell(value, row.id, 'totalPrice', 'apartment'),
+            render: (value, row) => renderTableCell(value, row.id, 'totalPrice', 'apartment', undefined, 'number'),
         },
         {
             key: 'floorPlan',
@@ -452,37 +496,37 @@ const PreLaunchDetailsPage = () => {
         {
             key: 'plotSize',
             header: 'Plot Size',
-            render: (value, row) => renderTableCell(value, row.id, 'plotSize', 'villa'),
+            render: (value, row) => renderTableCell(value, row.id, 'plotSize', 'villa', undefined, 'number'),
         },
         {
             key: 'builtUpArea',
             header: 'Built-up Area',
-            render: (value, row) => renderTableCell(value, row.id, 'builtUpArea', 'villa'),
+            render: (value, row) => renderTableCell(value, row.id, 'builtUpArea', 'villa', undefined, 'number'),
         },
         {
             key: 'carpetArea',
             header: 'Carpet Area',
-            render: (value, row) => renderTableCell(value, row.id, 'carpetArea', 'villa'),
+            render: (value, row) => renderTableCell(value, row.id, 'carpetArea', 'villa', undefined, 'number'),
         },
         {
             key: 'pricePerSqft',
             header: 'Price / sqft',
-            render: (value, row) => renderTableCell(value, row.id, 'pricePerSqft', 'villa'),
+            render: (value, row) => renderTableCell(value, row.id, 'pricePerSqft', 'villa', undefined, 'number'),
         },
         {
             key: 'totalPrice',
             header: 'Total Price',
-            render: (value, row) => renderTableCell(value, row.id, 'totalPrice', 'villa'),
+            render: (value, row) => renderTableCell(value, row.id, 'totalPrice', 'villa', undefined, 'number'),
         },
         {
             key: 'uds',
             header: 'UDS',
-            render: (value, row) => renderTableCell(value, row.id, 'uds', 'villa'),
+            render: (value, row) => renderTableCell(value, row.id, 'uds', 'villa', undefined, 'number'),
         },
         {
             key: 'noOfFloors',
             header: 'No. of Floors',
-            render: (value, row) => renderTableCell(value, row.id, 'noOfFloors', 'villa'),
+            render: (value, row) => renderTableCell(value, row.id, 'noOfFloors', 'villa', undefined, 'number'),
         },
         {
             key: 'actions',
@@ -533,17 +577,17 @@ const PreLaunchDetailsPage = () => {
         {
             key: 'plotArea',
             header: 'Plot Area(sq ft)',
-            render: (value, row) => renderTableCell(value, row.id, 'plotArea', 'plot'),
+            render: (value, row) => renderTableCell(value, row.id, 'plotArea', 'plot', undefined, 'number'),
         },
         {
             key: 'pricePerSqft',
             header: 'Price / sqft',
-            render: (value, row) => renderTableCell(value, row.id, 'pricePerSqft', 'plot'),
+            render: (value, row) => renderTableCell(value, row.id, 'pricePerSqft', 'plot', undefined, 'number'),
         },
         {
             key: 'totalPrice',
             header: 'Total Price',
-            render: (value, row) => renderTableCell(value, row.id, 'totalPrice', 'plot'),
+            render: (value, row) => renderTableCell(value, row.id, 'totalPrice', 'plot', undefined, 'number'),
         },
         {
             key: 'actions',
@@ -682,7 +726,13 @@ const PreLaunchDetailsPage = () => {
                             <div className='space-y-4'>
                                 {renderField('Project Name', projectDetails.projectName, 'projectName')}
                                 {renderField('Stage', projectDetails.stage, 'stage', projectStages)}
-                                {renderField('Project Size', projectDetails.projectSize.toString(), 'projectSize')}
+                                {renderField(
+                                    'Project Size',
+                                    projectDetails.projectSize,
+                                    'projectSize',
+                                    undefined,
+                                    'number',
+                                )}
                                 {renderField(
                                     'Project Start Date',
                                     projectDetails.projectStartDate,
@@ -696,13 +746,15 @@ const PreLaunchDetailsPage = () => {
                                 {renderField('Developer / Promoter', projectDetails.developerName, 'developerName')}
                                 {renderField(
                                     'Price (per sqft)',
-                                    projectDetails.pricePerSqft.toString(),
+                                    projectDetails.pricePerSqft,
                                     'pricePerSqft',
+                                    undefined,
+                                    'number',
                                 )}
                                 {renderField(
                                     'Proposed Completion Date',
-                                    projectDetails.proposedCompletionDate,
-                                    'proposedCompletionDate',
+                                    projectDetails.handoverDate,
+                                    'handoverDate',
                                     undefined,
                                     'date',
                                 )}
@@ -716,11 +768,11 @@ const PreLaunchDetailsPage = () => {
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                             <div className='space-y-4'>
                                 {renderField('Address', projectDetails.address, 'address')}
-                                {renderField('Latitude', projectDetails.lat, 'lat')}
+                                {renderField('Latitude', projectDetails.lat, 'lat', undefined, 'number')}
                             </div>
                             <div className='space-y-4'>
                                 {renderField('Google Map', projectDetails.mapLink, 'mapLink')}
-                                {renderField('Longitude', projectDetails.long, 'long')}
+                                {renderField('Longitude', projectDetails.long, 'long', undefined, 'number')}
                             </div>
                         </div>
                     </div>
@@ -730,24 +782,42 @@ const PreLaunchDetailsPage = () => {
                         <h2 className='text-lg font-semibold text-black mb-4'>Key Metrics</h2>
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                             <div className='space-y-4'>
-                                {renderField('Total Units', projectDetails.totalUnits.toString(), 'totalUnits')}
+                                {renderField(
+                                    'Total Units',
+                                    projectDetails.totalUnits,
+                                    'totalUnits',
+                                    undefined,
+                                    'number',
+                                )}
                                 {renderField(
                                     'No. of Floors',
-                                    projectDetails.numberOfFloors.toString(),
+                                    projectDetails.numberOfFloors,
                                     'numberOfFloors',
+                                    undefined,
+                                    'number',
                                 )}
                                 {renderField(
                                     'Car Parking (total)',
-                                    projectDetails.totalParking.toString(),
+                                    projectDetails.totalParking,
                                     'totalParking',
+                                    undefined,
+                                    'number',
                                 )}
                             </div>
                             <div className='space-y-4'>
-                                {renderField('EOI Amount (₹)', projectDetails.eoiAmount.toString(), 'eoiAmount')}
+                                {renderField(
+                                    'EOI Amount (₹)',
+                                    projectDetails.eoiAmount,
+                                    'eoiAmount',
+                                    undefined,
+                                    'number',
+                                )}
                                 {renderField(
                                     'No. of Towers',
-                                    projectDetails.numberOfTowers.toString(),
+                                    projectDetails.numberOfTowers,
                                     'numberOfTowers',
+                                    undefined,
+                                    'number',
                                 )}
                                 {renderField('Open Space', projectDetails.openArea, 'openArea')}
                             </div>

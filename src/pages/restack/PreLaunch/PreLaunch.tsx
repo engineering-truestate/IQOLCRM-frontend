@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchPreLaunchProperties, addPreLaunchProperty } from '../../../store/actions/restack/preLaunchActions'
 import type { Property } from '../../../store/reducers/restack/types'
 import type { AppDispatch, RootState } from '../../../store'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 
 const PreLaunchPage = () => {
     const [searchValue, setSearchValue] = useState('')
@@ -75,15 +76,7 @@ const PreLaunchPage = () => {
             key: 'projectStartDate',
             header: 'Tentative Start Date',
             render: (value) => (
-                <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {value
-                        ? new Date(value).toLocaleDateString('en-GB', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                          })
-                        : 'N/A'}
-                </span>
+                <span className='whitespace-nowrap text-sm text-gray-600'>{value ? formatUnixDate(value) : 'N/A'}</span>
             ),
         },
         {
@@ -109,27 +102,26 @@ const PreLaunchPage = () => {
                 projectType: data.projectType,
                 stage: data.stage,
                 status: 'Active', // Default status
-                developerName: data.developer,
-                projectSize: 0, // Default values - you may want to add these to the form
+                developerName: data.developerName,
+                projectSize: data.projectSize, // Default values - you may want to add these to the form
                 projectSizeUnit: 'sqft',
-                pricePerSqft: 0,
+                pricePerSqft: data.pricePerSqft,
                 projectStartDate: data.tentativeStartDate,
-                proposedCompletionDate: '', // Default empty
-                address: data.location,
-                lat: '', // Default empty
-                long: '', // Default empty
-                mapLink: '',
-                totalUnits: 0,
+                handoverDate: data.proposedCompletionDate, // Default empty
+                address: data.address,
+                lat: data.latitude, // Default empty
+                long: data.latitude, // Default empty
+                mapLink: data.map,
+                totalUnits: data.totalUnits,
                 eoiAmount: 0,
-                numberOfFloors: 0,
-                numberOfTowers: 0,
-                totalParking: 0,
-                openParking: '',
-                coveredParking: '',
-                openArea: '',
+                numberOfFloors: data.totalFloors,
+                numberOfTowers: data.numberOfTowers,
+                totalParking: data.carParking,
+                openParking: 0,
+                coveredParking: 0,
+                openArea: data.openSpace,
                 reraId: '',
                 reraStatus: '',
-                isReraApproved: '',
                 environmentalClearance: '',
                 buildingPermission: '',
                 configurations: {
