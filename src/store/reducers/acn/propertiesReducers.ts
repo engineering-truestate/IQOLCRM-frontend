@@ -4,6 +4,8 @@ import type { IInventory, PropertiesState } from './propertiesTypes'
 import {
     fetchPropertyById,
     fetchPropertiesByIds,
+    addProperty,
+    updateProperty,
     updatePropertyStatus,
 } from '../../../services/acn/properties/propertiesService'
 
@@ -117,12 +119,10 @@ const propertiesSlice = createSlice({
                 state.currentProperty = action.payload
                 state.error = null
 
-                // Update in properties array if it exists
                 const index = state.properties.findIndex((prop) => prop.propertyId === action.payload.propertyId)
                 if (index !== -1) {
                     state.properties[index] = action.payload
                 } else {
-                    // Add to properties array if not exists
                     state.properties.push(action.payload)
                     state.totalFetched += 1
                 }
@@ -144,8 +144,6 @@ const propertiesSlice = createSlice({
                 console.log('✅ Fetch properties by IDs - fulfilled:', action.payload.length, 'properties')
                 state.isLoadingMore = false
 
-                // Replace or merge properties based on your needs
-                // For matching properties, we'll replace the existing ones
                 action.payload.forEach((newProperty) => {
                     const existingIndex = state.properties.findIndex(
                         (prop) => prop.propertyId === newProperty.propertyId,
@@ -166,18 +164,68 @@ const propertiesSlice = createSlice({
                 state.error = action.payload as string
             })
 
+            // Add property cases
+            .addCase(addProperty.pending, (state) => {
+                console.log('⏳ Add property - pending')
+                state.loading = true
+                state.error = null
+            })
+            .addCase(addProperty.fulfilled, (state, action: PayloadAction<IInventory>) => {
+                console.log('✅ Add property - fulfilled:', action.payload.propertyId)
+                state.loading = false
+                state.properties.unshift(action.payload) // Add to beginning of array
+                state.totalFetched += 1
+                state.currentProperty = action.payload
+                state.error = null
+            })
+            .addCase(addProperty.rejected, (state, action) => {
+                console.log('❌ Add property - rejected:', action.payload)
+                state.loading = false
+                state.error = action.payload as string
+            })
+
+            // Update property cases
+            .addCase(updateProperty.pending, (state) => {
+                console.log('⏳ Update property - pending')
+                state.loading = true
+                state.error = null
+            })
+            .addCase(updateProperty.fulfilled, (state, action) => {
+                console.log('✅ Update property - fulfilled:', action.payload)
+                state.loading = false
+
+                const updateProperty = (property: IInventory) => {
+                    if (property.id === action.payload.id) {
+                        return { ...property, ...action.payload.updates }
+                    }
+                    return property
+                }
+
+                state.properties = state.properties.map(updateProperty)
+
+                if (state.currentProperty && state.currentProperty.id === action.payload.id) {
+                    state.currentProperty = updateProperty(state.currentProperty)
+                }
+
+                state.searchResults = state.searchResults.map(updateProperty)
+                state.error = null
+            })
+            .addCase(updateProperty.rejected, (state, action) => {
+                console.log('❌ Update property - rejected:', action.payload)
+                state.loading = false
+                state.error = action.payload as string
+            })
+
             // Update property status cases
             .addCase(updatePropertyStatus.pending, (state) => {
-                console.log('⏳ Update property status - pending', state)
-                // Don't set loading for status updates to avoid UI blocking
+                console.log('⏳ Update property status - pending')
             })
             .addCase(updatePropertyStatus.fulfilled, (state, action) => {
                 console.log('✅ Update property status - fulfilled:', action.payload)
 
-                // Update the property in both arrays
                 const updateProperty = (property: IInventory) => {
                     if (property.propertyId === action.payload.propertyId) {
-                        return { ...property, status: action.payload.status }
+                        return { ...property, status: action.payload.status, currentStatus: action.payload.status }
                     }
                     return property
                 }
@@ -188,7 +236,6 @@ const propertiesSlice = createSlice({
                     state.currentProperty = updateProperty(state.currentProperty)
                 }
 
-                // Also update in search results if present
                 state.searchResults = state.searchResults.map(updateProperty)
             })
             .addCase(updatePropertyStatus.rejected, (state, action) => {

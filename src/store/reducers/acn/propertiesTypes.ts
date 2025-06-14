@@ -1,13 +1,15 @@
+// store/reducers/acn/propertiesTypes.ts
 import { type PayloadAction } from '@reduxjs/toolkit'
-import type { QueryDocumentSnapshot, Timestamp } from 'firebase/firestore'
+import type { QueryDocumentSnapshot, Timestamp, FieldValue } from 'firebase/firestore'
 
 // === Inventory shape ===
+// store/reducers/acn/propertiesTypes.ts
 export interface IInventory {
     id: string
     propertyId: string
     cpId: string
-    cpCode: string // Added for agent code
-    nameOfTheProperty: string // Changed from propertyName
+    cpCode: string
+    nameOfTheProperty: string
     _geoloc: { lat: number; lng: number }
     area: string
     micromarket: string
@@ -27,7 +29,7 @@ export interface IInventory {
     status: string
     currentStatus: string
     builder_name: string | null
-    handoverDate: Timestamp | null
+    handoverDate: number | null // Unix timestamp in milliseconds
     buildingKhata: string | null
     landKhata: string | null
     ocReceived: boolean | null
@@ -35,19 +37,17 @@ export interface IInventory {
     video: string[]
     document: string[]
     driveLink: string
-    dateOfInventoryAdded: Timestamp
-    dateOfStatusLastChecked: Timestamp
+    dateOfInventoryAdded: number // Unix timestamp in milliseconds
+    dateOfStatusLastChecked: number // Unix timestamp in milliseconds
     ageOfInventory: number
     ageOfStatus: number
     extraDetails: string
 
-    // Additional properties used in your components
-    objectID?: string // For Algolia search results
-    enquiries?: number // Used in table columns
-    lastCheck?: Timestamp // Used in table columns
-
-    // Optional properties for backward compatibility
-    propertyName?: string // Keep as optional for backward compatibility
+    // Additional properties
+    objectID?: string
+    enquiries?: number
+    lastCheck?: number // Unix timestamp in milliseconds
+    propertyName?: string
 }
 
 // === Redux slice state ===
