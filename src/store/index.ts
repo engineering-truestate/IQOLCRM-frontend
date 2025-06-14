@@ -1,12 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit'
 import propertiesReducer from './reducers/acn/propertiesReducers'
 import preLaunchReducer from './reducers/restack/preLaunchReducer'
+import requirementsReducer from './reducers/acn/requirementsReducers'
 
 // Create the store using configureStore from Redux Toolkit
 const store = configureStore({
     reducer: {
-        properties: propertiesReducer, // ACN properties reducer
-        preLaunch: preLaunchReducer, // Restack pre-launch properties reducer
+        properties: propertiesReducer,
+        preLaunch: preLaunchReducer,
+        requirements: requirementsReducer,
     },
 })
 

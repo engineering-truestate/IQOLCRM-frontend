@@ -1,12 +1,15 @@
+// store/reducers/acn/propertiesTypes.ts
 import { type PayloadAction } from '@reduxjs/toolkit'
-import type { QueryDocumentSnapshot, Timestamp } from 'firebase/firestore'
+import type { QueryDocumentSnapshot, Timestamp, FieldValue } from 'firebase/firestore'
 
 // === Inventory shape ===
+// store/reducers/acn/propertiesTypes.ts
 export interface IInventory {
     id: string
     propertyId: string
     cpId: string
-    propertyName: string
+    cpCode: string
+    nameOfTheProperty: string
     _geoloc: { lat: number; lng: number }
     area: string
     micromarket: string
@@ -26,7 +29,7 @@ export interface IInventory {
     status: string
     currentStatus: string
     builder_name: string | null
-    handoverDate: Timestamp | null
+    handoverDate: number | null // Unix timestamp in milliseconds
     buildingKhata: string | null
     landKhata: string | null
     ocReceived: boolean | null
@@ -34,15 +37,20 @@ export interface IInventory {
     video: string[]
     document: string[]
     driveLink: string
-    dateOfInventoryAdded: Timestamp
-    dateOfStatusLastChecked: Timestamp
+    dateOfInventoryAdded: number // Unix timestamp in milliseconds
+    dateOfStatusLastChecked: number // Unix timestamp in milliseconds
     ageOfInventory: number
     ageOfStatus: number
     extraDetails: string
+
+    // Additional properties
+    objectID?: string
+    enquiries?: number
+    lastCheck?: number // Unix timestamp in milliseconds
+    propertyName?: string
 }
 
 // === Redux slice state ===
-// Updated type for lastDocument
 export interface PropertiesState {
     properties: IInventory[]
     currentProperty: IInventory | null
@@ -51,9 +59,21 @@ export interface PropertiesState {
     totalFetched: number
 
     // pagination
-    lastDocument: QueryDocumentSnapshot<IInventory> | null // Fixed type here
+    lastDocument: QueryDocumentSnapshot<IInventory> | null
     hasMore: boolean
     isLoadingMore: boolean
+
+    // Algolia search state
+    searchResults: IInventory[]
+    totalHits: number
+    totalPages: number
+    currentPage: number
+    facets: Record<string, Record<string, number>>
+    processingTime: number
+    searching: boolean
+    searchQuery: string
+    activeFilters: Record<string, any>
+    facetValues: Record<string, Record<string, number>>
 }
 
 // Action types can now be inferred using PayloadAction
