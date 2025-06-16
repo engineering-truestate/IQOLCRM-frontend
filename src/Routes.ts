@@ -29,6 +29,7 @@ import PreReraPage from './pages/restack/Stock/Pre-Rera/PreReraPage'
 import PreReraDetailsPage from './pages/restack/Stock/Pre-Rera/PreReraDetailsPage'
 import PreReraEditPage from './pages/restack/Stock/Pre-Rera/PreReraEditPage'
 import ErrorPage from './404'
+import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -169,6 +170,10 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/restack/stock/pre-rera/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
+    },
+    {
+        path: '/restack/stock/post-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
     },
     {
         path: '/restack/stock/pre-rera/:id/edit',
