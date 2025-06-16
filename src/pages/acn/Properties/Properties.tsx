@@ -15,6 +15,7 @@ import addinventoryic from '/icons/acn/user-add.svg'
 import shareic from '/icons/acn/share.svg'
 import editicon from '/icons/acn/write.svg'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
+import { AddFilterModal } from '../../../components/acn/Filters'
 
 // Import our Algolia service
 import algoliaService, {
@@ -73,6 +74,7 @@ const PropertiesPage = () => {
     const [originalFacets, setOriginalFacets] = useState<Record<string, FacetValue[]>>({})
     const [searchResultFacets, setSearchResultFacets] = useState<Record<string, FacetValue[]>>({})
     const [sortBy, setSortBy] = useState<string>('')
+    const [isAddFilterModalOpen, setIsAddFilterModalOpen] = useState(false)
 
     // UI state
     const [activeTab, setActiveTab] = useState<PropertyType>('Resale')
@@ -955,6 +957,7 @@ const PropertiesPage = () => {
 
     return (
         <Layout loading={false}>
+            <AddFilterModal isOpen={isAddFilterModalOpen} onClose={() => setIsAddFilterModalOpen(false)} />
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
@@ -1044,7 +1047,10 @@ const PropertiesPage = () => {
                                 bgColor='bg-white'
                                 textColor='text-gray-700'
                                 className='px-3 py-1 text-sm border border-gray-300'
-                                onClick={() => console.log('Filter clicked')}
+                                // onClick={() => console.log('Filter clicked')}
+                                onClick={() => {
+                                    setIsAddFilterModalOpen(true)
+                                }}
                             >
                                 Filter
                             </Button>
