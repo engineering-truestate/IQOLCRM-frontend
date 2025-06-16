@@ -7,23 +7,30 @@ import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import {
     generateCompleteProjectDetails,
-    type CompleteProjectDetails,
     projectTypes,
     projectStages,
     apartmentTypologies,
     villaTypologies,
     plotTypes,
-    type ApartmentUnit,
-    type VillaUnit,
-    type PlotUnit,
-    type DevelopmentDetail,
-    type TowerDetail,
-    type FloorPlanDetail,
-    type UnitDetail,
-    type ClubhouseDetail,
 } from '../../../pages/dummy_data/restack_primary_details_dummy_data'
+import type {
+    PrimaryProperty,
+    DevelopmentDetail,
+    TowerDetail,
+    ApartmentConfig,
+    VillaConfig,
+    PlotConfig,
+    FloorPlan,
+    UnitDetail,
+    ClubhouseDetail,
+    ProjectType,
+    ProjectStatus,
+    ProjectSubType,
+} from '../../../data_types/restack/restack-primary.types'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../../firebase'
 
 // Floor plan image component
 const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
@@ -50,13 +57,14 @@ const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?:
 const PrimaryDetailsPage = () => {
     const navigate = useNavigate()
     const { id } = useParams()
+    console.log(id, 'this is the id of the project')
 
-    const [projectDetails, setProjectDetails] = useState<CompleteProjectDetails | null>(null)
-    const [originalDetails, setOriginalDetails] = useState<CompleteProjectDetails | null>(null)
+    const [projectDetails, setProjectDetails] = useState<PrimaryProperty | null>(null)
+    const [originalDetails, setOriginalDetails] = useState<PrimaryProperty | null>(null)
     const [isEditingGroundData, setIsEditingGroundData] = useState(false)
     const [isEditingAmenities, setIsEditingAmenities] = useState(false)
     const [isEditingClubhouse, setIsEditingClubhouse] = useState(false)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
     const [activeTab, setActiveTab] = useState<'apartment' | 'villa' | 'plot'>('apartment')
     const [editingRowId, setEditingRowId] = useState<string | null>(null)
     const [isAddingRow, setIsAddingRow] = useState(false)
@@ -64,38 +72,37 @@ const PrimaryDetailsPage = () => {
     const [selectedTowerForUnitDetails, setSelectedTowerForUnitDetails] = useState<TowerDetail | null>(null)
 
     // Load project data based on id
-    useEffect(() => {
-        const loadProjectDetails = async () => {
-            try {
-                setIsLoading(true)
-                if (id) {
-                    const details = generateCompleteProjectDetails(id)
-                    setProjectDetails(details)
-                    setOriginalDetails(details)
-                    console.log('Loaded project details:', details)
-                }
-            } catch (error) {
-                console.error('Error loading project details:', error)
-                // Set a default project if loading fails
-                const defaultProject = generateCompleteProjectDetails('P0001')
-                setProjectDetails(defaultProject)
-                setOriginalDetails(defaultProject)
-            } finally {
-                setIsLoading(false)
-            }
-        }
+    // useEffect(() => {
+    //     const loadProjectDetails = async () => {
+    //         try {
+    //             setIsLoading(true)
+    //             if (id) {
+    //                 const details = generateCompleteProjectDetails(id)
+    //                 setProjectDetails(details)
+    //                 setOriginalDetails(details)
+    //                 console.log('Loaded project details:', details)
+    //             }
+    //         } catch (error) {
+    //             console.error('Error loading project details:', error)
+    //             // Set a default project if loading fails
+    //             const defaultProject = generateCompleteProjectDetails('P0001')
+    //             setProjectDetails(defaultProject)
+    //             setOriginalDetails(defaultProject)
+    //         } finally {
+    //             setIsLoading(false)
+    //         }
+    //     }
 
-        loadProjectDetails()
-    }, [id])
+    //     loadProjectDetails()
+    // }, [id])
 
     // Handle field updates for main project details
     const updateField = (field: string, value: string) => {
         if (projectDetails) {
-            setProjectDetails((prev: CompleteProjectDetails | null) => (prev ? { ...prev, [field]: value } : null))
+            setProjectDetails((prev: PrimaryProperty | null) => (prev ? { ...prev, [field]: value } : null))
         }
     }
 
-    console.log(projectDetails?.towerDetails, 'lalalalala')
     // Generic handle edit for sections
     const handleEditSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
         setter(true)
@@ -104,7 +111,7 @@ const PrimaryDetailsPage = () => {
     // Generic handle cancel for sections
     const handleCancelSection = (
         setter: React.Dispatch<React.SetStateAction<boolean>>,
-        originalData: CompleteProjectDetails | null,
+        originalData: PrimaryProperty | null,
     ) => {
         setProjectDetails(originalData)
         setter(false)
@@ -142,43 +149,43 @@ const PrimaryDetailsPage = () => {
     ) => {
         if (!projectDetails) return
 
-        let fieldName: keyof CompleteProjectDetails | 'floorPlanDetails' | 'unitDetails'
-        let dataRows: any[]
+        let fieldName: keyof PrimaryProperty | 'floorPlanDetails' | 'unitDetails'
+        let dataRows: any[] = []
 
         switch (dataType) {
             case 'apartment':
                 fieldName = 'apartmentUnits'
-                dataRows = projectDetails[fieldName]
+                dataRows = projectDetails[fieldName] || []
                 break
             case 'villa':
                 fieldName = 'villaUnits'
-                dataRows = projectDetails[fieldName]
+                dataRows = projectDetails[fieldName] || []
                 break
             case 'plot':
                 fieldName = 'plotUnits'
-                dataRows = projectDetails[fieldName]
+                dataRows = projectDetails[fieldName] || []
                 break
             case 'developmentDetails':
                 fieldName = 'developmentDetails'
-                dataRows = projectDetails[fieldName]
+                dataRows = projectDetails[fieldName] || []
                 break
             case 'towerDetails':
                 fieldName = 'towerDetails'
-                dataRows = projectDetails[fieldName]
+                dataRows = projectDetails[fieldName] || []
                 break
             case 'clubhouseDetails':
                 fieldName = 'clubhouseDetails'
-                dataRows = projectDetails[fieldName]
+                dataRows = projectDetails[fieldName] || []
                 break
             case 'floorPlan':
                 if (!selectedTowerForFloorPlan) return
                 fieldName = 'floorPlanDetails'
-                dataRows = selectedTowerForFloorPlan.floorPlanDetails
+                dataRows = selectedTowerForFloorPlan.floorPlanDetails || []
                 break
             case 'unitDetails':
                 if (!selectedTowerForUnitDetails) return
                 fieldName = 'unitDetails'
-                dataRows = selectedTowerForUnitDetails.unitDetails
+                dataRows = selectedTowerForUnitDetails.unitDetails || []
                 break
             default:
                 return
@@ -187,82 +194,78 @@ const PrimaryDetailsPage = () => {
         const updatedDataRows = dataRows.map((row) => (row.id === rowId ? { ...row, [field]: value } : row))
 
         if (dataType === 'floorPlan' && selectedTowerForFloorPlan) {
-            const updatedTowerDetails = projectDetails.towerDetails.map((tower: TowerDetail) =>
-                tower.id === selectedTowerForFloorPlan.id
-                    ? { ...tower, floorPlanDetails: updatedDataRows as FloorPlanDetail[] }
-                    : tower,
+            const updatedTowerDetails = (projectDetails.towerDetails || []).map((tower: TowerDetail) =>
+                tower.id === selectedTowerForFloorPlan.id ? { ...tower, floorPlanDetails: updatedDataRows } : tower,
             )
-            setProjectDetails((prev: CompleteProjectDetails | null) =>
+            setProjectDetails((prev: PrimaryProperty | null) =>
                 prev ? { ...prev, towerDetails: updatedTowerDetails } : null,
             )
         } else if (dataType === 'unitDetails' && selectedTowerForUnitDetails) {
-            const updatedTowerDetails = projectDetails.towerDetails.map((tower: TowerDetail) =>
-                tower.id === selectedTowerForUnitDetails.id
-                    ? { ...tower, unitDetails: updatedDataRows as UnitDetail[] }
-                    : tower,
+            const updatedTowerDetails = (projectDetails.towerDetails || []).map((tower: TowerDetail) =>
+                tower.id === selectedTowerForUnitDetails.id ? { ...tower, unitDetails: updatedDataRows } : tower,
             )
-            setProjectDetails((prev: CompleteProjectDetails | null) =>
+            setProjectDetails((prev: PrimaryProperty | null) =>
                 prev ? { ...prev, towerDetails: updatedTowerDetails } : null,
             )
         } else {
-            setProjectDetails((prev: CompleteProjectDetails | null) =>
-                prev ? { ...prev, [fieldName as keyof CompleteProjectDetails]: updatedDataRows } : null,
+            setProjectDetails((prev: PrimaryProperty | null) =>
+                prev ? { ...prev, [fieldName]: updatedDataRows } : null,
             )
         }
     }
 
-    // Handle adding new unit (kept separate for now as it's specific to unit types)
+    // Handle adding new unit
     const addNewUnit = (unitType: 'apartment' | 'villa' | 'plot') => {
         if (!projectDetails) return
 
         const newId = `${unitType}_${Date.now()}`
-        let newUnit: ApartmentUnit | VillaUnit | PlotUnit
+        let newUnit: ApartmentConfig | VillaConfig | PlotConfig
 
         switch (unitType) {
             case 'apartment':
                 newUnit = {
                     id: newId,
-                    aptType: '',
-                    typology: '',
-                    superBuiltUpArea: '',
-                    carpetArea: '',
-                    pricePerSqft: '',
-                    totalPrice: '',
-                    floorPlan: '',
+                    aptType: 'Simplex',
+                    typology: 'Studio',
+                    superBuiltUpArea: 0,
+                    carpetArea: 0,
+                    currentPricePerSqft: 0,
+                    totalPrice: 0,
                 }
                 break
             case 'villa':
                 newUnit = {
                     id: newId,
-                    villaType: '',
-                    typology: '',
-                    plotSize: '',
-                    builtUpArea: '',
-                    carpetArea: '',
-                    pricePerSqft: '',
-                    totalPrice: '',
+                    villaType: 'UDS',
+                    typology: '2 BHK',
+                    plotSize: 0,
+                    builtUpArea: 0,
+                    carpetArea: 0,
+                    currentPricePerSqft: 0,
+                    totalPrice: 0,
                     uds: '',
-                    noOfFloors: '',
-                    floorPlan: '',
+                    udsPercentage: 0,
+                    udsArea: 0,
+                    numberOfFloors: 0,
                 }
                 break
             case 'plot':
                 newUnit = {
                     id: newId,
-                    plotType: '',
-                    plotArea: '',
-                    pricePerSqft: '',
-                    totalPrice: '',
+                    plotType: 'ODD PLOT',
+                    plotArea: 0,
+                    currentPricePerSqft: 0,
+                    totalPrice: 0,
                 }
                 break
+            default:
+                return
         }
 
-        const fieldName = `${unitType}Units` as keyof CompleteProjectDetails
-        const units = projectDetails[fieldName] as any[]
+        const fieldName = `${unitType}Units` as keyof PrimaryProperty
+        const units = (projectDetails[fieldName] as any[]) || []
 
-        setProjectDetails((prev: CompleteProjectDetails | null) =>
-            prev ? { ...prev, [fieldName]: [...units, newUnit] } : null,
-        )
+        setProjectDetails((prev: any | null) => (prev ? { ...prev, [fieldName]: [...units, newUnit] } : null))
 
         setEditingRowId(newId)
         setIsAddingRow(true)
@@ -272,13 +275,11 @@ const PrimaryDetailsPage = () => {
     const deleteUnit = (unitType: 'apartment' | 'villa' | 'plot', unitId: string) => {
         if (!projectDetails) return
 
-        const fieldName = `${unitType}Units` as keyof CompleteProjectDetails
-        const units = projectDetails[fieldName] as any[]
+        const fieldName = `${unitType}Units` as keyof PrimaryProperty
+        const units = (projectDetails[fieldName] as any[]) || []
         const updatedUnits = units.filter((unit) => unit.id !== unitId)
 
-        setProjectDetails((prev: CompleteProjectDetails | null) =>
-            prev ? { ...prev, [fieldName]: updatedUnits } : null,
-        )
+        setProjectDetails((prev: PrimaryProperty | null) => (prev ? { ...prev, [fieldName]: updatedUnits } : null))
     }
 
     // Handle adding new clubhouse row
@@ -292,11 +293,13 @@ const PrimaryDetailsPage = () => {
             floor: '',
         }
 
-        setProjectDetails((prev: CompleteProjectDetails | null) =>
+        const currentClubhouseDetails = projectDetails.clubhouseDetails || []
+
+        setProjectDetails((prev: PrimaryProperty | null) =>
             prev
                 ? {
                       ...prev,
-                      clubhouseDetails: [...prev.clubhouseDetails, newRow],
+                      clubhouseDetails: [...currentClubhouseDetails, newRow],
                   }
                 : null,
         )
@@ -304,6 +307,49 @@ const PrimaryDetailsPage = () => {
         setEditingRowId(newRow.id)
         setIsAddingRow(true)
     }
+
+    // fetch data from firebase instead
+    useEffect(() => {
+        if (projectDetails) {
+            console.log(projectDetails, 'property hai', Date.now())
+        } else {
+            console.log(projectDetails, 'nhi hai', Date.now())
+        }
+    }, [projectDetails])
+
+    useEffect(() => {
+        setIsLoading(true)
+        if (id) {
+            const docRef = doc(db, 'restack_pre_rera_properties', id)
+            const getDocData = async () => {
+                try {
+                    const docSnap = await getDoc(docRef)
+                    if (docSnap.exists()) {
+                        const data = docSnap.data()
+                        if (data) {
+                            // Example: Ensure arrays are arrays, not objects
+                            data.developmentDetails = Array.isArray(data.developmentDetails)
+                                ? data.developmentDetails
+                                : []
+                            // ...repeat for other fields as needed
+                            setProjectDetails(data as PrimaryProperty)
+                            setOriginalDetails(data as PrimaryProperty)
+                            console.log(data.TowerDetails, 'data')
+                        } else {
+                            console.log('No such document!')
+                        }
+                    } else {
+                        console.log('No such document!')
+                    }
+                } catch (error) {
+                    console.error('Error getting document:', error)
+                } finally {
+                    setIsLoading(false)
+                }
+            }
+            getDocData()
+        }
+    }, [id])
 
     // Helper for rendering info rows (read-only and editable)
     const renderInfoRow = (
@@ -710,7 +756,7 @@ const PrimaryDetailsPage = () => {
                                     className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
                                     onClick={() => {
                                         if (isAddingRow) {
-                                            setProjectDetails((prev: CompleteProjectDetails | null) =>
+                                            setProjectDetails((prev: any | null) =>
                                                 prev
                                                     ? {
                                                           ...prev,
@@ -763,27 +809,27 @@ const PrimaryDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Project Name (As per Rera)',
-                            projectDetails.projectOverview.projectNameAsPerRERA,
+                            projectDetails?.projectName,
                             'Project Description',
-                            projectDetails.projectOverview.projectDescription,
-                            'projectOverview.projectNameAsPerRERA',
-                            'projectOverview.projectDescription',
+                            projectDetails?.projectDescription,
+                            'projectName',
+                            'projectDescription',
                         )}
                         {renderInfoRow(
                             'Project Type',
-                            projectDetails.projectOverview.projectSize,
+                            projectDetails?.projectType,
                             'Project Sub Type',
-                            projectDetails.projectOverview.projectSubType,
-                            'projectOverview.projectSize',
-                            'projectOverview.projectSubType',
+                            projectDetails?.projectSubType,
+                            'projectType',
+                            'projectSubType',
                             projectTypes,
                         )}
                         {renderInfoRow(
                             'Project Status',
-                            projectDetails.projectOverview.projectStatus,
+                            projectDetails?.projectStatus,
                             '',
                             '',
-                            'projectOverview.projectStatus',
+                            'projectStatus',
                             undefined,
                             projectStages,
                             undefined,
@@ -800,10 +846,10 @@ const PrimaryDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Promoter Name',
-                            projectDetails.developerDetails.promoterName,
+                            projectDetails?.promoterName,
                             '',
                             '',
-                            'developerDetails.promoterName',
+                            'developerInfo.promoterName',
                             undefined,
                         )}
                     </div>
@@ -813,43 +859,43 @@ const PrimaryDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Project Address',
-                            projectDetails.projectAddress.projectAddress,
+                            projectDetails?.address,
                             'District',
-                            projectDetails.projectAddress.district,
-                            'projectAddress.projectAddress',
-                            'projectAddress.district',
+                            projectDetails?.district,
+                            'address',
+                            'district',
                         )}
                         {renderInfoRow(
                             'Latitude',
-                            projectDetails.projectAddress.latitude,
+                            projectDetails?.lat?.toString(),
                             'Longitude',
-                            projectDetails.projectAddress.longitude,
-                            'projectAddress.latitude',
-                            'projectAddress.longitude',
+                            projectDetails?.long?.toString(),
+                            'lat',
+                            'long',
                         )}
                         {renderInfoRow(
                             'Pin Code',
-                            projectDetails.projectAddress.pinCode,
+                            projectDetails?.pincode?.toString(),
                             'Zone',
-                            projectDetails.projectAddress.zone,
-                            'projectAddress.pinCode',
-                            'projectAddress.zone',
+                            projectDetails?.zone,
+                            'pincode',
+                            'zone',
                         )}
                         {renderInfoRow(
                             'North Schedule',
-                            projectDetails.projectAddress.northBoundary,
+                            projectDetails?.northSchedule,
                             'South Schedule',
-                            projectDetails.projectAddress.southBoundary,
-                            'projectAddress.northBoundary',
-                            'projectAddress.southBoundary',
+                            projectDetails?.southSchedule,
+                            'northSchedule',
+                            'southSchedule',
                         )}
                         {renderInfoRow(
                             'East Schedule',
-                            projectDetails.projectAddress.eastBoundary,
+                            projectDetails?.eastSchedule,
                             'West Schedule',
-                            projectDetails.projectAddress.westBoundary,
-                            'projectAddress.westBoundary',
-                            'projectAddress.eastBoundary',
+                            projectDetails?.westSchedule,
+                            'eastSchedule',
+                            'westSchedule',
                         )}
                     </div>
 
@@ -858,26 +904,36 @@ const PrimaryDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Approving Authority',
-                            projectDetails.planDetails.sanctioningAuthority,
+                            projectDetails?.approvingAuthority,
                             'Approved Plan Number',
-                            projectDetails.planDetails.sanctionedPlanNumber,
-                            'planDetails.sanctioningAuthority',
-                            'planDetails.sanctionedPlanNumber',
+                            projectDetails?.approvedPlanNumber,
+                            'approvingAuthority',
+                            'approvedPlanNumber',
                         )}
                         {renderInfoRow(
                             'Plan Approval Date',
-                            projectDetails.planDetails.planApprovalDate,
+                            projectDetails?.planApprovalDate,
                             'RERA Registration Application Status',
-                            'Approved',
-                            'planDetails.planApprovalDate',
-                            undefined,
+                            projectDetails?.reraStatus,
+                            'planApprovalDate',
+                            'reraStatus',
                             undefined,
                             undefined,
                             'date',
                             'text',
                         )}
-                        {renderInfoRow('Total Number of Inventories/Flats/Villas', '100', 'No. of Open Parking', '20')}
-                        {renderInfoRow('No. of Covered Parking', '50', 'No. of Garage', '10')}
+                        {renderInfoRow(
+                            'Total Number of Inventories/Flats/Villas',
+                            projectDetails?.totalInventories,
+                            'No. of Open Parking',
+                            projectDetails?.openParking,
+                        )}
+                        {renderInfoRow(
+                            'No. of Covered Parking',
+                            projectDetails?.coveredParking,
+                            'No. of Garage',
+                            projectDetails?.numberOfGarage,
+                        )}
                     </div>
 
                     {/* Area Details */}
@@ -885,42 +941,42 @@ const PrimaryDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Total Open Area (Sq Mtr)',
-                            projectDetails.areaDetails.totalOpenAreaSqMtr,
-                            'Total Coverd Area (Sq Mtr)',
-                            projectDetails.areaDetails.totalClosedAreaSqMtr,
-                            'areaDetails.totalOpenAreaSqMtr',
-                            'areaDetails.totalClosedAreaSqMtr',
+                            projectDetails?.openArea?.toString(),
+                            'Total Covered Area (Sq Mtr)',
+                            projectDetails?.coveredArea?.toString(),
+                            'openArea',
+                            'coveredArea',
                         )}
                         {renderInfoRow(
                             'Total Area Of Land (Sq Mtr)',
-                            projectDetails.areaDetails.totalBuiltUpLandSqMtr,
+                            projectDetails?.landArea?.toString(),
                             'Total Built-up Area of all the Floors (Sq Mtr)',
-                            projectDetails.areaDetails.totalBuiltUpAreaAsOfTheProjectSqMtr,
-                            'areaDetails.totalBuiltUpLandSqMtr',
-                            'areaDetails.totalBuiltUpAreaAsOfTheProjectSqMtr',
+                            projectDetails?.builtUpArea?.toString(),
+                            'landArea',
+                            'builtUpArea',
                         )}
                         {renderInfoRow(
                             'Total Carpet Area of all the Floors (Sq Mtr)',
-                            projectDetails.areaDetails.totalCarpetAreaSqMtr,
+                            projectDetails?.carpetArea?.toString(),
                             'Total Plinth Area (Sq Mtr)',
-                            projectDetails.areaDetails.totalConstructedAreaSqMtr,
-                            'areaDetails.totalCarpetAreaSqMtr',
-                            'areaDetails.totalConstructedAreaSqMtr',
+                            projectDetails?.plinthArea?.toString(),
+                            'carpetArea',
+                            'plinthArea',
                         )}
                         {renderInfoRow(
                             'Area Of Open Parking (Sq Mtr)',
-                            projectDetails.areaDetails.areaOfGarageSqMtr,
+                            projectDetails?.openParkingArea?.toString(),
                             'Area Of Covered Parking (Sq Mtr)',
-                            projectDetails.areaDetails.areaOfCoveredParkingSqMtr,
-                            'areaDetails.areaOfGarageSqMtr',
-                            'areaDetails.areaOfCoveredParkingSqMtr',
+                            projectDetails?.coveredParkingArea?.toString(),
+                            'openParkingArea',
+                            'coveredParkingArea',
                         )}
                         {renderInfoRow(
                             'Area of Garage (Sq Mtr)',
-                            projectDetails.areaDetails.specificDensityPerAcre,
+                            projectDetails?.garageArea?.toString(),
                             '',
                             '',
-                            'areaDetails.specificDensityPerAcre',
+                            'garageArea',
                         )}
                     </div>
 
@@ -929,10 +985,10 @@ const PrimaryDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Source',
-                            projectDetails.sourceOfWater.source,
+                            projectDetails?.waterSource?.join(', '),
                             '',
                             '',
-                            'sourceOfWater.source',
+                            'waterSource',
                             undefined,
                             undefined,
                             undefined,
@@ -948,7 +1004,7 @@ const PrimaryDetailsPage = () => {
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Development Details</h2>
                     <div className='px-4 py-3'>
                         <FlexibleTable
-                            data={projectDetails.developmentDetails}
+                            data={projectDetails?.developmentDetails || []}
                             columns={getDevelopmentColumns()}
                             hoverable={true}
                             borders={{
@@ -963,8 +1019,8 @@ const PrimaryDetailsPage = () => {
                             <span>Total</span>
                             <span></span>
                             <span>
-                                {projectDetails.developmentDetails.reduce(
-                                    (sum: number, item: any) => sum + parseInt(item.noOfInventory),
+                                {projectDetails?.developmentDetails?.reduce(
+                                    (sum: number, item: DevelopmentDetail) => sum + item.numberOfInventory,
                                     0,
                                 )}
                             </span>
@@ -975,11 +1031,11 @@ const PrimaryDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'FAR Sanctioned',
-                            projectDetails.developmentDetailsExtra.firstInvestment,
+                            projectDetails?.floorAreaRatio?.toString() || '0',
                             'Number of Towers',
-                            projectDetails.developmentDetailsExtra.numberOfTowers,
-                            'developmentDetailsExtra.firstInvestment',
-                            'developmentDetailsExtra.numberOfTowers',
+                            projectDetails?.totalTowers?.toString() || '0',
+                            'floorAreaRatio',
+                            'totalTowers',
                         )}
                     </div>
 
@@ -987,7 +1043,7 @@ const PrimaryDetailsPage = () => {
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Tower Details</h2>
                     <div className='px-4 py-3'>
                         <FlexibleTable
-                            data={projectDetails.towerDetails}
+                            data={projectDetails?.towerDetails || []}
                             columns={getTowerColumns()}
                             hoverable={true}
                             borders={{
@@ -1004,11 +1060,15 @@ const PrimaryDetailsPage = () => {
                     {selectedTowerForFloorPlan && (
                         <section className='space-y-4'>
                             <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
-                                Floor Plan for {selectedTowerForFloorPlan.tower}
+                                Floor Plan for {selectedTowerForFloorPlan.towerName}
                             </h3>
                             <div className='overflow-x-auto px-4 py-3'>
                                 <FlexibleTable
-                                    data={selectedTowerForFloorPlan.floorPlanDetails}
+                                    data={
+                                        Array.isArray(selectedTowerForFloorPlan.floorPlanDetails)
+                                            ? selectedTowerForFloorPlan.floorPlanDetails
+                                            : []
+                                    }
                                     columns={getFloorPlanColumns()}
                                     hoverable={true}
                                     borders={{
@@ -1027,11 +1087,15 @@ const PrimaryDetailsPage = () => {
                     {selectedTowerForUnitDetails && (
                         <section className='space-y-4'>
                             <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
-                                Unit Details for {selectedTowerForUnitDetails.tower}
+                                Unit Details for {selectedTowerForUnitDetails.towerName}
                             </h3>
                             <div className='overflow-x-auto px-4 py-3'>
                                 <FlexibleTable
-                                    data={selectedTowerForUnitDetails.unitDetails}
+                                    data={
+                                        Array.isArray(selectedTowerForUnitDetails.unitDetails)
+                                            ? selectedTowerForUnitDetails.unitDetails
+                                            : []
+                                    }
                                     columns={getUnitDetailsColumns()}
                                     hoverable={true}
                                     borders={{
@@ -1079,11 +1143,11 @@ const PrimaryDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2 gap-x-6'>
                         {renderInfoRow(
                             'Price (at the time of launch) (per sqft)',
-                            projectDetails.groundFloor.findOutTheTypeOfLaunchPerYearWill,
+                            projectDetails?.groundFloor?.findOutTheTypeOfLaunchPerYearWill,
                             'Developer Name',
-                            projectDetails.developerDetails.promoterName,
+                            projectDetails?.developerInfo?.promoterName,
                             'groundFloor.findOutTheTypeOfLaunchPerYearWill',
-                            'developerDetails.promoterName',
+                            'developerInfo.promoterName',
                             undefined,
                             undefined,
                             'text',
@@ -1120,8 +1184,8 @@ const PrimaryDetailsPage = () => {
                             undefined,
                             'link',
                             'link',
-                            () => window.open(projectDetails.mapsPlans[0]?.url || '', '_blank'),
-                            () => window.open(projectDetails.documents.viewDocument, '_blank'),
+                            () => window.open(projectDetails?.typologyAndUnitPlan?.[0] || '', '_blank'),
+                            () => window.open(projectDetails?.brochureURL?.[0] || '', '_blank'),
                             undefined,
                             isEditingGroundData,
                         )}
@@ -1136,8 +1200,8 @@ const PrimaryDetailsPage = () => {
                             undefined,
                             'link',
                             'link',
-                            () => window.open(projectDetails.mapsPlans[1]?.url || '', '_blank'),
-                            () => window.open(projectDetails.priceDetails.costSheet, '_blank'),
+                            () => window.open(projectDetails?.typologyAndUnitPlan?.[1] || '', '_blank'),
+                            () => window.open(projectDetails?.costSheetURL?.[0] || '', '_blank'),
                             undefined,
                             isEditingGroundData,
                         )}
@@ -1176,9 +1240,9 @@ const PrimaryDetailsPage = () => {
                     {isEditingAmenities ? (
                         <div className='flex flex-wrap gap-3 p-3 pr-4'>
                             <textarea
-                                value={projectDetails.amenities.join(', ')}
+                                value={projectDetails?.amenities?.join(', ')}
                                 onChange={(e) =>
-                                    setProjectDetails((prev) =>
+                                    setProjectDetails((prev: any | null) =>
                                         prev
                                             ? {
                                                   ...prev,
@@ -1194,7 +1258,7 @@ const PrimaryDetailsPage = () => {
                         </div>
                     ) : (
                         <div className='flex flex-wrap gap-3 p-3 pr-4'>
-                            {projectDetails.amenities.map((amenity: string, index: number) => (
+                            {projectDetails?.amenities?.map((amenity: string, index: number) => (
                                 <div
                                     key={index}
                                     className='flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#e9edf1] pl-4 pr-4'
@@ -1244,7 +1308,9 @@ const PrimaryDetailsPage = () => {
                     </div>
                     <div className='px-4'>
                         <FlexibleTable
-                            data={projectDetails.clubhouseDetails}
+                            data={
+                                Array.isArray(projectDetails?.clubhouseDetails) ? projectDetails.clubhouseDetails : []
+                            }
                             columns={getClubhouseColumns()}
                             hoverable={true}
                             borders={{
@@ -1264,11 +1330,11 @@ const PrimaryDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Litigation Status',
-                            projectDetails.litigationStatusAndComplaints.litigationStatus,
+                            projectDetails?.litigation,
                             'Appeal Revision',
-                            projectDetails.litigationStatusAndComplaints.appealRevision,
-                            'litigationStatusAndComplaints.litigationStatus',
-                            'litigationStatusAndComplaints.appealRevision',
+                            projectDetails?.litigation,
+                            'litigation',
+                            'litigation',
                         )}
                         {renderInfoRow(
                             'Complaints',
@@ -1282,7 +1348,7 @@ const PrimaryDetailsPage = () => {
                             'text',
                             'link',
                             undefined,
-                            () => window.open(projectDetails.litigationStatusAndComplaints.affidavitLink, '_blank'),
+                            () => window.open(projectDetails?.affidavitLink || '', '_blank'),
                         )}
                     </div>
 
@@ -1292,8 +1358,7 @@ const PrimaryDetailsPage = () => {
                         <Button
                             className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
                             onClick={() => {
-                                console.log(projectDetails.documents.viewDocument, 'lalaa')
-                                window.open(projectDetails.documents.viewDocument, '_blank')
+                                window.open(projectDetails?.documents?.projectDocuments?.[0] || '', '_blank')
                             }}
                         >
                             <span className='truncate'>View Documents</span>
@@ -1304,9 +1369,9 @@ const PrimaryDetailsPage = () => {
                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                         {renderInfoRow(
                             'Sale Deed',
-                            projectDetails.documents.saleDeed,
+                            projectDetails?.documents?.projectDocuments?.[0],
                             'View Document',
-                            projectDetails.documents.viewDocument,
+                            projectDetails?.documents?.projectDocuments?.[1],
                             undefined,
                             undefined,
                             undefined,
