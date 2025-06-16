@@ -33,7 +33,7 @@ interface OtherDocument {
 }
 
 const DocumentsPage: React.FC = () => {
-    const { pId } = useParams<{ pId: string }>()
+    const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const [loading, setLoading] = useState<boolean>(true)
     const [projectDocuments, setProjectDocuments] = useState<ProjectDocument[]>([])
@@ -45,8 +45,8 @@ const DocumentsPage: React.FC = () => {
         const loadDocuments = async () => {
             setLoading(true)
             try {
-                if (pId) {
-                    const details = generateCompleteProjectDetails(pId)
+                if (id) {
+                    const details = generateCompleteProjectDetails(id)
 
                     setProjectDocuments(details.projectDocuments || [])
                     setNOCDocuments(details.nocDocuments || [])
@@ -65,7 +65,7 @@ const DocumentsPage: React.FC = () => {
         }
 
         loadDocuments()
-    }, [pId])
+    }, [id])
 
     // Function to handle navigation back to main page
     const handleNavigateToMain = () => {
@@ -74,7 +74,7 @@ const DocumentsPage: React.FC = () => {
 
     // Function to handle navigation to project details page
     const handleNavigateToProjectDetails = () => {
-        navigate(`/restack/primary/${pId}`)
+        navigate(`/restack/primary/${id}`)
     }
 
     // Function to handle document download/view

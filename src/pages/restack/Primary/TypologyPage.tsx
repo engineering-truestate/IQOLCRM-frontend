@@ -42,7 +42,7 @@ const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?:
 
 const TypologyPage = () => {
     const navigate = useNavigate()
-    const { pId } = useParams()
+    const { id } = useParams()
 
     const [projectDetails, setProjectDetails] = useState<CompleteProjectDetails | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -54,10 +54,10 @@ const TypologyPage = () => {
         const loadProjectDetails = async () => {
             try {
                 setIsLoading(true)
-                if (pId) {
-                    const details = generateCompleteProjectDetails(pId)
+                if (id) {
+                    const details = generateCompleteProjectDetails(id)
                     setProjectDetails(details)
-                    console.log('TypologyPage - pId:', pId)
+                    console.log('TypologyPage - id:', id)
                     console.log('TypologyPage - Loaded project details:', details)
                 }
             } catch (error) {
@@ -70,7 +70,7 @@ const TypologyPage = () => {
             }
         }
         loadProjectDetails()
-    }, [pId])
+    }, [id])
 
     const updateDataRow = (dataType: 'apartment' | 'villa' | 'plot', rowId: string, field: string, value: string) => {
         if (!projectDetails) return
@@ -563,8 +563,8 @@ const TypologyPage = () => {
                         Configurations
                     </a>
                     <span className='mx-2'>/</span>
-                    <a href={pId ? `/restack/primary/${pId}` : '/restack/primary'} className='hover:text-gray-700'>
-                        {pId || 'Project Details'}
+                    <a href={id ? `/restack/primary/${id}` : '/restack/primary'} className='hover:text-gray-700'>
+                        {id || 'Project Details'}
                     </a>
                     <span className='mx-2'>/</span>
                     <span className='text-black font-medium'>Typology & Unit Plan</span>

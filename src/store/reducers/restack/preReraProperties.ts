@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import type { PrimaryProperty } from '../../../data_types/restack/restack-primary.types'
+import type { PrimaryProperty } from '../../../data_types/restack/restack-primary'
 
 interface PreReraPropertiesState {
     properties: PrimaryProperty[]

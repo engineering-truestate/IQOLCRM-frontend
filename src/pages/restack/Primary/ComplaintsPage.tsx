@@ -26,7 +26,7 @@ interface PromoterComplaint {
 }
 
 const ComplaintsPage: React.FC = () => {
-    const { pId } = useParams<{ pId: string }>()
+    const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const [loading, setLoading] = useState<boolean>(true)
     const [projectComplaints, setProjectComplaints] = useState<ProjectComplaint[]>([])
@@ -37,8 +37,8 @@ const ComplaintsPage: React.FC = () => {
         const loadComplaints = async () => {
             setLoading(true)
             try {
-                if (pId) {
-                    const details = generateCompleteProjectDetails(pId)
+                if (id) {
+                    const details = generateCompleteProjectDetails(id)
 
                     setProjectComplaints(details.projectComplaints || [])
                     setPromoterComplaints(details.promoterComplaints || [])
@@ -56,7 +56,7 @@ const ComplaintsPage: React.FC = () => {
         }
 
         loadComplaints()
-    }, [pId])
+    }, [id])
 
     // Function to handle navigation back to main page
     const handleNavigateToMain = () => {
@@ -65,7 +65,7 @@ const ComplaintsPage: React.FC = () => {
 
     // Function to handle navigation to project details page
     const handleNavigateToProjectDetails = () => {
-        navigate(`/restack/primary/${pId}`)
+        navigate(`/restack/primary/${id}`)
     }
 
     const projectComplaintsColumns = [

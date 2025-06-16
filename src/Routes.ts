@@ -78,15 +78,15 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
     },
     {
-        path: '/restack/primary/:pId/typologyPage',
+        path: '/restack/primary/:id/typology',
         element: React.createElement(React.Suspense, null, React.createElement(TypologyPage, null)),
     },
     {
-        path: '/restack/primary/:pId/complaints',
+        path: '/restack/primary/:id/complaints',
         element: React.createElement(React.Suspense, null, React.createElement(ComplaintsPage, null)),
     },
     {
-        path: '/restack/primary/:pId/documents',
+        path: '/restack/primary/:id/documents',
         element: React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
     },
 ]

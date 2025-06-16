@@ -26,7 +26,7 @@ import type {
     ProjectType,
     ProjectStatus,
     ProjectSubType,
-} from '../../../data_types/restack/restack-primary.types'
+} from '../../../data_types/restack/restack-primary'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
 import { doc, getDoc } from 'firebase/firestore'
@@ -1367,35 +1367,6 @@ const PrimaryDetailsPage = () => {
                         >
                             <span className='truncate'>View Documents</span>
                         </Button>
-                    </div>
-
-                    <h2 className='text-xl font-semibold mb-4'>Documents</h2>
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                        {renderInfoRow(
-                            'Sale Deed',
-                            projectDetails?.documents?.projectDocuments?.[0],
-                            'View Document',
-                            projectDetails?.documents?.projectDocuments?.[1],
-                            undefined,
-                            undefined,
-                            undefined,
-                            undefined,
-                            'text',
-                            'link',
-                        )}
-                        {renderInfoRow(
-                            'Complaints',
-                            'View Complaints',
-                            '',
-                            '',
-                            undefined,
-                            undefined,
-                            undefined,
-                            undefined,
-                            'link',
-                            'text',
-                            () => navigate(`/restack/primary/${id}/complaints`),
-                        )}
                     </div>
                 </div>
             </div>
