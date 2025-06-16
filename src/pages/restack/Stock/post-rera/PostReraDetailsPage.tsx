@@ -190,7 +190,12 @@ const PostReraDetailsPage = () => {
             key: 'viewDetails',
             header: 'View Details',
             render: (value: any) => (
-                <button className='px-3 py-1 bg-gray-800 text-white text-xs rounded hover:bg-gray-700'>{value}</button>
+                <button
+                    onClick={() => navigate(`/restack/primary/${value}`)}
+                    className='px-3 py-1 bg-gray-800 text-white text-xs rounded hover:bg-gray-700'
+                >
+                    View Details
+                </button>
             ),
         },
         {
@@ -542,11 +547,11 @@ const PostReraDetailsPage = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className='text-sm text-gray-600 block mb-1'>COP Map</label>
+                                    <label className='text-sm text-gray-600 block mb-1'>CDP Map</label>
                                     {isEditing ? (
                                         <StateBaseTextField
                                             value=''
-                                            onChange={(e) => updateField('copMap', e.target.value)}
+                                            onChange={(e) => updateField('cdpMap', e.target.value)}
                                             className='w-full text-sm'
                                             placeholder='Enter COP Map URL'
                                         />
@@ -597,9 +602,12 @@ const PostReraDetailsPage = () => {
                     <div className='mb-8'>
                         <h2 className='text-lg font-semibold text-black mb-4'>Documents</h2>
                         <div>
-                            <button className='text-sm text-blue-600 hover:text-blue-800 underline'>
+                            <a
+                                href={`/restack/stock/post-rera/${id}/documents`}
+                                className='text-sm text-blue-600 hover:text-blue-800 underline'
+                            >
                                 View Documents
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>

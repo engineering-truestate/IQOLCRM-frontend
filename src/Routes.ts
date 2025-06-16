@@ -1,3 +1,5 @@
+import PostReraPage from './pages/restack/Stock/post-rera/PostReraPage'
+import PostReraDocumentPage from './pages/restack/Stock/post-rera/PostReraDocumentPage'
 import type { RouteObject } from 'react-router-dom'
 import React from 'react'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -168,12 +170,20 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PreReraPage, null)),
     },
     {
+        path: '/restack/stock/post-rera',
+        element: React.createElement(React.Suspense, null, React.createElement(PostReraPage, null)),
+    },
+    {
         path: '/restack/stock/pre-rera/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
     },
     {
         path: '/restack/stock/post-rera/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
+    },
+    {
+        path: '/restack/stock/post-rera/:id/documents',
+        element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
     },
     {
         path: '/restack/stock/pre-rera/:id/edit',
