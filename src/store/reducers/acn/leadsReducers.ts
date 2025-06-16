@@ -14,6 +14,11 @@ import {
     fetchLeadWithConnectHistory,
     type NoteData,
     type CallResultData,
+    fetchKAMOptions,
+    verifyLeadAndCreateAgent,
+    validateCSVData,
+    addBulkLeads,
+    addManualLead,
 } from '../../../services/acn/leads/leadsService'
 
 interface LeadsState {
@@ -29,6 +34,21 @@ interface LeadsState {
     connectHistoryByLeadId: Record<string, CallResultData[]>
     connectHistoryLoading: boolean
     connectHistoryError: string | null
+    // KAM options state
+    kamOptions: Array<{ value: string; count: number }>
+    kamOptionsLoading: boolean
+    kamOptionsError: string | null
+    // Agent verification state
+    agentVerificationLoading: boolean
+    agentVerificationError: string | null
+    // Add lead state
+    csvValidationLoading: boolean
+    csvValidationError: string | null
+    validatedCSVData: any[]
+    bulkAddLoading: boolean
+    bulkAddError: string | null
+    manualAddLoading: boolean
+    manualAddError: string | null
 }
 
 const initialState: LeadsState = {
@@ -44,6 +64,21 @@ const initialState: LeadsState = {
     connectHistoryByLeadId: {},
     connectHistoryLoading: false,
     connectHistoryError: null,
+    // KAM options initial state
+    kamOptions: [],
+    kamOptionsLoading: false,
+    kamOptionsError: null,
+    // Agent verification initial state
+    agentVerificationLoading: false,
+    agentVerificationError: null,
+
+    csvValidationLoading: false,
+    csvValidationError: null,
+    validatedCSVData: [],
+    bulkAddLoading: false,
+    bulkAddError: null,
+    manualAddLoading: false,
+    manualAddError: null,
 }
 
 const leadsSlice = createSlice({
@@ -79,6 +114,24 @@ const leadsSlice = createSlice({
         },
         clearConnectHistory: (state) => {
             state.connectHistoryByLeadId = {}
+        },
+        clearKAMOptionsError: (state) => {
+            state.kamOptionsError = null
+        },
+        clearAgentVerificationError: (state) => {
+            state.agentVerificationError = null
+        },
+        clearCSVValidationError: (state) => {
+            state.csvValidationError = null
+        },
+        clearValidatedCSVData: (state) => {
+            state.validatedCSVData = []
+        },
+        clearBulkAddError: (state) => {
+            state.bulkAddError = null
+        },
+        clearManualAddError: (state) => {
+            state.manualAddError = null
         },
     },
     extraReducers: (builder) => {
@@ -306,6 +359,93 @@ const leadsSlice = createSlice({
                 state.connectHistoryLoading = false
                 state.connectHistoryError = action.payload as string
             })
+        builder
+            .addCase(fetchKAMOptions.pending, (state) => {
+                state.kamOptionsLoading = true
+                state.kamOptionsError = null
+            })
+            .addCase(fetchKAMOptions.fulfilled, (state, action) => {
+                state.kamOptionsLoading = false
+                state.kamOptions = action.payload
+            })
+            .addCase(fetchKAMOptions.rejected, (state, action) => {
+                state.kamOptionsLoading = false
+                state.kamOptionsError = action.payload as string
+            })
+
+        // Verify Lead and Create Agent
+        builder
+            .addCase(verifyLeadAndCreateAgent.pending, (state) => {
+                state.agentVerificationLoading = true
+                state.agentVerificationError = null
+            })
+            .addCase(verifyLeadAndCreateAgent.fulfilled, (state, action) => {
+                state.agentVerificationLoading = false
+                const { leadId } = action.payload
+
+                // Remove the lead from state since it's been converted to agent
+                delete state.leads[leadId]
+
+                // Clear related data
+                delete state.notesByLeadId[leadId]
+                delete state.connectHistoryByLeadId[leadId]
+                delete state.updating[leadId]
+            })
+            .addCase(verifyLeadAndCreateAgent.rejected, (state, action) => {
+                state.agentVerificationLoading = false
+                state.agentVerificationError = action.payload as string
+            })
+        builder
+            .addCase(validateCSVData.pending, (state) => {
+                state.csvValidationLoading = true
+                state.csvValidationError = null
+            })
+            .addCase(validateCSVData.fulfilled, (state, action) => {
+                state.csvValidationLoading = false
+                state.validatedCSVData = action.payload
+            })
+            .addCase(validateCSVData.rejected, (state, action) => {
+                state.csvValidationLoading = false
+                state.csvValidationError = action.payload as string
+                state.validatedCSVData = []
+            })
+
+        // Add Bulk Leads
+        builder
+            .addCase(addBulkLeads.pending, (state) => {
+                state.bulkAddLoading = true
+                state.bulkAddError = null
+            })
+            .addCase(addBulkLeads.fulfilled, (state, action) => {
+                state.bulkAddLoading = false
+                // Add new leads to state
+                action.payload.forEach((lead) => {
+                    state.leads[lead.leadId] = lead as any
+                })
+                // Clear validated data after successful add
+                state.validatedCSVData = []
+            })
+            .addCase(addBulkLeads.rejected, (state, action) => {
+                state.bulkAddLoading = false
+                state.bulkAddError = action.payload as string
+            })
+
+        // Add Manual Lead
+        builder
+            .addCase(addManualLead.pending, (state) => {
+                state.manualAddLoading = true
+                state.manualAddError = null
+            })
+            .addCase(addManualLead.fulfilled, (state, action) => {
+                state.manualAddLoading = false
+                // Add new lead to state
+                const newLead = action.payload
+                state.leads[newLead.leadId] = newLead as any
+            })
+            .addCase(addManualLead.rejected, (state, action) => {
+                state.manualAddLoading = false
+                state.manualAddError = action.payload as string
+            })
     },
 })
 
@@ -317,7 +457,27 @@ export const {
     clearNotes,
     clearConnectHistoryError,
     clearConnectHistory,
+    clearKAMOptionsError,
+    clearAgentVerificationError,
+    clearCSVValidationError,
+    clearValidatedCSVData,
+    clearBulkAddError,
+    clearManualAddError,
 } = leadsSlice.actions
+
+export const selectKAMOptions = (state: { leads: LeadsState }) => state.leads.kamOptions
+export const selectKAMOptionsLoading = (state: { leads: LeadsState }) => state.leads.kamOptionsLoading
+export const selectKAMOptionsError = (state: { leads: LeadsState }) => state.leads.kamOptionsError
+export const selectAgentVerificationLoading = (state: { leads: LeadsState }) => state.leads.agentVerificationLoading
+export const selectAgentVerificationError = (state: { leads: LeadsState }) => state.leads.agentVerificationError
+
+export const selectCSVValidationLoading = (state: { leads: LeadsState }) => state.leads.csvValidationLoading
+export const selectCSVValidationError = (state: { leads: LeadsState }) => state.leads.csvValidationError
+export const selectValidatedCSVData = (state: { leads: LeadsState }) => state.leads.validatedCSVData
+export const selectBulkAddLoading = (state: { leads: LeadsState }) => state.leads.bulkAddLoading
+export const selectBulkAddError = (state: { leads: LeadsState }) => state.leads.bulkAddError
+export const selectManualAddLoading = (state: { leads: LeadsState }) => state.leads.manualAddLoading
+export const selectManualAddError = (state: { leads: LeadsState }) => state.leads.manualAddError
 
 // Lead Selectors
 export const selectAllLeads = (state: { leads: LeadsState }) => Object.values(state.leads.leads)

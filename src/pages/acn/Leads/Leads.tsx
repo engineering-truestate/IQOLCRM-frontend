@@ -313,7 +313,7 @@ const LeadsPage = () => {
 
     const ITEMS_PER_PAGE = 50
 
-    // Function to update lead status using Redux thunk - REMOVED ALGOLIA UPDATE
+    // Function to update lead status using Redux thunk - NO PAGE RELOAD
     const handleUpdateLeadStatus = async (leadId: string, status: string) => {
         try {
             // Optimistic update - update local state immediately
@@ -328,8 +328,7 @@ const LeadsPage = () => {
 
             console.log('Lead status updated successfully')
 
-            // Reload the page to get fresh data
-            window.location.reload()
+            // ✅ No page reload - state is already updated optimistically
         } catch (error) {
             console.error('Failed to update lead status:', error)
             // Revert optimistic update on error
@@ -337,7 +336,7 @@ const LeadsPage = () => {
         }
     }
 
-    // Function to update KAM using Redux thunk - REMOVED ALGOLIA UPDATE
+    // Function to update KAM using Redux thunk - NO PAGE RELOAD
     const handleUpdateKAM = async (leadId: string, kamName: string) => {
         try {
             // Optimistic update
@@ -352,15 +351,14 @@ const LeadsPage = () => {
 
             console.log('KAM updated successfully')
 
-            // Reload the page to get fresh data
-            window.location.reload()
+            // ✅ No page reload - state is already updated optimistically
         } catch (error) {
             console.error('Failed to update KAM:', error)
             searchLeads(false)
         }
     }
 
-    // Function to update boolean fields using Redux thunk - REMOVED ALGOLIA UPDATE
+    // Function to update boolean fields using Redux thunk - NO PAGE RELOAD
     const handleUpdateBooleanField = async (leadId: string, field: keyof ILead, value: boolean) => {
         try {
             // Optimistic update
@@ -375,8 +373,7 @@ const LeadsPage = () => {
 
             console.log('Boolean field updated successfully')
 
-            // Reload the page to get fresh data
-            window.location.reload()
+            // ✅ No page reload - state is already updated optimistically
         } catch (error) {
             console.error('Failed to update boolean field:', error)
             searchLeads(false)
@@ -686,7 +683,6 @@ const LeadsPage = () => {
                 />
             ),
         },
-
         {
             key: 'actions',
             header: 'Actions',
@@ -965,11 +961,11 @@ const LeadsPage = () => {
                         rowData={selectedRowData}
                     />
 
-                    {/* <VerificationModal
+                    <VerificationModal
                         isOpen={isVerificationModalOpen}
                         onClose={() => setIsVerificationModalOpen(false)}
                         rowData={selectedRowData}
-                    /> */}
+                    />
 
                     <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
                 </div>
