@@ -8,7 +8,7 @@ import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 
 import { getPreLaunchPropertyById, updatePreLaunchProperty } from '../../../store/actions/restack/preLaunchActions'
-import type { Property } from '../../../store/reducers/restack/types'
+import type { Property } from '../../../store/reducers/restack/preLaunchtypes'
 import type { AppDispatch, RootState } from '../../../store'
 import {
     projectTypes,

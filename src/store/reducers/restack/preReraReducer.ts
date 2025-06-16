@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import type { PropertyState, Property, PropertyFilters } from './preLaunchtypes'
+import type { PreReraPropertyState, PreReraProperty, PreReraPropertyFilters } from './preReraTypes'
 
-const initialState: PropertyState = {
+const initialState: PreReraPropertyState = {
     properties: [],
     selectedProperty: null,
     loading: false,
@@ -9,46 +9,46 @@ const initialState: PropertyState = {
     filters: {},
 }
 
-const preLaunchSlice = createSlice({
-    name: 'preLaunch',
+const preReraSlice = createSlice({
+    name: 'preRera',
     initialState,
     reducers: {
         // Fetch Properties
-        fetchPreLaunchPropertyRequest(state) {
+        fetchPreReraPropertyRequest(state) {
             state.loading = true
             state.error = null
         },
-        fetchPreLaunchPropertySuccess(state, action: PayloadAction<Property[]>) {
+        fetchPreReraPropertySuccess(state, action: PayloadAction<PreReraProperty[]>) {
             state.loading = false
             state.properties = action.payload
             state.error = null
         },
-        fetchPreLaunchPropertyFailure(state, action: PayloadAction<string>) {
+        fetchPreReraPropertyFailure(state, action: PayloadAction<string>) {
             state.loading = false
             state.error = action.payload
         },
 
         // Add Property
-        addPreLaunchPropertyRequest(state) {
+        addPreReraPropertyRequest(state) {
             state.loading = true
             state.error = null
         },
-        addPreLaunchPropertySuccess(state, action: PayloadAction<Property>) {
+        addPreReraPropertySuccess(state, action: PayloadAction<PreReraProperty>) {
             state.loading = false
             state.properties.push(action.payload)
             state.error = null
         },
-        addPreLaunchPropertyFailure(state, action: PayloadAction<string>) {
+        addPreReraPropertyFailure(state, action: PayloadAction<string>) {
             state.loading = false
             state.error = action.payload
         },
 
         // Update Property
-        updatePreLaunchPropertyRequest(state) {
+        updatePreReraPropertyRequest(state) {
             state.loading = true
             state.error = null
         },
-        updatePreLaunchPropertySuccess(state, action: PayloadAction<Property>) {
+        updatePreReraPropertySuccess(state, action: PayloadAction<PreReraProperty>) {
             state.loading = false
             const index = state.properties.findIndex((prop) => prop.projectId === action.payload.projectId)
             if (index !== -1) {
@@ -60,17 +60,17 @@ const preLaunchSlice = createSlice({
             }
             state.error = null
         },
-        updatePreLaunchPropertyFailure(state, action: PayloadAction<string>) {
+        updatePreReraPropertyFailure(state, action: PayloadAction<string>) {
             state.loading = false
             state.error = action.payload
         },
 
         // Delete Property
-        deletePreLaunchPropertyRequest(state) {
+        deletePreReraPropertyRequest(state) {
             state.loading = true
             state.error = null
         },
-        deletePreLaunchPropertySuccess(state, action: PayloadAction<string>) {
+        deletePreReraPropertySuccess(state, action: PayloadAction<string>) {
             state.loading = false
             state.properties = state.properties.filter((prop) => prop.projectId !== action.payload)
             // Clear selected property if it was deleted
@@ -79,24 +79,24 @@ const preLaunchSlice = createSlice({
             }
             state.error = null
         },
-        deletePreLaunchPropertyFailure(state, action: PayloadAction<string>) {
+        deletePreReraPropertyFailure(state, action: PayloadAction<string>) {
             state.loading = false
             state.error = action.payload
         },
 
         // Select Property
-        selectPreLaunchProperty(state, action: PayloadAction<Property>) {
+        selectPreReraProperty(state, action: PayloadAction<PreReraProperty>) {
             state.selectedProperty = action.payload
         },
-        clearSelectedPreLaunchProperty(state) {
+        clearSelectedPreReraProperty(state) {
             state.selectedProperty = null
         },
 
         // Filters
-        setPreLaunchPropertyFilters(state, action: PayloadAction<PropertyFilters>) {
+        setPreReraPropertyFilters(state, action: PayloadAction<PreReraPropertyFilters>) {
             state.filters = { ...state.filters, ...action.payload }
         },
-        clearPreLaunchPropertyFilters(state) {
+        clearPreReraPropertyFilters(state) {
             state.filters = {}
         },
 
@@ -108,23 +108,23 @@ const preLaunchSlice = createSlice({
 })
 
 export const {
-    fetchPreLaunchPropertyRequest,
-    fetchPreLaunchPropertySuccess,
-    fetchPreLaunchPropertyFailure,
-    addPreLaunchPropertyRequest,
-    addPreLaunchPropertySuccess,
-    addPreLaunchPropertyFailure,
-    updatePreLaunchPropertyRequest,
-    updatePreLaunchPropertySuccess,
-    updatePreLaunchPropertyFailure,
-    deletePreLaunchPropertyRequest,
-    deletePreLaunchPropertySuccess,
-    deletePreLaunchPropertyFailure,
-    selectPreLaunchProperty,
-    clearSelectedPreLaunchProperty,
-    setPreLaunchPropertyFilters,
-    clearPreLaunchPropertyFilters,
+    fetchPreReraPropertyRequest,
+    fetchPreReraPropertySuccess,
+    fetchPreReraPropertyFailure,
+    addPreReraPropertyRequest,
+    addPreReraPropertySuccess,
+    addPreReraPropertyFailure,
+    updatePreReraPropertyRequest,
+    updatePreReraPropertySuccess,
+    updatePreReraPropertyFailure,
+    deletePreReraPropertyRequest,
+    deletePreReraPropertySuccess,
+    deletePreReraPropertyFailure,
+    selectPreReraProperty,
+    clearSelectedPreReraProperty,
+    setPreReraPropertyFilters,
+    clearPreReraPropertyFilters,
     clearError,
-} = preLaunchSlice.actions
+} = preReraSlice.actions
 
-export default preLaunchSlice.reducer
+export default preReraSlice.reducer

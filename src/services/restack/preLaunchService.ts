@@ -15,7 +15,7 @@ import {
     serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
-import type { Property, PropertyFilters } from '../../store/reducers/restack/types'
+import type { Property, PropertyFilters } from '../../store/reducers/restack/preLaunchtypes'
 
 export class PreLaunchService {
     /**

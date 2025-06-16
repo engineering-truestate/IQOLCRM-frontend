@@ -14,6 +14,7 @@ const persistConfig = {
 
 const persistedPlatformReducer = persistReducer(persistConfig, platformReducer)
 import preLaunchReducer from './reducers/restack/preLaunchReducer'
+import preReraReducer from './reducers/restack/preReraReducer'
 import requirementsReducer from './reducers/acn/requirementsReducers'
 
 // Create the store using configureStore from Redux Toolkit
@@ -22,6 +23,7 @@ const store = configureStore({
         properties: propertiesReducer,
         platform: persistedPlatformReducer,
         preLaunch: preLaunchReducer,
+        preRera: preReraReducer,
         requirements: requirementsReducer,
         user: userReducer,
         qc: qcReducer,
