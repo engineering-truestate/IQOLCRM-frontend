@@ -45,6 +45,55 @@ export interface MapsPlan {
     url: string
 }
 
+// Add Complaints interfaces
+export interface ProjectComplaint {
+    registrationNo: string
+    sNo: number
+    complaintNo: string
+    complaintBy: string
+    complaintDate: string
+    complaintSubject: string
+    projectName: string
+}
+
+export interface PromoterComplaint {
+    registrationNo: string
+    sNo: number
+    complaintNo: string
+    complaintBy: string
+    complaintDate: string
+    complaintSubject: string
+    projectName: string
+}
+
+// Add Documents interfaces
+export interface ProjectDocument {
+    id: string
+    documentName: string
+    link: string
+    type: string
+    uploadDate: string
+    size: string
+}
+
+export interface NOCDocument {
+    id: string
+    documentName: string
+    link: string
+    type: string
+    uploadDate: string
+    size: string
+}
+
+export interface OtherDocument {
+    id: string
+    documentName: string
+    link: string
+    type: string
+    uploadDate: string
+    size: string
+}
+
 export interface ProjectOverview {
     projectNameAsPerRERA: string
     projectDescription: string
@@ -241,9 +290,19 @@ export interface CompleteProjectDetails {
     // Maps Plans
     mapsPlans: MapsPlan[]
 
+    // Complaints - Add these fields
+    projectComplaints?: ProjectComplaint[]
+    promoterComplaints?: PromoterComplaint[]
+
+    // Documents - Add these new document fields
+    projectDocuments?: ProjectDocument[]
+    nocDocuments?: NOCDocument[]
+    otherDocuments?: OtherDocument[]
+
     // Legacy fields for compatibility
     pId: string
     projectName: string
+    name: string // Add name field for projectName compatibility
     projectType: string
     stage: string
     developerPromoter: string
@@ -268,6 +327,185 @@ export const sampleFloorPlans: FloorPlan[] = [
     { id: 'apt-fp-003', url: 'https://via.placeholder.com/400x300/e0f2f7/4dd0e1?text=Apartment+Floor+Plan+3' },
     { id: 'villa-fp-001', url: 'https://via.placeholder.com/400x300/e0f2f7/4dd0e1?text=Villa+Floor+Plan+1' },
     { id: 'villa-fp-002', url: 'https://via.placeholder.com/400x300/e0f2f7/4dd0e1?text=Villa+Floor+Plan+2' },
+]
+
+// Sample complaints data
+export const sampleProjectComplaints: ProjectComplaint[] = [
+    {
+        registrationNo: 'REG123',
+        sNo: 1,
+        complaintNo: 'COMP001',
+        complaintBy: 'Sophia Clark',
+        complaintDate: '2023-01-15',
+        complaintSubject: 'Delay in possession',
+        projectName: 'Green Meadows',
+    },
+    {
+        registrationNo: 'REG456',
+        sNo: 2,
+        complaintNo: 'COMP002',
+        complaintBy: 'Owen Bennett',
+        complaintDate: '2023-02-20',
+        complaintSubject: 'Construction defects',
+        projectName: 'Green Meadows',
+    },
+    {
+        registrationNo: 'REG789',
+        sNo: 3,
+        complaintNo: 'COMP003',
+        complaintBy: 'Chloe Turner',
+        complaintDate: '2023-03-25',
+        complaintSubject: 'Unfair practices',
+        projectName: 'Green Meadows',
+    },
+    {
+        registrationNo: 'REG012',
+        sNo: 4,
+        complaintNo: 'COMP004',
+        complaintBy: 'Lucas Carter',
+        complaintDate: '2023-04-30',
+        complaintSubject: 'Violation of agreement',
+        projectName: 'Green Meadows',
+    },
+    {
+        registrationNo: 'REG345',
+        sNo: 5,
+        complaintNo: 'COMP005',
+        complaintBy: 'Ava Coleman',
+        complaintDate: '2023-05-05',
+        complaintSubject: 'Misleading information',
+        projectName: 'Green Meadows',
+    },
+]
+
+export const samplePromoterComplaints: PromoterComplaint[] = [
+    {
+        registrationNo: 'REG678',
+        sNo: 1,
+        complaintNo: 'COMP006',
+        complaintBy: 'Ethan Hayes',
+        complaintDate: '2023-06-10',
+        complaintSubject: 'Financial irregularities',
+        projectName: 'Green Meadows',
+    },
+    {
+        registrationNo: 'REG900',
+        sNo: 2,
+        complaintNo: 'COMP007',
+        complaintBy: 'Isabella Reed',
+        complaintDate: '2023-07-15',
+        complaintSubject: 'Non-compliance with rules',
+        projectName: 'Green Meadows',
+    },
+    {
+        registrationNo: 'REG234',
+        sNo: 3,
+        complaintNo: 'COMP008',
+        complaintBy: 'Jackson Price',
+        complaintDate: '2023-08-20',
+        complaintSubject: 'Lack of transparency',
+        projectName: 'Green Meadows',
+    },
+    {
+        registrationNo: 'REG656',
+        sNo: 4,
+        complaintNo: 'COMP009',
+        complaintBy: 'Sophia Morgan',
+        complaintDate: '2023-09-25',
+        complaintSubject: 'Breach of trust',
+        projectName: 'Green Meadows',
+    },
+    {
+        registrationNo: 'REG890',
+        sNo: 5,
+        complaintNo: 'COMP010',
+        complaintBy: 'Aiden Hughes',
+        complaintDate: '2023-10-30',
+        complaintSubject: 'Unethical practices',
+        projectName: 'Green Meadows',
+    },
+]
+
+// Sample documents data
+export const sampleProjectDocuments: ProjectDocument[] = [
+    {
+        id: 'pd1',
+        documentName: 'Commencement Certificate BUILDING LICENCE.pdf',
+        link: 'https://example.com/documents/commencement-certificate.pdf',
+        type: 'Certificate',
+        uploadDate: '2023-01-15',
+        size: '2.5 MB',
+    },
+    {
+        id: 'pd2',
+        documentName: 'Building Plan Approval.pdf',
+        link: 'https://example.com/documents/building-plan-approval.pdf',
+        type: 'Approval',
+        uploadDate: '2023-02-10',
+        size: '1.8 MB',
+    },
+    {
+        id: 'pd3',
+        documentName: 'RERA Registration Certificate.pdf',
+        link: 'https://example.com/documents/rera-registration.pdf',
+        type: 'Registration',
+        uploadDate: '2023-03-05',
+        size: '1.2 MB',
+    },
+]
+
+export const sampleNOCDocuments: NOCDocument[] = [
+    {
+        id: 'noc1',
+        documentName: 'Fire NOC.pdf',
+        link: 'https://example.com/documents/fire-noc.pdf',
+        type: 'NOC',
+        uploadDate: '2023-01-20',
+        size: '1.5 MB',
+    },
+    {
+        id: 'noc2',
+        documentName: 'Environmental Clearance.pdf',
+        link: 'https://example.com/documents/environmental-clearance.pdf',
+        type: 'Clearance',
+        uploadDate: '2023-02-15',
+        size: '3.2 MB',
+    },
+    {
+        id: 'noc3',
+        documentName: 'Lift NOC.pdf',
+        link: 'https://example.com/documents/lift-noc.pdf',
+        type: 'NOC',
+        uploadDate: '2023-03-10',
+        size: '0.8 MB',
+    },
+]
+
+export const sampleOtherDocuments: OtherDocument[] = [
+    {
+        id: 'od1',
+        documentName: 'Land Ownership Documents.pdf',
+        link: 'https://example.com/documents/land-ownership.pdf',
+        type: 'Ownership',
+        uploadDate: '2023-01-25',
+        size: '4.1 MB',
+    },
+    {
+        id: 'od2',
+        documentName: 'Legal Due Diligence Report.pdf',
+        link: 'https://example.com/documents/legal-due-diligence.pdf',
+        type: 'Report',
+        uploadDate: '2023-02-20',
+        size: '2.7 MB',
+    },
+    {
+        id: 'od3',
+        documentName: 'Project Completion Certificate.pdf',
+        link: 'https://example.com/documents/completion-certificate.pdf',
+        type: 'Certificate',
+        uploadDate: '2023-03-15',
+        size: '1.9 MB',
+    },
 ]
 
 // Sample complete project details
@@ -426,8 +664,16 @@ export const sampleCompleteProjectDetails: CompleteProjectDetails[] = [
                 url: 'https://via.placeholder.com/400x300/e0f2f7/4dd0e1?text=Master+Plan',
             },
         ],
+        // Add complaints data
+        projectComplaints: sampleProjectComplaints,
+        promoterComplaints: samplePromoterComplaints,
+        // Add documents data
+        projectDocuments: sampleProjectDocuments,
+        nocDocuments: sampleNOCDocuments,
+        otherDocuments: sampleOtherDocuments,
         pId: 'P0001',
         projectName: 'Sample Project 1',
+        name: 'Sample Project 1', // Add name field
         projectType: 'Residential',
         stage: 'Active',
         developerPromoter: 'Sample Developer',
@@ -678,9 +924,32 @@ export const generateCompleteProjectDetails = (simplifiedPId: string): CompleteP
                 url: 'https://via.placeholder.com/400x300/e0f2f7/4dd0e1?text=Master+Plan',
             },
         ],
+        // Add default complaints data for fallback projects
+        projectComplaints: sampleProjectComplaints.map((complaint) => ({
+            ...complaint,
+            projectName: `Project ${simplifiedPId}`,
+        })),
+        promoterComplaints: samplePromoterComplaints.map((complaint) => ({
+            ...complaint,
+            projectName: `Project ${simplifiedPId}`,
+        })),
+        // Add default documents data for fallback projects
+        projectDocuments: sampleProjectDocuments.map((doc) => ({
+            ...doc,
+            id: `${simplifiedPId}-${doc.id}`,
+        })),
+        nocDocuments: sampleNOCDocuments.map((doc) => ({
+            ...doc,
+            id: `${simplifiedPId}-${doc.id}`,
+        })),
+        otherDocuments: sampleOtherDocuments.map((doc) => ({
+            ...doc,
+            id: `${simplifiedPId}-${doc.id}`,
+        })),
         // Legacy fields for compatibility
         pId: simplifiedPId,
         projectName: `Project ${simplifiedPId}`,
+        name: `Project ${simplifiedPId}`, // Add name field
         projectType: 'Residential',
         stage: 'Active',
         developerPromoter: 'Default Developer',
