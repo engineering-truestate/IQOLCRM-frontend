@@ -285,8 +285,9 @@ const PrimaryDetailsPage = () => {
     const addClubhouseRow = () => {
         if (!projectDetails) return
 
+        const newId = `new-clubhouse-${Date.now()}`
         const newRow: ClubhouseDetail = {
-            id: `clubhouse_${Date.now()}`,
+            id: newId,
             name: '',
             sizeSqft: '',
             floor: '',
@@ -295,7 +296,7 @@ const PrimaryDetailsPage = () => {
         const currentClubhouseDetails = projectDetails.clubhouseDetails || []
         dispatch(updateProperty({ clubhouseDetails: [...currentClubhouseDetails, newRow] }))
 
-        setEditingRowId(newRow.id)
+        setEditingRowId(newId)
         setIsAddingRow(true)
     }
 
@@ -427,7 +428,24 @@ const PrimaryDetailsPage = () => {
         type: 'text' | 'number' | 'image' | 'button' = 'text',
         buttonType?: 'floorPlan' | 'unitDetails',
         isSectionEditable: boolean = false,
+        isRowEditable: boolean = false,
     ) => {
+        const uniqueKey = `${row.id}-${field}`
+
+        if (isSectionEditable && isRowEditable) {
+            return (
+                <StateBaseTextField
+                    key={uniqueKey}
+                    id={uniqueKey}
+                    name={field}
+                    value={value !== null ? String(value) : ''}
+                    onChange={(e) => updateDataRow(dataType, row.id, field, e.target.value)}
+                    type={type === 'number' ? 'number' : 'text'}
+                    className='w-full text-sm font-normal text-gray-700 leading-tight border-b border-gray-300 focus:border-blue-500 focus:outline-none py-1'
+                />
+            )
+        }
+
         if (isSectionEditable && editingRowId === row.id) {
             if (options) {
                 return (
@@ -664,6 +682,7 @@ const PrimaryDetailsPage = () => {
                     'text',
                     undefined,
                     isEditingClubhouse,
+                    editingRowId === row.id,
                 ),
         },
         {
@@ -679,6 +698,7 @@ const PrimaryDetailsPage = () => {
                     'number',
                     undefined,
                     isEditingClubhouse,
+                    editingRowId === row.id,
                 ),
         },
         {
@@ -694,30 +714,47 @@ const PrimaryDetailsPage = () => {
                     'text',
                     undefined,
                     isEditingClubhouse,
+                    editingRowId === row.id,
                 ),
         },
         {
             key: 'actions',
             header: 'Actions',
-            render: (_: unknown, row: any) =>
-                isEditingClubhouse ? (
-                    <div className='flex gap-1'>
-                        {editingRowId === row.id ? (
+            render: (_, row) => {
+                if (!isEditingClubhouse) return null // Only show actions when the section is in edit mode
+
+                const isThisRowBeingEdited = editingRowId === row.id
+                const isAnyRowBeingEdited = editingRowId !== null
+
+                return (
+                    <div className='flex gap-1 justify-end'>
+                        {isThisRowBeingEdited ? (
                             <>
                                 <button
                                     className='text-green-600 hover:text-green-800 text-xs font-medium'
-                                    onClick={() => setEditingRowId(null)}
+                                    onClick={() => {
+                                        setEditingRowId(null)
+                                        if (isAddingRow) setIsAddingRow(false) // If we were adding, finish adding
+                                    }}
                                 >
                                     Save
                                 </button>
                                 <button
                                     className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
                                     onClick={() => {
-                                        if (isAddingRow) {
-                                            deleteClubhouseRow(row.id)
+                                        // If this was a newly added row, remove it on cancel
+                                        if (isAddingRow && row.id.startsWith('new-clubhouse-')) {
+                                            dispatch(
+                                                updateProperty({
+                                                    clubhouseDetails:
+                                                        projectDetails?.clubhouseDetails?.filter(
+                                                            (r: ClubhouseDetail) => r.id !== row.id,
+                                                        ) || [],
+                                                }),
+                                            )
+                                            setEditingRowId(null)
                                             setIsAddingRow(false)
                                         }
-                                        setEditingRowId(null)
                                     }}
                                 >
                                     Cancel
@@ -726,14 +763,26 @@ const PrimaryDetailsPage = () => {
                         ) : (
                             <button
                                 className='text-gray-600 hover:text-gray-800 text-xs font-medium'
-                                onClick={() => setEditingRowId(row.id)}
-                                disabled={editingRowId !== null}
+                                onClick={() => {
+                                    setEditingRowId(row.id)
+                                    setIsAddingRow(false) // Ensure isAddingRow is false when editing an existing row
+                                }}
+                                disabled={isAnyRowBeingEdited} // Disable edit if another row is being edited
                             >
                                 Edit
                             </button>
                         )}
+                        {!isAnyRowBeingEdited && !isThisRowBeingEdited && (
+                            <button
+                                className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
+                                onClick={() => deleteClubhouseRow(row.id)}
+                            >
+                                Delete
+                            </button>
+                        )}
                     </div>
-                ) : null,
+                )
+            },
         },
     ]
 
@@ -1253,33 +1302,57 @@ const PrimaryDetailsPage = () => {
                         />
                     </div>
 
-                    {/* Litigation Status and Complaints */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>
                         Litigation Status and Complaints
                     </h2>
-                    <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
-                            'Litigation Status',
-                            projectDetails?.litigation,
-                            'Appeal Revision',
-                            projectDetails?.litigation,
-                            'litigation',
-                            'litigation',
-                        )}
-                        {renderInfoRow(
-                            'Complaints',
-                            'View Complaints',
-                            'Affidavit Link',
-                            'Download Affidavit (PDF)',
-                            undefined,
-                            undefined,
-                            undefined,
-                            undefined,
-                            'text',
-                            'link',
-                            undefined,
-                            () => window.open(projectDetails?.affidavitLink || '', '_blank'),
-                        )}
+                    <div className='p-4 space-y-4'>
+                        {/* Litigation Status Row */}
+                        <div className='flex items-center border-t border-solid border-t-[#d4dbe2] py-4'>
+                            <div className='w-1/4'>
+                                <p className='text-[#5c738a] text-sm font-normal leading-normal'>Litigation Status</p>
+                            </div>
+                            <div className='w-3/4'>
+                                <p className='text-[#101418] text-sm font-normal leading-normal'>
+                                    {projectDetails?.litigation}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Affidavit Link Row */}
+                        <div className='flex items-center border-t border-solid border-t-[#d4dbe2] py-4'>
+                            <div className='w-1/4'>
+                                <p className='text-[#5c738a] text-sm font-normal leading-normal'>Affidavit Link</p>
+                            </div>
+                            <div className='w-3/4'>
+                                <button
+                                    onClick={() => {
+                                        const url = projectDetails?.litigation || ''
+                                        if (url) window.open(url, '_blank')
+                                    }}
+                                    className='text-blue-600 underline text-sm font-normal leading-normal text-left cursor-pointer hover:text-blue-800'
+                                >
+                                    Download Affidavit (PDF)
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Complaints Row */}
+                        <div className='flex items-center border-t border-solid border-t-[#d4dbe2] py-4'>
+                            <div className='w-1/4'>
+                                <p className='text-[#5c738a] text-sm font-normal leading-normal'>Complaints</p>
+                            </div>
+                            <div className='w-3/4'>
+                                <button
+                                    onClick={() => {
+                                        console.log('Navigating to Complaints for pId:', id)
+                                        navigate(`/restack/primary/${id}/complaints`)
+                                    }}
+                                    className='text-blue-600 underline text-sm font-normal leading-normal text-left cursor-pointer hover:text-blue-800'
+                                >
+                                    View Complaints
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Documents */}
@@ -1288,7 +1361,8 @@ const PrimaryDetailsPage = () => {
                         <Button
                             className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
                             onClick={() => {
-                                window.open(projectDetails?.documents?.projectDocuments?.[0] || '', '_blank')
+                                console.log('Navigating to Documents for id:', id)
+                                navigate(`/restack/primary/${id}/documents`)
                             }}
                         >
                             <span className='truncate'>View Documents</span>
