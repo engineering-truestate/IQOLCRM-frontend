@@ -91,23 +91,8 @@ const DocumentsPage: React.FC = () => {
             render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
-            key: 'type',
-            header: 'Type',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
-            key: 'uploadDate',
-            header: 'Upload Date',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
-            key: 'size',
-            header: 'Size',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
             key: 'link',
-            header: 'Action',
+            header: 'Link',
             render: (value: any, row: any) => (
                 <button
                     onClick={() => handleDocumentView(value)}
@@ -126,23 +111,8 @@ const DocumentsPage: React.FC = () => {
             render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
-            key: 'type',
-            header: 'Type',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
-            key: 'uploadDate',
-            header: 'Upload Date',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
-            key: 'size',
-            header: 'Size',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
             key: 'link',
-            header: 'Action',
+            header: 'Link',
             render: (value: any, row: any) => (
                 <button
                     onClick={() => handleDocumentView(value)}
@@ -161,23 +131,8 @@ const DocumentsPage: React.FC = () => {
             render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
-            key: 'type',
-            header: 'Type',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
-            key: 'uploadDate',
-            header: 'Upload Date',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
-            key: 'size',
-            header: 'Size',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
             key: 'link',
-            header: 'Action',
+            header: 'Link',
             render: (value: any, row: any) => (
                 <button
                     onClick={() => handleDocumentView(value)}
