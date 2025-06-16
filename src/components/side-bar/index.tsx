@@ -39,7 +39,7 @@ const Sidebar = () => {
     // const menuItems = getMenuItems()
 
     return (
-        <div className='flex flex-col w-[16%] min-h-screen h-full bg-[#F7F7F7] border-r border-[#ececec]'>
+        <div className='flex flex-col w-[16%] min-h-screen h-full bg-[#F7F7F7] border-r border-[#ececec] sticky top-0 z-10'>
             <div className='px-6 py-4'>{/* <Platforms /> */}</div>
 
             <nav className='flex-1 mt-2'>
