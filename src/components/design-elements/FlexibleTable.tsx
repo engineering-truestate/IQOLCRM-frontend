@@ -70,6 +70,16 @@ export interface FlexibleTableProps {
     maxHeight?: string
     stickyHeader?: boolean
     verticalScroll?: boolean
+    enableRowSelection?: boolean
+    enableColumnFilters?: boolean
+    enableGlobalFilter?: boolean
+    enableColumnVisibility?: boolean
+    enableDensityToggle?: boolean
+    enableFullScreenToggle?: boolean
+    enableHiding?: boolean
+    enableMultiRowSelection?: boolean
+    enableColumnResizing?: boolean
+    enableSorting?: boolean
 }
 
 // Custom Checkbox Component

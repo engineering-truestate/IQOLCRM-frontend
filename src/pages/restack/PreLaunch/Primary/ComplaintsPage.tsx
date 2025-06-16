@@ -213,34 +213,6 @@ const ComplaintsPage: React.FC = () => {
                             enableMultiRowSelection={false}
                             enableColumnResizing={true}
                             enableSorting={true}
-                            initialState={{
-                                pagination: {
-                                    pageSize: 10,
-                                },
-                            }}
-                            muiTableProps={{
-                                sx: {
-                                    '& .MuiTableHead-root': {
-                                        backgroundColor: '#f8fafc',
-                                    },
-                                    '& .MuiTableHead-root .MuiTableCell-root': {
-                                        fontWeight: 600,
-                                        color: '#374151',
-                                        fontSize: '0.875rem',
-                                        borderBottom: '1px solid #e5e7eb',
-                                        padding: '12px 16px',
-                                    },
-                                    '& .MuiTableBody-root .MuiTableCell-root': {
-                                        fontSize: '0.875rem',
-                                        color: '#6b7280',
-                                        borderBottom: '1px solid #f3f4f6',
-                                        padding: '12px 16px',
-                                    },
-                                    '& .MuiTableRow-root:hover': {
-                                        backgroundColor: '#f9fafb',
-                                    },
-                                },
-                            }}
                         />
                     </div>
                 </div>

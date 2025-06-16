@@ -205,34 +205,6 @@ const DocumentsPage: React.FC = () => {
                             enableMultiRowSelection={false}
                             enableColumnResizing={true}
                             enableSorting={true}
-                            initialState={{
-                                pagination: {
-                                    pageSize: 10,
-                                },
-                            }}
-                            muiTableProps={{
-                                sx: {
-                                    '& .MuiTableHead-root': {
-                                        backgroundColor: '#f8fafc',
-                                    },
-                                    '& .MuiTableHead-root .MuiTableCell-root': {
-                                        fontWeight: 600,
-                                        color: '#374151',
-                                        fontSize: '0.875rem',
-                                        borderBottom: '1px solid #e5e7eb',
-                                        padding: '12px 16px',
-                                    },
-                                    '& .MuiTableBody-root .MuiTableCell-root': {
-                                        fontSize: '0.875rem',
-                                        color: '#6b7280',
-                                        borderBottom: '1px solid #f3f4f6',
-                                        padding: '12px 16px',
-                                    },
-                                    '& .MuiTableRow-root:hover': {
-                                        backgroundColor: '#f9fafb',
-                                    },
-                                },
-                            }}
                         />
                     </div>
                 </div>
@@ -241,48 +213,7 @@ const DocumentsPage: React.FC = () => {
                 <div className='mb-8'>
                     <h2 className='text-xl font-semibold text-gray-800 mb-6'>Other Documents</h2>
                     <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
-                        <FlexibleTable
-                            data={otherDocuments}
-                            columns={otherDocumentColumns}
-                            enableRowSelection={false}
-                            enableColumnFilters={false}
-                            enableGlobalFilter={false}
-                            enableColumnVisibility={false}
-                            enableDensityToggle={false}
-                            enableFullScreenToggle={false}
-                            enableHiding={false}
-                            enableMultiRowSelection={false}
-                            enableColumnResizing={true}
-                            enableSorting={true}
-                            initialState={{
-                                pagination: {
-                                    pageSize: 10,
-                                },
-                            }}
-                            muiTableProps={{
-                                sx: {
-                                    '& .MuiTableHead-root': {
-                                        backgroundColor: '#f8fafc',
-                                    },
-                                    '& .MuiTableHead-root .MuiTableCell-root': {
-                                        fontWeight: 600,
-                                        color: '#374151',
-                                        fontSize: '0.875rem',
-                                        borderBottom: '1px solid #e5e7eb',
-                                        padding: '12px 16px',
-                                    },
-                                    '& .MuiTableBody-root .MuiTableCell-root': {
-                                        fontSize: '0.875rem',
-                                        color: '#6b7280',
-                                        borderBottom: '1px solid #f3f4f6',
-                                        padding: '12px 16px',
-                                    },
-                                    '& .MuiTableRow-root:hover': {
-                                        backgroundColor: '#f9fafb',
-                                    },
-                                },
-                            }}
-                        />
+                        <FlexibleTable data={otherDocuments} columns={otherDocumentColumns} />
                     </div>
                 </div>
 
