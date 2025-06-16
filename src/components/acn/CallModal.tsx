@@ -43,10 +43,10 @@ const CallResultModal: React.FC<CallResultModalProps> = ({ isOpen, onClose, rowD
     return (
         <>
             {/* Very light overlay - only covers left 60% */}
-            <div className='fixed top-0 left-0 w-[60%] h-full bg-black opacity-50 z-40' onClick={onClose} />
+            <div className='fixed top-0 left-0 w-[70%] h-full bg-black opacity-50 z-40' onClick={onClose} />
 
             {/* Modal */}
-            <div className='fixed top-0 right-0 h-full w-[40%] bg-white z-50 shadow-2xl border-l border-gray-200'>
+            <div className='fixed top-0 right-0 h-full w-[30%] bg-white z-50 shadow-2xl border-l border-gray-200'>
                 <div className='flex flex-col h-full'>
                     {/* Header */}
                     <div className='p-6 border-b border-gray-200'>

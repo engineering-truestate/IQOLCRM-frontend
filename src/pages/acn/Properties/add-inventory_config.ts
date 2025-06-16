@@ -71,9 +71,10 @@ const commonFields: FormField[] = [
     {
         id: 'floorNo',
         label: 'Floor No.',
-        type: 'text',
+        type: 'number',
         required: true,
         placeholder: '0000',
+        gridCols: 1,
     },
     {
         id: 'doorFacing',
@@ -81,6 +82,7 @@ const commonFields: FormField[] = [
         type: 'dropdown',
         required: true,
         placeholder: 'Select',
+        gridCols: 1,
         options: [
             { label: 'North', value: 'north' },
             { label: 'South', value: 'south' },
@@ -95,6 +97,7 @@ const commonFields: FormField[] = [
     {
         id: 'unitNo',
         label: 'Unit No.',
+        gridCols: 1,
         type: 'text',
         placeholder: 'A1234',
     },
@@ -102,6 +105,7 @@ const commonFields: FormField[] = [
         id: 'furnishing',
         label: 'Furnishing',
         type: 'dropdown',
+        gridCols: 1,
         placeholder: 'Select',
         options: [
             { label: 'Fully Furnished', value: 'fully' },
@@ -139,6 +143,7 @@ const commonFields: FormField[] = [
     {
         id: 'ageOfBuilding',
         label: 'Age of the Building',
+        gridCols: 1,
         type: 'dropdown',
         placeholder: '0000',
         options: [
@@ -152,6 +157,7 @@ const commonFields: FormField[] = [
     {
         id: 'insideOutsideFacing',
         label: 'Inside or Outside Facing',
+        gridCols: 1,
         type: 'dropdown',
         placeholder: 'Select',
         options: [
@@ -162,6 +168,7 @@ const commonFields: FormField[] = [
     {
         id: 'furnishingDetails',
         label: 'Furnishing',
+        gridCols: 1,
         type: 'dropdown',
         placeholder: 'Select',
         options: [
@@ -172,6 +179,7 @@ const commonFields: FormField[] = [
     },
     {
         id: 'ups',
+        gridCols: 1,
         label: 'UPS',
         type: 'text',
         placeholder: '0000',
@@ -179,6 +187,7 @@ const commonFields: FormField[] = [
     {
         id: 'carPark',
         label: 'Car Park',
+        gridCols: 1,
         type: 'text',
         placeholder: '0000',
     },
@@ -210,6 +219,7 @@ const commonFields: FormField[] = [
     },
     {
         id: 'buildingKhata',
+        gridCols: 1,
         label: 'Building Khata',
         type: 'dropdown',
         placeholder: 'Select',
@@ -221,6 +231,7 @@ const commonFields: FormField[] = [
     },
     {
         id: 'landKhata',
+        gridCols: 1,
         label: 'Land Khata',
         type: 'dropdown',
         placeholder: 'Select',
@@ -508,7 +519,6 @@ export const formConfigs: Record<PropertyType, FormSection[]> = {
         {
             title: 'Basic Information',
             fields: [
-                ...apartmentFields,
                 ...commonFields.filter((field) =>
                     [
                         'communityType',
@@ -521,6 +531,7 @@ export const formConfigs: Record<PropertyType, FormSection[]> = {
                         'furnishing',
                     ].includes(field.id),
                 ),
+                ...apartmentFields,
             ],
         },
         {
@@ -559,12 +570,12 @@ export const formConfigs: Record<PropertyType, FormSection[]> = {
         {
             title: 'Basic Information',
             fields: [
-                ...villaFields,
                 ...commonFields.filter((field) =>
                     ['communityType', 'projectName', 'sbua', 'carpetArea', 'doorFacing', 'furnishing'].includes(
                         field.id,
                     ),
                 ),
+                ...villaFields,
             ],
         },
         {
@@ -594,8 +605,8 @@ export const formConfigs: Record<PropertyType, FormSection[]> = {
         {
             title: 'Basic Information',
             fields: [
-                ...plotFields,
                 ...commonFields.filter((field) => ['communityType', 'projectName', 'doorFacing'].includes(field.id)),
+                ...plotFields,
             ],
         },
         {
@@ -617,12 +628,12 @@ export const formConfigs: Record<PropertyType, FormSection[]> = {
         {
             title: 'Basic Information',
             fields: [
-                ...rowhouseFields,
                 ...commonFields.filter((field) =>
                     ['communityType', 'projectName', 'sbua', 'carpetArea', 'doorFacing', 'furnishing'].includes(
                         field.id,
                     ),
                 ),
+                ...rowhouseFields,
             ],
         },
         {
@@ -659,18 +670,6 @@ export const formConfigs: Record<PropertyType, FormSection[]> = {
         {
             title: 'Basic Information',
             fields: [
-                ...apartmentFields.filter((field) => field.id !== 'apartmentType'),
-                {
-                    id: 'villamentType',
-                    label: 'Villament Type',
-                    type: 'tabs',
-                    required: true,
-                    options: [
-                        { label: 'Ground Floor', value: 'ground' },
-                        { label: 'Upper Floor', value: 'upper' },
-                        { label: 'Duplex', value: 'duplex' },
-                    ],
-                },
                 ...commonFields.filter((field) =>
                     [
                         'communityType',
@@ -683,6 +682,18 @@ export const formConfigs: Record<PropertyType, FormSection[]> = {
                         'furnishing',
                     ].includes(field.id),
                 ),
+                ...apartmentFields.filter((field) => field.id !== 'apartmentType'),
+                {
+                    id: 'villamentType',
+                    label: 'Villament Type',
+                    type: 'tabs',
+                    required: true,
+                    options: [
+                        { label: 'Ground Floor', value: 'ground' },
+                        { label: 'Upper Floor', value: 'upper' },
+                        { label: 'Duplex', value: 'duplex' },
+                    ],
+                },
             ],
         },
         {
@@ -720,6 +731,11 @@ export const formConfigs: Record<PropertyType, FormSection[]> = {
         {
             title: 'Basic Information',
             fields: [
+                ...commonFields.filter((field) =>
+                    ['communityType', 'projectName', 'sbua', 'carpetArea', 'doorFacing', 'furnishing'].includes(
+                        field.id,
+                    ),
+                ),
                 {
                     id: 'independentType',
                     label: 'Independent Building Type',
@@ -731,11 +747,6 @@ export const formConfigs: Record<PropertyType, FormSection[]> = {
                         { label: 'Commercial', value: 'commercial' },
                     ],
                 },
-                ...commonFields.filter((field) =>
-                    ['communityType', 'projectName', 'sbua', 'carpetArea', 'doorFacing', 'furnishing'].includes(
-                        field.id,
-                    ),
-                ),
             ],
         },
         {
