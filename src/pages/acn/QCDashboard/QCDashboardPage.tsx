@@ -68,7 +68,7 @@ const QCDashboardPage = () => {
         console.log('hidsst', hits)
         return hits.map((hit, index) => ({
             id: hit.objectID || `QC${index.toString().padStart(4, '0')}`,
-            projectName: hit.projectName || hit.project_name || 'N/A',
+            projectName: hit.nameOfTheProperty || hit.project_name || 'N/A',
             assetType: hit.assetType || hit.asset_type || 'N/A',
             phoneNumber: hit.phoneNumber || hit.phone_number || 'N/A',
             agent: hit.agent || hit.agent_name || 'N/A',
@@ -353,7 +353,7 @@ const QCDashboardPage = () => {
                     <button
                         className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
                         onClick={() => {
-                            navigate(`/acn/qc/${row.propertyId}/details`)
+                            navigate(`/acn/qc/${row.id}/details`)
                         }}
                         title='Verify'
                     >
