@@ -1,41 +1,26 @@
 import { configureStore } from '@reduxjs/toolkit'
-import propertiesReducer from './reducers/acn/propertiesReducers'
-import platformReducer from './reducers/platformSlice'
-import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist'
+import { persistStore, persistReducer } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
+import rootReducer from './reducers'
 
 const persistConfig = {
     key: 'root',
     storage,
-    whitelist: ['platform'],
+    whitelist: ['primaryProperties'],
 }
 
-const persistedPlatformReducer = persistReducer(persistConfig, platformReducer)
-import preLaunchReducer from './reducers/restack/preLaunchReducer'
-import requirementsReducer from './reducers/acn/requirementsReducers'
+const persistedReducer = persistReducer(persistConfig, rootReducer)
 
 // Create the store using configureStore from Redux Toolkit
 const store = configureStore({
-    reducer: {
-        properties: propertiesReducer,
-        platform: persistedPlatformReducer,
-        preLaunch: preLaunchReducer,
-        requirements: requirementsReducer,
-    },
+    reducer: persistedReducer,
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
-            serializableCheck: {
-                ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-            },
+            serializableCheck: false,
         }),
 })
 
-// RootState type inferred from the store
-export type RootState = ReturnType<typeof store.getState>
-
-// AppDispatch type inferred from the store
-export type AppDispatch = typeof store.dispatch
-
 export const persistor = persistStore(store)
-
+export type AppDispatch = typeof store.dispatch
+export type RootState = ReturnType<typeof rootReducer>
 export default store

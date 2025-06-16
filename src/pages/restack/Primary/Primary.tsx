@@ -3,60 +3,56 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
-import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import { sampleRERAProjects, generateRERAProjects, type RERAProject } from '../../dummy_data/restack_primary_dummy_data'
+import { type RERAProject } from '../../dummy_data/restack_primary_dummy_data'
+import { fetchPrimaryProperties, setPrimaryPropertiesFilter } from '../../../store/actions/restack/primaryProperties'
+import type { RootState } from '../../../store'
+import type { AppDispatch } from '../../../store'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 
 const PrimaryPage = () => {
+    const dispatch = useDispatch<AppDispatch>()
+    const { properties, loading, error, filter } = useSelector((state: RootState) => state.primaryProperties)
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
-    const [paginatedData, setPaginatedData] = useState<RERAProject[]>([])
-    const [filteredData, setFilteredData] = useState<RERAProject[]>([])
     const navigate = useNavigate()
-    // Items per page
     const ITEMS_PER_PAGE = 50
 
-    // Initialize projects data
-    const [projectsData, setProjectsData] = useState<RERAProject[]>(() => {
-        // Use sample data that matches the image, then add more generated data
-        const additionalProjects = generateRERAProjects(50)
-        return [...sampleRERAProjects, ...additionalProjects]
-    })
+    // Fetch properties on component mount
+    useEffect(() => {
+        dispatch(fetchPrimaryProperties())
+    }, [dispatch])
 
     // Filter data based on search
     useEffect(() => {
-        if (searchValue.trim() === '') {
-            setFilteredData(projectsData)
-        } else {
-            const filtered = projectsData.filter(
-                (project) =>
-                    project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.status.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.district.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.projectType.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.registrationNumber.toLowerCase().includes(searchValue.toLowerCase()),
-            )
-            setFilteredData(filtered)
-        }
-        setCurrentPage(1) // Reset to first page when searching
-    }, [searchValue, projectsData])
+        dispatch(setPrimaryPropertiesFilter(searchValue))
+        setCurrentPage(1)
+    }, [searchValue, dispatch])
 
-    // Calculate total pages
-    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
+    // Calculate filtered and paginated data
+    const filteredProperties = properties.filter((project: RERAProject) =>
+        filter.trim() === ''
+            ? true
+            : project.projectName?.toLowerCase().includes(filter.toLowerCase()) ||
+              project.status?.toLowerCase().includes(filter.toLowerCase()) ||
+              project.district?.toLowerCase().includes(filter.toLowerCase()) ||
+              project.projectType?.toLowerCase().includes(filter.toLowerCase()) ||
+              project.registrationNumber?.toLowerCase().includes(filter.toLowerCase()),
+    )
 
-    // Update paginated data when page changes or filtered data changes
-    useEffect(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-        const endIndex = startIndex + ITEMS_PER_PAGE
-        setPaginatedData(filteredData.slice(startIndex, endIndex))
-    }, [currentPage, filteredData])
+    const currentPageData = filteredProperties.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
-    // Status badge component
-    const StatusBadge = ({ status }: { status: string }) => {
-        const getStatusColor = (status: string) => {
-            switch (status.toLowerCase()) {
+    const totalPages = Math.ceil(filteredProperties.length / ITEMS_PER_PAGE)
+
+    // projectStatus badge component
+    const StatusBadge = ({ projectStatus }: { projectStatus: string }) => {
+        const getStatusColor = (projectStatus: string | undefined) => {
+            if (!projectStatus) return 'bg-gray-100 text-gray-800'
+
+            switch (projectStatus.toLowerCase()) {
                 case 'active':
                     return 'bg-green-100 text-green-800'
                 case 'completed':
@@ -69,8 +65,8 @@ const PrimaryPage = () => {
         }
 
         return (
-            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(status)}`}>
-                {status}
+            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(projectStatus)}`}>
+                {toCapitalizedWords(projectStatus) || 'N/A'}
             </span>
         )
     }
@@ -93,9 +89,9 @@ const PrimaryPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
-            key: 'status',
-            header: 'Status',
-            render: (value) => <StatusBadge status={value} />,
+            key: 'projectStatus',
+            header: 'projectStatus',
+            render: (value) => <StatusBadge projectStatus={value} />,
         },
         {
             key: 'projectStartDate',
@@ -131,19 +127,25 @@ const PrimaryPage = () => {
         {
             key: 'action',
             header: 'Action',
-            render: (_, row) => (
-                <button
-                    className='text-gray-900 text-sm font-medium transition-colors'
-                    onClick={() => navigate(`/restack/primary/${row.id}`)}
-                >
-                    View Details
-                </button>
-            ),
+            render: (_, row) => {
+                const id = row.id
+
+                return (
+                    <button
+                        className='text-gray-900 text-sm font-medium transition-colors hover:text-blue-600'
+                        onClick={() => {
+                            navigate(`/restack/primary/${row.id}`)
+                        }}
+                    >
+                        View Details
+                    </button>
+                )
+            },
         },
     ]
 
     return (
-        <Layout loading={false}>
+        <Layout loading={loading}>
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-4 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
@@ -183,7 +185,7 @@ const PrimaryPage = () => {
                     <div className='bg-white rounded-lg overflow-hidden'>
                         <div className='h-[80vh] overflow-y-auto'>
                             <FlexibleTable
-                                data={paginatedData}
+                                data={currentPageData}
                                 columns={columns}
                                 hoverable={true}
                                 borders={{
@@ -204,9 +206,8 @@ const PrimaryPage = () => {
                             <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
                                 <div className='text-sm text-gray-500 font-medium'>
                                     Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} of{' '}
-                                    {filteredData.length} projects
-                                    {searchValue && ` (filtered from ${projectsData.length} total projects)`}
+                                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredProperties.length)} of{' '}
+                                    {filteredProperties.length} projects
                                 </div>
 
                                 <div className='flex items-center gap-2'>
@@ -231,7 +232,6 @@ const PrimaryPage = () => {
 
                                     {Array.from({ length: totalPages }, (_, i) => i + 1)
                                         .filter((page) => {
-                                            // Show first page, last page, current page, and pages around current page
                                             return (
                                                 page === 1 ||
                                                 page === totalPages ||
@@ -239,7 +239,6 @@ const PrimaryPage = () => {
                                             )
                                         })
                                         .map((page, index, array) => {
-                                            // Add ellipsis between non-consecutive pages
                                             const showEllipsisBefore = index > 0 && array[index - 1] !== page - 1
                                             const showEllipsisAfter =
                                                 index < array.length - 1 && array[index + 1] !== page + 1

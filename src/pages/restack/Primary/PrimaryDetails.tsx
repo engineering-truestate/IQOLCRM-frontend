@@ -1,54 +1,29 @@
-'use client'
-
-import React from 'react'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
-import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
+import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import {
-    generateProjectDetails,
-    type ProjectDetails,
+    generateCompleteProjectDetails,
+    type CompleteProjectDetails,
+    projectTypes,
+    projectStages,
+    apartmentTypologies,
+    villaTypologies,
+    plotTypes,
     type ApartmentUnit,
     type VillaUnit,
     type PlotUnit,
-    type MapsPlan,
-} from '../../dummy_data/restack_primary_details_dummy_data.ts'
-
-// Helper data for dropdowns (based on similar files like PreLaunchDetails)
-const projectTypes = [
-    { label: 'Residential', value: 'Residential' },
-    { label: 'Commercial', value: 'Commercial' },
-    { label: 'Mixed-Use', value: 'Mixed-Use' },
-]
-
-const projectStages = [
-    { label: 'Pre Launch', value: 'Pre Launch' },
-    { label: 'Active', value: 'Active' },
-    { label: 'Completed', value: 'Completed' },
-    { label: 'Planning', value: 'Planning' },
-]
-
-const apartmentTypologies = [
-    { label: '1 BHK', value: '1 BHK' },
-    { label: '2 BHK', value: '2 BHK' },
-    { label: '3 BHK', value: '3 BHK' },
-    { label: '4 BHK', value: '4 BHK' },
-    { label: 'Studio', value: 'Studio' },
-]
-
-const villaTypologies = [
-    { label: 'Type A', value: 'Type A' },
-    { label: 'Type B', value: 'Type B' },
-    { label: 'Type C', value: 'Type C' },
-]
-
-const plotTypes = [
-    { label: 'Residential Plot', value: 'Residential Plot' },
-    { label: 'Commercial Plot', value: 'Commercial Plot' },
-]
+    type DevelopmentDetail,
+    type TowerDetail,
+    type FloorPlanDetail,
+    type UnitDetail,
+    type ClubhouseDetail,
+} from '../../../pages/dummy_data/restack_primary_details_dummy_data'
+import editic from '/icons/acn/edit.svg'
+import addcircleic from '/icons/acn/add-circle.svg'
 
 // Floor plan image component
 const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
@@ -74,893 +49,1284 @@ const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?:
 
 const PrimaryDetailsPage = () => {
     const navigate = useNavigate()
-    const { id } = useParams<{ id: string }>()
+    const { id } = useParams()
 
-    const [projectDetails, setProjectDetails] = useState<ProjectDetails | null>(null)
-    const [originalDetails, setOriginalDetails] = useState<ProjectDetails | null>(null)
-    const [isEditing, setIsEditing] = useState(false)
-    const [activeTab, setActiveTab] = useState<'apartment' | 'villa' | 'plot' | 'tower'>('apartment')
+    const [projectDetails, setProjectDetails] = useState<CompleteProjectDetails | null>(null)
+    const [originalDetails, setOriginalDetails] = useState<CompleteProjectDetails | null>(null)
+    const [isEditingGroundData, setIsEditingGroundData] = useState(false)
+    const [isEditingAmenities, setIsEditingAmenities] = useState(false)
+    const [isEditingClubhouse, setIsEditingClubhouse] = useState(false)
+    const [isLoading, setIsLoading] = useState(true)
+    const [activeTab, setActiveTab] = useState<'apartment' | 'villa' | 'plot'>('apartment')
     const [editingRowId, setEditingRowId] = useState<string | null>(null)
     const [isAddingRow, setIsAddingRow] = useState(false)
+    const [selectedTowerForFloorPlan, setSelectedTowerForFloorPlan] = useState<TowerDetail | null>(null)
+    const [selectedTowerForUnitDetails, setSelectedTowerForUnitDetails] = useState<TowerDetail | null>(null)
 
     // Load project data based on id
     useEffect(() => {
-        if (id) {
-            const details = generateProjectDetails(id)
-            setProjectDetails(details)
-            setOriginalDetails(details)
+        const loadProjectDetails = async () => {
+            try {
+                setIsLoading(true)
+                if (id) {
+                    const details = generateCompleteProjectDetails(id)
+                    setProjectDetails(details)
+                    setOriginalDetails(details)
+                    console.log('Loaded project details:', details)
+                }
+            } catch (error) {
+                console.error('Error loading project details:', error)
+                // Set a default project if loading fails
+                const defaultProject = generateCompleteProjectDetails('P0001')
+                setProjectDetails(defaultProject)
+                setOriginalDetails(defaultProject)
+            } finally {
+                setIsLoading(false)
+            }
         }
+
+        loadProjectDetails()
     }, [id])
 
-    // Handle field updates
+    // Handle field updates for main project details
     const updateField = (field: string, value: string) => {
         if (projectDetails) {
-            setProjectDetails((prev: ProjectDetails | null) => (prev ? { ...prev, [field]: value } : null))
+            setProjectDetails((prev: CompleteProjectDetails | null) => (prev ? { ...prev, [field]: value } : null))
         }
     }
 
-    // Handle edit mode toggle
-    const handleEdit = () => {
-        setIsEditing(true)
+    console.log(projectDetails?.towerDetails, 'lalalalala')
+    // Generic handle edit for sections
+    const handleEditSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+        setter(true)
     }
 
-    // Handle cancel edit
-    const handleCancel = () => {
-        setProjectDetails(originalDetails)
-        setIsEditing(false)
+    // Generic handle cancel for sections
+    const handleCancelSection = (
+        setter: React.Dispatch<React.SetStateAction<boolean>>,
+        originalData: CompleteProjectDetails | null,
+    ) => {
+        setProjectDetails(originalData)
+        setter(false)
         setEditingRowId(null)
         setIsAddingRow(false)
+        setSelectedTowerForFloorPlan(null)
+        setSelectedTowerForUnitDetails(null)
     }
 
-    // Handle save changes
-    const handleSave = () => {
+    // Generic handle save for sections
+    const handleSaveSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
         if (projectDetails) {
             setOriginalDetails(projectDetails)
-            setIsEditing(false)
+            setter(false)
             setEditingRowId(null)
             setIsAddingRow(false)
             console.log('Saving project details:', projectDetails)
         }
     }
 
-    // Render field based on edit mode
-    const renderField = (
-        label: string,
-        value: string,
-        fieldKey: string,
-        options?: { label: string; value: string }[],
-        type: 'text' | 'date' = 'text',
-    ) => {
-        if (isEditing) {
-            if (options) {
-                return (
-                    <div>
-                        <label className='text-sm text-black block mb-1'>{label}</label>
-                        <Dropdown
-                            options={options}
-                            onSelect={(selectedValue) => updateField(fieldKey, selectedValue)}
-                            defaultValue={value}
-                            placeholder={`Select ${label}`}
-                            className='relative w-full'
-                            triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
-                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                            optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                        />
-                    </div>
-                )
-            } else {
-                return (
-                    <div>
-                        <label className='text-sm text-black block mb-1'>{label}</label>
-                        <StateBaseTextField
-                            value={value}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateField(fieldKey, e.target.value)}
-                            className='w-full text-sm'
-                            type={type}
-                        />
-                    </div>
-                )
-            }
-        } else {
-            return (
-                <div>
-                    <label className='text-sm text-gray-600 block'>{label}</label>
-                    <p className='text-sm font-medium text-gray-900'>{value}</p>
-                </div>
-            )
-        }
-    }
-
-    // Render table cell based on edit mode and unit type
-    const renderTableCell = (
-        value: string,
+    // Handle data row updates for all tables
+    const updateDataRow = (
+        dataType:
+            | 'apartment'
+            | 'villa'
+            | 'plot'
+            | 'developmentDetails'
+            | 'towerDetails'
+            | 'clubhouseDetails'
+            | 'floorPlan'
+            | 'unitDetails',
         rowId: string,
-        fieldKey: string,
-        unitType: 'apartment' | 'villa' | 'plot' | 'tower',
-        options?: DropdownOption[],
-        type: 'text' | 'date' = 'text',
-    ) => {
-        if (isEditing && editingRowId === rowId) {
-            if (options) {
-                return (
-                    <Dropdown
-                        options={options}
-                        onSelect={(selectedValue) => updateFieldInUnit(unitType, rowId, fieldKey, selectedValue)}
-                        defaultValue={value}
-                        placeholder={`Select ${fieldKey}`}
-                        className='relative w-full'
-                        triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                    />
-                )
-            } else if (fieldKey === 'floorPlan' && unitType !== 'plot') {
-                return (
-                    <StateBaseTextField
-                        value={value}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            updateFieldInUnit(unitType, rowId, fieldKey, e.target.value)
-                        }
-                        className='w-full text-sm'
-                        placeholder='Image URL'
-                    />
-                )
-            } else {
-                return (
-                    <StateBaseTextField
-                        value={value}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            updateFieldInUnit(unitType, rowId, fieldKey, e.target.value)
-                        }
-                        className='w-full text-sm'
-                        type={type}
-                    />
-                )
-            }
-        } else if (fieldKey === 'floorPlan' && unitType !== 'plot') {
-            return <FloorPlanImage imageUrl={value} />
-        } else if (fieldKey === 'googleMap') {
-            return (
-                <a
-                    href={value}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='text-sm text-blue-600 hover:text-blue-800 underline'
-                >
-                    {value}
-                </a>
-            )
-        } else {
-            return <span className='whitespace-nowrap text-sm text-gray-900'>{value}</span>
-        }
-    }
-
-    // Generic function to update fields in nested arrays (units)
-    const updateFieldInUnit = (
-        unitType: 'apartment' | 'villa' | 'plot' | 'tower',
-        unitId: string,
         field: string,
         value: string,
     ) => {
         if (!projectDetails) return
 
-        const fieldName = `${unitType}Units` as keyof ProjectDetails
-        const units = (projectDetails[fieldName] || []) as (ApartmentUnit | VillaUnit | PlotUnit)[]
+        let fieldName: keyof CompleteProjectDetails | 'floorPlanDetails' | 'unitDetails'
+        let dataRows: any[]
 
-        const updatedUnits = units.map((unit) => (unit.id === unitId ? { ...unit, [field]: value } : unit))
+        switch (dataType) {
+            case 'apartment':
+                fieldName = 'apartmentUnits'
+                dataRows = projectDetails[fieldName]
+                break
+            case 'villa':
+                fieldName = 'villaUnits'
+                dataRows = projectDetails[fieldName]
+                break
+            case 'plot':
+                fieldName = 'plotUnits'
+                dataRows = projectDetails[fieldName]
+                break
+            case 'developmentDetails':
+                fieldName = 'developmentDetails'
+                dataRows = projectDetails[fieldName]
+                break
+            case 'towerDetails':
+                fieldName = 'towerDetails'
+                dataRows = projectDetails[fieldName]
+                break
+            case 'clubhouseDetails':
+                fieldName = 'clubhouseDetails'
+                dataRows = projectDetails[fieldName]
+                break
+            case 'floorPlan':
+                if (!selectedTowerForFloorPlan) return
+                fieldName = 'floorPlanDetails'
+                dataRows = selectedTowerForFloorPlan.floorPlanDetails
+                break
+            case 'unitDetails':
+                if (!selectedTowerForUnitDetails) return
+                fieldName = 'unitDetails'
+                dataRows = selectedTowerForUnitDetails.unitDetails
+                break
+            default:
+                return
+        }
 
-        setProjectDetails((prev: ProjectDetails | null) =>
-            prev
-                ? {
-                      ...prev,
-                      [fieldName]: updatedUnits,
-                  }
-                : null,
+        const updatedDataRows = dataRows.map((row) => (row.id === rowId ? { ...row, [field]: value } : row))
+
+        if (dataType === 'floorPlan' && selectedTowerForFloorPlan) {
+            const updatedTowerDetails = projectDetails.towerDetails.map((tower: TowerDetail) =>
+                tower.id === selectedTowerForFloorPlan.id
+                    ? { ...tower, floorPlanDetails: updatedDataRows as FloorPlanDetail[] }
+                    : tower,
+            )
+            setProjectDetails((prev: CompleteProjectDetails | null) =>
+                prev ? { ...prev, towerDetails: updatedTowerDetails } : null,
+            )
+        } else if (dataType === 'unitDetails' && selectedTowerForUnitDetails) {
+            const updatedTowerDetails = projectDetails.towerDetails.map((tower: TowerDetail) =>
+                tower.id === selectedTowerForUnitDetails.id
+                    ? { ...tower, unitDetails: updatedDataRows as UnitDetail[] }
+                    : tower,
+            )
+            setProjectDetails((prev: CompleteProjectDetails | null) =>
+                prev ? { ...prev, towerDetails: updatedTowerDetails } : null,
+            )
+        } else {
+            setProjectDetails((prev: CompleteProjectDetails | null) =>
+                prev ? { ...prev, [fieldName as keyof CompleteProjectDetails]: updatedDataRows } : null,
+            )
+        }
+    }
+
+    // Handle adding new unit (kept separate for now as it's specific to unit types)
+    const addNewUnit = (unitType: 'apartment' | 'villa' | 'plot') => {
+        if (!projectDetails) return
+
+        const newId = `${unitType}_${Date.now()}`
+        let newUnit: ApartmentUnit | VillaUnit | PlotUnit
+
+        switch (unitType) {
+            case 'apartment':
+                newUnit = {
+                    id: newId,
+                    aptType: '',
+                    typology: '',
+                    superBuiltUpArea: '',
+                    carpetArea: '',
+                    pricePerSqft: '',
+                    totalPrice: '',
+                    floorPlan: '',
+                }
+                break
+            case 'villa':
+                newUnit = {
+                    id: newId,
+                    villaType: '',
+                    typology: '',
+                    plotSize: '',
+                    builtUpArea: '',
+                    carpetArea: '',
+                    pricePerSqft: '',
+                    totalPrice: '',
+                    uds: '',
+                    noOfFloors: '',
+                    floorPlan: '',
+                }
+                break
+            case 'plot':
+                newUnit = {
+                    id: newId,
+                    plotType: '',
+                    plotArea: '',
+                    pricePerSqft: '',
+                    totalPrice: '',
+                }
+                break
+        }
+
+        const fieldName = `${unitType}Units` as keyof CompleteProjectDetails
+        const units = projectDetails[fieldName] as any[]
+
+        setProjectDetails((prev: CompleteProjectDetails | null) =>
+            prev ? { ...prev, [fieldName]: [...units, newUnit] } : null,
+        )
+
+        setEditingRowId(newId)
+        setIsAddingRow(true)
+    }
+
+    // Handle delete unit
+    const deleteUnit = (unitType: 'apartment' | 'villa' | 'plot', unitId: string) => {
+        if (!projectDetails) return
+
+        const fieldName = `${unitType}Units` as keyof CompleteProjectDetails
+        const units = projectDetails[fieldName] as any[]
+        const updatedUnits = units.filter((unit) => unit.id !== unitId)
+
+        setProjectDetails((prev: CompleteProjectDetails | null) =>
+            prev ? { ...prev, [fieldName]: updatedUnits } : null,
         )
     }
 
-    // Generate table columns for each unit type
-    const getApartmentColumns = (): TableColumn[] => [
-        {
-            key: 'aptType',
-            header: 'Apt Type',
-            render: (value, row) =>
-                renderTableCell(
-                    value as string,
-                    (row as ApartmentUnit).id,
-                    'aptType',
-                    'apartment',
-                    apartmentTypologies,
-                ),
-        },
-        {
-            key: 'typology',
-            header: 'Typology',
-            render: (value, row) =>
-                renderTableCell(value as string, (row as ApartmentUnit).id, 'typology', 'apartment'),
-        },
-        {
-            key: 'superBuiltUpArea',
-            header: 'Super built-up area',
-            render: (value, row) =>
-                renderTableCell(value as string, (row as ApartmentUnit).id, 'superBuiltUpArea', 'apartment'),
-        },
-        {
-            key: 'carpetArea',
-            header: 'Carpet area',
-            render: (value, row) =>
-                renderTableCell(value as string, (row as ApartmentUnit).id, 'carpetArea', 'apartment'),
-        },
-        {
-            key: 'pricePerSqft',
-            header: 'Price / sqft',
-            render: (value, row) =>
-                renderTableCell(value as string, (row as ApartmentUnit).id, 'pricePerSqft', 'apartment'),
-        },
-        {
-            key: 'totalPrice',
-            header: 'Total Price',
-            render: (value, row) =>
-                renderTableCell(value as string, (row as ApartmentUnit).id, 'totalPrice', 'apartment'),
-        },
-        {
-            key: 'floorPlan',
-            header: 'Floor plan',
-            render: (value, row) =>
-                renderTableCell(value as string, (row as ApartmentUnit).id, 'floorPlan', 'apartment'),
-        },
-        {
-            key: 'actions',
-            header: 'Edit',
-            render: (_, row) => (
-                <div className='flex gap-1'>
-                    {editingRowId === (row as ApartmentUnit).id ? (
-                        <>
-                            <button
-                                className='text-green-600 hover:text-green-800 text-xs font-medium'
-                                onClick={() => setEditingRowId(null)}
-                            >
-                                Save
-                            </button>
-                            <button
-                                className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
-                                onClick={() => {
-                                    if (isAddingRow) {
-                                        // deleteUnit('apartment', (row as ApartmentUnit).id) // Need to implement deleteUnit
-                                        setIsAddingRow(false)
-                                    }
-                                    setEditingRowId(null)
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            className='text-gray-600 hover:text-gray-800 text-xs font-medium'
-                            onClick={() => setEditingRowId((row as ApartmentUnit).id)}
-                            disabled={editingRowId !== null}
+    // Handle adding new clubhouse row
+    const addClubhouseRow = () => {
+        if (!projectDetails) return
+
+        const newRow: ClubhouseDetail = {
+            id: `clubhouse_${Date.now()}`,
+            name: '',
+            sizeSqft: '',
+            floor: '',
+        }
+
+        setProjectDetails((prev: CompleteProjectDetails | null) =>
+            prev
+                ? {
+                      ...prev,
+                      clubhouseDetails: [...prev.clubhouseDetails, newRow],
+                  }
+                : null,
+        )
+
+        setEditingRowId(newRow.id)
+        setIsAddingRow(true)
+    }
+
+    // Helper for rendering info rows (read-only and editable)
+    const renderInfoRow = (
+        label1: string,
+        value1: string | undefined,
+        label2: string,
+        value2: string | undefined,
+        fieldKey1?: string,
+        fieldKey2?: string,
+        options1?: { label: string; value: string }[],
+        options2?: { label: string; value: string }[],
+        type1: 'text' | 'date' | 'link' = 'text',
+        type2: 'text' | 'date' | 'link' = 'text',
+        onClick1?: () => void,
+        onClick2?: () => void,
+        classNameOverride?: string,
+        isSectionEditable: boolean = false,
+    ) => {
+        const renderField = (
+            label: string,
+            value: string | undefined,
+            fieldKey: string | undefined,
+            options?: { label: string; value: string }[],
+            type: 'text' | 'date' | 'link' = 'text',
+            onClick?: () => void,
+        ) => {
+            const displayValue = value || ''
+            return (
+                <div
+                    className={`flex flex-col gap-1 border-t border-solid border-t-[#d4dbe2] py-4 ${classNameOverride?.includes('pr-') ? '' : 'pr-2'}`}
+                >
+                    <p className='text-[#5c738a] text-sm font-normal leading-normal'>{label}</p>
+                    {isSectionEditable && fieldKey ? (
+                        options ? (
+                            <Dropdown
+                                options={options}
+                                defaultValue={value || ''}
+                                onSelect={(optionValue: string) => updateField(fieldKey, optionValue)}
+                                className='w-full'
+                                optionClassName='text-base'
+                            />
+                        ) : type === 'date' ? (
+                            <StateBaseTextField
+                                type='date'
+                                value={value || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                    updateField(fieldKey, e.target.value)
+                                }
+                                className='h-9 text-base'
+                            />
+                        ) : (
+                            <StateBaseTextField
+                                value={value || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                    updateField(fieldKey, e.target.value)
+                                }
+                                className='h-9 text-base'
+                            />
+                        )
+                    ) : type === 'link' &&
+                      value &&
+                      onClick &&
+                      (value.startsWith('http') ||
+                          (value.startsWith('/') && !onClick.toString().includes('navigate'))) ? (
+                        <a
+                            href={value}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-blue-600 underline text-sm font-medium leading-normal'
+                            onClick={onClick}
                         >
-                            Action
+                            {displayValue}
+                        </a>
+                    ) : type === 'link' && onClick ? (
+                        <button
+                            onClick={onClick}
+                            className='text-blue-600 underline text-sm font-medium leading-normal text-left cursor-pointer'
+                        >
+                            {displayValue}
                         </button>
+                    ) : (
+                        <p className='text-[#101418] text-sm font-normal leading-normal'>{displayValue}</p>
                     )}
                 </div>
-            ),
+            )
+        }
+
+        return (
+            <>
+                <div
+                    className={`${classNameOverride && classNameOverride.includes('col-span-2') ? classNameOverride : ''}`}
+                >
+                    {renderField(label1, value1, fieldKey1, options1, type1, onClick1)}
+                </div>
+                {!classNameOverride?.includes('col-span-2') && (
+                    <div className={'pl-2'}>{renderField(label2, value2, fieldKey2, options2, type2, onClick2)}</div>
+                )}
+            </>
+        )
+    }
+
+    // Render table cell (for editable and read-only states)
+    const renderTableCell = (
+        value: string | number | null,
+        row: any,
+        field: string,
+        dataType:
+            | 'apartment'
+            | 'villa'
+            | 'plot'
+            | 'developmentDetails'
+            | 'towerDetails'
+            | 'clubhouseDetails'
+            | 'floorPlan'
+            | 'unitDetails',
+        options?: { label: string; value: string }[],
+        type: 'text' | 'number' | 'image' | 'button' = 'text',
+        buttonType?: 'floorPlan' | 'unitDetails',
+        isSectionEditable: boolean = false,
+    ) => {
+        if (isSectionEditable && editingRowId === row.id) {
+            if (options) {
+                return (
+                    <Dropdown
+                        options={options}
+                        defaultValue={value !== null ? value.toString() : ''}
+                        onSelect={(optionValue: string) => updateDataRow(dataType, row.id, field, optionValue)}
+                        className='w-full'
+                        optionClassName='text-sm'
+                    />
+                )
+            } else {
+                return (
+                    <StateBaseTextField
+                        type={type === 'number' ? 'number' : 'text'}
+                        value={value !== null ? value.toString() : ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            updateDataRow(dataType, row.id, field, e.target.value)
+                        }
+                        className='h-9 text-sm'
+                    />
+                )
+            }
+        } else {
+            if (type === 'image') {
+                return <FloorPlanImage imageUrl={(value as string) || ''} size='small' />
+            } else if (type === 'button' && buttonType) {
+                return (
+                    <div className='flex gap-2'>
+                        <Button
+                            className='rounded-md bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600'
+                            onClick={() => {
+                                setSelectedTowerForFloorPlan(row)
+                                setSelectedTowerForUnitDetails(null)
+                            }}
+                        >
+                            View
+                        </Button>
+                        <Button
+                            className='rounded-md bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600'
+                            onClick={() => {
+                                setSelectedTowerForUnitDetails(row)
+                                setSelectedTowerForFloorPlan(null)
+                            }}
+                        >
+                            View
+                        </Button>
+                    </div>
+                )
+            }
+            return <span className='whitespace-nowrap text-sm text-gray-600'>{value !== null ? value : ''}</span>
+        }
+    }
+
+    // Column definitions for Development Details
+    const getDevelopmentColumns = (): TableColumn[] => [
+        {
+            key: 'slNo',
+            header: 'Sl No.',
+            render: (value: any, row: any) =>
+                renderTableCell(value || '', row, 'slNo', 'developmentDetails', undefined, 'text'),
+        },
+        {
+            key: 'typeOfInventory',
+            header: 'Type of Inventory',
+            render: (value: any, row: any) =>
+                renderTableCell(value || '', row, 'typeOfInventory', 'developmentDetails', undefined, 'text'),
+        },
+        {
+            key: 'noOfInventory',
+            header: 'No. of Inventory',
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'noOfInventory', 'developmentDetails', undefined, 'number'),
+        },
+        {
+            key: 'carpetAreaSqMtr',
+            header: 'Carpet Area (Sq Mtr)',
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'carpetArea', 'developmentDetails', undefined, 'number'),
+        },
+        {
+            key: 'areaOfExclusiveBalconyVerandahSqMtr',
+            header: 'Area of exclusive balcony/verandah (Sq Mtr)',
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'areaOfAmenitiesSqMtrNos', 'developmentDetails', undefined, 'number'),
+        },
+        {
+            key: 'areaOfExclusiveOpenTerraceSqMtr',
+            header: 'Area of exclusive open Terrace (Sq Mtr)',
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'areaOfParkingNo', 'developmentDetails', undefined, 'number'),
         },
     ]
 
-    const getVillaColumns = (): TableColumn[] => [
-        {
-            key: 'villaType',
-            header: 'Villa Type',
-            render: (value, row) =>
-                renderTableCell(value as string, (row as VillaUnit).id, 'villaType', 'villa', villaTypologies),
-        },
-        {
-            key: 'typology',
-            header: 'Typology',
-            render: (value, row) => renderTableCell(value as string, (row as VillaUnit).id, 'typology', 'villa'),
-        },
-        {
-            key: 'plotSize',
-            header: 'Plot Size',
-            render: (value, row) => renderTableCell(value as string, (row as VillaUnit).id, 'plotSize', 'villa'),
-        },
-        {
-            key: 'builtUpArea',
-            header: 'Built-up Area',
-            render: (value, row) => renderTableCell(value as string, (row as VillaUnit).id, 'builtUpArea', 'villa'),
-        },
-        {
-            key: 'carpetArea',
-            header: 'Carpet Area',
-            render: (value, row) => renderTableCell(value as string, (row as VillaUnit).id, 'carpetArea', 'villa'),
-        },
-        {
-            key: 'pricePerSqft',
-            header: 'Price / sqft',
-            render: (value, row) => renderTableCell(value as string, (row as VillaUnit).id, 'pricePerSqft', 'villa'),
-        },
-        {
-            key: 'totalPrice',
-            header: 'Total Price',
-            render: (value, row) => renderTableCell(value as string, (row as VillaUnit).id, 'totalPrice', 'villa'),
-        },
-        {
-            key: 'uds',
-            header: 'UDS',
-            render: (value, row) => renderTableCell(value as string, (row as VillaUnit).id, 'uds', 'villa'),
-        },
-        {
-            key: 'noOfFloors',
-            header: 'No. of Floors',
-            render: (value, row) => renderTableCell(value as string, (row as VillaUnit).id, 'noOfFloors', 'villa'),
-        },
-        {
-            key: 'actions',
-            header: 'Edit',
-            render: (_, row) => (
-                <div className='flex gap-1'>
-                    {editingRowId === (row as VillaUnit).id ? (
-                        <>
-                            <button
-                                className='text-green-600 hover:text-green-800 text-xs font-medium'
-                                onClick={() => setEditingRowId(null)}
-                            >
-                                Save
-                            </button>
-                            <button
-                                className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
-                                onClick={() => {
-                                    if (isAddingRow) {
-                                        // deleteUnit('villa', (row as VillaUnit).id)
-                                        setIsAddingRow(false)
-                                    }
-                                    setEditingRowId(null)
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            className='text-gray-600 hover:text-gray-800 text-xs font-medium'
-                            onClick={() => setEditingRowId((row as VillaUnit).id)}
-                            disabled={editingRowId !== null}
-                        >
-                            Action
-                        </button>
-                    )}
-                </div>
-            ),
-        },
-    ]
-
-    const getPlotColumns = (): TableColumn[] => [
-        {
-            key: 'plotType',
-            header: 'Plot Type',
-            render: (value, row) =>
-                renderTableCell(value as string, (row as PlotUnit).id, 'plotType', 'plot', plotTypes),
-        },
-        {
-            key: 'plotArea',
-            header: 'Plot Area(sq ft)',
-            render: (value, row) => renderTableCell(value as string, (row as PlotUnit).id, 'plotArea', 'plot'),
-        },
-        {
-            key: 'pricePerSqft',
-            header: 'Price / sqft',
-            render: (value, row) => renderTableCell(value as string, (row as PlotUnit).id, 'pricePerSqft', 'plot'),
-        },
-        {
-            key: 'totalPrice',
-            header: 'Total Price',
-            render: (value, row) => renderTableCell(value as string, (row as PlotUnit).id, 'totalPrice', 'plot'),
-        },
-        {
-            key: 'actions',
-            header: 'Edit',
-            render: (_, row) => (
-                <div className='flex gap-1'>
-                    {editingRowId === (row as PlotUnit).id ? (
-                        <>
-                            <button
-                                className='text-green-600 hover:text-green-800 text-xs font-medium'
-                                onClick={() => setEditingRowId(null)}
-                            >
-                                Save
-                            </button>
-                            <button
-                                className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
-                                onClick={() => {
-                                    if (isAddingRow) {
-                                        // deleteUnit('plot', (row as PlotUnit).id)
-                                        setIsAddingRow(false)
-                                    }
-                                    setEditingRowId(null)
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            className='text-gray-600 hover:text-gray-800 text-xs font-medium'
-                            onClick={() => setEditingRowId((row as PlotUnit).id)}
-                            disabled={editingRowId !== null}
-                        >
-                            Action
-                        </button>
-                    )}
-                </div>
-            ),
-        },
-    ]
-
+    // Column definitions for Tower Details
     const getTowerColumns = (): TableColumn[] => [
         {
-            key: 'towerName',
+            key: 'tower',
             header: 'Tower Name',
-            render: (value, row) => renderTableCell(value as string, (row as any).id, 'towerName', 'tower'),
+            render: (value: any, row: any) =>
+                renderTableCell(value || '', row, 'tower', 'towerDetails', undefined, 'text'),
         },
         {
             key: 'type',
             header: 'Type',
-            render: (value, row) => renderTableCell(value as string, (row as any).id, 'type', 'tower'),
+            render: (value: any, row: any) =>
+                renderTableCell(value || '', row, 'type', 'towerDetails', undefined, 'text'),
         },
         {
             key: 'noOfFloors',
             header: 'No. of Floors',
-            render: (value, row) => renderTableCell(value as string, (row as any).id, 'noOfFloors', 'tower'),
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'noOfFloors', 'towerDetails', undefined, 'number'),
         },
         {
             key: 'totalUnits',
             header: 'Total Units',
-            render: (value, row) => renderTableCell(value as string, (row as any).id, 'totalUnits', 'tower'),
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'totalUnits', 'towerDetails', undefined, 'number'),
         },
         {
             key: 'stilts',
             header: 'Stilts',
-            render: (value, row) => renderTableCell(value as string, (row as any).id, 'stilts', 'tower'),
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'stilts', 'towerDetails', undefined, 'number'),
         },
         {
             key: 'slabs',
             header: 'Slabs',
-            render: (value, row) => renderTableCell(value as string, (row as any).id, 'slabs', 'tower'),
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'slabs', 'towerDetails', undefined, 'number'),
         },
         {
             key: 'basement',
             header: 'Basement',
-            render: (value, row) => renderTableCell(value as string, (row as any).id, 'basement', 'tower'),
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'basement', 'towerDetails', undefined, 'number'),
         },
         {
             key: 'parking',
             header: 'Parking',
-            render: (value, row) => renderTableCell(value as string, (row as any).id, 'parking', 'tower'),
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'parking', 'towerDetails', undefined, 'number'),
         },
         {
-            key: 'height',
+            key: 'heightFeet',
             header: 'Height (m)',
-            render: (value, row) => renderTableCell(value as string, (row as any).id, 'height', 'tower'),
+            render: (value: any, row: any) =>
+                renderTableCell(value || 0, row, 'heightFeet', 'towerDetails', undefined, 'number'),
         },
         {
-            key: 'floorPlanUnits',
+            key: 'floorPlanAndUnits',
             header: 'Floor Plan / Units',
-            render: (value, row) => (
-                <div className='flex gap-2'>
-                    <Button
-                        textColor='text-blue-600'
-                        bgColor='bg-transparent'
-                        onClick={() => console.log('View Floor Plan for', (row as any).towerName)}
-                    >
-                        View
-                    </Button>
-                    <Button
-                        textColor='text-blue-600'
-                        bgColor='bg-transparent'
-                        onClick={() => console.log('View Units for', (row as any).towerName)}
-                    >
-                        View
-                    </Button>
-                </div>
-            ),
+            render: (_: unknown, row: any) =>
+                renderTableCell(null, row, '', 'towerDetails', undefined, 'button', 'floorPlan'),
         },
     ]
 
-    if (!projectDetails) {
-        return (
-            <Layout loading={true}>
-                <div className='py-2 px-6 bg-white min-h-screen'>
-                    <div className='flex items-center justify-center h-64'>
-                        <div className='text-gray-500'>Loading project details...</div>
+    // Column definitions for Floor Plan Details
+    const getFloorPlanColumns = (): TableColumn[] => [
+        {
+            key: 'floorNo',
+            header: 'Floor No',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+        {
+            key: 'noOfUnits',
+            header: 'No of Units',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+    ]
+
+    // Column definitions for Unit Details
+    const getUnitDetailsColumns = (): TableColumn[] => [
+        {
+            key: 'slNo',
+            header: 'Sl No',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+        {
+            key: 'floorNo',
+            header: 'Floor No',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+        {
+            key: 'unitNo',
+            header: 'Unit No',
+            render: (value: any) => <span className='whitespace-nowrap text-sm font-medium'>{value || ''}</span>,
+        },
+        {
+            key: 'unitType',
+            header: 'Unit Type',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+        {
+            key: 'carpetArea',
+            header: 'Carpet Area',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+        {
+            key: 'exclusiveArea',
+            header: 'Exclusive Area',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+        {
+            key: 'associationArea',
+            header: 'Association Area',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+        {
+            key: 'uds',
+            header: 'UDS',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+        {
+            key: 'parking',
+            header: 'Parking',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
+        },
+    ]
+
+    // Column definitions for Clubhouse Details
+    const getClubhouseColumns = (): TableColumn[] => [
+        {
+            key: 'name',
+            header: 'Name',
+            render: (value: any, row: any) =>
+                renderTableCell(
+                    value || '',
+                    row,
+                    'name',
+                    'clubhouseDetails',
+                    undefined,
+                    'text',
+                    undefined,
+                    isEditingClubhouse,
+                ),
+        },
+        {
+            key: 'sizeSqft',
+            header: 'Size (Sqft)',
+            render: (value: any, row: any) =>
+                renderTableCell(
+                    value || 0,
+                    row,
+                    'sizeSqft',
+                    'clubhouseDetails',
+                    undefined,
+                    'number',
+                    undefined,
+                    isEditingClubhouse,
+                ),
+        },
+        {
+            key: 'floor',
+            header: 'Floor',
+            render: (value: any, row: any) =>
+                renderTableCell(
+                    value || '',
+                    row,
+                    'floor',
+                    'clubhouseDetails',
+                    undefined,
+                    'text',
+                    undefined,
+                    isEditingClubhouse,
+                ),
+        },
+        {
+            key: 'actions',
+            header: 'Actions',
+            render: (_: unknown, row: any) =>
+                isEditingClubhouse ? (
+                    <div className='flex gap-1'>
+                        {editingRowId === row.id ? (
+                            <>
+                                <button
+                                    className='text-green-600 hover:text-green-800 text-xs font-medium'
+                                    onClick={() => setEditingRowId(null)}
+                                >
+                                    Save
+                                </button>
+                                <button
+                                    className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
+                                    onClick={() => {
+                                        if (isAddingRow) {
+                                            setProjectDetails((prev: CompleteProjectDetails | null) =>
+                                                prev
+                                                    ? {
+                                                          ...prev,
+                                                          clubhouseDetails: prev.clubhouseDetails.filter(
+                                                              (r: ClubhouseDetail) => r.id !== row.id,
+                                                          ),
+                                                      }
+                                                    : null,
+                                            )
+                                            setIsAddingRow(false)
+                                        }
+                                        setEditingRowId(null)
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </>
+                        ) : (
+                            <button
+                                className='text-gray-600 hover:text-gray-800 text-xs font-medium'
+                                onClick={() => setEditingRowId(row.id)}
+                                disabled={editingRowId !== null}
+                            >
+                                Edit
+                            </button>
+                        )}
                     </div>
-                </div>
-            </Layout>
-        )
+                ) : null,
+        },
+    ]
+
+    if (isLoading || !projectDetails) {
+        return <Layout loading={true}>Loading project details...</Layout>
     }
 
     return (
         <Layout loading={false}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-4 px-6 bg-white min-h-screen'>
+                <div className='py-4 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
-                    <div className='mb-6'>
+                    <div className='mb-2'>
                         <div className='flex items-center justify-between mb-4'>
-                            <div>
-                                <h1 className='text-xl font-semibold text-black'>{projectDetails.projectName}</h1>
-                                <div className='text-sm text-gray-500 mt-1'>
-                                    <button
-                                        onClick={() => navigate('/restack/primary')}
-                                        className='hover:text-gray-700'
-                                    >
-                                        Primary
-                                    </button>
-                                    <span className='mx-2'>/</span>
-                                    <span className='text-black font-medium'>{projectDetails.pId}</span>
-                                </div>
-                            </div>
-                            <div className='flex gap-4'>
-                                {isEditing ? (
-                                    <>
-                                        <Button
-                                            bgColor='bg-gray-200'
-                                            textColor='text-gray-700'
-                                            className='px-4 h-8 font-semibold'
-                                            onClick={handleCancel}
-                                        >
-                                            ✕ Cancel
-                                        </Button>
-                                        <Button
-                                            bgColor='bg-gray-600'
-                                            textColor='text-white'
-                                            className='px-4 h-8 font-semibold'
-                                            onClick={handleSave}
-                                        >
-                                            ✓ Save
-                                        </Button>
-                                    </>
-                                ) : (
-                                    <Button
-                                        // leftIcon={<img src={editic} alt='Edit' className='w-4 h-4' />}
-                                        bgColor='bg-[#F3F3F3]'
-                                        textColor='text-[#3A3A47]'
-                                        className='px-4 h-8 font-semibold'
-                                        onClick={handleEdit}
-                                    >
-                                        Edit
-                                    </Button>
-                                )}
-                            </div>
+                            <h1 className='text-xl font-semibold text-gray-900'>Project Details</h1>
                         </div>
                     </div>
+                    <hr className='border-gray-200 mb-4 w-full' />
 
                     {/* Project Overview */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Project Overview</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField('Project Name (As per Rera)', projectDetails.projectName, 'projectName')}
-                                {renderField('Project Type', projectDetails.projectType, 'projectType', projectTypes)}
-                                {renderField('Project Status', projectDetails.stage, 'stage', projectStages)}
-                                {renderField(
-                                    'Developer / Promoter',
-                                    projectDetails.developerPromoter,
-                                    'developerPromoter',
-                                )}
-                                {renderField('Project Size (acres)', projectDetails.projectSize, 'projectSize')}
-                                {renderField('Price (per sqft)', projectDetails.pricePerSqft, 'pricePerSqft')}
-                                {renderField(
-                                    'Project Start Date',
-                                    projectDetails.projectStartDate,
-                                    'projectStartDate',
-                                    undefined,
-                                    'date',
-                                )}
-                                {renderField(
-                                    'Proposed Completion Date',
-                                    projectDetails.proposedCompletionDate,
-                                    'proposedCompletionDate',
-                                    undefined,
-                                    'date',
-                                )}
-                            </div>
-                            <div className='space-y-4'>
-                                {renderField(
-                                    'Project Description',
-                                    'A residential project in Golden Hills',
-                                    'projectDescription',
-                                )}
-                                {renderField('Project Sub Type', 'Apartments', 'projectSubType')}
-                                {renderField('Legal Name', 'Bennett Development Inc.', 'legalName')}
-                                {renderField('District', 'Golden Hills', 'district')}
-                                {renderField('Pin Code', '650001', 'pinCode')}
-                                {renderField('Zone', 'North', 'zone')}
-                                {renderField('North Schedule', 'Residential Area', 'northSchedule')}
-                                {renderField('South Schedule', 'Commercial Area', 'southSchedule')}
-                                {renderField('East Schedule', 'Park', 'eastSchedule')}
-                                {renderField('West Schedule', 'School', 'westSchedule')}
-                            </div>
-                        </div>
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Project Overview</h2>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Project Name (As per Rera)',
+                            projectDetails.projectOverview.projectNameAsPerRERA,
+                            'Project Description',
+                            projectDetails.projectOverview.projectDescription,
+                            'projectOverview.projectNameAsPerRERA',
+                            'projectOverview.projectDescription',
+                        )}
+                        {renderInfoRow(
+                            'Project Type',
+                            projectDetails.projectOverview.projectSize,
+                            'Project Sub Type',
+                            projectDetails.projectOverview.projectSubType,
+                            'projectOverview.projectSize',
+                            'projectOverview.projectSubType',
+                            projectTypes,
+                        )}
+                        {renderInfoRow(
+                            'Project Status',
+                            projectDetails.projectOverview.projectStatus,
+                            '',
+                            '',
+                            'projectOverview.projectStatus',
+                            undefined,
+                            projectStages,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            'col-span-2 pr-[50%]',
+                        )}
+                    </div>
+
+                    {/* Developer Details */}
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Developer Details</h2>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Promoter Name',
+                            projectDetails.developerDetails.promoterName,
+                            '',
+                            '',
+                            'developerDetails.promoterName',
+                            undefined,
+                        )}
+                    </div>
+
+                    {/* Project Address */}
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Project Address</h2>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Project Address',
+                            projectDetails.projectAddress.projectAddress,
+                            'District',
+                            projectDetails.projectAddress.district,
+                            'projectAddress.projectAddress',
+                            'projectAddress.district',
+                        )}
+                        {renderInfoRow(
+                            'Latitude',
+                            projectDetails.projectAddress.latitude,
+                            'Longitude',
+                            projectDetails.projectAddress.longitude,
+                            'projectAddress.latitude',
+                            'projectAddress.longitude',
+                        )}
+                        {renderInfoRow(
+                            'Pin Code',
+                            projectDetails.projectAddress.pinCode,
+                            'Zone',
+                            projectDetails.projectAddress.zone,
+                            'projectAddress.pinCode',
+                            'projectAddress.zone',
+                        )}
+                        {renderInfoRow(
+                            'North Schedule',
+                            projectDetails.projectAddress.northBoundary,
+                            'South Schedule',
+                            projectDetails.projectAddress.southBoundary,
+                            'projectAddress.northBoundary',
+                            'projectAddress.southBoundary',
+                        )}
+                        {renderInfoRow(
+                            'East Schedule',
+                            projectDetails.projectAddress.eastBoundary,
+                            'West Schedule',
+                            projectDetails.projectAddress.westBoundary,
+                            'projectAddress.westBoundary',
+                            'projectAddress.eastBoundary',
+                        )}
                     </div>
 
                     {/* Plan Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Plan Details</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField('Approving Authority', 'City Planning Department', 'approvingAuthority')}
-                                {renderField('Plan Approval Date', '2023-01-15', 'planApprovalDate', undefined, 'date')}
-                                {renderField(
-                                    'Total Number of Inventories/Flats/Villas',
-                                    projectDetails.totalUnits,
-                                    'totalUnits',
-                                )}
-                                {renderField('No. of Covered Parking', projectDetails.carParking, 'carParking')}
-                            </div>
-                            <div className='space-y-4'>
-                                {renderField('Approved Plan Number', 'Plan No. 2023-GH-001', 'approvedPlanNumber')}
-                                {renderField('RERA Registration Application Status', 'Approved', 'reraStatus')}
-                                {renderField('No. of Open Parking', '20', 'noOpenParking')}
-                                {renderField('No. of Garage', '10', 'noGarage')}
-                            </div>
-                        </div>
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Plan Details</h2>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Approving Authority',
+                            projectDetails.planDetails.sanctioningAuthority,
+                            'Approved Plan Number',
+                            projectDetails.planDetails.sanctionedPlanNumber,
+                            'planDetails.sanctioningAuthority',
+                            'planDetails.sanctionedPlanNumber',
+                        )}
+                        {renderInfoRow(
+                            'Plan Approval Date',
+                            projectDetails.planDetails.planApprovalDate,
+                            'RERA Registration Application Status',
+                            'Approved',
+                            'planDetails.planApprovalDate',
+                            undefined,
+                            undefined,
+                            undefined,
+                            'date',
+                            'text',
+                        )}
+                        {renderInfoRow('Total Number of Inventories/Flats/Villas', '100', 'No. of Open Parking', '20')}
+                        {renderInfoRow('No. of Covered Parking', '50', 'No. of Garage', '10')}
                     </div>
 
                     {/* Area Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Area Details</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField('Total Open Area (Sq Mtr)', projectDetails.openSpace, 'openSpace')}
-                                {renderField('Total Area Of Land (Sq Mtr)', '10000', 'totalAreaLand')}
-                                {renderField('Total Carpet Area of all the Floors (Sq Mtr)', '7000', 'totalCarpetArea')}
-                                {renderField('Area of Open Parking (Sq Mtr)', '500', 'areaOpenParking')}
-                                {renderField('Area of Garage (Sq Mtr)', '200', 'areaGarage')}
-                            </div>
-                            <div className='space-y-4'>
-                                {renderField('Total Covered Area (Sq Mtr)', '5000', 'totalCoveredArea')}
-                                {renderField(
-                                    'Total Built-up Area of all the Floors (Sq Mtr)',
-                                    '8000',
-                                    'totalBuiltUpArea',
-                                )}
-                                {renderField('Total Plinth Area (Sq Mtr)', '6000', 'totalPlinthArea')}
-                                {renderField('Area of Covered Parking (Sq Mtr)', '1000', 'areaCoveredParking')}
-                                {renderField('Project Density (per acres)', '200', 'projectDensity')}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Price Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Price Details</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField('Price (per sqft) (INR)', projectDetails.pricePerSqft, 'pricePerSqft')}
-                            </div>
-                            <div className='space-y-4'>
-                                <div>
-                                    <label className='text-sm text-gray-600 block'>Cost Sheet</label>
-                                    <a href='#' className='text-sm text-blue-600 hover:text-blue-800 underline'>
-                                        Download Cost Sheet (PDF)
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Area Details</h2>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Total Open Area (Sq Mtr)',
+                            projectDetails.areaDetails.totalOpenAreaSqMtr,
+                            'Total Coverd Area (Sq Mtr)',
+                            projectDetails.areaDetails.totalClosedAreaSqMtr,
+                            'areaDetails.totalOpenAreaSqMtr',
+                            'areaDetails.totalClosedAreaSqMtr',
+                        )}
+                        {renderInfoRow(
+                            'Total Area Of Land (Sq Mtr)',
+                            projectDetails.areaDetails.totalBuiltUpLandSqMtr,
+                            'Total Built-up Area of all the Floors (Sq Mtr)',
+                            projectDetails.areaDetails.totalBuiltUpAreaAsOfTheProjectSqMtr,
+                            'areaDetails.totalBuiltUpLandSqMtr',
+                            'areaDetails.totalBuiltUpAreaAsOfTheProjectSqMtr',
+                        )}
+                        {renderInfoRow(
+                            'Total Carpet Area of all the Floors (Sq Mtr)',
+                            projectDetails.areaDetails.totalCarpetAreaSqMtr,
+                            'Total Plinth Area (Sq Mtr)',
+                            projectDetails.areaDetails.totalConstructedAreaSqMtr,
+                            'areaDetails.totalCarpetAreaSqMtr',
+                            'areaDetails.totalConstructedAreaSqMtr',
+                        )}
+                        {renderInfoRow(
+                            'Area Of Open Parking (Sq Mtr)',
+                            projectDetails.areaDetails.areaOfGarageSqMtr,
+                            'Area Of Covered Parking (Sq Mtr)',
+                            projectDetails.areaDetails.areaOfCoveredParkingSqMtr,
+                            'areaDetails.areaOfGarageSqMtr',
+                            'areaDetails.areaOfCoveredParkingSqMtr',
+                        )}
+                        {renderInfoRow(
+                            'Area of Garage (Sq Mtr)',
+                            projectDetails.areaDetails.specificDensityPerAcre,
+                            '',
+                            '',
+                            'areaDetails.specificDensityPerAcre',
+                        )}
                     </div>
 
                     {/* Source of Water */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Source of Water</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField('Source', 'Municipal Supply', 'sourceOfWater')}
-                            </div>
-                        </div>
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Source of Water</h2>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Source',
+                            projectDetails.sourceOfWater.source,
+                            '',
+                            '',
+                            'sourceOfWater.source',
+                            undefined,
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            'col-span-2 pr-[50%]',
+                        )}
                     </div>
 
-                    {/* Development Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Development Details</h2>
+                    {/* Development Details Table */}
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Development Details</h2>
+                    <div className='px-4 py-3'>
                         <FlexibleTable
-                            data={projectDetails.apartmentUnits} // Assuming apartment units are for development details
-                            columns={getApartmentColumns()}
+                            data={projectDetails.developmentDetails}
+                            columns={getDevelopmentColumns()}
                             hoverable={true}
                             borders={{
-                                table: false,
+                                table: true,
                                 header: true,
                                 rows: true,
                                 cells: false,
-                                outer: false,
+                                outer: true,
                             }}
-                            className='rounded-lg'
                         />
-                        <div className='text-sm text-gray-500 mt-2'>Total: {projectDetails.totalUnits}</div>
+                        <div className='flex justify-between items-center px-4 py-2 bg-gray-50 border-t border-[#d4dbe2] font-medium text-sm'>
+                            <span>Total</span>
+                            <span></span>
+                            <span>
+                                {projectDetails.developmentDetails.reduce(
+                                    (sum: number, item: any) => sum + parseInt(item.noOfInventory),
+                                    0,
+                                )}
+                            </span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'FAR Sanctioned',
+                            projectDetails.developmentDetailsExtra.firstInvestment,
+                            'Number of Towers',
+                            projectDetails.developmentDetailsExtra.numberOfTowers,
+                            'developmentDetailsExtra.firstInvestment',
+                            'developmentDetailsExtra.numberOfTowers',
+                        )}
                     </div>
 
-                    {/* Tower Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Tower Details</h2>
+                    {/* Tower Details Table */}
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Tower Details</h2>
+                    <div className='px-4 py-3'>
                         <FlexibleTable
-                            data={projectDetails.mapsPlans.map((map: MapsPlan) => ({
-                                id: map.id,
-                                towerName: map.name,
-                                type: map.type,
-                                noOfFloors: 'N/A',
-                                totalUnits: 'N/A',
-                                stilts: 'N/A',
-                                slabs: 'N/A',
-                                basement: 'N/A',
-                                parking: 'N/A',
-                                height: 'N/A',
-                                floorPlanUnits: 'N/A',
-                            }))} // Placeholder for now, use actual tower data if available
+                            data={projectDetails.towerDetails}
                             columns={getTowerColumns()}
                             hoverable={true}
                             borders={{
-                                table: false,
+                                table: true,
                                 header: true,
                                 rows: true,
                                 cells: false,
-                                outer: false,
+                                outer: true,
                             }}
-                            className='rounded-lg'
                         />
-                        <div className='text-sm text-gray-500 mt-2'>Number of Towers: {projectDetails.noOfTowers}</div>
                     </div>
 
-                    {/* Ground Data */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Ground Data</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField('Price (at the time of launch) (per sqft)', '10000 sqft', 'launchPrice')}
-                                <div>
-                                    <label className='text-sm text-gray-600 block'>Images</label>
-                                    <p className='text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800'>
-                                        View Images
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className='text-sm text-gray-600 block'>Master Plan</label>
-                                    <p className='text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800'>
-                                        View Master Plan
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className='text-sm text-gray-600 block'>CDP Map</label>
-                                    <p className='text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800'>
-                                        CDP Map (PDF)
-                                    </p>
-                                </div>
+                    {/* Floor Plan Section (conditionally rendered) */}
+                    {selectedTowerForFloorPlan && (
+                        <section className='space-y-4'>
+                            <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
+                                Floor Plan for {selectedTowerForFloorPlan.tower}
+                            </h3>
+                            <div className='overflow-x-auto px-4 py-3'>
+                                <FlexibleTable
+                                    data={selectedTowerForFloorPlan.floorPlanDetails}
+                                    columns={getFloorPlanColumns()}
+                                    hoverable={true}
+                                    borders={{
+                                        table: true,
+                                        header: true,
+                                        rows: true,
+                                        cells: false,
+                                        outer: true,
+                                    }}
+                                />
                             </div>
-                            <div className='space-y-4'>
-                                {renderField('Typology & Unit Plan', 'View Units plan', 'typologyUnitPlan')}
-                                <div>
-                                    <label className='text-sm text-gray-600 block'>Brochure</label>
-                                    <a href='#' className='text-sm text-blue-600 hover:text-blue-800 underline'>
-                                        Download Brochure (PDF)
-                                    </a>
-                                </div>
-                                <div>
-                                    <label className='text-sm text-gray-600 block'>Cost Sheet</label>
-                                    <a href='#' className='text-sm text-blue-600 hover:text-blue-800 underline'>
-                                        Download Cost Sheet (PDF)
-                                    </a>
-                                </div>
+                        </section>
+                    )}
+
+                    {/* Unit Details Section (conditionally rendered) */}
+                    {selectedTowerForUnitDetails && (
+                        <section className='space-y-4'>
+                            <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
+                                Unit Details for {selectedTowerForUnitDetails.tower}
+                            </h3>
+                            <div className='overflow-x-auto px-4 py-3'>
+                                <FlexibleTable
+                                    data={selectedTowerForUnitDetails.unitDetails}
+                                    columns={getUnitDetailsColumns()}
+                                    hoverable={true}
+                                    borders={{
+                                        table: true,
+                                        header: true,
+                                        rows: true,
+                                        cells: false,
+                                        outer: true,
+                                    }}
+                                />
                             </div>
+                        </section>
+                    )}
+
+                    {/* Ground Data (replacing the existing Ground Floor section) */}
+                    <div className='flex items-center justify-between px-4 pb-3 pt-5'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Ground Data</h2>
+                        <div className='flex items-center gap-2'>
+                            {isEditingGroundData ? (
+                                <>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
+                                        onClick={() => handleCancelSection(setIsEditingGroundData, originalDetails)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
+                                        onClick={() => handleSaveSection(setIsEditingGroundData)}
+                                    >
+                                        Save
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                    onClick={() => handleEditSection(setIsEditingGroundData)}
+                                >
+                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
+                                    Edit
+                                </Button>
+                            )}
                         </div>
+                    </div>
+                    <div className='p-4 grid grid-cols-2 gap-x-6'>
+                        {renderInfoRow(
+                            'Price (at the time of launch) (per sqft)',
+                            projectDetails.groundFloor.findOutTheTypeOfLaunchPerYearWill,
+                            'Developer Name',
+                            projectDetails.developerDetails.promoterName,
+                            'groundFloor.findOutTheTypeOfLaunchPerYearWill',
+                            'developerDetails.promoterName',
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingGroundData,
+                        )}
+                        {renderInfoRow(
+                            'Images',
+                            'View Images',
+                            'Typology & Unit Plan',
+                            'View Units plan',
+                            undefined,
+                            undefined,
+                            undefined,
+                            undefined,
+                            'text',
+                            'link',
+                            undefined,
+                            () => navigate(`/restack/primary/${id}/typology`),
+                            undefined,
+                            isEditingGroundData,
+                        )}
+                        {renderInfoRow(
+                            'Master Plan',
+                            'View Master plan',
+                            'Brochure',
+                            'Download Brochure (PDF)',
+                            undefined,
+                            undefined,
+                            undefined,
+                            undefined,
+                            'link',
+                            'link',
+                            () => window.open(projectDetails.mapsPlans[0]?.url || '', '_blank'),
+                            () => window.open(projectDetails.documents.viewDocument, '_blank'),
+                            undefined,
+                            isEditingGroundData,
+                        )}
+                        {renderInfoRow(
+                            'CDP Map',
+                            'CDP map (PDF)',
+                            'Cost Sheet',
+                            'Download Cost Sheet (PDF)',
+                            undefined,
+                            undefined,
+                            undefined,
+                            undefined,
+                            'link',
+                            'link',
+                            () => window.open(projectDetails.mapsPlans[1]?.url || '', '_blank'),
+                            () => window.open(projectDetails.priceDetails.costSheet, '_blank'),
+                            undefined,
+                            isEditingGroundData,
+                        )}
                     </div>
 
                     {/* Amenities */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Amenities</h2>
-                        <div className='flex flex-wrap gap-2'>
-                            <span className='px-3 py-1 text-xs font-medium rounded-md bg-gray-200 text-gray-700'>
-                                Electrification, Water supply and Sanitary Finishing
-                            </span>
-                            <span className='px-3 py-1 text-xs font-medium rounded-md bg-gray-200 text-gray-700'>
-                                Painting
-                            </span>
-                            <span className='px-3 py-1 text-xs font-medium rounded-md bg-gray-200 text-gray-700'>
-                                Fire prevention and fire fighting fitting and fixture with network
-                            </span>
-                            <span className='px-3 py-1 text-xs font-medium rounded-md bg-gray-200 text-gray-700'>
-                                Wardrobe, Showcase, Kitchen cabinet, Puja work
-                            </span>
-                            <span className='px-3 py-1 text-xs font-medium rounded-md bg-gray-200 text-gray-700'>
-                                Landscaping & Tree Planting
-                            </span>
-                            <span className='px-3 py-1 text-xs font-medium rounded-md bg-gray-200 text-gray-700'>
-                                Rain Water Harvesting
-                            </span>
-                            <span className='px-3 py-1 text-xs font-medium rounded-md bg-gray-200 text-gray-700'>
-                                Sewage Treatment Plant
-                            </span>
-                            <span className='px-3 py-1 text-xs font-medium rounded-md bg-gray-200 text-gray-700'>
-                                24/7 Security
-                            </span>
-                            <span className='px-3 py-1 text-xs font-medium rounded-md bg-gray-200 text-gray-700'>
-                                Power Backup
-                            </span>
+                    <div className='flex items-center justify-between px-4 pb-3 pt-5'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Amenities</h2>
+                        <div className='flex items-center gap-2'>
+                            {isEditingAmenities ? (
+                                <>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
+                                        onClick={() => handleCancelSection(setIsEditingAmenities, originalDetails)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
+                                        onClick={() => handleSaveSection(setIsEditingAmenities)}
+                                    >
+                                        Save
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                    onClick={() => handleEditSection(setIsEditingAmenities)}
+                                >
+                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
+                                    Edit
+                                </Button>
+                            )}
                         </div>
                     </div>
+                    {isEditingAmenities ? (
+                        <div className='flex flex-wrap gap-3 p-3 pr-4'>
+                            <textarea
+                                value={projectDetails.amenities.join(', ')}
+                                onChange={(e) =>
+                                    setProjectDetails((prev) =>
+                                        prev
+                                            ? {
+                                                  ...prev,
+                                                  amenities: e.target.value.split(',').map((s) => s.trim()),
+                                              }
+                                            : null,
+                                    )
+                                }
+                                className='w-full h-auto text-base border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                placeholder='Enter amenities separated by commas'
+                                rows={3}
+                            />
+                        </div>
+                    ) : (
+                        <div className='flex flex-wrap gap-3 p-3 pr-4'>
+                            {projectDetails.amenities.map((amenity: string, index: number) => (
+                                <div
+                                    key={index}
+                                    className='flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#e9edf1] pl-4 pr-4'
+                                >
+                                    <p className='text-[#101419] text-sm font-medium leading-normal'>{amenity}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Clubhouse Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Clubhouse Details</h2>
+                    <div className='flex items-center justify-between px-4 pb-3 pt-5'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Clubhouse Details</h2>
+                        <div className='flex items-center gap-2'>
+                            {isEditingClubhouse ? (
+                                <>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-green-500 text-white hover:bg-green-600 mr-2'
+                                        onClick={addClubhouseRow}
+                                    >
+                                        <img src={addcircleic} alt='add' className='w-4 h-4 mr-2' />
+                                        Add Row
+                                    </Button>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
+                                        onClick={() => handleCancelSection(setIsEditingClubhouse, originalDetails)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
+                                        onClick={() => handleSaveSection(setIsEditingClubhouse)}
+                                    >
+                                        Save
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                    onClick={() => handleEditSection(setIsEditingClubhouse)}
+                                >
+                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
+                                    Edit
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                    <div className='px-4'>
                         <FlexibleTable
-                            data={[
-                                { name: 'Main Clubhouse', size: '10,000', floor: 'Ground' },
-                                { name: 'Sports Club', size: '5,000', floor: 'First Floor' },
-                            ]}
-                            columns={[
-                                {
-                                    key: 'name',
-                                    header: 'Name',
-                                    render: (value) => <span className='text-sm text-gray-900'>{value as string}</span>,
-                                },
-                                {
-                                    key: 'size',
-                                    header: 'Size (Sqft)',
-                                    render: (value) => <span className='text-sm text-gray-900'>{value as string}</span>,
-                                },
-                                {
-                                    key: 'floor',
-                                    header: 'Floor',
-                                    render: (value) => <span className='text-sm text-gray-900'>{value as string}</span>,
-                                },
-                            ]}
+                            data={projectDetails.clubhouseDetails}
+                            columns={getClubhouseColumns()}
                             hoverable={true}
                             borders={{
-                                table: false,
+                                table: true,
                                 header: true,
                                 rows: true,
                                 cells: false,
-                                outer: false,
+                                outer: true,
                             }}
-                            className='rounded-lg'
                         />
                     </div>
 
                     {/* Litigation Status and Complaints */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Litigation Status and Complaints</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField('Litigation Status', 'Yes', 'litigationStatus')}
-                                <div>
-                                    <label className='text-sm text-gray-600 block'>Affidavit Link</label>
-                                    <a href='#' className='text-sm text-blue-600 hover:text-blue-800 underline'>
-                                        Download Affidavit (PDF)
-                                    </a>
-                                </div>
-                            </div>
-                            <div className='space-y-4'>
-                                <div>
-                                    <label className='text-sm text-gray-600 block'>Complaints</label>
-                                    <p className='text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800'>
-                                        View Complaints
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>
+                        Litigation Status and Complaints
+                    </h2>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Litigation Status',
+                            projectDetails.litigationStatusAndComplaints.litigationStatus,
+                            'Appeal Revision',
+                            projectDetails.litigationStatusAndComplaints.appealRevision,
+                            'litigationStatusAndComplaints.litigationStatus',
+                            'litigationStatusAndComplaints.appealRevision',
+                        )}
+                        {renderInfoRow(
+                            'Complaints',
+                            'View Complaints',
+                            'Affidavit Link',
+                            'Download Affidavit (PDF)',
+                            undefined,
+                            undefined,
+                            undefined,
+                            undefined,
+                            'text',
+                            'link',
+                            undefined,
+                            () => window.open(projectDetails.litigationStatusAndComplaints.affidavitLink, '_blank'),
+                        )}
                     </div>
 
                     {/* Documents */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Documents</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                <div>
-                                    <label className='text-sm text-gray-600 block'>Documents</label>
-                                    <p className='text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800'>
-                                        View Document
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Documents</h2>
+                    <div className='flex px-4 py-3 justify-start'>
+                        <Button
+                            className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                            onClick={() => {
+                                console.log(projectDetails.documents.viewDocument, 'lalaa')
+                                window.open(projectDetails.documents.viewDocument, '_blank')
+                            }}
+                        >
+                            <span className='truncate'>View Documents</span>
+                        </Button>
+                    </div>
+
+                    <h2 className='text-xl font-semibold mb-4'>Documents</h2>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        {renderInfoRow(
+                            'Sale Deed',
+                            projectDetails.documents.saleDeed,
+                            'View Document',
+                            projectDetails.documents.viewDocument,
+                            undefined,
+                            undefined,
+                            undefined,
+                            undefined,
+                            'text',
+                            'link',
+                        )}
+                        {renderInfoRow(
+                            'Complaints',
+                            'View Complaints',
+                            '',
+                            '',
+                            undefined,
+                            undefined,
+                            undefined,
+                            undefined,
+                            'link',
+                            'text',
+                            () => navigate(`/restack/primary/${id}/complaints`),
+                        )}
                     </div>
                 </div>
             </div>
