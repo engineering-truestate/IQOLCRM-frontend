@@ -326,13 +326,13 @@ export function FlexibleTable({
 
     return (
         <div className={`w-full border-none rounded-lg overflow-hidden ${className}`}>
-            <div className='overflow-auto' style={containerStyle}>
+            <div className='overflow-auto scrollbar-hide' style={containerStyle}>
                 <table className={getTableClasses()}>
                     <thead className={stickyHeader ? 'rounded-lg sticky top-0 z-30 bg-[#F3F3F3] shadow-sm' : ''}>
                         <tr className={`rounded-lg ${stickyHeader ? 'bg-white' : ''} ${headerClassName}`}>
                             {showCheckboxes && (
                                 <th
-                                    className={`rounded-lg w-12 px-4 py-2 text-center bg-[#F3F3F3] ${hasLeftFixedColumns ? 'sticky left-0 z-40' : ''} ${getCellBorderClasses(true)}`}
+                                    className={`w-12 px-4 py-2 text-center bg-[#F3F3F3] ${hasLeftFixedColumns ? 'sticky left-0 z-40' : ''} ${getCellBorderClasses(true)}`}
                                     style={hasLeftFixedColumns ? { boxShadow: '2px 0 4px -2px rgba(0,0,0,0.1)' } : {}}
                                 >
                                     <input

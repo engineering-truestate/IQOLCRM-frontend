@@ -126,40 +126,41 @@ const Documents: React.FC = () => {
                     {uploading ? (
                         <div className='mx-auto w-12 h-12 border-4 border-green-200 border-t-green-500 rounded-full animate-spin'></div>
                     ) : (
-                        <svg className='mx-auto text-gray-400' width='48' height='48' viewBox='0 0 24 24' fill='none'>
+                        <svg
+                            className='mx-auto text-gray-400'
+                            width='48'
+                            height='48'
+                            viewBox='0 0 24 24'
+                            fill='none'
+                            xmlns='http://www.w3.org/2000/svg'
+                        >
                             <path
-                                d='M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z'
-                                stroke='currentColor'
-                                strokeWidth='2'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
+                                d='M12.0586 16.5V11.5'
+                                stroke='#292D32'
+                                stroke-width='1.5'
+                                stroke-miterlimit='10'
+                                stroke-linecap='round'
+                                stroke-linejoin='round'
                             />
                             <path
-                                d='M14 2V8H20'
-                                stroke='currentColor'
-                                strokeWidth='2'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
+                                d='M14.5 14H9.5'
+                                stroke='#292D32'
+                                stroke-width='1.5'
+                                stroke-miterlimit='10'
+                                stroke-linecap='round'
+                                stroke-linejoin='round'
                             />
                             <path
-                                d='M12 18V12'
-                                stroke='currentColor'
-                                strokeWidth='2'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                            />
-                            <path
-                                d='M9 15L12 12L15 15'
-                                stroke='currentColor'
-                                strokeWidth='2'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
+                                d='M22 11V17C22 21 21 22 17 22H7C3 22 2 21 2 17V7C2 3 3 2 7 2H8.5C10 2 10.33 2.44 10.9 3.2L12.4 5.2C12.78 5.7 13 6 14 6H17C21 6 22 7 22 11Z'
+                                stroke='#292D32'
+                                stroke-width='1.5'
+                                stroke-miterlimit='10'
                             />
                         </svg>
                     )}
                 </div>
                 <p className='text-gray-600 mb-2 font-medium'>
-                    {uploading ? 'Uploading...' : 'Drag and drop file her'}
+                    {uploading ? 'Uploading...' : 'Drag and drop file here'}
                 </p>
                 <p className='text-sm text-gray-500'>
                     {uploading ? 'Please wait while we process your file' : 'Browse file from your computer'}
@@ -192,25 +193,43 @@ const Documents: React.FC = () => {
                             {/* Document Icon */}
                             <div className='flex-shrink-0'>
                                 <svg
-                                    className={doc.isNew ? 'text-green-600' : 'text-gray-500'}
-                                    width='20'
-                                    height='20'
+                                    width='24'
+                                    height='24'
                                     viewBox='0 0 24 24'
                                     fill='none'
+                                    xmlns='http://www.w3.org/2000/svg'
                                 >
                                     <path
-                                        d='M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z'
-                                        stroke='currentColor'
-                                        strokeWidth='2'
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
+                                        d='M21 7V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V7C3 4 4.5 2 8 2H16C19.5 2 21 4 21 7Z'
+                                        stroke='#292D32'
+                                        stroke-width='1.5'
+                                        stroke-miterlimit='10'
+                                        stroke-linecap='round'
+                                        stroke-linejoin='round'
                                     />
                                     <path
-                                        d='M14 2V8H20'
-                                        stroke='currentColor'
-                                        strokeWidth='2'
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
+                                        d='M14.5 4.5V6.5C14.5 7.6 15.4 8.5 16.5 8.5H18.5'
+                                        stroke='#292D32'
+                                        stroke-width='1.5'
+                                        stroke-miterlimit='10'
+                                        stroke-linecap='round'
+                                        stroke-linejoin='round'
+                                    />
+                                    <path
+                                        d='M8 13H12'
+                                        stroke='#292D32'
+                                        stroke-width='1.5'
+                                        stroke-miterlimit='10'
+                                        stroke-linecap='round'
+                                        stroke-linejoin='round'
+                                    />
+                                    <path
+                                        d='M8 17H16'
+                                        stroke='#292D32'
+                                        stroke-width='1.5'
+                                        stroke-miterlimit='10'
+                                        stroke-linecap='round'
+                                        stroke-linejoin='round'
                                     />
                                 </svg>
                             </div>
@@ -218,17 +237,15 @@ const Documents: React.FC = () => {
                             {/* Document Info */}
                             <div className='flex flex-col'>
                                 <div className='flex items-center gap-2'>
-                                    <span className='text-sm font-medium text-gray-900'>{doc.name}</span>
-                                    <span className='text-xs text-gray-500 bg-white px-2 py-1 rounded border'>
-                                        {doc.size}
-                                    </span>
+                                    <span className='text-sm font-medium text-gray-600'>{doc.name}</span>
+
                                     {doc.isNew && (
                                         <span className='text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium'>
                                             New
                                         </span>
                                     )}
                                 </div>
-                                <span className='text-xs text-gray-400 mt-1'>Uploaded on {doc.uploadDate}</span>
+                                <span className='text-xs text-gray-400 mt-1'>{doc.size}</span>
                             </div>
                         </div>
 

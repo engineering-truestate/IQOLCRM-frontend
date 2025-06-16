@@ -30,7 +30,9 @@ const Dropdown = ({
 }: DropdownProps) => {
     const [isOpen, setIsOpen] = useState(false)
     const [selected, setSelected] = useState<string>(defaultValue || '')
+    const [triggerWidth, setTriggerWidth] = useState<number>(0)
     const dropdownRef = useRef<HTMLDivElement>(null)
+    const triggerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -40,6 +42,19 @@ const Dropdown = ({
         }
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    // Measure trigger width when component mounts or window resizes
+    useEffect(() => {
+        const measureTriggerWidth = () => {
+            if (triggerRef.current) {
+                setTriggerWidth(triggerRef.current.offsetWidth)
+            }
+        }
+
+        measureTriggerWidth()
+        window.addEventListener('resize', measureTriggerWidth)
+        return () => window.removeEventListener('resize', measureTriggerWidth)
     }, [])
 
     // Find the selected option object
@@ -66,13 +81,14 @@ const Dropdown = ({
     // Default styles (Tailwind) that can be overridden via props
     const defaultContainerClass = 'relative w-64'
     const defaultTriggerClass = 'border px-4 py-2 rounded cursor-pointer shadow flex items-center justify-between'
-    const defaultMenuClass = 'absolute z-10 w-full mt-1 bg-white border rounded shadow-lg'
+    const defaultMenuClass = 'absolute z-10 mt-1 bg-white border rounded shadow-lg'
     const defaultOptionClass = 'px-4 py-2 cursor-pointer hover:bg-gray-100 flex items-center'
 
     return (
         <div className={className || defaultContainerClass} tabIndex={0} ref={dropdownRef} onKeyDown={handleKeyDown}>
             {/* Trigger */}
             <div
+                ref={triggerRef}
                 className={triggerClassName || defaultTriggerClass}
                 onClick={() => setIsOpen((open) => !open)}
                 style={
@@ -91,7 +107,11 @@ const Dropdown = ({
 
             {/* Menu */}
             {isOpen && (
-                <div className={menuClassName || defaultMenuClass} role='listbox'>
+                <div
+                    className={menuClassName || defaultMenuClass}
+                    style={{ minWidth: `${triggerWidth}px` }}
+                    role='listbox'
+                >
                     {options.map((option) => {
                         const isSelected = selected === option.value
                         // Apply selected styling if matches

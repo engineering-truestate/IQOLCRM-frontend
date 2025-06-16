@@ -1,9 +1,10 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import searchIcon from '/icons/canvas_homes/searchIcon.svg'
 import google from '/icons/canvas_homes/google.svg'
 import hot from '/icons/canvas_homes/hoticon.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
@@ -22,6 +23,8 @@ type SalesLead = {
     leadStage: string
     leadStatus: string
     tag: string
+    status: 'Fresh' | 'Open' | 'Closed' | 'Dropped'
+    aslc: number
     scheduleTask: {
         type: string
         date: string
@@ -45,8 +48,8 @@ const StatusCard = ({
     return (
         <button
             onClick={onClick}
-            className={`px-2 py-2.5 rounded-[12px]  w-32 h-14 border transition-colors ${
-                isActive ? 'bg-[#E2F4FF] border-[#3279EA]' : '  border border-gray-200 bg-white hover:bg-gray-50'
+            className={`px-2 py-2.5 rounded-[12px] w-32 h-14 border transition-colors ${
+                isActive ? 'bg-[#E2F4FF] border-[#3279EA]' : 'border border-gray-200 bg-white hover:bg-gray-50'
             }`}
         >
             <div className='flex w-full items-center gap-2'>
@@ -58,8 +61,6 @@ const StatusCard = ({
         </button>
     )
 }
-
-// Generate dummy leads data
 const generateLeadsData = (): SalesLead[] => {
     return [
         {
@@ -68,11 +69,13 @@ const generateLeadsData = (): SalesLead[] => {
             addedDate: 'Added 23/05/25',
             property: 'Prestige Gardenia',
             source: 'Google',
-            contact: '+91 7024396102',
+            contact: '+91 9890673423',
             agent: 'Yashwant',
             leadStage: 'Initial Contacted',
             leadStatus: 'Interested',
             tag: 'Hot',
+            status: 'Fresh',
+            aslc: 2,
             scheduleTask: {
                 type: 'Site Visit',
                 date: 'May 23, 2025',
@@ -82,110 +85,281 @@ const generateLeadsData = (): SalesLead[] => {
         },
         {
             id: '2',
-            name: 'Rasika Myana',
-            addedDate: 'Added 23/05/25',
-            property: 'Prestige Gardenia',
-            source: 'Google',
-            contact: '+91 7024396102',
-            agent: 'Yashwant',
-            leadStage: 'Initial Contacted',
+            name: 'Priya Sharma',
+            addedDate: 'Added 22/05/25',
+            property: 'Brigade Cosmopolis',
+            source: 'LinkedIn',
+            contact: '+91 9876543210',
+            agent: 'Priya',
+            leadStage: 'Site Visited',
             leadStatus: 'Follow Up RNR 1',
-            tag: 'Hot',
+            tag: 'Warm',
+            status: 'Open',
+            aslc: 5,
             scheduleTask: {
                 type: 'Call Scheduled',
-                date: 'May 23, 2025',
-                time: '10:30 AM',
+                date: 'May 24, 2025',
+                time: '2:00 PM',
                 avatar: 'E',
             },
         },
         {
             id: '3',
-            name: 'Rasika Myana',
-            addedDate: 'Added 23/05/25',
-            property: 'Prestige Gardenia',
-            source: 'Google',
-            contact: '+91 7024396102',
-            agent: 'Yashwant',
-            leadStage: 'Site Visited',
+            name: 'Amit Kumar',
+            addedDate: 'Added 21/05/25',
+            property: 'Sobha City',
+            source: 'Meta',
+            contact: '+91 9123456789',
+            agent: 'Raj',
+            leadStage: 'EOI Collected',
             leadStatus: 'Interested',
             tag: 'Hot',
+            status: 'Open',
+            aslc: 1,
             scheduleTask: {
-                type: 'Collect EOI',
-                date: 'May 23, 2025',
-                time: '10:30 AM',
+                type: 'Booking',
+                date: 'May 25, 2025',
+                time: '11:00 AM',
                 avatar: 'E',
             },
         },
         {
             id: '4',
-            name: 'Rasika Myana',
-            addedDate: 'Added 23/05/25',
-            property: 'Prestige Gardenia',
+            name: 'Sneha Patel',
+            addedDate: 'Added 20/05/25',
+            property: 'Embassy Springs',
             source: 'Google',
-            contact: '+91 7024396102',
+            contact: '+91 9988776655',
+            agent: 'Suman',
+            leadStage: 'Lead Registered',
+            leadStatus: 'Not Connected RNR 1',
+            tag: 'Cold',
+            status: 'Fresh',
+            aslc: 7,
+            scheduleTask: {
+                type: 'Call Scheduled',
+                date: 'May 26, 2025',
+                time: '9:30 AM',
+                avatar: 'E',
+            },
+        },
+        {
+            id: '5',
+            name: 'Rajesh Singh',
+            addedDate: 'Added 19/05/25',
+            property: 'Mantri Energia',
+            source: 'LinkedIn',
+            contact: '+91 9876543211',
+            agent: 'Kiran',
+            leadStage: 'Booking Completed',
+            leadStatus: 'Interested',
+            tag: 'Hot',
+            status: 'Closed',
+            aslc: 0,
+            scheduleTask: {
+                type: 'Follow Up Call',
+                date: 'May 27, 2025',
+                time: '3:15 PM',
+                avatar: 'E',
+            },
+        },
+        {
+            id: '6',
+            name: 'Anita Desai',
+            addedDate: 'Added 18/05/25',
+            property: 'Prestige Gardenia',
+            source: 'Meta',
+            contact: '+91 9345678901',
             agent: 'Yashwant',
+            leadStage: 'Site Visited',
+            leadStatus: 'Callback Requested',
+            tag: 'Warm',
+            status: 'Open',
+            aslc: 3,
+            scheduleTask: {
+                type: 'Collect EOI',
+                date: 'May 28, 2025',
+                time: '1:45 PM',
+                avatar: 'E',
+            },
+        },
+        {
+            id: '7',
+            name: 'Vikram Mehta',
+            addedDate: 'Added 17/05/25',
+            property: 'Brigade Cosmopolis',
+            source: 'Google',
+            contact: '+91 9567890123',
+            agent: 'Priya',
+            leadStage: 'Initial Contacted',
+            leadStatus: 'Not Connected RNR 2',
+            tag: 'Cold',
+            status: 'Dropped',
+            aslc: 15,
+            scheduleTask: {
+                type: 'Site Visit',
+                date: 'May 29, 2025',
+                time: '4:00 PM',
+                avatar: 'E',
+            },
+        },
+        {
+            id: '8',
+            name: 'Kavya Reddy',
+            addedDate: 'Added 16/05/25',
+            property: 'Sobha City',
+            source: 'LinkedIn',
+            contact: '+91 9789012345',
+            agent: 'Raj',
             leadStage: 'EOI Collected',
             leadStatus: 'Interested',
             tag: 'Hot',
+            status: 'Open',
+            aslc: 4,
             scheduleTask: {
                 type: 'Booking',
-                date: 'May 23, 2025',
-                time: '10:30 AM',
+                date: 'May 30, 2025',
+                time: '10:15 AM',
                 avatar: 'E',
             },
         },
         {
-            id: '5',
-            name: 'Rasika Myana',
-            addedDate: 'Added 23/05/25',
-            property: 'Prestige Gardenia',
-            source: 'Google',
-            contact: '+91 7024396102',
-            agent: 'Yashwant',
+            id: '9',
+            name: 'Rohit Jain',
+            addedDate: 'Added 15/05/25',
+            property: 'Embassy Springs',
+            source: 'Meta',
+            contact: '+91 9012345678',
+            agent: 'Suman',
             leadStage: 'Lead Registered',
-            leadStatus: 'Not Connected RNR 2',
-            tag: 'Hot',
+            leadStatus: 'Follow Up RNR 1',
+            tag: 'Warm',
+            status: 'Fresh',
+            aslc: 8,
             scheduleTask: {
                 type: 'Call Scheduled',
-                date: 'May 23, 2025',
-                time: '10:30 AM',
+                date: 'May 31, 2025',
+                time: '12:30 PM',
                 avatar: 'E',
             },
         },
         {
-            id: '5',
-            name: 'Rasika Myana',
-            addedDate: 'Added 23/05/25',
-            property: 'Prestige Gardenia',
+            id: '10',
+            name: 'Deepika Nair',
+            addedDate: 'Added 14/05/25',
+            property: 'Mantri Energia',
             source: 'Google',
-            contact: '+91 7024396102',
-            agent: 'Yashwant',
-            leadStage: 'Lead Registered',
-            leadStatus: 'Not Connected RNR 2',
+            contact: '+91 9234567890',
+            agent: 'Kiran',
+            leadStage: 'Site Visited',
+            leadStatus: 'Interested',
             tag: 'Hot',
+            status: 'Open',
+            aslc: 6,
             scheduleTask: {
-                type: 'Call Scheduled',
-                date: 'May 23, 2025',
-                time: '10:30 AM',
+                type: 'Collect EOI',
+                date: 'Jun 1, 2025',
+                time: '2:45 PM',
                 avatar: 'E',
             },
         },
-
         {
-            id: '5',
-            name: 'Rasika Myana',
-            addedDate: 'Added 23/05/25',
+            id: '11',
+            name: 'Arjun Gupta',
+            addedDate: 'Added 13/05/25',
             property: 'Prestige Gardenia',
-            source: 'Google',
-            contact: '+91 7024396102',
+            source: 'LinkedIn',
+            contact: '+91 9456789012',
             agent: 'Yashwant',
-            leadStage: 'Lead Registered',
-            leadStatus: 'Not Connected RNR 2',
+            leadStage: 'Booking Completed',
+            leadStatus: 'Interested',
             tag: 'Hot',
+            status: 'Closed',
+            aslc: 1,
+            scheduleTask: {
+                type: 'Follow Up Call',
+                date: 'Jun 2, 2025',
+                time: '11:15 AM',
+                avatar: 'E',
+            },
+        },
+        {
+            id: '12',
+            name: 'Meera Kapoor',
+            addedDate: 'Added 12/05/25',
+            property: 'Brigade Cosmopolis',
+            source: 'Meta',
+            contact: '+91 9678901234',
+            agent: 'Priya',
+            leadStage: 'Initial Contacted',
+            leadStatus: 'Callback Requested',
+            tag: 'Warm',
+            status: 'Fresh',
+            aslc: 9,
+            scheduleTask: {
+                type: 'Site Visit',
+                date: 'Jun 3, 2025',
+                time: '9:00 AM',
+                avatar: 'E',
+            },
+        },
+        {
+            id: '13',
+            name: 'Suresh Iyer',
+            addedDate: 'Added 11/05/25',
+            property: 'Sobha City',
+            source: 'Google',
+            contact: '+91 9890123456',
+            agent: 'Raj',
+            leadStage: 'EOI Collected',
+            leadStatus: 'Not Connected RNR 1',
+            tag: 'Cold',
+            status: 'Dropped',
+            aslc: 12,
             scheduleTask: {
                 type: 'Call Scheduled',
-                date: 'May 23, 2025',
-                time: '10:30 AM',
+                date: 'Jun 4, 2025',
+                time: '3:30 PM',
+                avatar: 'E',
+            },
+        },
+        {
+            id: '14',
+            name: 'Neha Agarwal',
+            addedDate: 'Added 10/05/25',
+            property: 'Embassy Springs',
+            source: 'LinkedIn',
+            contact: '+91 9012345679',
+            agent: 'Suman',
+            leadStage: 'Site Visited',
+            leadStatus: 'Interested',
+            tag: 'Hot',
+            status: 'Open',
+            aslc: 2,
+            scheduleTask: {
+                type: 'Booking',
+                date: 'Jun 5, 2025',
+                time: '1:00 PM',
+                avatar: 'E',
+            },
+        },
+        {
+            id: '15',
+            name: 'Karthik Raman',
+            addedDate: 'Added 09/05/25',
+            property: 'Mantri Energia',
+            source: 'Meta',
+            contact: '+91 9123456780',
+            agent: 'Kiran',
+            leadStage: 'Lead Registered',
+            leadStatus: 'Follow Up RNR 1',
+            tag: 'Warm',
+            status: 'Fresh',
+            aslc: 5,
+            scheduleTask: {
+                type: 'Call Scheduled',
+                date: 'Jun 6, 2025',
+                time: '4:15 PM',
                 avatar: 'E',
             },
         },
@@ -206,7 +380,73 @@ const Leads = () => {
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
 
-    const leadsData = generateLeadsData()
+    const allLeadsData = generateLeadsData()
+
+    // Filter data based on active status card and other filters
+    const filteredLeadsData = useMemo(() => {
+        let filtered = allLeadsData
+
+        // Filter by status card
+        if (activeStatusCard !== 'All') {
+            filtered = filtered.filter((lead) => lead.status === activeStatusCard)
+        }
+
+        // Apply search filter
+        if (searchValue) {
+            filtered = filtered.filter(
+                (lead) =>
+                    lead.name.toLowerCase().includes(searchValue.toLowerCase()) || lead.contact.includes(searchValue),
+            )
+        }
+
+        // Apply dropdown filters
+        if (selectedProperty) {
+            filtered = filtered.filter((lead) => lead.property.toLowerCase().includes(selectedProperty))
+        }
+        if (selectedAgent) {
+            filtered = filtered.filter((lead) => lead.agent.toLowerCase().includes(selectedAgent))
+        }
+        if (selectedSource) {
+            filtered = filtered.filter((lead) => lead.source.toLowerCase().includes(selectedSource))
+        }
+        if (selectedLeadStage) {
+            filtered = filtered.filter((lead) => lead.leadStage.toLowerCase().includes(selectedLeadStage))
+        }
+        if (selectedTag) {
+            filtered = filtered.filter((lead) => lead.tag.toLowerCase().includes(selectedTag))
+        }
+        if (selectedTask) {
+            filtered = filtered.filter((lead) => lead.scheduleTask.type.toLowerCase().includes(selectedTask))
+        }
+        if (selectedLeadStatus) {
+            filtered = filtered.filter((lead) => lead.leadStatus.toLowerCase().includes(selectedLeadStatus))
+        }
+
+        return filtered
+    }, [
+        allLeadsData,
+        activeStatusCard,
+        searchValue,
+        selectedProperty,
+        selectedAgent,
+        selectedSource,
+        selectedLeadStage,
+        selectedTag,
+        selectedTask,
+        selectedLeadStatus,
+    ])
+
+    // Calculate counts for status cards
+    const statusCounts = useMemo(
+        () => ({
+            All: allLeadsData.length,
+            Fresh: allLeadsData.filter((lead) => lead.status === 'Fresh').length,
+            Open: allLeadsData.filter((lead) => lead.status === 'Open').length,
+            Closed: allLeadsData.filter((lead) => lead.status === 'Closed').length,
+            Dropped: allLeadsData.filter((lead) => lead.status === 'Dropped').length,
+        }),
+        [allLeadsData],
+    )
 
     const handleRowSelect = (rowId: string, selected: boolean) => {
         if (selected) {
@@ -218,15 +458,17 @@ const Leads = () => {
 
     const handleRowClick = (row: any) => {
         console.log('Row clicked:', row)
+        // Redirect to lead details page
+        window.location.href = `/sales/leaddetails/${row.id}`
     }
 
-    // Status cards data
+    // Status cards data with dynamic counts
     const statusCards = [
-        { title: 'All', count: 20 },
-        { title: 'Fresh', count: 20 },
-        { title: 'Open', count: 80 },
-        { title: 'Closed', count: 50 },
-        { title: 'Dropped', count: 120 },
+        { title: 'All', count: statusCounts.All },
+        { title: 'Fresh', count: statusCounts.Fresh },
+        { title: 'Open', count: statusCounts.Open },
+        { title: 'Closed', count: statusCounts.Closed },
+        { title: 'Dropped', count: statusCounts.Dropped },
     ]
 
     // Dropdown options
@@ -308,6 +550,11 @@ const Leads = () => {
             render: (value) => (
                 <div className='w-full h-full flex items-center justify-center'>
                     {value === 'Google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
+                    {value === 'LinkedIn' && <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />}
+                    {value === 'Meta' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
+                    {!['Google', 'LinkedIn', 'Meta'].includes(value) && (
+                        <span className='text-xs font-medium px-2 py-1 bg-gray-100 rounded'>{value}</span>
+                    )}
                 </div>
             ),
         },
@@ -335,14 +582,14 @@ const Leads = () => {
             key: 'tag',
             header: 'Tag',
             render: (value) => (
-                <div className='inline-flex items-center w-17 h-6  gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFEDD5] text-[#9A3412]'>
-                    <img src={hot} alt='Google' className='w-3 h-3 object-contain' />
-                    <span className='text-sm font-norma'>{value}</span>
+                <div className='inline-flex items-center w-17 h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFEDD5] text-[#9A3412]'>
+                    <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
+                    <span className='text-sm font-normal'>{value}</span>
                 </div>
             ),
         },
         {
-            key: 'ASLC',
+            key: 'aslc',
             header: 'ASLC',
             render: (value) => (
                 <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
@@ -367,43 +614,41 @@ const Leads = () => {
     ]
 
     return (
-        <div className='w-full'>
+        <div className='p-3 pb-0 h-full'>
             {/* Search and Filters */}
-            <div className='flex items-center gap-3 mb-5'>
-                <div className='w-64'>
-                    <StateBaseTextField
-                        leftIcon={
-                            <svg
-                                className='w-4 h-4 text-gray-400'
-                                fill='none'
-                                stroke='currentColor'
-                                viewBox='0 0 16 16'
-                                width='16'
-                                height='16'
-                                xmlns='http://www.w3.org/2000/svg'
-                            >
-                                <path
-                                    d='M7.66668 13.9999C11.1645 13.9999 14 11.1644 14 7.66659C14 4.16878 11.1645 1.33325 7.66668 1.33325C4.16887 1.33325 1.33334 4.16878 1.33334 7.66659C1.33334 11.1644 4.16887 13.9999 7.66668 13.9999Z'
-                                    stroke='#3A3A47'
-                                    stroke-width='1.5'
-                                    stroke-linecap='round'
-                                    stroke-linejoin='round'
-                                />
-                                <path
-                                    d='M14.6667 14.6666L13.3333 13.3333'
-                                    stroke='#3A3A47'
-                                    stroke-width='1.5'
-                                    stroke-linecap='round'
-                                    stroke-linejoin='round'
-                                />
-                            </svg>
-                        }
-                        placeholder='Search name and number'
-                        value={searchValue}
-                        onChange={(e) => setSearchValue(e.target.value)}
-                        className='h-7'
-                    />
-                </div>
+            <div className='flex items-center gap-4 mb-5'>
+                <StateBaseTextField
+                    leftIcon={
+                        <svg
+                            className='w-4 h-4 text-gray-400'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 16 16'
+                            width='16'
+                            height='16'
+                            xmlns='http://www.w3.org/2000/svg'
+                        >
+                            <path
+                                d='M7.66668 13.9999C11.1645 13.9999 14 11.1644 14 7.66659C14 4.16878 11.1645 1.33325 7.66668 1.33325C4.16887 1.33325 1.33334 4.16878 1.33334 7.66659C1.33334 11.1644 4.16887 13.9999 7.66668 13.9999Z'
+                                stroke='#3A3A47'
+                                strokeWidth='1.5'
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                            />
+                            <path
+                                d='M14.6667 14.6666L13.3333 13.3333'
+                                stroke='#3A3A47'
+                                strokeWidth='1.5'
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                            />
+                        </svg>
+                    }
+                    placeholder='Search name and number'
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    className='h-7 w-68'
+                />
 
                 <Dropdown
                     options={dateRangeOptions}
@@ -411,7 +656,7 @@ const Leads = () => {
                     defaultValue={selectedDateRange}
                     placeholder='Date Range'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -422,7 +667,7 @@ const Leads = () => {
                     defaultValue={selectedProperty}
                     placeholder='Property'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -433,7 +678,7 @@ const Leads = () => {
                     defaultValue={selectedAgent}
                     placeholder='Agent'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -444,7 +689,7 @@ const Leads = () => {
                     defaultValue={selectedSource}
                     placeholder='Source'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -455,7 +700,7 @@ const Leads = () => {
                     defaultValue={selectedLeadStage}
                     placeholder='Lead Stage'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -466,7 +711,7 @@ const Leads = () => {
                     defaultValue={selectedTag}
                     placeholder='Tag'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -477,7 +722,7 @@ const Leads = () => {
                     defaultValue={selectedTask}
                     placeholder='Task'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -493,6 +738,7 @@ const Leads = () => {
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
             </div>
+
             {/* Status Cards */}
             <div className='flex items-center justify-between mb-7'>
                 <div className='flex gap-2'>
@@ -517,9 +763,9 @@ const Leads = () => {
             </div>
 
             {/* Table */}
-            <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[58vh]'>
+            <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[63vh]'>
                 <FlexibleTable
-                    data={leadsData}
+                    data={filteredLeadsData}
                     columns={columns}
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                     showCheckboxes={true}
@@ -530,7 +776,7 @@ const Leads = () => {
                     className='rounded-lg'
                     stickyHeader={true}
                     hoverable={true}
-                    maxHeight='58vh'
+                    maxHeight='63vh'
                 />
             </div>
             <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
