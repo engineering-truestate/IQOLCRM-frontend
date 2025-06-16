@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import {
-    generateCompleteProjectDetails,
     projectTypes,
     projectStages,
     apartmentTypologies,
@@ -31,6 +31,14 @@ import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../../firebase'
+import {
+    fetchPreReraPropertyRequest,
+    fetchPreReraPropertySuccess,
+    fetchPreReraPropertyFailure,
+    updateProperty,
+    updatePropertyField,
+} from '../../../store/reducers/restack/preReraProperties'
+import type { RootState } from '../../../store/reducers'
 
 // Floor plan image component
 const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
@@ -57,50 +65,50 @@ const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?:
 const PrimaryDetailsPage = () => {
     const navigate = useNavigate()
     const { id } = useParams()
-    console.log(id, 'this is the id of the project')
+    const dispatch = useDispatch()
+    const { currentProperty: projectDetails, loading: isLoading } = useSelector(
+        (state: RootState) => state.preReraProperties,
+    )
 
-    const [projectDetails, setProjectDetails] = useState<PrimaryProperty | null>(null)
     const [originalDetails, setOriginalDetails] = useState<PrimaryProperty | null>(null)
     const [isEditingGroundData, setIsEditingGroundData] = useState(false)
     const [isEditingAmenities, setIsEditingAmenities] = useState(false)
     const [isEditingClubhouse, setIsEditingClubhouse] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
     const [activeTab, setActiveTab] = useState<'apartment' | 'villa' | 'plot'>('apartment')
     const [editingRowId, setEditingRowId] = useState<string | null>(null)
     const [isAddingRow, setIsAddingRow] = useState(false)
     const [selectedTowerForFloorPlan, setSelectedTowerForFloorPlan] = useState<TowerDetail | null>(null)
     const [selectedTowerForUnitDetails, setSelectedTowerForUnitDetails] = useState<TowerDetail | null>(null)
 
-    // Load project data based on id
-    // useEffect(() => {
-    //     const loadProjectDetails = async () => {
-    //         try {
-    //             setIsLoading(true)
-    //             if (id) {
-    //                 const details = generateCompleteProjectDetails(id)
-    //                 setProjectDetails(details)
-    //                 setOriginalDetails(details)
-    //                 console.log('Loaded project details:', details)
-    //             }
-    //         } catch (error) {
-    //             console.error('Error loading project details:', error)
-    //             // Set a default project if loading fails
-    //             const defaultProject = generateCompleteProjectDetails('P0001')
-    //             setProjectDetails(defaultProject)
-    //             setOriginalDetails(defaultProject)
-    //         } finally {
-    //             setIsLoading(false)
-    //         }
-    //     }
-
-    //     loadProjectDetails()
-    // }, [id])
+    useEffect(() => {
+        if (id) {
+            dispatch(fetchPreReraPropertyRequest())
+            const docRef = doc(db, 'restack_primary_properties', id)
+            const getDocData = async () => {
+                try {
+                    const docSnap = await getDoc(docRef)
+                    if (docSnap.exists()) {
+                        const data = docSnap.data()
+                        if (data) {
+                            dispatch(fetchPreReraPropertySuccess(data as PrimaryProperty))
+                            setOriginalDetails(data as PrimaryProperty)
+                        } else {
+                            dispatch(fetchPreReraPropertyFailure('No data found'))
+                        }
+                    } else {
+                        dispatch(fetchPreReraPropertyFailure('Document does not exist'))
+                    }
+                } catch (error) {
+                    dispatch(fetchPreReraPropertyFailure(error instanceof Error ? error.message : 'Unknown error'))
+                }
+            }
+            getDocData()
+        }
+    }, [id, dispatch])
 
     // Handle field updates for main project details
     const updateField = (field: string, value: string) => {
-        if (projectDetails) {
-            setProjectDetails((prev: PrimaryProperty | null) => (prev ? { ...prev, [field]: value } : null))
-        }
+        dispatch(updatePropertyField({ field, value }))
     }
 
     // Generic handle edit for sections
@@ -113,7 +121,7 @@ const PrimaryDetailsPage = () => {
         setter: React.Dispatch<React.SetStateAction<boolean>>,
         originalData: PrimaryProperty | null,
     ) => {
-        setProjectDetails(originalData)
+        setOriginalDetails(originalData)
         setter(false)
         setEditingRowId(null)
         setIsAddingRow(false)
@@ -128,7 +136,6 @@ const PrimaryDetailsPage = () => {
             setter(false)
             setEditingRowId(null)
             setIsAddingRow(false)
-            console.log('Saving project details:', projectDetails)
         }
     }
 
@@ -197,20 +204,14 @@ const PrimaryDetailsPage = () => {
             const updatedTowerDetails = (projectDetails.towerDetails || []).map((tower: TowerDetail) =>
                 tower.id === selectedTowerForFloorPlan.id ? { ...tower, floorPlanDetails: updatedDataRows } : tower,
             )
-            setProjectDetails((prev: PrimaryProperty | null) =>
-                prev ? { ...prev, towerDetails: updatedTowerDetails } : null,
-            )
+            dispatch(updateProperty({ towerDetails: updatedTowerDetails }))
         } else if (dataType === 'unitDetails' && selectedTowerForUnitDetails) {
             const updatedTowerDetails = (projectDetails.towerDetails || []).map((tower: TowerDetail) =>
                 tower.id === selectedTowerForUnitDetails.id ? { ...tower, unitDetails: updatedDataRows } : tower,
             )
-            setProjectDetails((prev: PrimaryProperty | null) =>
-                prev ? { ...prev, towerDetails: updatedTowerDetails } : null,
-            )
+            dispatch(updateProperty({ towerDetails: updatedTowerDetails }))
         } else {
-            setProjectDetails((prev: PrimaryProperty | null) =>
-                prev ? { ...prev, [fieldName]: updatedDataRows } : null,
-            )
+            dispatch(updateProperty({ [fieldName]: updatedDataRows }))
         }
     }
 
@@ -264,8 +265,7 @@ const PrimaryDetailsPage = () => {
 
         const fieldName = `${unitType}Units` as keyof PrimaryProperty
         const units = (projectDetails[fieldName] as any[]) || []
-
-        setProjectDetails((prev: any | null) => (prev ? { ...prev, [fieldName]: [...units, newUnit] } : null))
+        dispatch(updateProperty({ [fieldName]: [...units, newUnit] }))
 
         setEditingRowId(newId)
         setIsAddingRow(true)
@@ -278,8 +278,7 @@ const PrimaryDetailsPage = () => {
         const fieldName = `${unitType}Units` as keyof PrimaryProperty
         const units = (projectDetails[fieldName] as any[]) || []
         const updatedUnits = units.filter((unit) => unit.id !== unitId)
-
-        setProjectDetails((prev: PrimaryProperty | null) => (prev ? { ...prev, [fieldName]: updatedUnits } : null))
+        dispatch(updateProperty({ [fieldName]: updatedUnits }))
     }
 
     // Handle adding new clubhouse row
@@ -294,62 +293,21 @@ const PrimaryDetailsPage = () => {
         }
 
         const currentClubhouseDetails = projectDetails.clubhouseDetails || []
-
-        setProjectDetails((prev: PrimaryProperty | null) =>
-            prev
-                ? {
-                      ...prev,
-                      clubhouseDetails: [...currentClubhouseDetails, newRow],
-                  }
-                : null,
-        )
+        dispatch(updateProperty({ clubhouseDetails: [...currentClubhouseDetails, newRow] }))
 
         setEditingRowId(newRow.id)
         setIsAddingRow(true)
     }
 
-    // fetch data from firebase instead
-    useEffect(() => {
-        if (projectDetails) {
-            console.log(projectDetails, 'property hai', Date.now())
-        } else {
-            console.log(projectDetails, 'nhi hai', Date.now())
-        }
-    }, [projectDetails])
-
-    useEffect(() => {
-        setIsLoading(true)
-        if (id) {
-            const docRef = doc(db, 'restack_pre_rera_properties', id)
-            const getDocData = async () => {
-                try {
-                    const docSnap = await getDoc(docRef)
-                    if (docSnap.exists()) {
-                        const data = docSnap.data()
-                        if (data) {
-                            // Example: Ensure arrays are arrays, not objects
-                            data.developmentDetails = Array.isArray(data.developmentDetails)
-                                ? data.developmentDetails
-                                : []
-                            // ...repeat for other fields as needed
-                            setProjectDetails(data as PrimaryProperty)
-                            setOriginalDetails(data as PrimaryProperty)
-                            console.log(data.TowerDetails, 'data')
-                        } else {
-                            console.log('No such document!')
-                        }
-                    } else {
-                        console.log('No such document!')
-                    }
-                } catch (error) {
-                    console.error('Error getting document:', error)
-                } finally {
-                    setIsLoading(false)
-                }
-            }
-            getDocData()
-        }
-    }, [id])
+    // Handle delete clubhouse row
+    const deleteClubhouseRow = (rowId: string) => {
+        if (!projectDetails?.clubhouseDetails) return
+        dispatch(
+            updateProperty({
+                clubhouseDetails: projectDetails.clubhouseDetails.filter((r: ClubhouseDetail) => r.id !== rowId),
+            }),
+        )
+    }
 
     // Helper for rendering info rows (read-only and editable)
     const renderInfoRow = (
@@ -756,16 +714,7 @@ const PrimaryDetailsPage = () => {
                                     className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
                                     onClick={() => {
                                         if (isAddingRow) {
-                                            setProjectDetails((prev: any | null) =>
-                                                prev
-                                                    ? {
-                                                          ...prev,
-                                                          clubhouseDetails: prev.clubhouseDetails.filter(
-                                                              (r: ClubhouseDetail) => r.id !== row.id,
-                                                          ),
-                                                      }
-                                                    : null,
-                                            )
+                                            deleteClubhouseRow(row.id)
                                             setIsAddingRow(false)
                                         }
                                         setEditingRowId(null)
@@ -1003,8 +952,9 @@ const PrimaryDetailsPage = () => {
                     {/* Development Details Table */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Development Details</h2>
                     <div className='px-4 py-3'>
+                        {/* Fix this [] after the data is cleaned according to the new schema*/}
                         <FlexibleTable
-                            data={projectDetails?.developmentDetails || []}
+                            data={projectDetails?.developmentDetails ? [projectDetails?.developmentDetails] : []}
                             columns={getDevelopmentColumns()}
                             hoverable={true}
                             borders={{
@@ -1018,12 +968,7 @@ const PrimaryDetailsPage = () => {
                         <div className='flex justify-between items-center px-4 py-2 bg-gray-50 border-t border-[#d4dbe2] font-medium text-sm'>
                             <span>Total</span>
                             <span></span>
-                            <span>
-                                {projectDetails?.developmentDetails?.reduce(
-                                    (sum: number, item: DevelopmentDetail) => sum + item.numberOfInventory,
-                                    0,
-                                )}
-                            </span>
+                            <span>{projectDetails?.totalInventories}</span>
                             <span></span>
                             <span></span>
                         </div>
@@ -1064,11 +1009,7 @@ const PrimaryDetailsPage = () => {
                             </h3>
                             <div className='overflow-x-auto px-4 py-3'>
                                 <FlexibleTable
-                                    data={
-                                        Array.isArray(selectedTowerForFloorPlan.floorPlanDetails)
-                                            ? selectedTowerForFloorPlan.floorPlanDetails
-                                            : []
-                                    }
+                                    data={selectedTowerForFloorPlan.floorPlanDetails || []}
                                     columns={getFloorPlanColumns()}
                                     hoverable={true}
                                     borders={{
@@ -1091,11 +1032,7 @@ const PrimaryDetailsPage = () => {
                             </h3>
                             <div className='overflow-x-auto px-4 py-3'>
                                 <FlexibleTable
-                                    data={
-                                        Array.isArray(selectedTowerForUnitDetails.unitDetails)
-                                            ? selectedTowerForUnitDetails.unitDetails
-                                            : []
-                                    }
+                                    data={selectedTowerForUnitDetails.unitDetails || []}
                                     columns={getUnitDetailsColumns()}
                                     hoverable={true}
                                     borders={{
@@ -1242,13 +1179,8 @@ const PrimaryDetailsPage = () => {
                             <textarea
                                 value={projectDetails?.amenities?.join(', ')}
                                 onChange={(e) =>
-                                    setProjectDetails((prev: any | null) =>
-                                        prev
-                                            ? {
-                                                  ...prev,
-                                                  amenities: e.target.value.split(',').map((s) => s.trim()),
-                                              }
-                                            : null,
+                                    dispatch(
+                                        updateProperty({ amenities: e.target.value.split(',').map((s) => s.trim()) }),
                                     )
                                 }
                                 className='w-full h-auto text-base border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -1308,9 +1240,7 @@ const PrimaryDetailsPage = () => {
                     </div>
                     <div className='px-4'>
                         <FlexibleTable
-                            data={
-                                Array.isArray(projectDetails?.clubhouseDetails) ? projectDetails.clubhouseDetails : []
-                            }
+                            data={projectDetails?.clubhouseDetails || []}
                             columns={getClubhouseColumns()}
                             hoverable={true}
                             borders={{
