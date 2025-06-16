@@ -1,84 +1,58 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
 import Layout from '../../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
 import Button from '../../../../components/design-elements/Button'
 import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
-import { useDispatch, useSelector } from 'react-redux'
-import type { AppDispatch, RootState } from '../../../../store'
-import { stockData, type StockProject } from '../../../dummy_data/restack_prerera_dummy_data'
 import usePreRera from '../../../../hooks/restack/usePreRera'
-import { formatUnixDate, formatUnixTime } from '../../../../components/helper/getUnixDateTime'
+import { formatUnixDate } from '../../../../components/helper/getUnixDateTime'
+import type { PreReraProperty } from '../../../../store/reducers/restack/preReraTypes'
 
 const PreReraPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
-    const [paginatedData, setPaginatedData] = useState<StockProject[]>([])
-    const [filteredData, setFilteredData] = useState<StockProject[]>([])
-    // const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
-    const dispatch = useDispatch<AppDispatch>()
 
-    const {
-        properties,
-        selectedProperty,
-        loading,
-        error,
-        hasProperties,
-        propertyStats,
-        fetchProperties,
-        selectProperty,
-        clearSelectedProperty,
-        setFilters,
-        clearFilters,
-    } = usePreRera()
-    // setPaginatedData(properties) // Removed because types are incompatible
+    const { properties, loading, fetchProperties } = usePreRera()
+
+    const ITEMS_PER_PAGE = 50
+
+    const [filteredProperties, setFilteredProperties] = useState<PreReraProperty[]>([])
+    const [paginatedProperties, setPaginatedProperties] = useState<PreReraProperty[]>([])
+
     useEffect(() => {
-        // Fetch properties when component mounts
         fetchProperties()
     }, [fetchProperties])
 
-    // Items per page
-    const ITEMS_PER_PAGE = 50
-
-    // Filter data based on search
     useEffect(() => {
-        if (searchValue.trim() === '') {
-            setFilteredData(stockData)
-        } else {
-            const filtered = stockData.filter(
-                (project) =>
-                    project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.projectType.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.ageOfBuilding.toLowerCase().includes(searchValue.toLowerCase()),
-            )
-            setFilteredData(filtered)
-        }
-        setCurrentPage(1) // Reset to first page when searching
-    }, [searchValue])
+        const filtered = properties.filter(
+            (project) =>
+                project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
+                project.projectType.toLowerCase().includes(searchValue.toLowerCase()),
+        )
+        setFilteredProperties(filtered)
+        setCurrentPage(1)
+    }, [searchValue, properties])
 
-    // Calculate total pages
-    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
-
-    // Update paginated data when page changes or filtered data changes
     useEffect(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
         const endIndex = startIndex + ITEMS_PER_PAGE
-        setPaginatedData(filteredData.slice(startIndex, endIndex))
-    }, [currentPage, filteredData])
+        const slicedProperties = filteredProperties.slice(startIndex, endIndex)
+        setPaginatedProperties(slicedProperties)
+    }, [currentPage, filteredProperties])
 
-    // Table columns configuration
+    const totalPages = Math.ceil(filteredProperties.length / ITEMS_PER_PAGE)
+
     const columns: TableColumn[] = [
         {
             key: 'projectName',
             header: 'Project Name',
             render: (value, row) => (
                 <span
-                    className='whitespace-nowrap text-sm font-medium text-gray-900'
-                    onClick={() => navigate(`/restack/stock/pre-rera/${row.id}/details`)}
+                    className='whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer'
+                    onClick={() => navigate(`/restack/stock/pre-rera/${row.projectId}/details`)}
                 >
                     {value}
                 </span>
@@ -109,7 +83,6 @@ const PreReraPage = () => {
     const [showModal, setShowModal] = useState(false)
 
     const handleAddProject = () => {
-        // Handle add project action
         setShowModal(true)
     }
 
@@ -162,7 +135,7 @@ const PreReraPage = () => {
                     <div className='bg-white rounded-lg overflow-hidden'>
                         <div className='h-[80vh] overflow-y-auto'>
                             <FlexibleTable
-                                data={properties}
+                                data={paginatedProperties}
                                 columns={columns}
                                 hoverable={true}
                                 borders={{
@@ -183,9 +156,9 @@ const PreReraPage = () => {
                             <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
                                 <div className='text-sm text-gray-500 font-medium'>
                                     Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} of{' '}
-                                    {filteredData.length} projects
-                                    {searchValue && ` (filtered from ${stockData.length} total projects)`}
+                                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredProperties.length)} of{' '}
+                                    {filteredProperties.length} projects
+                                    {searchValue && ` (filtered from ${properties.length} total projects)`}
                                 </div>
                                 <div className='flex items-center gap-2'>
                                     <button
@@ -272,7 +245,7 @@ const PreReraPage = () => {
                     </div>
 
                     {/* Empty state */}
-                    {!loading && filteredData.length === 0 && (
+                    {!loading && filteredProperties.length === 0 && (
                         <div className='text-center py-12'>
                             <svg
                                 className='mx-auto h-12 w-12 text-gray-400'
