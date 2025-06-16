@@ -57,6 +57,10 @@ export interface ClubHouseDetail {
 export interface DocumentDetail {
     phaseName: string
     CommencementCertificate: string
+    approvalCertificate: string
+    approvedBuildingPlan: string
+    environmentalClearance: string
+    occupancyCertificate: string
 }
 
 export interface PostReraProperty {
