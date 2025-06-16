@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
@@ -80,7 +80,7 @@ const PreReraPage = () => {
         },
     ]
 
-    const [showModal, setShowModal] = useState(false)
+    const [, setShowModal] = useState(false)
 
     const handleAddProject = () => {
         setShowModal(true)
