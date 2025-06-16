@@ -1,8 +1,8 @@
 'use client'
 
-import React from 'react'
-
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { createSelector } from '@reduxjs/toolkit'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
@@ -12,54 +12,84 @@ import NotesModal from '../../../components/acn/NotesModal'
 import CallResultModal from '../../../components/acn/CallModal'
 import VerificationModal from '../../../components/acn/VerificationModal'
 import AddLeadModal from '../../../components/acn/AddLeadModal'
-import { generateLeads, type Lead, type LeadStatus } from '../../dummy_data/acn_leads_dummy_data'
+import MetricsCards from '../../../components/design-elements/MetricCards'
+import leadSearchService, { type ILead, type SearchFilters } from '../../../services/acn/leads/algoliaLeadsService'
+import { updateLeadStatus, updateLeadKAM, updateLeadBooleanField } from '../../../services/acn/leads/leadsService'
+import {
+    selectAllLeads,
+    selectLeadsLoading,
+    selectLeadsError,
+    selectLeadUpdating,
+    setLeads as setReduxLeads,
+    updateLeadLocal,
+} from '../../../store/reducers/acn/leadsReducers'
+import type { RootState, AppDispatch } from '../../../store/index'
+
+// Import your existing icons
 import phoneic from '/icons/acn/phone.svg'
 import notesic from '/icons/acn/notes.svg'
 import verifyic from '/icons/acn/verify.svg'
 import resetic from '/icons/acn/rotate-left.svg'
 import leadaddic from '/icons/acn/user-add.svg'
 import facebookic from '/icons/acn/facebook.svg'
-import classifiedic from '/icons/acn/classified.svg'
 import whatsappic from '/icons/acn/whatsapp.svg'
 import instagramic from '/icons/acn/insta.svg'
 import referic from '/icons/acn/referral.svg'
 import organicic from '/icons/acn/organic.svg'
-import MetricsCards from '../../../components/design-elements/MetricCards'
 
-const sampleMetrics = [
-    { label: 'Total Leads', value: 50 },
-    { label: 'Not Contacted', value: 2 },
-    { label: 'Total Interested', value: 100 },
-    { label: 'Total Verified', value: 350 },
-    { label: 'Calls', value: 125 },
-    { label: 'Connects', value: 125 },
-    { label: 'RNR', value: 10 },
+// Define all available options as constants
+const ALL_LEAD_STATUS_OPTIONS = [
+    { value: 'interested', count: 0 },
+    { value: 'not interested', count: 0 },
+    { value: 'not contact yet', count: 0 },
 ]
 
-// Custom status badge component with outline design
+const ALL_CONTACT_STATUS_OPTIONS = [
+    { value: 'connected', count: 0 },
+    { value: 'not contact', count: 0 },
+    { value: 'rnr-1', count: 0 },
+    { value: 'rnr-2', count: 0 },
+    { value: 'rnr-3', count: 0 },
+    { value: 'rnr-4', count: 0 },
+    { value: 'rnr-5', count: 0 },
+    { value: 'rnr-6', count: 0 },
+]
+
+const ALL_SOURCE_OPTIONS = [
+    { value: 'whatsApp', count: 0 },
+    { value: 'instagram', count: 0 },
+    { value: 'facebook', count: 0 },
+    { value: 'referral', count: 0 },
+    { value: 'direct', count: 0 },
+]
+
+// Create memoized selectors to prevent unnecessary re-renders
+const selectLeadsState = (state: RootState) => state.leads
+
+const selectFilteredLeads = createSelector([selectLeadsState], (leadsState) => Object.values(leadsState.leads))
+
+// Custom status badge component
 const StatusBadge = ({ status, type }: { status: string; type: 'lead' | 'connect' }) => {
     const getStatusColors = () => {
         if (type === 'lead') {
             switch (status) {
-                case 'Interested':
+                case 'interested':
                     return 'bg-[#E1F6DF] text-black'
-                case 'Not Interested':
+                case 'not interested':
                     return 'text-black'
-                case 'No Contact Yet':
+                case 'not contact yet':
                     return 'text-black'
                 default:
                     return 'border-gray-600 text-black'
             }
         } else {
-            // Connect status colors matching the design
             switch (status) {
-                case 'Connected':
+                case 'connected':
                     return 'border-[#9DE695]'
-                case 'Not Contact':
+                case 'not contact':
                     return 'border-[#CCCBCB]'
                 default:
-                    // For RNR statuses (RNR-1, RNR-2, etc.)
-                    if (status.startsWith('RNR')) {
+                    if (status.startsWith('rnr')) {
                         return 'border-[#FCCE74]'
                     }
                     return 'border-gray-400 text-gray-600 bg-gray-50'
@@ -76,22 +106,20 @@ const StatusBadge = ({ status, type }: { status: string; type: 'lead' | 'connect
     )
 }
 
-// Lead Source component with outlined design and SVG icons
+// Lead Source component
 const LeadSourceCell = ({ source }: { source: string }) => {
     const getSourceIcon = () => {
         switch (source) {
-            case 'WhatsApp':
+            case 'whatsApp':
                 return <img src={whatsappic} alt='WhatsApp' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Instagram':
+            case 'instagram':
                 return <img src={instagramic} alt='Instagram' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Facebook':
+            case 'facebook':
                 return <img src={facebookic} alt='Facebook' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Classified':
-                return <img src={classifiedic} alt='Classified' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Organic':
-                return <img src={organicic} alt='Organic' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Referral':
+            case 'referral':
                 return <img src={referic} alt='Referral' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+            case 'direct':
+                return <img src={organicic} alt='Direct' className='w-5 h-5 text-gray-600 flex-shrink-0' />
             default:
                 return (
                     <svg className='w-4 h-4 text-gray-600 flex-shrink-0' fill='currentColor' viewBox='0 0 24 24'>
@@ -113,113 +141,460 @@ const LeadSourceCell = ({ source }: { source: string }) => {
     )
 }
 
+// Multi-select filter dropdown component
+const MultiSelectDropdown = ({
+    allOptions,
+    selectedValues,
+    onSelectionChange,
+    placeholder,
+    label,
+    facets = {},
+}: {
+    allOptions: Array<{ value: string; count: number }>
+    selectedValues: string[]
+    onSelectionChange: (values: string[]) => void
+    placeholder: string
+    label: string
+    facets?: Record<string, number>
+}) => {
+    const [isOpen, setIsOpen] = useState(false)
+    const dropdownRef = useRef<HTMLDivElement>(null)
+
+    const updateFilter = (value: string) => {
+        if (selectedValues.includes(value)) {
+            onSelectionChange(selectedValues.filter((v) => v !== value))
+        } else {
+            onSelectionChange([...selectedValues, value])
+        }
+    }
+
+    const getFacetCount = (value: string) => {
+        const option = allOptions.find((opt) => opt.value === value)
+        if (option && option.count > 0) {
+            return option.count
+        }
+        return facets[value] || 0
+    }
+
+    const getDisplayText = () => {
+        if (selectedValues.length === 0) return placeholder
+        if (selectedValues.length === 1) return selectedValues[0]
+        return `${selectedValues.length} selected`
+    }
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [])
+
+    return (
+        <div className='relative inline-block' ref={dropdownRef}>
+            <button
+                className='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer'
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <span className='truncate'>{getDisplayText()}</span>
+                <svg
+                    className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                >
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+                </svg>
+            </button>
+
+            {isOpen && (
+                <div className='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto'>
+                    <div className='px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b sticky top-0'>
+                        {label}
+                    </div>
+
+                    <div className='px-3 py-2 border-b bg-gray-50 flex gap-2'>
+                        <button
+                            className='text-xs text-blue-600 hover:text-blue-800 font-medium'
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onSelectionChange(allOptions.map((opt) => opt.value))
+                            }}
+                        >
+                            Select All
+                        </button>
+                        <span className='text-xs text-gray-400'>|</span>
+                        <button
+                            className='text-xs text-red-600 hover:text-red-800 font-medium'
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onSelectionChange([])
+                            }}
+                        >
+                            Clear All
+                        </button>
+                    </div>
+
+                    {allOptions.map((facet) => {
+                        const currentCount = getFacetCount(facet.value)
+                        const isSelected = selectedValues.includes(facet.value)
+                        return (
+                            <div
+                                key={facet.value}
+                                className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 last:rounded-b-md ${
+                                    isSelected ? 'bg-blue-50' : ''
+                                }`}
+                                onClick={() => {
+                                    updateFilter(facet.value)
+                                }}
+                            >
+                                <div className='flex items-center justify-between'>
+                                    <div className='flex items-center gap-2'>
+                                        <input
+                                            type='checkbox'
+                                            checked={isSelected}
+                                            onChange={() => {}}
+                                            className='rounded text-blue-600'
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                        <span className={isSelected ? 'text-blue-700 font-medium' : 'text-gray-700'}>
+                                            {facet.value}
+                                        </span>
+                                    </div>
+                                    <span className='text-xs text-gray-500'>({currentCount})</span>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    )
+}
+
 const LeadsPage = () => {
+    const dispatch = useDispatch<AppDispatch>()
+
+    // Use memoized selectors to prevent unnecessary re-renders
+    const reduxLeads = useSelector(selectFilteredLeads)
+    const reduxLoading = useSelector((state: RootState) => selectLeadsLoading(state))
+    const reduxError = useSelector((state: RootState) => selectLeadsError(state))
+
+    // Search and filter states
     const [searchValue, setSearchValue] = useState('')
-    const [selectedKAM, setSelectedKAM] = useState('')
+    const [selectedKAMs, setSelectedKAMs] = useState<string[]>([])
     const [selectedSort, setSelectedSort] = useState('')
-    const [selectedConnectStatus, setSelectedConnectStatus] = useState('')
-    const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
+    const [selectedConnectStatuses, setSelectedConnectStatuses] = useState<string[]>([])
+    const [selectedLeadStatuses, setSelectedLeadStatuses] = useState<string[]>([])
+    const [selectedSources, setSelectedSources] = useState<string[]>([])
+
+    // Data and pagination states
+    const [leads, setLeads] = useState<ILead[]>([])
+    const [totalLeads, setTotalLeads] = useState(0)
     const [currentPage, setCurrentPage] = useState(1)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    // Modal states
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false)
     const [isCallResultModalOpen, setIsCallResultModalOpen] = useState(false)
     const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false)
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
-    const [selectedRowData, setSelectedRowData] = useState<Lead | null>(null)
-    const [paginatedData, setPaginatedData] = useState<Lead[]>([])
+    const [selectedRowData, setSelectedRowData] = useState<ILead | null>(null)
 
-    // Items per page
+    // Facets for dynamic filter options
+    const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
+    const [kamOptions, setKamOptions] = useState<Array<{ value: string; count: number }>>([])
+
     const ITEMS_PER_PAGE = 50
 
-    // Initialize leads data using the imported function
-    const [leadsData, setLeadsData] = useState<Lead[]>(() => generateLeads(200))
+    // Function to update lead status using Redux thunk - REMOVED ALGOLIA UPDATE
+    const handleUpdateLeadStatus = async (leadId: string, status: string) => {
+        try {
+            // Optimistic update - update local state immediately
+            setLeads((prevLeads) =>
+                prevLeads.map((lead) =>
+                    lead.leadId === leadId ? { ...lead, leadStatus: status as any, lastModified: Date.now() } : lead,
+                ),
+            )
 
-    // Calculate total pages
-    const totalPages = Math.ceil(leadsData.length / ITEMS_PER_PAGE)
+            // Dispatch Redux thunk to update database
+            await dispatch(updateLeadStatus({ leadId, status })).unwrap()
 
-    // Update paginated data when page changes or data changes
-    useEffect(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-        const endIndex = startIndex + ITEMS_PER_PAGE
-        setPaginatedData(leadsData.slice(startIndex, endIndex))
-    }, [currentPage, leadsData])
+            console.log('Lead status updated successfully')
 
-    // Helper function to update a specific row's data
-    const updateRowData = (rowId: string, field: keyof Lead, value: string) => {
-        setLeadsData((prevData) => prevData.map((row) => (row.id === rowId ? { ...row, [field]: value } : row)))
+            // Reload the page to get fresh data
+            window.location.reload()
+        } catch (error) {
+            console.error('Failed to update lead status:', error)
+            // Revert optimistic update on error
+            searchLeads(false)
+        }
     }
 
-    // Dropdown options
-    const kamOptions = [
-        { label: 'All KAMs', value: '' },
-        { label: 'Samarth', value: 'samarth' },
-        { label: 'Priya', value: 'priya' },
-        { label: 'Raj', value: 'raj' },
-    ]
+    // Function to update KAM using Redux thunk - REMOVED ALGOLIA UPDATE
+    const handleUpdateKAM = async (leadId: string, kamName: string) => {
+        try {
+            // Optimistic update
+            setLeads((prevLeads) =>
+                prevLeads.map((lead) =>
+                    lead.leadId === leadId ? { ...lead, kamName, lastModified: Date.now() } : lead,
+                ),
+            )
 
+            // Dispatch Redux thunk to update database
+            await dispatch(updateLeadKAM({ leadId, kamName })).unwrap()
+
+            console.log('KAM updated successfully')
+
+            // Reload the page to get fresh data
+            window.location.reload()
+        } catch (error) {
+            console.error('Failed to update KAM:', error)
+            searchLeads(false)
+        }
+    }
+
+    // Function to update boolean fields using Redux thunk - REMOVED ALGOLIA UPDATE
+    const handleUpdateBooleanField = async (leadId: string, field: keyof ILead, value: boolean) => {
+        try {
+            // Optimistic update
+            setLeads((prevLeads) =>
+                prevLeads.map((lead) =>
+                    lead.leadId === leadId ? { ...lead, [field]: value, lastModified: Date.now() } : lead,
+                ),
+            )
+
+            // Dispatch Redux thunk to update database
+            await dispatch(updateLeadBooleanField({ leadId, field, value })).unwrap()
+
+            console.log('Boolean field updated successfully')
+
+            // Reload the page to get fresh data
+            window.location.reload()
+        } catch (error) {
+            console.error('Failed to update boolean field:', error)
+            searchLeads(false)
+        }
+    }
+
+    // Debounced search function
+    const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): ((...args: Parameters<T>) => void) => {
+        let timeout: NodeJS.Timeout
+        return function executedFunction(...args: Parameters<T>) {
+            const later = () => {
+                clearTimeout(timeout)
+                func(...args)
+            }
+            clearTimeout(timeout)
+            timeout = setTimeout(later, wait)
+        }
+    }
+
+    // Load KAM options on component mount
+    useEffect(() => {
+        const loadKamOptions = async () => {
+            try {
+                const kamFacets = await leadSearchService.getFacetValues('kamName')
+                setKamOptions(kamFacets)
+            } catch (error) {
+                console.error('Error loading KAM options:', error)
+            }
+        }
+        loadKamOptions()
+    }, [])
+
+    // Search leads function
+    const searchLeads = useCallback(
+        async (resetPage = false) => {
+            setLoading(true)
+            setError(null)
+
+            try {
+                const filters: SearchFilters = {}
+
+                if (selectedLeadStatuses.length > 0) {
+                    filters.leadStatus = selectedLeadStatuses
+                }
+                if (selectedConnectStatuses.length > 0) {
+                    filters.contactStatus = selectedConnectStatuses
+                }
+                if (selectedKAMs.length > 0) {
+                    filters.kamName = selectedKAMs
+                }
+                if (selectedSources.length > 0) {
+                    filters.source = selectedSources
+                }
+
+                const page = resetPage ? 0 : currentPage - 1
+
+                const response = await leadSearchService.searchLeads(
+                    searchValue,
+                    filters,
+                    page,
+                    ITEMS_PER_PAGE,
+                    selectedSort || undefined,
+                )
+
+                setLeads(response.hits)
+                setTotalLeads(response.nbHits)
+                setFacets(response.facets || {})
+
+                // Update Redux store with fetched leads
+                dispatch(setReduxLeads(response.hits))
+
+                if (resetPage) {
+                    setCurrentPage(1)
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Search failed')
+                console.error('Search error:', err)
+            } finally {
+                setLoading(false)
+            }
+        },
+        [
+            searchValue,
+            selectedLeadStatuses,
+            selectedConnectStatuses,
+            selectedKAMs,
+            selectedSources,
+            selectedSort,
+            currentPage,
+            dispatch,
+        ],
+    )
+
+    // Debounced search
+    const debouncedSearch = useCallback(debounce(searchLeads, 300), [searchLeads])
+
+    // Initial load and search when filters change
+    useEffect(() => {
+        searchLeads(true)
+    }, [selectedLeadStatuses, selectedConnectStatuses, selectedKAMs, selectedSources, selectedSort])
+
+    // Search when search value changes (debounced)
+    useEffect(() => {
+        debouncedSearch(true)
+    }, [searchValue, debouncedSearch])
+
+    // Search when page changes
+    useEffect(() => {
+        if (currentPage > 1) {
+            searchLeads(false)
+        }
+    }, [currentPage])
+
+    // Reset all filters
+    const resetFilters = () => {
+        setSearchValue('')
+        setSelectedKAMs([])
+        setSelectedSort('')
+        setSelectedConnectStatuses([])
+        setSelectedLeadStatuses([])
+        setSelectedSources([])
+        setCurrentPage(1)
+    }
+
+    // Memoized metrics calculation to prevent unnecessary recalculations
+    const metrics = useMemo(() => {
+        const totalLeadsCount = totalLeads
+        const notContactedCount = leads.filter((lead) => lead.leadStatus === 'not contact yet').length
+        const interestedCount = leads.filter((lead) => lead.leadStatus === 'interested').length
+        const verifiedCount = leads.filter((lead) => lead.verified).length
+        const connectedCount = leads.filter((lead) => lead.contactStatus === 'connected').length
+        const rnrCount = leads.filter((lead) => lead.contactStatus && lead.contactStatus.startsWith('rnr')).length
+
+        return [
+            { label: 'Total Leads', value: totalLeadsCount },
+            { label: 'Not Contacted', value: notContactedCount },
+            { label: 'Total Interested', value: interestedCount },
+            { label: 'Total Verified', value: verifiedCount },
+            { label: 'Calls', value: connectedCount },
+            { label: 'Connects', value: connectedCount },
+            { label: 'RNR', value: rnrCount },
+        ]
+    }, [totalLeads, leads])
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalLeads / ITEMS_PER_PAGE)
+
+    // Memoized helper function to merge static options with facet counts
+    const mergeOptionsWithFacets = useCallback(
+        (staticOptions: Array<{ value: string; count: number }>, facetName: string) => {
+            const facetData = facets[facetName] || {}
+            return staticOptions.map((option) => ({
+                ...option,
+                count: facetData[option.value] || 0,
+            }))
+        },
+        [facets],
+    )
+
+    // Sort options (single select)
     const sortOptions = [
         { label: 'Sort by Date', value: '' },
-        { label: 'Newest First', value: 'newest' },
-        { label: 'Oldest First', value: 'oldest' },
+        { label: 'Newest First', value: 'added_desc' },
+        { label: 'Oldest First', value: 'added_asc' },
+        { label: 'Name A-Z', value: 'name_asc' },
+        { label: 'Name Z-A', value: 'name_desc' },
+        { label: 'Last Connect', value: 'lastConnect_desc' },
     ]
 
-    const connectStatusOptions = [
-        { label: 'All Status', value: '' },
-        { label: 'Connected', value: 'connected' },
-        { label: 'Not Contact', value: 'not_contact' },
-        { label: 'RNR', value: 'rnr' },
-    ]
-
-    // Enhanced lead status dropdown options with colors matching the design
     const leadStatusDropdownOptions: DropdownOption[] = [
         {
             label: 'Interested',
-            value: 'Interested',
-            color: '#E1F6DF', // Light green background
-            textColor: '#065F46', // Dark green text
+            value: 'interested',
+            color: '#E1F6DF',
+            textColor: '#065F46',
         },
         {
             label: 'Not Interested',
-            value: 'Not Interested',
-            color: '#D3D4DD', // Light gray background
-            textColor: '#374151', // Dark gray text
+            value: 'not interested',
+            color: '#D3D4DD',
+            textColor: '#374151',
         },
         {
             label: 'No Contact Yet',
-            value: 'No Contact Yet',
-            color: '#FEECED', // Light red background
-            textColor: '#991B1B', // Dark red text
+            value: 'not contact yet',
+            color: '#FEECED',
+            textColor: '#991B1B',
         },
     ]
 
-    const leadStatusOptions = [
-        { label: 'All Status', value: '' },
-        { label: 'Interested', value: 'interested' },
-        { label: 'Not Interested', value: 'not_interested' },
-        { label: 'No Contact Yet', value: 'no_contact' },
-    ]
+    // Memoized KAM options to prevent unnecessary recalculations
+    const kamAssignedOptions: DropdownOption[] = useMemo(
+        () => [
+            ...Object.keys(facets.kamName || {}).map((kam) => ({
+                label: kam,
+                value: kam,
+                color: '#F3F3F3',
+            })),
+        ],
+        [facets.kamName],
+    )
 
-    const kamAssignedOptions: DropdownOption[] = [
-        { label: 'Samarth', value: 'Samarth', color: '#F3F3F3' },
-        { label: 'Priya', value: 'Priya', color: '#F3F3F3' },
-        { label: 'Raj', value: 'Raj', color: '#F3F3F3' },
-    ]
-
-    // Table columns configuration with all fields and fixed actions column
+    // Table columns configuration
     const columns: TableColumn[] = [
         {
-            key: 'id',
+            key: 'leadId',
             header: 'Lead ID',
             render: (value) => (
                 <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
             ),
         },
         {
-            key: 'agentName',
+            key: 'name',
             header: 'Lead Name',
             render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
         },
         {
-            key: 'contactNumber',
+            key: 'phonenumber',
             header: 'Contact Number',
             render: (value) => (
                 <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
@@ -228,12 +603,20 @@ const LeadsPage = () => {
         {
             key: 'lastTried',
             header: 'Last Tried',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                    {value ? new Date(value).toLocaleDateString() : 'Never'}
+                </span>
+            ),
         },
         {
             key: 'lastConnect',
             header: 'Last Connect',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                    {value ? new Date(value).toLocaleDateString() : 'Never'}
+                </span>
+            ),
         },
         {
             key: 'leadStatus',
@@ -242,13 +625,12 @@ const LeadsPage = () => {
                 options: leadStatusDropdownOptions,
                 placeholder: 'Select Status',
                 onChange: (value, row) => {
-                    updateRowData(row.id, 'leadStatus', value as LeadStatus)
-                    console.log('Lead status changed:', value, row)
+                    handleUpdateLeadStatus(row.leadId, value)
                 },
             },
         },
         {
-            key: 'connectStatus',
+            key: 'contactStatus',
             header: 'Connect Status',
             render: (value) => (
                 <div className='whitespace-nowrap w-auto'>
@@ -257,19 +639,18 @@ const LeadsPage = () => {
             ),
         },
         {
-            key: 'kamAssigned',
+            key: 'kamName',
             header: 'KAM Assigned',
             dropdown: {
                 options: kamAssignedOptions,
                 placeholder: 'Select KAM',
                 onChange: (value, row) => {
-                    updateRowData(row.id, 'kamAssigned', value)
-                    console.log('KAM changed:', value, row)
+                    handleUpdateKAM(row.leadId, value)
                 },
             },
         },
         {
-            key: 'leadSource',
+            key: 'source',
             header: 'Lead Source',
             render: (value) => (
                 <div className='whitespace-nowrap w-auto'>
@@ -278,29 +659,34 @@ const LeadsPage = () => {
             ),
         },
         {
-            key: 'joinedCommunity',
+            key: 'communityJoined',
             header: 'Joined Community',
-            checkbox: {
-                trueValue: 'Yes',
-                falseValue: 'No',
-                onChange: (checked, row) => {
-                    updateRowData(row.id, 'joinedCommunity', checked ? 'Yes' : 'No')
-                    console.log('Joined Community changed:', checked, row)
-                },
-            },
+            render: (value, row) => (
+                <input
+                    type='checkbox'
+                    checked={value === true}
+                    onChange={(e) => {
+                        handleUpdateBooleanField(row.leadId, 'communityJoined', e.target.checked)
+                    }}
+                    className='rounded text-blue-600'
+                />
+            ),
         },
         {
             key: 'onBroadcast',
             header: 'On Broadcast',
-            checkbox: {
-                trueValue: 'Yes',
-                falseValue: 'No',
-                onChange: (checked, row) => {
-                    updateRowData(row.id, 'onBroadcast', checked ? 'Yes' : 'No')
-                    console.log('On Broadcast changed:', checked, row)
-                },
-            },
+            render: (value, row) => (
+                <input
+                    type='checkbox'
+                    checked={value === true}
+                    onChange={(e) => {
+                        handleUpdateBooleanField(row.leadId, 'onBroadcast', e.target.checked)
+                    }}
+                    className='rounded text-blue-600'
+                />
+            ),
         },
+
         {
             key: 'actions',
             header: 'Actions',
@@ -344,13 +730,13 @@ const LeadsPage = () => {
     ]
 
     return (
-        <Layout loading={false}>
+        <Layout loading={loading || reduxLoading}>
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
                     <div className='mb-4'>
                         <div className='flex items-center justify-between mb-2'>
-                            <h1 className='text-lg font-semibold text-black'>Leads ({leadsData.length})</h1>
+                            <h1 className='text-lg font-semibold text-black'>Leads ({totalLeads})</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
                                     <StateBaseTextField
@@ -387,21 +773,26 @@ const LeadsPage = () => {
                             </div>
                         </div>
                         <hr className='border-gray-200 mb-4' />
-                        <MetricsCards metrics={sampleMetrics} className='mb-2' />
+
+                        {/* Metrics */}
+                        <MetricsCards metrics={metrics} className='mb-2' />
+
                         {/* Filters */}
-                        <div className='flex items-center gap-2 mb-2'>
-                            <button className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md'>
+                        <div className='flex items-center gap-2 mb-2 flex-wrap'>
+                            <button
+                                className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md'
+                                onClick={resetFilters}
+                            >
                                 <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
                             </button>
-                            <Dropdown
-                                options={kamOptions}
-                                onSelect={setSelectedKAM}
-                                defaultValue={selectedKAM}
+
+                            <MultiSelectDropdown
+                                allOptions={kamOptions}
+                                selectedValues={selectedKAMs}
+                                onSelectionChange={setSelectedKAMs}
                                 placeholder='KAM'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                label='Select KAMs'
+                                facets={facets.kamName || {}}
                             />
 
                             <Dropdown
@@ -415,35 +806,47 @@ const LeadsPage = () => {
                                 optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                             />
 
-                            <Dropdown
-                                options={connectStatusOptions}
-                                onSelect={setSelectedConnectStatus}
-                                defaultValue={selectedConnectStatus}
+                            <MultiSelectDropdown
+                                allOptions={mergeOptionsWithFacets(ALL_CONTACT_STATUS_OPTIONS, 'contactStatus')}
+                                selectedValues={selectedConnectStatuses}
+                                onSelectionChange={setSelectedConnectStatuses}
                                 placeholder='Connect Status'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                label='Select Connect Status'
+                                facets={facets.contactStatus || {}}
                             />
 
-                            <Dropdown
-                                options={leadStatusOptions}
-                                onSelect={setSelectedLeadStatus}
-                                defaultValue={selectedLeadStatus}
+                            <MultiSelectDropdown
+                                allOptions={mergeOptionsWithFacets(ALL_LEAD_STATUS_OPTIONS, 'leadStatus')}
+                                selectedValues={selectedLeadStatuses}
+                                onSelectionChange={setSelectedLeadStatuses}
                                 placeholder='Lead Status'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                label='Select Lead Status'
+                                facets={facets.leadStatus || {}}
+                            />
+
+                            <MultiSelectDropdown
+                                allOptions={mergeOptionsWithFacets(ALL_SOURCE_OPTIONS, 'source')}
+                                selectedValues={selectedSources}
+                                onSelectionChange={setSelectedSources}
+                                placeholder='Source'
+                                label='Select Sources'
+                                facets={facets.source || {}}
                             />
                         </div>
+
+                        {/* Error Display */}
+                        {(error || reduxError) && (
+                            <div className='bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4'>
+                                Error: {error || reduxError}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Table with fixed actions column and vertical scrolling */}
+                    {/* Table */}
                     <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
                         <div className='h-[65vh] overflow-y-auto'>
                             <FlexibleTable
-                                data={paginatedData}
+                                data={leads}
                                 columns={columns}
                                 hoverable={true}
                                 borders={{
@@ -463,7 +866,7 @@ const LeadsPage = () => {
                         <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
                             <div className='text-sm text-gray-500 font-medium'>
                                 Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                                {Math.min(currentPage * ITEMS_PER_PAGE, leadsData.length)} of {leadsData.length} leads
+                                {Math.min(currentPage * ITEMS_PER_PAGE, totalLeads)} of {totalLeads} leads
                             </div>
 
                             <div className='flex items-center gap-2'>
@@ -488,7 +891,6 @@ const LeadsPage = () => {
 
                                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                                     .filter((page) => {
-                                        // Show first page, last page, current page, and pages around current page
                                         return (
                                             page === 1 ||
                                             page === totalPages ||
@@ -496,7 +898,6 @@ const LeadsPage = () => {
                                         )
                                     })
                                     .map((page, index, array) => {
-                                        // Add ellipsis between non-consecutive pages
                                         const showEllipsisBefore = index > 0 && array[index - 1] !== page - 1
                                         const showEllipsisAfter =
                                             index < array.length - 1 && array[index + 1] !== page + 1
@@ -564,11 +965,11 @@ const LeadsPage = () => {
                         rowData={selectedRowData}
                     />
 
-                    <VerificationModal
+                    {/* <VerificationModal
                         isOpen={isVerificationModalOpen}
                         onClose={() => setIsVerificationModalOpen(false)}
                         rowData={selectedRowData}
-                    />
+                    /> */}
 
                     <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
                 </div>

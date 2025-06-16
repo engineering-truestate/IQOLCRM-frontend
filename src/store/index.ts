@@ -5,6 +5,7 @@ import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, 
 import storage from 'redux-persist/lib/storage'
 import userReducer from './reducers/user/userReducer'
 import qcReducer from './reducers/acn/qcReducer'
+import leadsReducer from './reducers/acn/leadsReducers'
 
 const persistConfig = {
     key: 'root',
@@ -25,6 +26,7 @@ const store = configureStore({
         requirements: requirementsReducer,
         user: userReducer,
         qc: qcReducer,
+        leads: leadsReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
