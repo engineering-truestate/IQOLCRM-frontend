@@ -13,6 +13,7 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
 import { fetchPropertiesByIds } from '../../../services/acn/properties/propertiesService'
 import { clearProperties } from '../../../store/reducers/acn/propertiesReducers'
+import Breadcrumb from '../../../components/acn/Breadcrumb'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
 import noteic from '/icons/acn/note.svg'

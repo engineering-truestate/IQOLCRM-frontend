@@ -1,14 +1,16 @@
+// PropertyDetailsPage.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '../../../store/index'
+import { fetchPropertyById } from '../../../services/acn/properties/propertiesService'
+import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
 import Layout from '../../../layout/Layout'
 import Dropdown from '../../../components/design-elements/Dropdown'
-import {
-    generateProperties,
-    type Property,
-    type PropertyStatus,
-} from '../../../pages/dummy_data/acn_properties_inventory_dummy_data'
+import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
+import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 
 // Icons
 import shareIcon from '/icons/acn/share.svg'
@@ -25,10 +27,13 @@ interface Note {
 const PropertyDetailsPage = () => {
     const navigate = useNavigate()
     const { pId } = useParams<{ pId: string }>()
+    const dispatch = useDispatch<AppDispatch>()
 
-    const [property, setProperty] = useState<Property | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [_, setCurrentImageIndex] = useState(0)
+    // Redux state
+    const { currentProperty: property, loading, error } = useSelector((state: RootState) => state.properties)
+
+    // Local state
+    const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [newNote, setNewNote] = useState('')
     const [notes, setNotes] = useState<Note[]>([
         {
@@ -46,48 +51,29 @@ const PropertyDetailsPage = () => {
                 "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a",
         },
     ])
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
-    // Sample property images
-    const propertyImages = [
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
-    ]
-
+    // Fetch property data when component mounts
     useEffect(() => {
         if (pId) {
-            setLoading(true)
-
-            // Simulate API call
-            const fetchProperty = async () => {
-                try {
-                    const sampleData = generateProperties(200, 'Resale')
-                    const foundProperty = sampleData.find((p) => p.id === pId)
-
-                    if (foundProperty) {
-                        setProperty(foundProperty)
-                    } else {
-                        console.error('Property not found')
-                        navigate('/acn/properties')
-                    }
-                } catch (error) {
-                    console.error('Error fetching property:', error)
-                } finally {
-                    setLoading(false)
-                }
-            }
-
-            fetchProperty()
+            console.log('🔄 Fetching property with ID:', pId)
+            dispatch(fetchPropertyById(pId))
         }
-    }, [pId, navigate])
 
+        // Cleanup on unmount
+        return () => {
+            console.log('🧹 Clearing current property on unmount')
+            dispatch(clearCurrentProperty())
+        }
+    }, [pId, dispatch])
+
+    // Handle status change
     const handleStatusChange = (option: string) => {
-        const newStatus = option as PropertyStatus
-        if (property) {
-            setProperty((prev) => (prev ? { ...prev, status: newStatus } : null))
-        }
+        console.log('📝 Status changed to:', option)
+        // TODO: Implement status update API call
     }
 
+    // Handle add note
     const handleAddNote = () => {
         if (newNote.trim()) {
             const note: Note = {
@@ -101,6 +87,7 @@ const PropertyDetailsPage = () => {
         }
     }
 
+    // Status dropdown options
     const getStatusOptions = () => [
         {
             label: 'Available',
@@ -128,40 +115,117 @@ const PropertyDetailsPage = () => {
         },
     ]
 
-    // const getStatusColor = (status: PropertyStatus) => {
-    //     switch (status) {
-    //         case 'Available':
-    //             return 'bg-green-100 text-green-800'
-    //         case 'Sold':
-    //             return 'bg-red-100 text-red-800'
-    //         case 'Hold':
-    //             return 'bg-orange-100 text-orange-800'
-    //         case 'Delisted':
-    //             return 'bg-gray-100 text-gray-800'
-    //         default:
-    //             return 'bg-gray-100 text-gray-800'
-    //     }
-    // }
+    // Helper functions
+    const formatCurrency = (amount: number | undefined | null) => {
+        if (!amount) return '₹0'
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0,
+        }).format(amount)
+    }
 
+    const formatDate = (timestamp: any) => {
+        if (!timestamp) return 'N/A'
+        let date: Date
+
+        if (timestamp?.toDate) {
+            date = timestamp.toDate()
+        } else if (timestamp?.seconds) {
+            date = new Date(timestamp.seconds * 1000)
+        } else if (typeof timestamp === 'string') {
+            date = new Date(timestamp)
+        } else if (timestamp instanceof Date) {
+            date = timestamp
+        } else {
+            return 'N/A'
+        }
+
+        return date.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+        })
+    }
+
+    // Get property images (use property photos or fallback to sample images)
+    const getPropertyImages = () => {
+        if (property?.photo && property.photo.length > 0) {
+            return property.photo
+        }
+        // Fallback sample images
+        return [
+            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
+        ]
+    }
+
+    // Loading state
     if (loading) {
         return (
             <Layout loading={true}>
                 <div className='flex items-center justify-center min-h-screen'>
-                    <div className='text-lg'>Loading...</div>
+                    <div className='text-lg'>Loading property details...</div>
                 </div>
             </Layout>
         )
     }
 
-    if (!property) {
+    // Error state
+    if (error) {
         return (
             <Layout loading={false}>
                 <div className='flex items-center justify-center min-h-screen'>
-                    <div className='text-lg'>Property not found</div>
+                    <div className='text-center'>
+                        <div className='text-lg text-red-600 mb-4'>Error loading property</div>
+                        <div className='text-sm text-gray-600 mb-4'>{error}</div>
+                        <div className='flex gap-2 justify-center'>
+                            <button
+                                onClick={() => {
+                                    dispatch(clearError())
+                                    if (pId) dispatch(fetchPropertyById(pId))
+                                }}
+                                className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => navigate('/acn/properties')}
+                                className='px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600'
+                            >
+                                Back to Properties
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </Layout>
         )
     }
+
+    // Not found state
+    if (!property) {
+        return (
+            <Layout loading={false}>
+                <div className='flex items-center justify-center min-h-screen'>
+                    <div className='text-center'>
+                        <div className='text-lg'>Property not found</div>
+                        <div className='text-sm text-gray-600 mt-2'>
+                            The property with ID "{pId}" could not be found.
+                        </div>
+                        <button
+                            onClick={() => navigate('/acn/properties')}
+                            className='mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                        >
+                            Back to Properties
+                        </button>
+                    </div>
+                </div>
+            </Layout>
+        )
+    }
+
+    const propertyImages = getPropertyImages()
 
     return (
         <Layout loading={false}>
@@ -180,7 +244,10 @@ const PropertyDetailsPage = () => {
 
                     {/* Header Actions */}
                     <div className='flex items-center gap-4 mb-6'>
-                        <button className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'>
+                        <button
+                            onClick={() => setIsShareModalOpen(true)}
+                            className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'
+                        >
                             <img src={shareIcon} alt='Share' className='w-4 h-4' />
                             Share
                         </button>
@@ -205,7 +272,7 @@ const PropertyDetailsPage = () => {
                                 <div className='flex items-start justify-between mb-4'>
                                     <div>
                                         <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
-                                            {property.propertyName}
+                                            {property.nameOfTheProperty || property.area || 'Unknown Property'}
                                         </h1>
                                         <div className='flex items-center gap-6 text-sm text-gray-600'>
                                             <div className='flex items-center gap-1'>
@@ -228,7 +295,7 @@ const PropertyDetailsPage = () => {
                                                         d='M15 11a3 3 0 11-6 0 3 3 0 016 0z'
                                                     />
                                                 </svg>
-                                                Micromarket
+                                                {property.micromarket || 'Unknown'}
                                             </div>
                                             <div className='flex items-center gap-1'>
                                                 <svg
@@ -244,7 +311,7 @@ const PropertyDetailsPage = () => {
                                                         d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
                                                     />
                                                 </svg>
-                                                Handover
+                                                {formatDate(property.handoverDate)}
                                             </div>
                                             <div className='flex items-center gap-1'>
                                                 <svg
@@ -260,7 +327,7 @@ const PropertyDetailsPage = () => {
                                                         d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
                                                     />
                                                 </svg>
-                                                Asset Type
+                                                {property.assetType || 'Unknown'}
                                             </div>
                                             <div className='flex items-center gap-1'>
                                                 <svg
@@ -282,21 +349,23 @@ const PropertyDetailsPage = () => {
                                                         d='M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z'
                                                     />
                                                 </svg>
-                                                Unit Type
+                                                {property.unitType || 'Unknown'}
                                             </div>
                                         </div>
                                     </div>
                                     <div className='text-right'>
                                         <div className='text-2xl font-bold text-gray-900 mb-2'>
-                                            {property.salePrice || property.monthlyRent}
+                                            {formatCurrency(property.totalAskPrice)}
                                         </div>
                                         <div className='flex items-center gap-3'>
                                             <div className='w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
-                                                HR
+                                                {property.cpCode ? property.cpCode.substring(0, 2).toUpperCase() : 'AG'}
                                             </div>
                                             <div>
-                                                <div className='font-medium text-gray-900'>{property.agentName}</div>
-                                                <div className='text-sm text-gray-600'>CPA001 | 8118823650</div>
+                                                <div className='font-medium text-gray-900'>Agent</div>
+                                                <div className='text-sm text-gray-600'>
+                                                    {property.cpCode || property.cpId} | Contact
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -304,7 +373,7 @@ const PropertyDetailsPage = () => {
 
                                 {/* Property Images */}
                                 <div className='grid grid-cols-3 gap-4 mb-6'>
-                                    {propertyImages.map((image, index) => (
+                                    {propertyImages.slice(0, 3).map((image, index) => (
                                         <div
                                             key={index}
                                             className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer ${
@@ -316,8 +385,13 @@ const PropertyDetailsPage = () => {
                                                 src={image}
                                                 alt={`Property ${index + 1}`}
                                                 className='w-full h-full object-cover'
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement
+                                                    target.src =
+                                                        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
+                                                }}
                                             />
-                                            {index === 2 && (
+                                            {index === 2 && propertyImages.length > 3 && (
                                                 <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
                                                     <button className='flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 text-white rounded-md backdrop-blur-sm'>
                                                         <svg
@@ -333,7 +407,7 @@ const PropertyDetailsPage = () => {
                                                                 d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
                                                             />
                                                         </svg>
-                                                        View all photos
+                                                        View all photos ({propertyImages.length})
                                                     </button>
                                                 </div>
                                             )}
@@ -349,96 +423,105 @@ const PropertyDetailsPage = () => {
                                 <div className='grid grid-cols-2 gap-x-8 gap-y-4'>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Property Type</span>
-                                        <span className='font-medium'>Apartment</span>
+                                        <span className='font-medium capitalize'>{property.assetType || 'N/A'}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Bedrooms</span>
-                                        <span className='font-medium'>3</span>
+                                        <span className='text-gray-600'>Unit Type</span>
+                                        <span className='font-medium'>{property.unitType || 'N/A'}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Sub Type</span>
-                                        <span className='font-medium'>Simplex</span>
+                                        <span className='font-medium'>{property.subType || 'N/A'}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Bathrooms</span>
-                                        <span className='font-medium'>3</span>
+                                        <span className='text-gray-600'>Floor No</span>
+                                        <span className='font-medium'>{property.floorNo || 'N/A'}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Price</span>
-                                        <span className='font-medium'>1.5 Cr.</span>
+                                        <span className='text-gray-600'>Total Ask Price</span>
+                                        <span className='font-medium'>{formatCurrency(property.totalAskPrice)}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Balconies</span>
-                                        <span className='font-medium'>3</span>
+                                        <span className='text-gray-600'>Ask Price Per Sqft</span>
+                                        <span className='font-medium'>{formatCurrency(property.askPricePerSqft)}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Per Sqft Price</span>
-                                        <span className='font-medium'>1500 / Sqft</span>
+                                        <span className='text-gray-600'>SBUA</span>
+                                        <span className='font-medium'>
+                                            {property.sbua ? `${property.sbua} sq ft` : 'N/A'}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Floor</span>
-                                        <span className='font-medium'>Lower Floor (1-5)</span>
+                                        <span className='text-gray-600'>Carpet Area</span>
+                                        <span className='font-medium'>
+                                            {property.carpet ? `${property.carpet} sq ft` : 'N/A'}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Area</span>
-                                        <span className='font-medium'>5500 Sqft.</span>
+                                        <span className='text-gray-600'>Plot Size</span>
+                                        <span className='font-medium'>
+                                            {property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Facing</span>
-                                        <span className='font-medium'>East</span>
+                                        <span className='font-medium'>{property.facing || 'N/A'}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Possession</span>
-                                        <span className='font-medium'>Ready to move</span>
+                                        <span className='text-gray-600'>Building Age</span>
+                                        <span className='font-medium'>
+                                            {property.buildingAge ? `${property.buildingAge} years` : 'N/A'}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Furnishing</span>
-                                        <span className='font-medium'>Fully furnished</span>
+                                        <span className='text-gray-600'>Tenanted</span>
+                                        <span className='font-medium'>
+                                            {property.tenanted !== null ? (property.tenanted ? 'Yes' : 'No') : 'N/A'}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Age of Property</span>
-                                        <span className='font-medium'>2 years</span>
+                                        <span className='text-gray-600'>Age of Inventory</span>
+                                        <span className='font-medium'>
+                                            {property.ageOfInventory ? `${property.ageOfInventory} days` : 'N/A'}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Parking</span>
-                                        <span className='font-medium'>3</span>
+                                        <span className='text-gray-600'>Building Khata</span>
+                                        <span className='font-medium'>{property.buildingKhata || 'N/A'}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Age of Inventory:</span>
-                                        <span className='font-medium'>1 Month old</span>
+                                        <span className='text-gray-600'>Age of Status</span>
+                                        <span className='font-medium'>
+                                            {property.ageOfStatus ? `${property.ageOfStatus} days` : 'N/A'}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Building Khata:</span>
-                                        <span className='font-medium'>-</span>
+                                        <span className='text-gray-600'>Land Khata</span>
+                                        <span className='font-medium'>{property.landKhata || 'N/A'}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Age of Status:</span>
-                                        <span className='font-medium'>1 Month old</span>
+                                        <span className='text-gray-600'>Date Added</span>
+                                        <span className='font-medium'>{formatDate(property.dateOfInventoryAdded)}</span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Land Khata:</span>
-                                        <span className='font-medium'>-</span>
-                                    </div>
-                                    <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Date of Inventory Added:</span>
-                                        <span className='font-medium'>July 2024</span>
-                                    </div>
-                                    <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Tenanted:</span>
-                                        <span className='font-medium'>Yes</span>
+                                        <span className='text-gray-600'>OC Received</span>
+                                        <span className='font-medium'>
+                                            {property.ocReceived !== null
+                                                ? property.ocReceived
+                                                    ? 'Yes'
+                                                    : 'No'
+                                                : 'N/A'}
+                                        </span>
                                     </div>
                                 </div>
 
                                 {/* Extra Details */}
-                                <div className='mt-6'>
-                                    <h3 className='font-medium text-gray-900 mb-3'>Extra Details</h3>
-                                    <ul className='space-y-1 text-sm text-gray-600'>
-                                        <li>• 2 BHK + 2 T</li>
-                                        <li>• 3 Balconies(west)</li>
-                                        <li>• 1 closed parking</li>
-                                        <li>• Semi furnished</li>
-                                    </ul>
-                                </div>
+                                {property.extraDetails && (
+                                    <div className='mt-6'>
+                                        <h3 className='font-medium text-gray-900 mb-3'>Extra Details</h3>
+                                        <p className='text-sm text-gray-600 leading-relaxed'>{property.extraDetails}</p>
+                                    </div>
+                                )}
 
                                 {/* Location Details */}
                                 <div className='mt-6'>
@@ -446,25 +529,38 @@ const PropertyDetailsPage = () => {
                                     <div className='space-y-2 text-sm'>
                                         <div className='flex justify-between'>
                                             <span className='text-gray-600'>Micromarket</span>
-                                            <span className='font-medium'>Bannerghatta</span>
+                                            <span className='font-medium'>{property.micromarket || 'N/A'}</span>
                                         </div>
                                         <div className='flex justify-between'>
                                             <span className='text-gray-600'>Area</span>
-                                            <span className='font-medium'>North Bangalore</span>
+                                            <span className='font-medium'>{property.area || 'N/A'}</span>
                                         </div>
                                         <div className='flex justify-between'>
-                                            <span className='text-gray-600'>Address</span>
-                                            <span className='font-medium'>
-                                                1579, 27th Main, 2nd sector, HSR Layout, Bangalore
-                                            </span>
+                                            <span className='text-gray-600'>Map Location</span>
+                                            <span className='font-medium'>{property.mapLocation || 'N/A'}</span>
                                         </div>
-                                        <div className='flex justify-between'>
-                                            <span className='text-gray-600'>Coordinates</span>
-                                            <span className='font-medium'>13.237741942078303, 77.44840734269587</span>
-                                        </div>
+                                        {property._geoloc && (
+                                            <div className='flex justify-between'>
+                                                <span className='text-gray-600'>Coordinates</span>
+                                                <span className='font-medium'>
+                                                    {property._geoloc.lat}, {property._geoloc.lng}
+                                                </span>
+                                            </div>
+                                        )}
                                         <div className='flex justify-between items-center'>
                                             <span className='text-gray-600'>Map</span>
-                                            <button className='px-3 py-1 bg-gray-900 text-white text-xs rounded'>
+                                            <button
+                                                onClick={() => {
+                                                    if (property._geoloc) {
+                                                        window.open(
+                                                            `https://maps.google.com/?q=${property._geoloc.lat},${property._geoloc.lng}`,
+                                                            '_blank',
+                                                        )
+                                                    }
+                                                }}
+                                                className='px-3 py-1 bg-gray-900 text-white text-xs rounded hover:bg-gray-800'
+                                                disabled={!property._geoloc}
+                                            >
                                                 Open Maps
                                             </button>
                                         </div>
@@ -499,11 +595,15 @@ const PropertyDetailsPage = () => {
                                     <div className='space-y-2'>
                                         <div className='flex justify-between'>
                                             <span className='text-gray-600'>Enquiries</span>
-                                            <span className='font-medium'>15</span>
+                                            <span className='font-medium'>{property.enquiries || 0}</span>
                                         </div>
                                         <div className='flex justify-between'>
-                                            <span className='text-gray-600'>Inv Score</span>
-                                            <span className='font-medium'>50 / 100</span>
+                                            <span className='text-gray-600'>Age of Inventory</span>
+                                            <span className='font-medium'>{property.ageOfInventory || 0} days</span>
+                                        </div>
+                                        <div className='flex justify-between'>
+                                            <span className='text-gray-600'>Age of Status</span>
+                                            <span className='font-medium'>{property.ageOfStatus || 0} days</span>
                                         </div>
                                     </div>
                                 </div>
@@ -565,6 +665,13 @@ const PropertyDetailsPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Share Modal */}
+            <ShareInventoryModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                property={property}
+            />
         </Layout>
     )
 }

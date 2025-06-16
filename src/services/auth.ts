@@ -33,6 +33,15 @@ export const loginUser = async (email: string, password: string) => {
     }
 }
 
+export const handleLogout = async (navigate: any) => {
+    try {
+        await signOut(auth)
+        navigate('/login')
+    } catch (error: any) {
+        console.error('Logout failed', error)
+    }
+}
+
 export const logoutUser = async (): Promise<void> => {
     try {
         console.log(auth.currentUser, 'beforer')
