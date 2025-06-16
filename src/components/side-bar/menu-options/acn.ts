@@ -1,7 +1,7 @@
 export const acnMenuItems = [
-    { label: 'Dashboard', path: '/acn/dashboard' },
-    { label: 'Users', path: '/acn/users' },
+    { label: 'agents', path: '/acn/agents' },
     { label: 'Leads', path: '/acn/leads' },
     { label: 'Requirements', path: '/acn/requirements' },
-    { label: 'Settings', path: '/acn/settings' },
+    { label: 'Properties', path: '/acn/properties' },
+    { label: 'QC Dashboard', path: '/acn/qc/dashboard' },
 ]

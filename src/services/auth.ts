@@ -6,7 +6,7 @@ import {
     signOut,
     sendPasswordResetEmail,
 } from 'firebase/auth'
-import { app } from '../../firebase'
+import { app } from '../firebase'
 
 const auth = getAuth(app)
 
@@ -30,6 +30,15 @@ export const loginUser = async (email: string, password: string) => {
     } catch (error: any) {
         console.error('Error signing in:', error)
         throw error
+    }
+}
+
+export const handleLogout = async (navigate: any) => {
+    try {
+        await signOut(auth)
+        navigate('/login')
+    } catch (error: any) {
+        console.error('Logout failed', error)
     }
 }
 

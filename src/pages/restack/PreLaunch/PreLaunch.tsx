@@ -7,45 +7,48 @@ import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import {
-    samplePreLaunchProjects,
-    generatePreLaunchProjects,
-    type PreLaunchProject,
-} from '../../dummy_data/restack_prelaunch_dummy_data'
 import PreLaunchModal, { type PreLaunchFormData } from '../../../components/restack/AddPreLaunchProjectModal'
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchPreLaunchProperties, addPreLaunchProperty } from '../../../store/actions/restack/preLaunchActions'
+import type { Property } from '../../../store/reducers/restack/types'
+import type { AppDispatch, RootState } from '../../../store'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 
 const PreLaunchPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
-    const [paginatedData, setPaginatedData] = useState<PreLaunchProject[]>([])
-    const [filteredData, setFilteredData] = useState<PreLaunchProject[]>([])
+    const [paginatedData, setPaginatedData] = useState<Property[]>([])
+    const [filteredData, setFilteredData] = useState<Property[]>([])
     const navigate = useNavigate()
+    const dispatch = useDispatch<AppDispatch>()
+
+    // Redux state
+    const { properties, loading, error } = useSelector((state: RootState) => state.preLaunch)
+
     // Items per page
     const ITEMS_PER_PAGE = 50
 
-    // Initialize projects data
-    const [projectsData, setProjectsData] = useState<PreLaunchProject[]>(() => {
-        // Use sample data that matches the image, then add more generated data
-        const additionalProjects = generatePreLaunchProjects(50)
-        return [...samplePreLaunchProjects, ...additionalProjects]
-    })
+    // Fetch data on component mount
+    useEffect(() => {
+        dispatch(fetchPreLaunchProperties())
+    }, [dispatch])
 
     // Filter data based on search
     useEffect(() => {
         if (searchValue.trim() === '') {
-            setFilteredData(projectsData)
+            setFilteredData(properties)
         } else {
-            const filtered = projectsData.filter(
+            const filtered = properties.filter(
                 (project) =>
                     project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
                     project.stage.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.location?.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.developer?.toLowerCase().includes(searchValue.toLowerCase()),
+                    project.address?.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    project.developerName?.toLowerCase().includes(searchValue.toLowerCase()),
             )
             setFilteredData(filtered)
         }
         setCurrentPage(1) // Reset to first page when searching
-    }, [searchValue, projectsData])
+    }, [searchValue, properties])
 
     // Calculate total pages
     const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
@@ -70,16 +73,10 @@ const PreLaunchPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
-            key: 'tentativeStartDate',
+            key: 'projectStartDate',
             header: 'Tentative Start Date',
             render: (value) => (
-                <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    })}
-                </span>
+                <span className='whitespace-nowrap text-sm text-gray-600'>{value ? formatUnixDate(value) : 'N/A'}</span>
             ),
         },
         {
@@ -88,7 +85,7 @@ const PreLaunchPage = () => {
             render: (_, row) => (
                 <button
                     className='text-gray-900 text-sm font-medium transition-colors'
-                    onClick={() => navigate(`/restack/prelaunch/${row.pId}`)}
+                    onClick={() => navigate(`/restack/prelaunch/${row.projectId}`)}
                 >
                     View Details
                 </button>
@@ -97,20 +94,66 @@ const PreLaunchPage = () => {
     ]
     const [showModal, setShowModal] = useState(false)
 
-    const handleAddProject = (data: PreLaunchFormData) => {
-        const total = projectsData.length
-        const offset = Math.floor(Math.random() * 100) + 1
-        const newProject: PreLaunchProject = {
-            id: `PRE-${(total + offset).toString().padStart(3, '0')}`,
-            pId: `P${(total + offset).toString().padStart(4, '0')}`,
-            ...data,
+    const handleAddProject = async (data: PreLaunchFormData) => {
+        try {
+            // Transform PreLaunchFormData to Property format
+            const propertyData: Omit<Property, 'projectId' | 'createdAt' | 'lastUpdated'> = {
+                projectName: data.projectName,
+                projectType: data.projectType,
+                stage: data.stage,
+                status: 'Active', // Default status
+                developerName: data.developerName,
+                projectSize: data.projectSize, // Default values - you may want to add these to the form
+                projectSizeUnit: 'sqft',
+                pricePerSqft: data.pricePerSqft,
+                projectStartDate: data.tentativeStartDate,
+                handoverDate: data.proposedCompletionDate, // Default empty
+                address: data.address,
+                lat: data.latitude, // Default empty
+                long: data.latitude, // Default empty
+                mapLink: data.map,
+                totalUnits: data.totalUnits,
+                eoiAmount: 0,
+                numberOfFloors: data.totalFloors,
+                numberOfTowers: data.numberOfTowers,
+                totalParking: data.carParking,
+                openParking: 0,
+                coveredParking: 0,
+                openArea: data.openSpace,
+                reraId: '',
+                reraStatus: '',
+                environmentalClearance: '',
+                buildingPermission: '',
+                configurations: {
+                    apartments: [],
+                    villas: [],
+                    plots: [],
+                },
+                amenities: [],
+                documents: {
+                    villageMaps: [],
+                    cdpMaps: [],
+                    masterPlan: '',
+                    projectLayoutPlan: '',
+                    brochure: '',
+                },
+                areaUnit: 'sqft',
+            }
+
+            const result = await dispatch(addPreLaunchProperty(propertyData))
+            if (result.meta.requestStatus === 'fulfilled') {
+                console.log('Property added successfully:', result.payload)
+                // Optionally refresh the data
+                dispatch(fetchPreLaunchProperties())
+            }
+        } catch (error) {
+            console.error('Error adding property:', error)
         }
-        setProjectsData((prev) => [newProject, ...prev])
         setShowModal(false)
     }
 
     return (
-        <Layout loading={false}>
+        <Layout loading={loading}>
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-4 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
@@ -182,7 +225,7 @@ const PreLaunchPage = () => {
                                     Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
                                     {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} of{' '}
                                     {filteredData.length} projects
-                                    {searchValue && ` (filtered from ${projectsData.length} total projects)`}
+                                    {searchValue && ` (filtered from ${properties.length} total projects)`}
                                 </div>
 
                                 <div className='flex items-center gap-2'>
@@ -270,6 +313,62 @@ const PreLaunchPage = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* Error handling */}
+                    {error && (
+                        <div className='mt-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
+                            <div className='flex'>
+                                <div className='flex-shrink-0'>
+                                    <svg className='h-5 w-5 text-red-400' viewBox='0 0 20 20' fill='currentColor'>
+                                        <path
+                                            fillRule='evenodd'
+                                            d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
+                                            clipRule='evenodd'
+                                        />
+                                    </svg>
+                                </div>
+                                <div className='ml-3'>
+                                    <h3 className='text-sm font-medium text-red-800'>Error loading properties</h3>
+                                    <div className='mt-2 text-sm text-red-700'>
+                                        <p>{error}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!loading && !error && properties.length === 0 && (
+                        <div className='text-center py-12'>
+                            <svg
+                                className='mx-auto h-12 w-12 text-gray-400'
+                                fill='none'
+                                viewBox='0 0 24 24'
+                                stroke='currentColor'
+                            >
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
+                                />
+                            </svg>
+                            <h3 className='mt-2 text-sm font-medium text-gray-900'>No properties found</h3>
+                            <p className='mt-1 text-sm text-gray-500'>
+                                Get started by adding a new pre-launch property.
+                            </p>
+                            <div className='mt-6'>
+                                <Button
+                                    bgColor='bg-blue-600'
+                                    textColor='text-white'
+                                    className='px-4 py-2 font-medium transition-colors hover:bg-blue-700'
+                                    onClick={() => setShowModal(true)}
+                                >
+                                    Add Property
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
             {showModal && (

@@ -7,45 +7,47 @@ import Layout from '../../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
 import Button from '../../../../components/design-elements/Button'
 import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
-import {
-    sampleRERAProjects,
-    generateRERAProjects,
-    type RERAProject,
-} from '../../../dummy_data/restack_primary_dummy_data'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '../../../../store'
+import { stockData, type StockProject } from '../../../dummy_data/restack_prerera_dummy_data'
 
-const PrimaryPage = () => {
+const PreReraPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
-    const [paginatedData, setPaginatedData] = useState<RERAProject[]>([])
-    const [filteredData, setFilteredData] = useState<RERAProject[]>([])
+    const [paginatedData, setPaginatedData] = useState<StockProject[]>([])
+    const [filteredData, setFilteredData] = useState<StockProject[]>([])
+    const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
+    const dispatch = useDispatch<AppDispatch>()
+
     // Items per page
     const ITEMS_PER_PAGE = 50
 
-    // Initialize projects data
-    const [projectsData, setProjectsData] = useState<RERAProject[]>(() => {
-        // Use sample data that matches the image, then add more generated data
-        const additionalProjects = generateRERAProjects(50)
-        return [...sampleRERAProjects, ...additionalProjects]
-    })
+    // Load data on component mount
+    useEffect(() => {
+        setLoading(true)
+        // Simulate API call
+        setTimeout(() => {
+            setFilteredData(stockData)
+            setLoading(false)
+        }, 500)
+    }, [])
 
     // Filter data based on search
     useEffect(() => {
         if (searchValue.trim() === '') {
-            setFilteredData(projectsData)
+            setFilteredData(stockData)
         } else {
-            const filtered = projectsData.filter(
+            const filtered = stockData.filter(
                 (project) =>
                     project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.status.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.district.toLowerCase().includes(searchValue.toLowerCase()) ||
                     project.projectType.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.registrationNumber.toLowerCase().includes(searchValue.toLowerCase()),
+                    project.ageOfBuilding.toLowerCase().includes(searchValue.toLowerCase()),
             )
             setFilteredData(filtered)
         }
         setCurrentPage(1) // Reset to first page when searching
-    }, [searchValue, projectsData])
+    }, [searchValue])
 
     // Calculate total pages
     const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
@@ -57,75 +59,29 @@ const PrimaryPage = () => {
         setPaginatedData(filteredData.slice(startIndex, endIndex))
     }, [currentPage, filteredData])
 
-    // Status badge component
-    const StatusBadge = ({ status }: { status: string }) => {
-        const getStatusColor = (status: string) => {
-            switch (status.toLowerCase()) {
-                case 'active':
-                    return 'bg-green-100 text-green-800'
-                case 'completed':
-                    return 'bg-blue-100 text-blue-800'
-                case 'planning':
-                    return 'bg-yellow-100 text-yellow-800'
-                default:
-                    return 'bg-gray-100 text-gray-800'
-            }
-        }
-
-        return (
-            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(status)}`}>
-                {status}
-            </span>
-        )
-    }
-
     // Table columns configuration
     const columns: TableColumn[] = [
         {
             key: 'projectName',
             header: 'Project Name',
-            render: (value) => <span className='whitespace-nowrap text-sm font-semibold text-gray-900'>{value}</span>,
-        },
-        {
-            key: 'registrationNumber',
-            header: 'Registration Number',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-mono'>{value}</span>,
-        },
-        {
-            key: 'district',
-            header: 'District',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
-            key: 'status',
-            header: 'Status',
-            render: (value) => <StatusBadge status={value} />,
+            render: (value, row) => (
+                <span
+                    className='whitespace-nowrap text-sm font-medium text-gray-900'
+                    onClick={() => navigate(`/restack/stock/pre-rera/${row.id}/details`)}
+                >
+                    {value}
+                </span>
+            ),
         },
         {
             key: 'projectStartDate',
             header: 'Project Start Date',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    })}
-                </span>
-            ),
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
-            key: 'proposedCompletionDate',
-            header: 'Proposed Completion Date',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    })}
-                </span>
-            ),
+            key: 'projectCompletionDate',
+            header: 'Project Completion Date',
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
             key: 'projectType',
@@ -133,32 +89,27 @@ const PrimaryPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
-            key: 'action',
-            header: 'Action',
-            render: (_, row) => {
-                const lastSegment = row.registrationNumber.split('/').pop()
-                const pId = lastSegment ? `P${lastSegment}` : row.registrationNumber // Prepend 'P' if a segment is found
-
-                return (
-                    <button
-                        className='text-gray-900 text-sm font-medium transition-colors hover:text-blue-600'
-                        onClick={() => navigate(`/restack/primary/${pId}`)}
-                    >
-                        View Details
-                    </button>
-                )
-            },
+            key: 'ageOfBuilding',
+            header: 'Age of the Building',
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
     ]
 
+    const [showModal, setShowModal] = useState(false)
+
+    const handleAddProject = () => {
+        // Handle add project action
+        setShowModal(true)
+    }
+
     return (
-        <Layout loading={false}>
+        <Layout loading={loading}>
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-4 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
                     <div className='mb-2'>
                         <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Primary</h1>
+                            <h1 className='text-xl font-semibold text-gray-900'>Stock</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
                                     <StateBaseTextField
@@ -183,6 +134,14 @@ const PrimaryPage = () => {
                                         className='h-8'
                                     />
                                 </div>
+                                <Button
+                                    bgColor='bg-gray-200'
+                                    textColor='text-gray-600'
+                                    className='px-6 h-8 font-medium transition-colors'
+                                    onClick={handleAddProject}
+                                >
+                                    Add
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -215,9 +174,8 @@ const PrimaryPage = () => {
                                     Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
                                     {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} of{' '}
                                     {filteredData.length} projects
-                                    {searchValue && ` (filtered from ${projectsData.length} total projects)`}
+                                    {searchValue && ` (filtered from ${stockData.length} total projects)`}
                                 </div>
-
                                 <div className='flex items-center gap-2'>
                                     <button
                                         onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -240,7 +198,6 @@ const PrimaryPage = () => {
 
                                     {Array.from({ length: totalPages }, (_, i) => i + 1)
                                         .filter((page) => {
-                                            // Show first page, last page, current page, and pages around current page
                                             return (
                                                 page === 1 ||
                                                 page === totalPages ||
@@ -248,7 +205,6 @@ const PrimaryPage = () => {
                                             )
                                         })
                                         .map((page, index, array) => {
-                                            // Add ellipsis between non-consecutive pages
                                             const showEllipsisBefore = index > 0 && array[index - 1] !== page - 1
                                             const showEllipsisAfter =
                                                 index < array.length - 1 && array[index + 1] !== page + 1
@@ -303,10 +259,47 @@ const PrimaryPage = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* Empty state */}
+                    {!loading && filteredData.length === 0 && (
+                        <div className='text-center py-12'>
+                            <svg
+                                className='mx-auto h-12 w-12 text-gray-400'
+                                fill='none'
+                                viewBox='0 0 24 24'
+                                stroke='currentColor'
+                            >
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
+                                />
+                            </svg>
+                            <h3 className='mt-2 text-sm font-medium text-gray-900'>No stock projects found</h3>
+                            <p className='mt-1 text-sm text-gray-500'>
+                                {searchValue
+                                    ? 'Try adjusting your search criteria.'
+                                    : 'Get started by adding a new stock project.'}
+                            </p>
+                            {!searchValue && (
+                                <div className='mt-6'>
+                                    <Button
+                                        bgColor='bg-blue-600'
+                                        textColor='text-white'
+                                        className='px-4 py-2 font-medium transition-colors hover:bg-blue-700'
+                                        onClick={handleAddProject}
+                                    >
+                                        Add Stock Project
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </Layout>
     )
 }
 
-export default PrimaryPage
+export default PreReraPage

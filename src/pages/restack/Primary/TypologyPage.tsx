@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import Layout from '../../../../layout/Layout'
-import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
-import Dropdown from '../../../../components/design-elements/Dropdown'
-import Button from '../../../../components/design-elements/Button'
-import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
+import Layout from '../../../layout/Layout'
+import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
+import Dropdown from '../../../components/design-elements/Dropdown'
+import Button from '../../../components/design-elements/Button'
+import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import {
     generateCompleteProjectDetails,
     type CompleteProjectDetails,
@@ -16,7 +16,7 @@ import {
     type PlotUnit,
     sampleFloorPlans,
     type FloorPlan,
-} from '../../../../pages/dummy_data/restack_primary_details_dummy_data'
+} from '../../../pages/dummy_data/restack_primary_details_dummy_data'
 
 // Floor plan image component
 const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {

@@ -1,0 +1,679 @@
+// PropertyDetailsPage.tsx
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '../../../store/index'
+import { fetchPropertyById } from '../../../services/acn/properties/propertiesService'
+import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
+import Layout from '../../../layout/Layout'
+import Dropdown from '../../../components/design-elements/Dropdown'
+import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
+import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
+
+// Icons
+import shareIcon from '/icons/acn/share.svg'
+import editIcon from '/icons/acn/write.svg'
+import priceDropIcon from '/icons/acn/share.svg'
+
+interface Note {
+    id: string
+    author: string
+    date: string
+    content: string
+}
+
+const PropertyDetailsPage = () => {
+    const navigate = useNavigate()
+    const { pId } = useParams<{ pId: string }>()
+    const dispatch = useDispatch<AppDispatch>()
+
+    // Redux state
+    const { currentProperty: property, loading, error } = useSelector((state: RootState) => state.properties)
+
+    // Local state
+    const [currentImageIndex, setCurrentImageIndex] = useState(0)
+    const [newNote, setNewNote] = useState('')
+    const [notes, setNotes] = useState<Note[]>([
+        {
+            id: '1',
+            author: 'Samarth',
+            date: '25 May',
+            content:
+                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a",
+        },
+        {
+            id: '2',
+            author: 'Siddharth',
+            date: '25 May',
+            content:
+                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a",
+        },
+    ])
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+
+    // Fetch property data when component mounts
+    useEffect(() => {
+        if (pId) {
+            console.log('🔄 Fetching property with ID:', pId)
+            dispatch(fetchPropertyById(pId))
+        }
+
+        // Cleanup on unmount
+        return () => {
+            console.log('🧹 Clearing current property on unmount')
+            dispatch(clearCurrentProperty())
+        }
+    }, [pId, dispatch])
+
+    // Handle status change
+    const handleStatusChange = (option: string) => {
+        console.log('📝 Status changed to:', option)
+        // TODO: Implement status update API call
+    }
+
+    // Handle add note
+    const handleAddNote = () => {
+        if (newNote.trim()) {
+            const note: Note = {
+                id: Date.now().toString(),
+                author: 'Current User',
+                date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+                content: newNote.trim(),
+            }
+            setNotes((prev) => [note, ...prev])
+            setNewNote('')
+        }
+    }
+
+    // Status dropdown options
+    const getStatusOptions = () => [
+        {
+            label: 'Available',
+            value: 'Available',
+            color: '#E1F6DF',
+            textColor: '#065F46',
+        },
+        {
+            label: 'Sold',
+            value: 'Sold',
+            color: '#FEECED',
+            textColor: '#991B1B',
+        },
+        {
+            label: 'Hold',
+            value: 'Hold',
+            color: '#FFF3CD',
+            textColor: '#B45309',
+        },
+        {
+            label: 'Delisted',
+            value: 'Delisted',
+            color: '#F3F4F6',
+            textColor: '#374151',
+        },
+    ]
+
+    // Helper functions
+    const formatCurrency = (amount: number | undefined | null) => {
+        if (!amount) return '₹0'
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0,
+        }).format(amount)
+    }
+
+    const formatDate = (timestamp: any) => {
+        if (!timestamp) return 'N/A'
+        let date: Date
+
+        if (timestamp?.toDate) {
+            date = timestamp.toDate()
+        } else if (timestamp?.seconds) {
+            date = new Date(timestamp.seconds * 1000)
+        } else if (typeof timestamp === 'string') {
+            date = new Date(timestamp)
+        } else if (timestamp instanceof Date) {
+            date = timestamp
+        } else {
+            return 'N/A'
+        }
+
+        return date.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+        })
+    }
+
+    // Get property images (use property photos or fallback to sample images)
+    const getPropertyImages = () => {
+        if (property?.photo && property.photo.length > 0) {
+            return property.photo
+        }
+        // Fallback sample images
+        return [
+            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
+        ]
+    }
+
+    // Loading state
+    if (loading) {
+        return (
+            <Layout loading={true}>
+                <div className='flex items-center justify-center min-h-screen'>
+                    <div className='text-lg'>Loading property details...</div>
+                </div>
+            </Layout>
+        )
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <Layout loading={false}>
+                <div className='flex items-center justify-center min-h-screen'>
+                    <div className='text-center'>
+                        <div className='text-lg text-red-600 mb-4'>Error loading property</div>
+                        <div className='text-sm text-gray-600 mb-4'>{error}</div>
+                        <div className='flex gap-2 justify-center'>
+                            <button
+                                onClick={() => {
+                                    dispatch(clearError())
+                                    if (pId) dispatch(fetchPropertyById(pId))
+                                }}
+                                className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => navigate('/acn/properties')}
+                                className='px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600'
+                            >
+                                Back to Properties
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Layout>
+        )
+    }
+
+    // Not found state
+    if (!property) {
+        return (
+            <Layout loading={false}>
+                <div className='flex items-center justify-center min-h-screen'>
+                    <div className='text-center'>
+                        <div className='text-lg'>Property not found</div>
+                        <div className='text-sm text-gray-600 mt-2'>
+                            The property with ID "{pId}" could not be found.
+                        </div>
+                        <button
+                            onClick={() => navigate('/acn/properties')}
+                            className='mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                        >
+                            Back to Properties
+                        </button>
+                    </div>
+                </div>
+            </Layout>
+        )
+    }
+
+    const propertyImages = getPropertyImages()
+
+    return (
+        <Layout loading={false}>
+            <div className='w-full overflow-hidden font-sans bg-gray-50'>
+                <div className='py-6 px-6 min-h-screen'>
+                    {/* Breadcrumb */}
+                    <div className='mb-4'>
+                        <div className='flex items-center gap-2 text-sm text-gray-600'>
+                            <button onClick={() => navigate('/acn/properties')} className='hover:text-gray-800'>
+                                Properties
+                            </button>
+                            <span>/</span>
+                            <span className='text-gray-900'>{property.propertyId}</span>
+                        </div>
+                    </div>
+
+                    {/* Header Actions */}
+                    <div className='flex items-center gap-4 mb-6'>
+                        <button
+                            onClick={() => setIsShareModalOpen(true)}
+                            className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'
+                        >
+                            <img src={shareIcon} alt='Share' className='w-4 h-4' />
+                            Share
+                        </button>
+                        <button
+                            onClick={() => navigate(`/acn/properties/${pId}/edit`)}
+                            className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'
+                        >
+                            <img src={editIcon} alt='Edit' className='w-4 h-4' />
+                            Edit Property
+                        </button>
+                        <button className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'>
+                            <img src={priceDropIcon} alt='Price Drop' className='w-4 h-4' />
+                            Price Drop
+                        </button>
+                    </div>
+
+                    <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+                        {/* Main Content */}
+                        <div className='lg:col-span-2 space-y-6'>
+                            {/* Property Header */}
+                            <div className='bg-white rounded-lg p-6'>
+                                <div className='flex items-start justify-between mb-4'>
+                                    <div>
+                                        <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
+                                            {property.nameOfTheProperty || property.area || 'Unknown Property'}
+                                        </h1>
+                                        <div className='flex items-center gap-6 text-sm text-gray-600'>
+                                            <div className='flex items-center gap-1'>
+                                                <svg
+                                                    className='w-4 h-4'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'
+                                                    />
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M15 11a3 3 0 11-6 0 3 3 0 016 0z'
+                                                    />
+                                                </svg>
+                                                {property.micromarket || 'Unknown'}
+                                            </div>
+                                            <div className='flex items-center gap-1'>
+                                                <svg
+                                                    className='w-4 h-4'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+                                                    />
+                                                </svg>
+                                                {formatDate(property.handoverDate)}
+                                            </div>
+                                            <div className='flex items-center gap-1'>
+                                                <svg
+                                                    className='w-4 h-4'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
+                                                    />
+                                                </svg>
+                                                {property.assetType || 'Unknown'}
+                                            </div>
+                                            <div className='flex items-center gap-1'>
+                                                <svg
+                                                    className='w-4 h-4'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z'
+                                                    />
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z'
+                                                    />
+                                                </svg>
+                                                {property.unitType || 'Unknown'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className='text-right'>
+                                        <div className='text-2xl font-bold text-gray-900 mb-2'>
+                                            {formatCurrency(property.totalAskPrice)}
+                                        </div>
+                                        <div className='flex items-center gap-3'>
+                                            <div className='w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
+                                                {property.cpCode ? property.cpCode.substring(0, 2).toUpperCase() : 'AG'}
+                                            </div>
+                                            <div>
+                                                <div className='font-medium text-gray-900'>Agent</div>
+                                                <div className='text-sm text-gray-600'>
+                                                    {property.cpCode || property.cpId} | Contact
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Property Images */}
+                                <div className='grid grid-cols-3 gap-4 mb-6'>
+                                    {propertyImages.slice(0, 3).map((image, index) => (
+                                        <div
+                                            key={index}
+                                            className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer ${
+                                                index === 2 ? 'bg-gray-800' : ''
+                                            }`}
+                                            onClick={() => setCurrentImageIndex(index)}
+                                        >
+                                            <img
+                                                src={image}
+                                                alt={`Property ${index + 1}`}
+                                                className='w-full h-full object-cover'
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement
+                                                    target.src =
+                                                        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
+                                                }}
+                                            />
+                                            {index === 2 && propertyImages.length > 3 && (
+                                                <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
+                                                    <button className='flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 text-white rounded-md backdrop-blur-sm'>
+                                                        <svg
+                                                            className='w-4 h-4'
+                                                            fill='none'
+                                                            stroke='currentColor'
+                                                            viewBox='0 0 24 24'
+                                                        >
+                                                            <path
+                                                                strokeLinecap='round'
+                                                                strokeLinejoin='round'
+                                                                strokeWidth={2}
+                                                                d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
+                                                            />
+                                                        </svg>
+                                                        View all photos ({propertyImages.length})
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Property Details */}
+                            <div className='bg-white rounded-lg p-6'>
+                                <h2 className='text-lg font-semibold text-gray-900 mb-6'>Property Details</h2>
+
+                                <div className='grid grid-cols-2 gap-x-8 gap-y-4'>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Property Type</span>
+                                        <span className='font-medium capitalize'>{property.assetType || 'N/A'}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Unit Type</span>
+                                        <span className='font-medium'>{property.unitType || 'N/A'}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Sub Type</span>
+                                        <span className='font-medium'>{property.subType || 'N/A'}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Floor No</span>
+                                        <span className='font-medium'>{property.floorNo || 'N/A'}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Total Ask Price</span>
+                                        <span className='font-medium'>{formatCurrency(property.totalAskPrice)}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Ask Price Per Sqft</span>
+                                        <span className='font-medium'>{formatCurrency(property.askPricePerSqft)}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>SBUA</span>
+                                        <span className='font-medium'>
+                                            {property.sbua ? `${property.sbua} sq ft` : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Carpet Area</span>
+                                        <span className='font-medium'>
+                                            {property.carpet ? `${property.carpet} sq ft` : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Plot Size</span>
+                                        <span className='font-medium'>
+                                            {property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Facing</span>
+                                        <span className='font-medium'>{property.facing || 'N/A'}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Building Age</span>
+                                        <span className='font-medium'>
+                                            {property.buildingAge ? `${property.buildingAge} years` : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Tenanted</span>
+                                        <span className='font-medium'>
+                                            {property.tenanted !== null ? (property.tenanted ? 'Yes' : 'No') : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Age of Inventory</span>
+                                        <span className='font-medium'>
+                                            {property.ageOfInventory ? `${property.ageOfInventory} days` : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Building Khata</span>
+                                        <span className='font-medium'>{property.buildingKhata || 'N/A'}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Age of Status</span>
+                                        <span className='font-medium'>
+                                            {property.ageOfStatus ? `${property.ageOfStatus} days` : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Land Khata</span>
+                                        <span className='font-medium'>{property.landKhata || 'N/A'}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Date Added</span>
+                                        <span className='font-medium'>{formatDate(property.dateOfInventoryAdded)}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>OC Received</span>
+                                        <span className='font-medium'>
+                                            {property.ocReceived !== null
+                                                ? property.ocReceived
+                                                    ? 'Yes'
+                                                    : 'No'
+                                                : 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Extra Details */}
+                                {property.extraDetails && (
+                                    <div className='mt-6'>
+                                        <h3 className='font-medium text-gray-900 mb-3'>Extra Details</h3>
+                                        <p className='text-sm text-gray-600 leading-relaxed'>{property.extraDetails}</p>
+                                    </div>
+                                )}
+
+                                {/* Location Details */}
+                                <div className='mt-6'>
+                                    <h3 className='font-medium text-gray-900 mb-3'>Location Details</h3>
+                                    <div className='space-y-2 text-sm'>
+                                        <div className='flex justify-between'>
+                                            <span className='text-gray-600'>Micromarket</span>
+                                            <span className='font-medium'>{property.micromarket || 'N/A'}</span>
+                                        </div>
+                                        <div className='flex justify-between'>
+                                            <span className='text-gray-600'>Area</span>
+                                            <span className='font-medium'>{property.area || 'N/A'}</span>
+                                        </div>
+                                        <div className='flex justify-between'>
+                                            <span className='text-gray-600'>Map Location</span>
+                                            <span className='font-medium'>{property.mapLocation || 'N/A'}</span>
+                                        </div>
+                                        {property._geoloc && (
+                                            <div className='flex justify-between'>
+                                                <span className='text-gray-600'>Coordinates</span>
+                                                <span className='font-medium'>
+                                                    {property._geoloc.lat}, {property._geoloc.lng}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className='flex justify-between items-center'>
+                                            <span className='text-gray-600'>Map</span>
+                                            <button
+                                                onClick={() => {
+                                                    if (property._geoloc) {
+                                                        window.open(
+                                                            `https://maps.google.com/?q=${property._geoloc.lat},${property._geoloc.lng}`,
+                                                            '_blank',
+                                                        )
+                                                    }
+                                                }}
+                                                className='px-3 py-1 bg-gray-900 text-white text-xs rounded hover:bg-gray-800'
+                                                disabled={!property._geoloc}
+                                            >
+                                                Open Maps
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sidebar */}
+                        <div className='space-y-6'>
+                            {/* Update Inventory Status */}
+                            <div className='bg-white rounded-lg p-6'>
+                                <h3 className='text-lg font-semibold text-gray-900 mb-4'>Update Inventory Status</h3>
+
+                                <div className='mb-4'>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Status</label>
+                                    <Dropdown
+                                        options={getStatusOptions()}
+                                        onSelect={handleStatusChange}
+                                        defaultValue={property.status}
+                                        placeholder='Select Status'
+                                        className='w-full'
+                                        triggerClassName='w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                        optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md'
+                                    />
+                                </div>
+
+                                {/* Inventory Performance */}
+                                <div className='mb-6'>
+                                    <h4 className='font-medium text-gray-900 mb-3'>Inventory Performance</h4>
+                                    <div className='space-y-2'>
+                                        <div className='flex justify-between'>
+                                            <span className='text-gray-600'>Enquiries</span>
+                                            <span className='font-medium'>{property.enquiries || 0}</span>
+                                        </div>
+                                        <div className='flex justify-between'>
+                                            <span className='text-gray-600'>Age of Inventory</span>
+                                            <span className='font-medium'>{property.ageOfInventory || 0} days</span>
+                                        </div>
+                                        <div className='flex justify-between'>
+                                            <span className='text-gray-600'>Age of Status</span>
+                                            <span className='font-medium'>{property.ageOfStatus || 0} days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Notes Section */}
+                            <div className='bg-white rounded-lg p-6'>
+                                <div className='flex items-center justify-between mb-4'>
+                                    <h3 className='text-lg font-semibold text-gray-900'>Notes</h3>
+                                    <button
+                                        onClick={handleAddNote}
+                                        className='flex items-center gap-1 px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50'
+                                    >
+                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                            <path
+                                                strokeLinecap='round'
+                                                strokeLinejoin='round'
+                                                strokeWidth={2}
+                                                d='M12 4v16m8-8H4'
+                                            />
+                                        </svg>
+                                        Add Note
+                                    </button>
+                                </div>
+
+                                {/* Add Note Input */}
+                                <div className='mb-4'>
+                                    <textarea
+                                        value={newNote}
+                                        onChange={(e) => setNewNote(e.target.value)}
+                                        placeholder='Add a note...'
+                                        rows={3}
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm'
+                                    />
+                                </div>
+
+                                {/* Previous Notes */}
+                                <div>
+                                    <h4 className='font-medium text-gray-900 mb-3'>Previous Notes</h4>
+                                    <div className='space-y-4 max-h-80 overflow-y-auto'>
+                                        {notes.map((note) => (
+                                            <div
+                                                key={note.id}
+                                                className='border-b border-gray-100 pb-3 last:border-b-0'
+                                            >
+                                                <div className='flex items-center gap-2 mb-2'>
+                                                    <span className='font-medium text-sm text-gray-900'>
+                                                        {note.author}
+                                                    </span>
+                                                    <span className='text-xs text-gray-500'>on {note.date}</span>
+                                                </div>
+                                                <p className='text-sm text-gray-600 leading-relaxed'>{note.content}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Share Modal */}
+            <ShareInventoryModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                property={property}
+            />
+        </Layout>
+    )
+}
+
+export default PropertyDetailsPage

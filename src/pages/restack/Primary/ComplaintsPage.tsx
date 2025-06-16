@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import Layout from '../../../../layout/Layout'
-import { FlexibleTable } from '../../../../components/design-elements/FlexibleTable'
-import { generateCompleteProjectDetails } from '../../../../pages/dummy_data/restack_primary_details_dummy_data'
+import Layout from '../../../layout/Layout'
+import { FlexibleTable } from '../../../components/design-elements/FlexibleTable'
+import { generateCompleteProjectDetails } from '../../../pages/dummy_data/restack_primary_details_dummy_data'
 
 // Define interfaces locally as a temporary fix
 interface ProjectComplaint {
