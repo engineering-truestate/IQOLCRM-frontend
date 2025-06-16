@@ -119,7 +119,9 @@ export const generateProject = (id: number): RERAProject => {
 
 // Function to generate multiple RERA projects
 export const generateRERAProjects = (count: number): RERAProject[] => {
-    return Array.from({ length: count }, (_, index) => generateProject(index + 1))
+    // Start generating IDs after the last ID in sampleRERAProjects to avoid duplicates
+    const startId = sampleRERAProjects.length + 1
+    return Array.from({ length: count }, (_, index) => generateProject(startId + index))
 }
 
 // Default sample data that matches the image

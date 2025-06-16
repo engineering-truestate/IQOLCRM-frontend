@@ -11,7 +11,7 @@ import {
     clearFilters,
     clearErrorState,
 } from '../../store/actions/restack/preLaunchActions'
-import type { Property, PropertyFilters } from '../../store/reducers/restack/types'
+import type { Property, PropertyFilters } from '../../store/reducers/restack/preLaunchtypes'
 
 /**
  * Custom hook for managing pre-launch properties state and actions

@@ -1,17 +1,20 @@
 import { configureStore } from '@reduxjs/toolkit'
-import propertiesReducer from './reducers/acn/propertiesReducers'
-import platformReducer from './reducers/platformSlice'
-import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist'
+import { persistStore, persistReducer } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
+import userReducer from './reducers/user/userReducer'
+import qcReducer from './reducers/acn/qcReducer'
+import platformReducer from './reducers/platformSlice'
+import propertiesReducer from './reducers/restack/primaryProperties'
 
 const persistConfig = {
     key: 'root',
     storage,
-    whitelist: ['platform'],
+    whitelist: ['primaryProperties'],
 }
 
 const persistedPlatformReducer = persistReducer(persistConfig, platformReducer)
 import preLaunchReducer from './reducers/restack/preLaunchReducer'
+import preReraReducer from './reducers/restack/preReraReducer'
 import requirementsReducer from './reducers/acn/requirementsReducers'
 
 // Create the store using configureStore from Redux Toolkit
@@ -20,22 +23,18 @@ const store = configureStore({
         properties: propertiesReducer,
         platform: persistedPlatformReducer,
         preLaunch: preLaunchReducer,
+        preRera: preReraReducer,
         requirements: requirementsReducer,
+        user: userReducer,
+        qc: qcReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
-            serializableCheck: {
-                ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-            },
+            serializableCheck: false,
         }),
 })
 
-// RootState type inferred from the store
-export type RootState = ReturnType<typeof store.getState>
-
-// AppDispatch type inferred from the store
-export type AppDispatch = typeof store.dispatch
-
 export const persistor = persistStore(store)
-
+export type AppDispatch = typeof store.dispatch
+export type RootState = ReturnType<typeof store.getState>
 export default store
