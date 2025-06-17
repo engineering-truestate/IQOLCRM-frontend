@@ -420,7 +420,7 @@ const QCDashboardPage = () => {
                     <button
                         className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
                         onClick={() => {
-                            navigate(`/acn/qc/${row.propertyId}/details`)
+                            navigate(`/acn/qc/${row.id}/details`)
                         }}
                         // title='Verify'
                     >

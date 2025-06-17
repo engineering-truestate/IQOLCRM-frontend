@@ -35,9 +35,6 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
     const [note, setNote] = useState('')
 
     // Redux selectors
-    const connectHistory = useSelector((state: RootState) =>
-        rowData ? selectConnectHistoryByLeadId(state, rowData.leadId) : [],
-    )
     const connectHistoryLoading = useSelector((state: RootState) => selectConnectHistoryLoading(state))
 
     // Fetch connect history when modal opens
@@ -89,28 +86,6 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                 console.error('Failed to add call result:', error)
             }
         }
-    }
-
-    const formatTimestamp = (timestamp: number) => {
-        return new Date(timestamp * 1000).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        })
-    }
-
-    const getConnectionBadge = (connection: string) => {
-        return connection === 'connected' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-    }
-
-    const getMediumBadge = (medium: string) => {
-        return medium === 'on call' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-    }
-
-    const getDirectionBadge = (direction: string) => {
-        return direction === 'inbound' ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
     }
 
     if (!isOpen || !rowData) return null
@@ -272,74 +247,10 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                 </div>
 
                                 {/* Submit Button */}
-                                <button
-                                    onClick={handleAddCallResult}
-                                    disabled={connectHistoryLoading}
-                                    className='w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors'
-                                >
-                                    {connectHistoryLoading ? (
-                                        <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin' />
-                                    ) : (
-                                        <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M12 6v6m0 0v6m0-6h6m-6 0H6'
-                                            />
-                                        </svg>
-                                    )}
-                                    Add Call Result
-                                </button>
                             </div>
                         </div>
 
                         {/* Call History Section */}
-                        <div>
-                            <h3 className='text-lg font-medium text-gray-900 mb-6'>
-                                Call History ({connectHistory.length})
-                            </h3>
-
-                            {connectHistoryLoading && connectHistory.length === 0 ? (
-                                <div className='flex justify-center py-8'>
-                                    <div className='w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin' />
-                                </div>
-                            ) : connectHistory.length === 0 ? (
-                                <div className='text-center py-8 text-gray-500'>No call history yet</div>
-                            ) : (
-                                <div className='space-y-4'>
-                                    {connectHistory.map((call, index) => (
-                                        <div
-                                            key={`${call.timestamp}-${index}`}
-                                            className='bg-gray-50 border border-gray-200 rounded-lg p-4'
-                                        >
-                                            <div className='flex justify-between items-start mb-3'>
-                                                <div className='flex flex-wrap gap-2'>
-                                                    <span
-                                                        className={`px-2 py-1 rounded text-xs font-medium ${getConnectionBadge(call.connection)}`}
-                                                    >
-                                                        {call.connection}
-                                                    </span>
-                                                    <span
-                                                        className={`px-2 py-1 rounded text-xs font-medium ${getMediumBadge(call.connectMedium)}`}
-                                                    >
-                                                        {call.connectMedium}
-                                                    </span>
-                                                    <span
-                                                        className={`px-2 py-1 rounded text-xs font-medium ${getDirectionBadge(call.direction)}`}
-                                                    >
-                                                        {call.direction}
-                                                    </span>
-                                                </div>
-                                                <div className='text-xs text-gray-500'>
-                                                    {formatTimestamp(call.timestamp)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
 
                     {/* Footer */}
@@ -350,6 +261,25 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                 className='px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors'
                             >
                                 Close
+                            </button>
+                            <button
+                                onClick={handleAddCallResult}
+                                disabled={connectHistoryLoading}
+                                className='w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors'
+                            >
+                                {connectHistoryLoading ? (
+                                    <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin' />
+                                ) : (
+                                    <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                        <path
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                            strokeWidth={2}
+                                            d='M12 6v6m0 0v6m0-6h6m-6 0H6'
+                                        />
+                                    </svg>
+                                )}
+                                Add Call Result
                             </button>
                         </div>
                     </div>

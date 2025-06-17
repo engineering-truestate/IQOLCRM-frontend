@@ -14,6 +14,7 @@ import leadsReducer from './reducers/acn/leadsReducers'
 import agentsReducer from './slices/agentsSlice'
 import agentDetailsReducer from './slices/agentDetailsSlice'
 import type { IInventory, IRequirement } from '../data_types/acn/types'
+import type { QCInventoryState } from '../data_types/acn/qc'
 
 interface PropertyData {
     inventories: IInventory[]
@@ -50,7 +51,7 @@ const rootReducer = combineReducers({
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)
 
-export const store = configureStore({
+const store = configureStore({
     reducer: persistedReducer,
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -62,6 +63,7 @@ export const store = configureStore({
 
 export const persistor = persistStore(store)
 
+// RootState type inferred from the store
 export type RootState = ReturnType<typeof store.getState> & {
     agents: AgentsState
 }

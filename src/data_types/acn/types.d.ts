@@ -74,6 +74,8 @@ interface IInventory {
     propertyName: string
     _geoloc: GeoLocation
     area: string
+    builerName: string
+    builderCategory: string
     micromarket: string
     mapLocation: string
     assetType: string

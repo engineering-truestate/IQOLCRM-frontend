@@ -1,8 +1,8 @@
 // store/services/acn/leads/leadsService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import { type ILead } from '../../../services/acn/leads/algoliaLeadsService'
+import { type ILead, leadSearchService } from '../../../services/acn/leads/algoliaLeadsService'
 
 // Helper function to get current Unix timestamp in milliseconds
 const getCurrentTimestamp = () => Date.now()
@@ -405,6 +405,539 @@ export const fetchLeadWithConnectHistory = createAsyncThunk(
         } catch (error: any) {
             console.error('❌ Error fetching lead connect history:', error)
             return rejectWithValue(error.message || 'Failed to fetch lead connect history')
+        }
+    },
+)
+
+// Add these interfaces
+interface InventoryStatus {
+    available: boolean
+    delisted: boolean
+    hold: boolean
+    sold: boolean
+}
+
+interface PaymentHistoryItem {
+    amount: number
+    date: number
+    status: string
+}
+
+interface ContactHistoryItem {
+    timestamp: number
+    contactResult: string
+    medium: string
+    direction: string
+}
+
+interface Note {
+    kamId: string
+    note: string
+    source: string
+    timestamp: number
+    archive: boolean
+}
+
+interface IAgent {
+    cpId: string
+    name: string
+    phoneNumber: string
+    emailAddress: string
+    workAddress: string
+    reraId: string
+    firmName: string
+    firmSize: number
+    areaOfOperation: ('north bangalore' | 'south bangalore' | 'east bangalore' | 'west bangalore' | 'pan bangalore')[]
+    businessCategory: ('resale' | 'rental' | 'primary')[]
+    preferedMicromarket: string
+    userType: 'basic' | 'trial' | 'premium'
+    activity: 'active' | 'nudge' | 'no activity'
+    agentStatus: 'interested' | 'not interested' | 'not contact yet'
+    verified: boolean
+    verficationDate: number
+    blackListed: boolean
+    trialUsed: boolean
+    trialStartedAt: number
+    noOfinventories: number
+    inventoryStatus: InventoryStatus
+    noOfEnquiries: number
+    noOfrequirements: number
+    noOfleagalLeads: number
+    lastEnquiry: number
+    payStatus: 'will pay' | 'paid' | 'will not' | 'paid by team'
+    planExpiry: number
+    nextRenewal: number
+    paymentHistory: PaymentHistoryItem[]
+    monthlyCredits: number
+    boosterCredits: number
+    inboundEnqCredits: number
+    inboundReqCredits: number
+    contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
+    contactHistory: ContactHistoryItem[]
+    lastTried: number
+    kamName: string
+    kamId: string
+    notes: Note[]
+    appInstalled: boolean
+    communityJoined: boolean
+    onBroadcast: boolean
+    onboardingComplete: boolean
+    source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct'
+    lastSeen: number
+    added: number
+    lastModified: number
+    extraDetails: string
+}
+
+interface AgentVerificationData {
+    name: string
+    phoneNumber: string
+    emailAddress: string
+    workAddress: string
+    reraId: string
+    firmName: string
+    firmSize: string
+    kamName: string
+    kamId: string
+    areaOfOperation: string[]
+    businessCategory: string[]
+}
+
+// Get KAM options from Algolia
+export const fetchKAMOptions = createAsyncThunk('leads/fetchKAMOptions', async (_, { rejectWithValue }) => {
+    try {
+        console.log('🔍 Fetching KAM options from Algolia')
+
+        const kamFacets = await leadSearchService.getFacetValues('kamName')
+
+        console.log('✅ KAM options fetched successfully:', kamFacets.length)
+        return kamFacets
+    } catch (error: any) {
+        console.error('❌ Error fetching KAM options:', error)
+        return rejectWithValue(error.message || 'Failed to fetch KAM options')
+    }
+})
+
+// Verify lead and create agent
+export const verifyLeadAndCreateAgent = createAsyncThunk(
+    'leads/verifyLeadAndCreateAgent',
+    async (
+        { leadId, verificationData }: { leadId: string; verificationData: AgentVerificationData },
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('🔄 Starting lead verification and agent creation:', leadId)
+
+            // Step 1: Get the lead data
+            const leadDocRef = doc(db, 'acnLeads', leadId)
+            const leadDoc = await getDoc(leadDocRef)
+
+            if (!leadDoc.exists()) {
+                throw new Error('Lead not found')
+            }
+
+            const leadData = leadDoc.data() as any
+
+            // Step 2: Get next CP ID from admin collection
+            const adminDocRef = doc(db, 'acn-admin', 'lastCpId')
+            const adminDoc = await getDoc(adminDocRef)
+
+            if (!adminDoc.exists()) {
+                throw new Error('Admin document not found')
+            }
+
+            const adminData = adminDoc.data()
+            const currentCount = adminData.count || 545
+            const prefix = adminData.prefix || 'B'
+            const label = adminData.label || 'CP'
+
+            const newCpId = `${label}${prefix}${currentCount + 1}`
+
+            // Step 3: Create agent data by mapping lead data
+            const timestamp = Math.floor(Date.now() / 1000)
+
+            const agentData: IAgent = {
+                cpId: newCpId,
+                name: verificationData.name,
+                phoneNumber: verificationData.phoneNumber,
+                emailAddress: verificationData.emailAddress,
+                workAddress: verificationData.workAddress || '',
+                reraId: verificationData.reraId || '',
+                firmName: verificationData.firmName || '',
+                firmSize: parseInt(verificationData.firmSize) || 0,
+                areaOfOperation: (verificationData.areaOfOperation as any[]) || [],
+                businessCategory: (verificationData.businessCategory as any[]) || [],
+                preferedMicromarket: '',
+                userType: 'basic',
+                activity: 'active',
+                agentStatus: leadData.leadStatus || 'not contact yet',
+                verified: true,
+                verficationDate: timestamp,
+                blackListed: false,
+                trialUsed: false,
+                trialStartedAt: 0,
+                noOfinventories: 0,
+                inventoryStatus: {
+                    available: false,
+                    delisted: false,
+                    hold: false,
+                    sold: false,
+                },
+                noOfEnquiries: 0,
+                noOfrequirements: 0,
+                noOfleagalLeads: 0,
+                lastEnquiry: 0,
+                payStatus: 'will not',
+                planExpiry: 0,
+                nextRenewal: 0,
+                paymentHistory: [],
+                monthlyCredits: 0,
+                boosterCredits: 0,
+                inboundEnqCredits: 0,
+                inboundReqCredits: 0,
+                contactStatus: leadData.contactStatus || 'not contact',
+                contactHistory: leadData.connectHistory || [],
+                lastTried: leadData.lastTried || 0,
+                kamName: verificationData.kamName,
+                kamId: verificationData.kamId,
+                notes: leadData.notes || [],
+                appInstalled: false,
+                communityJoined: leadData.communityJoined || false,
+                onBroadcast: leadData.onBroadcast || false,
+                onboardingComplete: false,
+                source: leadData.source || 'direct',
+                lastSeen: 0,
+                added: leadData.added || timestamp,
+                lastModified: timestamp,
+                extraDetails: '',
+            }
+
+            // Step 4: Create agent document
+            const agentDocRef = doc(db, 'acnAgents', newCpId)
+            await setDoc(agentDocRef, agentData)
+
+            // Step 5: Update admin count
+            await updateDoc(adminDocRef, {
+                count: currentCount + 1,
+            })
+
+            // Step 6: Delete the lead
+            await deleteDoc(leadDocRef)
+
+            console.log('✅ Lead verified and agent created successfully:', newCpId)
+
+            return {
+                leadId,
+                agentId: newCpId,
+                agentData,
+                message: `Agent ${newCpId} created successfully`,
+            }
+        } catch (error: any) {
+            console.error('❌ Error verifying lead and creating agent:', error)
+            return rejectWithValue(error.message || 'Failed to verify lead and create agent')
+        }
+    },
+)
+
+// Add these interfaces
+interface BulkLeadData {
+    Number: string
+    Name: string
+    Email: string
+    'Lead Source': string
+}
+
+interface ProcessedLeadData {
+    leadId: string
+    name: string
+    phonenumber: string
+    emailAddress: string
+    source: string
+    kamId: string
+    kamName: string
+    notes: NoteData[]
+    leadStatus: 'not contact yet'
+    contactStatus: 'not contact'
+    verified: false
+    communityJoined: boolean
+    onBroadcast: boolean
+    blackListed: boolean
+    lastTried: number
+    lastConnect: number
+    added: number
+    lastModified: number
+}
+
+interface ManualLeadData {
+    name: string
+    phone: string
+    email: string
+    leadSource: string
+    notes: string
+    kamName: string
+    kamId: string
+}
+
+// Validate CSV data
+export const validateCSVData = createAsyncThunk(
+    'leads/validateCSVData',
+    async (csvData: BulkLeadData[], { rejectWithValue }) => {
+        try {
+            console.log('🔍 Validating CSV data:', csvData.length, 'rows')
+
+            const validatedData: BulkLeadData[] = []
+            const errors: string[] = []
+
+            const validSources = [
+                'whatsapp group',
+                'instagram',
+                'whatsapp campaign',
+                'facebook',
+                'referral',
+                'organic',
+                'classified',
+            ]
+
+            csvData.forEach((row, index) => {
+                const rowNumber = index + 1
+                const rowErrors: string[] = []
+
+                // Validate and format phone number
+                let phone = row.Number?.toString().replace(/\s+/g, '') || ''
+
+                if (!phone) {
+                    rowErrors.push(`Row ${rowNumber}: Phone number is required`)
+                } else {
+                    // Remove +91 if present to normalize
+                    if (phone.startsWith('+91')) {
+                        phone = phone.substring(3)
+                    } else if (phone.startsWith('91') && phone.length === 12) {
+                        phone = phone.substring(2)
+                    }
+
+                    // Validate 10 digit number
+                    if (!/^\d{10}$/.test(phone)) {
+                        rowErrors.push(`Row ${rowNumber}: Phone number must be exactly 10 digits`)
+                    } else {
+                        // Add +91 prefix
+                        phone = `+91${phone}`
+                    }
+                }
+
+                // Validate name
+                if (!row.Name?.trim()) {
+                    rowErrors.push(`Row ${rowNumber}: Name is required`)
+                }
+
+                // Validate email if provided
+                if (row.Email && row.Email.trim()) {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                    if (!emailRegex.test(row.Email.trim())) {
+                        rowErrors.push(`Row ${rowNumber}: Invalid email format`)
+                    }
+                }
+
+                // Validate lead source
+                const leadSource = row['Lead Source']?.toLowerCase().trim()
+                if (!leadSource) {
+                    rowErrors.push(`Row ${rowNumber}: Lead Source is required`)
+                } else if (!validSources.includes(leadSource)) {
+                    rowErrors.push(`Row ${rowNumber}: Invalid Lead Source. Must be one of: ${validSources.join(', ')}`)
+                }
+
+                if (rowErrors.length > 0) {
+                    errors.push(...rowErrors)
+                } else {
+                    validatedData.push({
+                        Number: phone,
+                        Name: row.Name.trim(),
+                        Email: row.Email?.trim() || '',
+                        'Lead Source': leadSource,
+                    })
+                }
+            })
+
+            if (errors.length > 0) {
+                return rejectWithValue(errors.join('\n'))
+            }
+
+            console.log('✅ CSV validation successful:', validatedData.length, 'valid rows')
+            return validatedData
+        } catch (error: any) {
+            console.error('❌ Error validating CSV:', error)
+            return rejectWithValue(error.message || 'Failed to validate CSV data')
+        }
+    },
+)
+
+// Add bulk leads
+export const addBulkLeads = createAsyncThunk(
+    'leads/addBulkLeads',
+    async (validatedData: BulkLeadData[], { rejectWithValue }) => {
+        try {
+            console.log('🔄 Adding bulk leads:', validatedData.length, 'leads')
+
+            const timestamp = Math.floor(Date.now() / 1000)
+            const processedLeads: ProcessedLeadData[] = []
+
+            // Get starting lead ID from admin collection
+            const adminDocRef = doc(db, 'acn-admin', 'lastLeadId')
+            const adminDoc = await getDoc(adminDocRef)
+
+            if (!adminDoc.exists()) {
+                throw new Error('Admin lead ID document not found')
+            }
+
+            const adminData = adminDoc.data()
+            let currentCount = adminData.count || 100
+            const prefix = adminData.prefix || 'A'
+            const label = adminData.label || 'LD'
+
+            // Process each lead
+            for (const leadData of validatedData) {
+                currentCount++
+                const leadId = `${label}${prefix}${currentCount}`
+
+                // Check if phone exists in acnPipeline for KAM details
+                let kamId = ''
+                let kamName = ''
+
+                try {
+                    const pipelineDocRef = doc(db, 'acnPipeline', leadData.Number)
+                    const pipelineDoc = await getDoc(pipelineDocRef)
+
+                    if (pipelineDoc.exists()) {
+                        const pipelineData = pipelineDoc.data()
+                        kamId = pipelineData.kamId || ''
+                        kamName = pipelineData.kamName || ''
+                    }
+                } catch (error) {
+                    console.log('Pipeline doc not found for:', leadData.Number)
+                }
+
+                const newLead: ProcessedLeadData = {
+                    leadId,
+                    name: leadData.Name,
+                    phonenumber: leadData.Number,
+                    emailAddress: leadData.Email,
+                    source: leadData['Lead Source'],
+                    kamId,
+                    kamName,
+                    notes: [],
+                    leadStatus: 'not contact yet',
+                    contactStatus: 'not contact',
+                    verified: false,
+                    communityJoined: false,
+                    onBroadcast: false,
+                    blackListed: false,
+                    lastTried: 0,
+                    lastConnect: 0,
+                    added: timestamp,
+                    lastModified: timestamp,
+                }
+
+                // Add lead to Firestore
+                const leadDocRef = doc(db, 'acnLeads', leadId)
+                await setDoc(leadDocRef, newLead)
+
+                processedLeads.push(newLead)
+            }
+
+            // Update admin count
+            await updateDoc(adminDocRef, {
+                count: currentCount,
+            })
+
+            console.log('✅ Bulk leads added successfully:', processedLeads.length)
+            return processedLeads
+        } catch (error: any) {
+            console.error('❌ Error adding bulk leads:', error)
+            return rejectWithValue(error.message || 'Failed to add bulk leads')
+        }
+    },
+)
+
+// Add manual lead
+export const addManualLead = createAsyncThunk(
+    'leads/addManualLead',
+    async (manualData: ManualLeadData, { rejectWithValue }) => {
+        try {
+            console.log('🔄 Adding manual lead:', manualData.name)
+
+            const timestamp = Math.floor(Date.now() / 1000)
+
+            // Get next lead ID from admin collection
+            const adminDocRef = doc(db, 'acn-admin', 'lastLeadId')
+            const adminDoc = await getDoc(adminDocRef)
+
+            if (!adminDoc.exists()) {
+                throw new Error('Admin lead ID document not found')
+            }
+
+            const adminData = adminDoc.data()
+            const currentCount = adminData.count || 100
+            const prefix = adminData.prefix || 'A'
+            const label = adminData.label || 'LD'
+
+            const leadId = `${label}${prefix}${currentCount + 1}`
+
+            // Format phone number
+            let phone = manualData.phone.replace(/\s+/g, '')
+            if (!phone.startsWith('+91')) {
+                if (phone.startsWith('91') && phone.length === 12) {
+                    phone = `+${phone}`
+                } else {
+                    phone = `+91${phone}`
+                }
+            }
+
+            // Create notes array if notes provided
+            const notes: NoteData[] = []
+            if (manualData.notes.trim()) {
+                notes.push({
+                    kamId: manualData.kamId,
+                    note: manualData.notes.trim(),
+                    source: 'direct',
+                    timestamp,
+                    archive: false,
+                })
+            }
+
+            const newLead: ProcessedLeadData = {
+                leadId,
+                name: manualData.name,
+                phonenumber: phone,
+                emailAddress: manualData.email,
+                source: manualData.leadSource,
+                kamId: manualData.kamId,
+                kamName: manualData.kamName,
+                notes,
+                leadStatus: 'not contact yet',
+                contactStatus: 'not contact',
+                verified: false,
+                communityJoined: false,
+                onBroadcast: false,
+                blackListed: false,
+                lastTried: 0,
+                lastConnect: 0,
+                added: timestamp,
+                lastModified: timestamp,
+            }
+
+            // Add lead to Firestore
+            const leadDocRef = doc(db, 'acnLeads', leadId)
+            await setDoc(leadDocRef, newLead)
+
+            // Update admin count
+            await updateDoc(adminDocRef, {
+                count: currentCount + 1,
+            })
+
+            console.log('✅ Manual lead added successfully:', leadId)
+            return newLead
+        } catch (error: any) {
+            console.error('❌ Error adding manual lead:', error)
+            return rejectWithValue(error.message || 'Failed to add manual lead')
         }
     },
 )

@@ -11,6 +11,7 @@ import { clearCurrentQCInventory, clearError } from '../../../store/reducers/acn
 import Layout from '../../../layout/Layout'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import { toast } from 'react-toastify'
+import type { QCInventoryState, IQCInventory } from '../../../data_types/acn/qc'
 
 // Icons
 import shareIcon from '/icons/acn/share.svg'
@@ -34,12 +35,6 @@ const QCPropertyDetailsPage = () => {
 
     // Redux state
     const {
-        currentQCInventory: qcProperty,
-        loading: qcLoading,
-        error: qcError,
-    } = useSelector((state: RootState) => state.qc)
-
-    const {
         currentUser,
         agentData,
         loading: userLoading,
@@ -47,7 +42,9 @@ const QCPropertyDetailsPage = () => {
         error: userError,
     } = useSelector((state: RootState) => state.user)
 
-    const [_, setCurrentImageIndex] = useState(0)
+    const { qcProperty, loading: qcLoading, error: qcError } = useSelector((state: RootState) => state.qc)
+
+    const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [newNote, setNewNote] = useState('')
     const [notes, setNotes] = useState<Note[]>([
         {
@@ -537,7 +534,7 @@ const QCPropertyDetailsPage = () => {
 
                                 {/* Property Images */}
                                 <div className='grid grid-cols-3 gap-4 mb-6'>
-                                    {propertyImages.slice(0, 3).map((image, index) => (
+                                    {propertyImages.slice(0, 3).map((image: string, index: number) => (
                                         <div
                                             key={index}
                                             className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer ${
@@ -689,7 +686,6 @@ const QCPropertyDetailsPage = () => {
                                         defaultValue={getCurrentStatus()}
                                         placeholder='Select Status'
                                         className='w-full'
-                                        //disabled={!canEdit() || reviewLoading}
                                         triggerClassName={`w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                                             !canEdit() || reviewLoading ? 'opacity-50 cursor-not-allowed' : ''
                                         }`}
@@ -756,24 +752,37 @@ const QCPropertyDetailsPage = () => {
                                 <h3 className='text-lg font-semibold text-gray-900 mb-4'>QC History</h3>
                                 <div className='space-y-3 max-h-64 overflow-y-auto'>
                                     {qcProperty.qcHistory && qcProperty.qcHistory.length > 0 ? (
-                                        qcProperty.qcHistory.map((item, index) => (
-                                            <div key={index} className='border-b border-gray-100 pb-3 last:border-b-0'>
-                                                <div className='flex justify-between items-start mb-1'>
-                                                    <span className='text-sm font-medium text-gray-900'>
-                                                        {safeDisplay(item.action)}
-                                                    </span>
-                                                    <span className='text-xs text-gray-500'>
-                                                        {formatDate(item.date)}
-                                                    </span>
+                                        qcProperty.qcHistory.map(
+                                            (
+                                                item: {
+                                                    action: string
+                                                    date: number
+                                                    performedBy: string
+                                                    details: string
+                                                },
+                                                index: number,
+                                            ) => (
+                                                <div
+                                                    key={index}
+                                                    className='border-b border-gray-100 pb-3 last:border-b-0'
+                                                >
+                                                    <div className='flex justify-between items-start mb-1'>
+                                                        <span className='text-sm font-medium text-gray-900'>
+                                                            {safeDisplay(item.action)}
+                                                        </span>
+                                                        <span className='text-xs text-gray-500'>
+                                                            {formatDate(item.date)}
+                                                        </span>
+                                                    </div>
+                                                    <div className='text-xs text-gray-600'>
+                                                        By: {safeDisplay(item.performedBy)}
+                                                    </div>
+                                                    <div className='text-xs text-gray-600 mt-1'>
+                                                        {safeDisplay(item.details)}
+                                                    </div>
                                                 </div>
-                                                <div className='text-xs text-gray-600'>
-                                                    By: {safeDisplay(item.performedBy)}
-                                                </div>
-                                                <div className='text-xs text-gray-600 mt-1'>
-                                                    {safeDisplay(item.details)}
-                                                </div>
-                                            </div>
-                                        ))
+                                            ),
+                                        )
                                     ) : (
                                         <div className='text-sm text-gray-500'>No history available</div>
                                     )}
