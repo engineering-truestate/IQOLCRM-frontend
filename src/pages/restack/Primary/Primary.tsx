@@ -15,7 +15,7 @@ import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 
 const PrimaryPage = () => {
     const dispatch = useDispatch<AppDispatch>()
-    const { properties, loading, error, filter } = useSelector((state: RootState) => state.primaryProperties)
+    const { properties, loading, error, filter } = useSelector((state: RootState) => state.properties)
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const navigate = useNavigate()

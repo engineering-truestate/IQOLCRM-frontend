@@ -66,9 +66,7 @@ const PrimaryDetailsPage = () => {
     const navigate = useNavigate()
     const { id } = useParams()
     const dispatch = useDispatch()
-    const { currentProperty: projectDetails, loading: isLoading } = useSelector(
-        (state: RootState) => state.preReraProperties,
-    )
+    const { currentProperty: projectDetails, loading: isLoading } = useSelector((state: RootState) => state.properties)
 
     const [originalDetails, setOriginalDetails] = useState<PrimaryProperty | null>(null)
     const [isEditingGroundData, setIsEditingGroundData] = useState(false)

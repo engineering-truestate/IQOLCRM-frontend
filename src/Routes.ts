@@ -16,7 +16,7 @@ import PreLaunchDetailsPage from './pages/restack/PreLaunch/PreLaunchDetails'
 
 import Home from './Home'
 import AgentsPage from './pages/acn/Agents/AgentsPage'
-import PrimaryPage from './pages/restack/PreLaunch/Primary/Primary'
+// import PrimaryPage from './pages/restack/PreLaunch/Primary/Primary'
 import PropertiesPage from './pages/acn/Properties/Properties'
 import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
 import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
@@ -33,7 +33,8 @@ import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 import ComplaintsPage from './pages/restack/Primary/ComplaintsPage'
 import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
-
+import ProtectedRoute from './components/ProtectedRoute'
+import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -100,9 +101,12 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(TypologyPage, null)),
     },
     {
-
         path: '/restack/stock/post-rera',
         element: React.createElement(React.Suspense, null, React.createElement(PostReraPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera/',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraPage, null)),
     },
     {
         path: '/restack/stock/pre-rera/:id/details',
@@ -159,14 +163,18 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/acn/qc/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(QCPropertyDetailsPage, null)),
-    },{
+    },
+    {
         path: '/restack/primary/:id/complaints',
         element: React.createElement(React.Suspense, null, React.createElement(ComplaintsPage, null)),
     },
     {
         path: '/restack/primary/:id/documents',
         element: React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
-
+    },
+    {
+        path: '/restack/rental/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(RentalDetailsPage, null)),
     },
 ]
 
