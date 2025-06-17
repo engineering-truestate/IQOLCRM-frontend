@@ -7,11 +7,11 @@ import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import { type RERAProject } from '../../dummy_data/restack_primary_dummy_data'
 import { fetchPrimaryProperties, setPrimaryPropertiesFilter } from '../../../store/actions/restack/primaryProperties'
 import type { RootState } from '../../../store'
 import type { AppDispatch } from '../../../store'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import type { PrimaryProperty } from '../../../data_types/restack/restack-primary'
 
 const PrimaryPage = () => {
     const dispatch = useDispatch<AppDispatch>()
@@ -33,14 +33,14 @@ const PrimaryPage = () => {
     }, [searchValue, dispatch])
 
     // Calculate filtered and paginated data
-    const filteredProperties = properties.filter((project: RERAProject) =>
+    const filteredProperties = properties.filter((project: PrimaryProperty) =>
         filter.trim() === ''
             ? true
             : project.projectName?.toLowerCase().includes(filter.toLowerCase()) ||
-              project.status?.toLowerCase().includes(filter.toLowerCase()) ||
+              project.projectStatus?.toLowerCase().includes(filter.toLowerCase()) ||
               project.district?.toLowerCase().includes(filter.toLowerCase()) ||
               project.projectType?.toLowerCase().includes(filter.toLowerCase()) ||
-              project.registrationNumber?.toLowerCase().includes(filter.toLowerCase()),
+              project.reraId?.toLowerCase().includes(filter.toLowerCase()),
     )
 
     const currentPageData = filteredProperties.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
@@ -79,7 +79,7 @@ const PrimaryPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm font-semibold text-gray-900'>{value}</span>,
         },
         {
-            key: 'registrationNumber',
+            key: 'reraId',
             header: 'Registration Number',
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-mono'>{value}</span>,
         },
@@ -90,7 +90,7 @@ const PrimaryPage = () => {
         },
         {
             key: 'projectStatus',
-            header: 'projectStatus',
+            header: 'Project Status',
             render: (value) => <StatusBadge projectStatus={value} />,
         },
         {
@@ -98,7 +98,7 @@ const PrimaryPage = () => {
             header: 'Project Start Date',
             render: (value) => (
                 <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value).toLocaleDateString('en-GB', {
+                    {new Date(value * 1000).toLocaleDateString('en-GB', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
@@ -107,11 +107,11 @@ const PrimaryPage = () => {
             ),
         },
         {
-            key: 'proposedCompletionDate',
-            header: 'Proposed Completion Date',
+            key: 'handoverDate',
+            header: 'Handover Date',
             render: (value) => (
                 <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value).toLocaleDateString('en-GB', {
+                    {new Date(value * 1000).toLocaleDateString('en-GB', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
@@ -127,20 +127,16 @@ const PrimaryPage = () => {
         {
             key: 'action',
             header: 'Action',
-            render: (_, row) => {
-                const id = row.id
-
-                return (
-                    <button
-                        className='text-gray-900 text-sm font-medium transition-colors hover:text-blue-600'
-                        onClick={() => {
-                            navigate(`/restack/primary/${row.id}`)
-                        }}
-                    >
-                        View Details
-                    </button>
-                )
-            },
+            render: (_, row) => (
+                <button
+                    className='text-gray-900 text-sm font-medium transition-colors hover:text-blue-600'
+                    onClick={() => {
+                        navigate(`/restack/primary/${row.projectId}`)
+                    }}
+                >
+                    View Details
+                </button>
+            ),
         },
     ]
 
