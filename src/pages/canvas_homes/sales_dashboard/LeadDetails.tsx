@@ -11,6 +11,8 @@ import AddDetailsModal from '../../../components/canvas_homes/AddDetailsModal'
 import type { AgentHistoryItem } from '../../../services/canvas_homes/types'
 import google from '/icons/canvas_homes/google.svg'
 import CloseLeadSideModal from '../../../components/canvas_homes/CloseLeadSideModal'
+import { useDispatch } from 'react-redux'
+import { setEnquiryId } from '../../../store/actions/canvas-homes/taskIdSlice'
 
 // Update the interface to make leadId optional since we'll get it from URL
 interface LeadDetailProps {
@@ -20,6 +22,7 @@ interface LeadDetailProps {
 
 const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose }) => {
     const navigate = useNavigate()
+    const dispatch = useDispatch()
     const { leadId: urlLeadId } = useParams<{ leadId: string }>()
 
     // Use prop leadId first, then URL param
@@ -344,7 +347,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                             {tabs.map((tab) => (
                                                 <button
                                                     key={tab}
-                                                    onClick={() => setActiveTab(tab)}
+                                                    onClick={() => {
+                                                        setActiveTab(tab)
+                                                        if (activeTab == 'tasks') {
+                                                            dispatch(setEnquiryId(currentEnquiry?.enquiryId))
+                                                        }
+                                                    }}
                                                     className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                                                         activeTab === tab
                                                             ? 'border-blue-500 text-blue-600'

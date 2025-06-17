@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useSelector } from 'react-redux'
 
 interface ChangePropertyModalProps {
     isOpen: boolean
@@ -94,8 +95,13 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
     if (!isOpen) return null
 
+    // const taskIds = useSelector((state: RootState) => state.taskId.taskId);
+    // const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId);
+
+    // console.log(taskIds, enquiryId, "hello deepak")
+
     return (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50' onClick={onClose}>
+        <div className='fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50' onClick={onClose}>
             <div className='bg-white rounded-lg shadow-xl w-full max-w-md mx-4' onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className='flex items-center justify-between p-4 border-b border-gray-200'>

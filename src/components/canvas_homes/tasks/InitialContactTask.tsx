@@ -1,8 +1,17 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useState } from 'react'
 import Dropdown from './Dropdown'
+import ChangePropertyModal from '../ChangePropertyModal'
 
-const InitialContactTask = ({ taskId, updateTaskState }) => {
+interface InitialContactTaskProps {
+    taskId: string
+    updateTaskState: (taskId: string, key: string, value: any) => void
+    taskStatusOptions: { label: string; value: string }[]
+}
+
+const InitialContactTask: React.FC<InitialContactTaskProps> = ({ taskId, updateTaskState, taskStatusOptions }) => {
+    const [isChangePropertyModalOpen, setIsChangePropertyModalOpen] = useState(false)
+
     const interestedOptions = [
         { label: 'Interested', value: 'interested', task: () => console.log('Interested') },
         {
@@ -12,7 +21,7 @@ const InitialContactTask = ({ taskId, updateTaskState }) => {
                 {
                     label: 'Change Property',
                     value: 'change_property',
-                    modal: () => console.log('Open Change Property modal'),
+                    modal: useCallback(() => setIsChangePropertyModalOpen(true), [setIsChangePropertyModalOpen]),
                 },
                 {
                     label: 'Collect Requirement',
@@ -38,7 +47,12 @@ const InitialContactTask = ({ taskId, updateTaskState }) => {
         { label: 'Close Lead', value: 'close lead' },
     ]
 
-    const handleSelect = (value) => updateTaskState(taskId, 'eoiMode', value)
+    const handleSelect = (value: string) => updateTaskState(taskId, 'eoiMode', value)
+
+    const handleChangeProperty = (formData: any) => {
+        console.log('Change property form data:', formData)
+        setIsChangePropertyModalOpen(false) // Close the modal after submitting
+    }
 
     return (
         <div>
@@ -49,6 +63,7 @@ const InitialContactTask = ({ taskId, updateTaskState }) => {
                     triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
                     nestedOptionClassName='ml-4 border-l border-gray-200 bg-gray-50 rounded-md'
                     placeholder='Connected'
+                    defaultValue=''
                 />
 
                 <Dropdown
@@ -56,8 +71,16 @@ const InitialContactTask = ({ taskId, updateTaskState }) => {
                     onSelect={handleSelect}
                     triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     placeholder='Not Connected'
+                    defaultValue=''
                 />
             </div>
+            {isChangePropertyModalOpen && (
+                <ChangePropertyModal
+                    isOpen={isChangePropertyModalOpen}
+                    onClose={() => setIsChangePropertyModalOpen(false)}
+                    onChangeProperty={handleChangeProperty}
+                />
+            )}
         </div>
     )
 }

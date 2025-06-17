@@ -13,6 +13,7 @@ const persistConfig = {
 const persistedPlatformReducer = persistReducer(persistConfig, platformReducer)
 import preLaunchReducer from './reducers/restack/preLaunchReducer'
 import requirementsReducer from './reducers/acn/requirementsReducers'
+import taskIdReducer from './actions/canvas-homes/taskIdSlice'
 
 // Create the store using configureStore from Redux Toolkit
 const store = configureStore({
@@ -21,6 +22,7 @@ const store = configureStore({
         platform: persistedPlatformReducer,
         preLaunch: preLaunchReducer,
         requirements: requirementsReducer,
+        taskId: taskIdReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
