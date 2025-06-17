@@ -20,7 +20,7 @@ import PreLaunchDetailsPage from './pages/restack/PreLaunch/PreLaunchDetails'
 import Home from './Home'
 import AgentsPage from './pages/acn/Agents/AgentsPage'
 import PrimaryPage from './pages/restack/PreLaunch/Primary/Primary'
-import PrimaryDetailsPage from './pages/restack/PreLaunch/Primary/PrimaryDetails'
+// import PrimaryDetailsPage from './pages/restack/PreLaunch/Primary/PrimaryDetails'
 import PropertiesPage from './pages/acn/Properties/Properties'
 import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
 import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
@@ -32,6 +32,8 @@ import PreReraDetailsPage from './pages/restack/Stock/Pre-Rera/PreReraDetailsPag
 import PreReraEditPage from './pages/restack/Stock/Pre-Rera/PreReraEditPage'
 import ErrorPage from './404'
 import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+import ResalePage from './pages/restack/Resale/ResalePage'
+import ResalePageDetails from './pages/restack/Resale/ResalePageDetails'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -158,12 +160,8 @@ export const protectedRoutes: RouteObject[] = [
         ),
     },
     {
-        path: '/restack/primary/:id',
-        element: React.createElement(
-            ProtectedRoute,
-            null,
-            React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
-        ),
+        path: '/restack/resale/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(ResalePageDetails, null)),
     },
     {
         path: '/restack/stock/pre-rera',
@@ -188,6 +186,18 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/restack/stock/pre-rera/:id/edit',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
+    },
+    {
+        path: '/restack/resale',
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
+        ),
+    },
+    {
+        path: '/restack/resale/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(ResalePageDetails, null)),
     },
     {
         path: '/acn/properties',
