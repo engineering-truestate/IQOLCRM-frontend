@@ -156,7 +156,7 @@ export const addProperty = createAsyncThunk(
             console.log('🧹 Cleaned property data with ID:', propertyId, cleanedProperty)
 
             // Use setDoc with the propertyId as document ID
-            const docRef = doc(db, 'acn-properties', propertyId)
+            const docRef = doc(db, 'acnProperties', propertyId)
             await setDoc(docRef, cleanedProperty)
 
             console.log('✅ Property added successfully with document ID:', propertyId)
@@ -194,7 +194,7 @@ export const fetchAllProperties = async (filters: any) => {
         }
 
         console.log(filters)
-        const q = query(collection(db, 'acn-properties'), ...constraints)
+        const q = query(collection(db, 'acnProperties'), ...constraints)
 
         const snapshot = await getDocs(q)
 
@@ -250,7 +250,7 @@ export const fetchPropertyById = createAsyncThunk(
             console.log('🔍 Fetching property with ID:', propertyId)
 
             // Try to get by document ID (which should match propertyId)
-            const docRef = doc(db, 'acn-properties', propertyId)
+            const docRef = doc(db, 'acnProperties', propertyId)
             const docSnap = await getDoc(docRef)
 
             if (docSnap.exists()) {
@@ -270,7 +270,7 @@ export const fetchPropertyById = createAsyncThunk(
 
             // If not found by document ID, try to find by propertyId field
             console.log('🔍 Document not found by ID, searching by propertyId field...')
-            const q = query(collection(db, 'acn-properties'), where('propertyId', '==', propertyId))
+            const q = query(collection(db, 'acnProperties'), where('propertyId', '==', propertyId))
             const querySnapshot = await getDocs(q)
 
             if (!querySnapshot.empty) {
@@ -305,7 +305,7 @@ export const updateProperty = createAsyncThunk(
         try {
             console.log('📝 Updating property:', id, updates)
 
-            const docRef = doc(db, 'acn-properties', id)
+            const docRef = doc(db, 'acnProperties', id)
 
             const updatesWithDefaults = setDefaultValues({
                 ...updates,
@@ -348,7 +348,7 @@ export const fetchPropertiesByIds = createAsyncThunk(
             }
 
             const docPromises = propertyIds.map(async (propertyId) => {
-                const docRef = doc(db, 'acn-properties', propertyId)
+                const docRef = doc(db, 'acnProperties', propertyId)
                 const docSnap = await getDoc(docRef)
 
                 if (docSnap.exists()) {
@@ -382,7 +382,7 @@ export const updatePropertyStatus = createAsyncThunk(
         try {
             console.log('📝 Updating property status:', propertyId, status)
 
-            const docRef = doc(db, 'acn-properties', propertyId)
+            const docRef = doc(db, 'acnProperties', propertyId)
             await updateDoc(docRef, {
                 status: status,
                 currentStatus: status,

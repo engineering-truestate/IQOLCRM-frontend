@@ -14,6 +14,11 @@ import Logout from './pages/auth/Logout'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import PreLaunchPage from './pages/restack/PreLaunch/PreLaunch'
 import PreLaunchDetailsPage from './pages/restack/PreLaunch/PreLaunchDetails'
+// import PrimaryPage from './pages/restack/Primary/Primary'
+// import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+// import ComplaintsPage from './pages/restack/Primary/ComplaintsPage'
+// import DocumentsPage from './pages/restack/Primary/DocumentsPage'
+// import TypologyPage from './pages/restack/Primary/TypologyPage'
 
 import Home from './Home'
 import AgentsPage from './pages/acn/Agents/AgentsPage'
@@ -70,6 +75,14 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(RequirementsPage, null)),
     },
     {
+        path: '/acn/properties',
+        element: React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
+    },
+    {
+        path: '/acn/requirements',
+        element: React.createElement(React.Suspense, null, React.createElement(RequirementsPage, null)),
+    },
+    {
         path: '/acn/requirements/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(RequirementDetailsPage, null)),
     },
@@ -102,18 +115,6 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(TypologyPage, null)),
     },
     {
-        path: '/restack/stock/post-rera',
-        element: React.createElement(React.Suspense, null, React.createElement(PostReraPage, null)),
-    },
-    {
-        path: '/restack/stock/pre-rera/',
-        element: React.createElement(React.Suspense, null, React.createElement(PreReraPage, null)),
-    },
-    {
-        path: '/restack/stock/pre-rera/:id/details',
-        element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
-    },
-    {
         path: '/restack/stock/post-rera/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
     },
@@ -142,7 +143,7 @@ export const protectedRoutes: RouteObject[] = [
         ),
     },
     {
-        path: '/acn/properties/:pId/edit',
+        path: '/acn/properties/:id/edit',
         element: React.createElement(
             ProtectedRoute,
             null,
@@ -150,20 +151,12 @@ export const protectedRoutes: RouteObject[] = [
         ),
     },
     {
-        path: '/acn/properties/:pId/details',
-        element: React.createElement(
-            ProtectedRoute,
-            null,
-            React.createElement(React.Suspense, null, React.createElement(PropertyDetailsPage, null)),
-        ),
+        path: '/restack/primary/:id/complaints',
+        element: React.createElement(React.Suspense, null, React.createElement(ComplaintsPage, null)),
     },
     {
-        path: '/acn/qc/dashboard',
-        element: React.createElement(React.Suspense, null, React.createElement(QCDashboardPage, null)),
-    },
-    {
-        path: '/acn/qc/:id/details',
-        element: React.createElement(React.Suspense, null, React.createElement(QCPropertyDetailsPage, null)),
+        path: '/restack/primary/:id/documents',
+        element: React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
     },
     {
         path: '/restack/primary/:id/complaints',
