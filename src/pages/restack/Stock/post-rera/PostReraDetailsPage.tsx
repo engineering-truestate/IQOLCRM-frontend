@@ -16,6 +16,7 @@ import Button from '../../../../components/design-elements/Button'
 import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
 import Layout from '../../../../layout/Layout'
+import { toast } from 'react-toastify'
 
 const projectTypes = [
     { label: 'Residential', value: 'Residential' },
@@ -29,6 +30,54 @@ const projectStatuses = [
     { label: 'Inactive', value: 'inactive' },
 ]
 
+const constructionUpdateOptions = [
+    { label: 'Ready to Move', value: 'Ready to Move' },
+    { label: 'Under Construction', value: 'Under Construction' },
+    { label: 'Upcoming', value: 'Upcoming' },
+    { label: 'On Hold', value: 'On Hold' },
+]
+
+const amenitiesOptions = [
+    { label: 'Swimming Pool', value: 'Swimming Pool' },
+    { label: 'Gym', value: 'Gym' },
+    { label: 'Playground', value: 'Playground' },
+    { label: 'Clubhouse', value: 'Clubhouse' },
+    { label: 'Security', value: 'Security' },
+    { label: 'Parking', value: 'Parking' },
+    { label: 'Garden', value: 'Garden' },
+    { label: 'Elevator', value: 'Elevator' },
+    { label: 'Power Backup', value: 'Power Backup' },
+    { label: 'Water Supply', value: 'Water Supply' },
+    { label: 'Waste Management', value: 'Waste Management' },
+    { label: 'CCTV Surveillance', value: 'CCTV Surveillance' },
+    { label: 'Fire Safety', value: 'Fire Safety' },
+    { label: 'Kids Play Area', value: 'Kids Play Area' },
+    { label: 'Senior Citizen Area', value: 'Senior Citizen Area' },
+    { label: 'Jogging Track', value: 'Jogging Track' },
+]
+
+const inventoryTypes = [
+    { label: 'Apartment', value: 'Apartment' },
+    { label: 'Villa', value: 'Villa' },
+    { label: 'Plot', value: 'Plot' },
+    { label: 'Office', value: 'Office' },
+    { label: 'Shop', value: 'Shop' },
+    { label: 'Warehouse', value: 'Warehouse' },
+]
+
+interface PhaseDetail {
+    id: string
+    phaseName: string
+    viewDetails: string
+    constructionUpdate: string
+}
+
+interface DevelopmentDetail {
+    id: string
+    TypeOfInventory: string
+    NumberOfInventory: number
+}
+
 const PostReraDetailsPage = () => {
     const navigate = useNavigate()
     const { id } = useParams()
@@ -39,9 +88,16 @@ const PostReraDetailsPage = () => {
     const [projectDetails, setProjectDetails] = useState<PostReraProperty | null>(null)
     const [originalDetails, setOriginalDetails] = useState<PostReraProperty | null>(null)
     const [isEditing, setIsEditing] = useState(false)
-    //const [activeTab, setActiveTab] = useState<'phases' | 'towers' | 'configurations' | 'documents'>('phases')
     const [editingRowId, setEditingRowId] = useState<string | null>(null)
     const [isAddingRow, setIsAddingRow] = useState(false)
+
+    // New states for managing sections
+    const [isAddingPhase, setIsAddingPhase] = useState(false)
+    const [isAddingDevelopment, setIsAddingDevelopment] = useState(false)
+    const [newPhase, setNewPhase] = useState<Partial<PhaseDetail>>({})
+    const [newDevelopment, setNewDevelopment] = useState<Partial<DevelopmentDetail>>({})
+    const [newAmenity, setNewAmenity] = useState('')
+    const [selectedAmenity, setSelectedAmenity] = useState('')
 
     useEffect(() => {
         if (id) {
@@ -73,6 +129,12 @@ const PostReraDetailsPage = () => {
         setIsEditing(false)
         setEditingRowId(null)
         setIsAddingRow(false)
+        setIsAddingPhase(false)
+        setIsAddingDevelopment(false)
+        setNewPhase({})
+        setNewDevelopment({})
+        setNewAmenity('')
+        setSelectedAmenity('')
     }
 
     const handleSave = async () => {
@@ -83,21 +145,203 @@ const PostReraDetailsPage = () => {
                 if (originalDetails) {
                     Object.keys(projectDetails).forEach((key) => {
                         const typedKey = key as keyof PostReraProperty
-                        if (JSON.stringify(projectDetails[typedKey]) !== JSON.stringify(originalDetails[typedKey])) {
+                        if (
+                            typedKey === 'phaseDetails' ||
+                            typedKey === 'developmentDetails' ||
+                            typedKey === 'projectAmenities'
+                        ) {
+                            // Deep comparison for nested objects
+                            if (!deepCompare(projectDetails[typedKey], originalDetails[typedKey])) {
+                                ;(updates as any)[typedKey] = projectDetails[typedKey]
+                            }
+                        } else if (
+                            JSON.stringify(projectDetails[typedKey]) !== JSON.stringify(originalDetails[typedKey])
+                        ) {
+                            // Simple comparison for other properties
                             ;(updates as any)[typedKey] = projectDetails[typedKey]
                         }
                     })
                 }
 
+                // Dispatch the updatePostReraProperty action
+                await dispatch(
+                    postReraActions.updatePostReraProperty({
+                        projectId: id,
+                        updates: updates,
+                    }),
+                )
+
                 setOriginalDetails(projectDetails)
                 setIsEditing(false)
                 setEditingRowId(null)
                 setIsAddingRow(false)
-                console.log('Project details saved successfully')
+                setIsAddingPhase(false)
+                setIsAddingDevelopment(false)
+                setNewPhase({})
+                setNewDevelopment({})
+                setNewAmenity('')
+                setSelectedAmenity('')
+                toast.success('Project details saved successfully')
             } catch (error) {
-                console.error('Error saving project details:', error)
+                toast.error('Error saving project details:' + (error as Error).message)
             }
         }
+    }
+
+    // Deep comparison function
+    function deepCompare(obj1: any, obj2: any): boolean {
+        if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) {
+            return obj1 === obj2
+        }
+
+        const keys1 = Object.keys(obj1)
+        const keys2 = Object.keys(obj2)
+
+        if (keys1.length !== keys2.length) {
+            return false
+        }
+
+        for (const key of keys1) {
+            if (!deepCompare(obj1[key], obj2[key])) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    // Phase management functions
+    const handleAddPhase = () => {
+        if (newPhase.phaseName && newPhase.constructionUpdate) {
+            const phase: PhaseDetail = {
+                id: Date.now().toString(),
+                phaseName: newPhase.phaseName,
+                viewDetails: newPhase.viewDetails || '',
+                constructionUpdate: newPhase.constructionUpdate,
+            }
+
+            setProjectDetails((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          phaseDetails: [...(prev.phaseDetails || []), phase],
+                      }
+                    : null,
+            )
+
+            setNewPhase({})
+            setIsAddingPhase(false)
+        }
+    }
+
+    const handleDeletePhase = (phaseId: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      phaseDetails: (prev.phaseDetails || []).filter((phase: any) => phase.id !== phaseId),
+                  }
+                : null,
+        )
+    }
+
+    const handleEditPhase = (phaseId: string, field: string, value: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      phaseDetails: (prev.phaseDetails || []).map((phase: PhaseDetail) =>
+                          phase.id === phaseId ? { ...phase, [field]: value } : phase,
+                      ),
+                  }
+                : null,
+        )
+    }
+
+    // Development details management
+    const handleAddDevelopment = () => {
+        if (newDevelopment.TypeOfInventory && newDevelopment.NumberOfInventory) {
+            const development: DevelopmentDetail = {
+                id: Date.now().toString(),
+                TypeOfInventory: newDevelopment.TypeOfInventory,
+                NumberOfInventory: newDevelopment.NumberOfInventory,
+            }
+
+            setProjectDetails((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          developmentDetails: [
+                              ...(Array.isArray(prev.developmentDetails) ? prev.developmentDetails : []),
+                              development,
+                          ],
+                      }
+                    : null,
+            )
+
+            setNewDevelopment({})
+            setIsAddingDevelopment(false)
+        }
+    }
+
+    const handleDeleteDevelopment = (index: number) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      developmentDetails: (Array.isArray(prev.developmentDetails)
+                          ? prev.developmentDetails
+                          : []
+                      ).filter((_, i: number) => i !== index),
+                  }
+                : null,
+        )
+    }
+
+    // Amenities management
+    const handleAddAmenityFromDropdown = () => {
+        if (selectedAmenity && projectDetails) {
+            const currentAmenities = projectDetails.projectAmenities || []
+            if (!currentAmenities.includes(selectedAmenity)) {
+                setProjectDetails((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              projectAmenities: [...currentAmenities, selectedAmenity],
+                          }
+                        : null,
+                )
+            }
+            setSelectedAmenity('')
+        }
+    }
+
+    const handleAddCustomAmenity = () => {
+        if (newAmenity.trim() && projectDetails) {
+            const currentAmenities = projectDetails.projectAmenities || []
+            if (!currentAmenities.includes(newAmenity.trim())) {
+                setProjectDetails((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              projectAmenities: [...currentAmenities, newAmenity.trim()],
+                          }
+                        : null,
+                )
+            }
+            setNewAmenity('')
+        }
+    }
+
+    const handleRemoveAmenity = (amenityToRemove: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      projectAmenities: (prev.projectAmenities || []).filter((amenity) => amenity !== amenityToRemove),
+                  }
+                : null,
+        )
     }
 
     const renderField = (
@@ -172,7 +416,7 @@ const PostReraDetailsPage = () => {
             }
 
             return (
-                <div>
+                <div className='border-b border-[#D4DBE2] pb-2 mb-4 flex justify-between'>
                     <label className='text-sm text-gray-600 block mb-1'>{label}</label>
                     <div className='text-sm text-black font-medium'>{displayValue}</div>
                 </div>
@@ -184,37 +428,113 @@ const PostReraDetailsPage = () => {
         {
             key: 'phaseName',
             header: 'Phase Name',
-            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+            render: (value: any, row: any) =>
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        value={value}
+                        onChange={(e) => handleEditPhase(row.id, 'phaseName', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
         },
         {
             key: 'viewDetails',
             header: 'View Details',
-            render: (value: any) => (
-                <button
-                    onClick={() => navigate(`/restack/primary/${value}`)}
-                    className='px-3 py-1 bg-gray-800 text-white text-xs rounded hover:bg-gray-700'
-                >
-                    View Details
-                </button>
-            ),
+            render: (value: any, row: any) =>
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        value={value}
+                        onChange={(e) => handleEditPhase(row.id, 'viewDetails', e.target.value)}
+                        className='w-full text-sm'
+                        placeholder='Enter details URL'
+                    />
+                ) : (
+                    <button
+                        onClick={() => navigate(`/restack/primary/${value}`)}
+                        className='px-3 py-1 bg-gray-800 text-white text-xs rounded hover:bg-gray-700'
+                    >
+                        View Details
+                    </button>
+                ),
         },
         {
             key: 'constructionUpdate',
             header: 'Construction Update',
-            render: (value: any) => {
+            render: (value: any, row: any) => {
+                if (isEditing && editingRowId === row.id) {
+                    return (
+                        <Dropdown
+                            options={constructionUpdateOptions}
+                            onSelect={(selectedValue: string) =>
+                                handleEditPhase(row.id, 'constructionUpdate', selectedValue)
+                            }
+                            defaultValue={value}
+                            placeholder='Select status'
+                            className='relative w-full'
+                            triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
+                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                            optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                        />
+                    )
+                }
                 const bgColor =
                     value === 'Ready to Move' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                 return <span className={`px-2 py-1 rounded text-xs font-medium ${bgColor}`}>{value}</span>
             },
         },
-    ]
-
-    const getTowerColumns = (): TableColumn[] => [
-        {
-            key: 'TowerName',
-            header: 'Number of towers',
-            render: (value: any) => <span className='text-sm'>{value}</span>,
-        },
+        ...(isEditing
+            ? [
+                  {
+                      key: 'actions',
+                      header: 'Actions',
+                      render: (value: any, row: any) => (
+                          <div className='flex gap-2'>
+                              {editingRowId === row.id ? (
+                                  <>
+                                      <Button
+                                          bgColor='bg-green-600'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => setEditingRowId(null)}
+                                      >
+                                          ✓
+                                      </Button>
+                                      <Button
+                                          bgColor='bg-gray-400'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => setEditingRowId(null)}
+                                      >
+                                          ✕
+                                      </Button>
+                                  </>
+                              ) : (
+                                  <>
+                                      <Button
+                                          bgColor='bg-blue-600'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => setEditingRowId(row.id)}
+                                      >
+                                          Edit
+                                      </Button>
+                                      <Button
+                                          bgColor='bg-red-600'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => handleDeletePhase(row.id)}
+                                      >
+                                          Delete
+                                      </Button>
+                                  </>
+                              )}
+                          </div>
+                      ),
+                  },
+              ]
+            : []),
     ]
 
     if (!projectDetails) {
@@ -242,7 +562,7 @@ const PostReraDetailsPage = () => {
                                 </h1>
                                 <div className='text-sm text-gray-500 mt-1'>
                                     <button
-                                        onClick={() => navigate('/restack/postrera')}
+                                        onClick={() => navigate('/restack/stock/post-rera')}
                                         className='hover:text-gray-700'
                                     >
                                         Post-rera
@@ -286,7 +606,86 @@ const PostReraDetailsPage = () => {
                         </div>
 
                         {/* Phase Details Table */}
-                        <div className='mb-6'>
+                        <div className='mb-6 border border-gray-200 rounded-lg overflow-hidden'>
+                            <div className='flex items-center justify-between p-4 bg-gray-50 border-b'>
+                                <h3 className='text-lg font-semibold text-black'>Phase Details</h3>
+                                {isEditing && (
+                                    <Button
+                                        bgColor='bg-blue-600'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={() => setIsAddingPhase(true)}
+                                    >
+                                        + Add Phase
+                                    </Button>
+                                )}
+                            </div>
+
+                            {isAddingPhase && (
+                                <div className='p-4 bg-blue-50 border-b'>
+                                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                                        <div>
+                                            <label className='text-sm text-black block mb-1'>Phase Name</label>
+                                            <StateBaseTextField
+                                                value={newPhase.phaseName || ''}
+                                                onChange={(e) =>
+                                                    setNewPhase((prev) => ({ ...prev, phaseName: e.target.value }))
+                                                }
+                                                className='w-full text-sm'
+                                                placeholder='Enter phase name'
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className='text-sm text-black block mb-1'>View Details URL</label>
+                                            <StateBaseTextField
+                                                value={newPhase.viewDetails || ''}
+                                                onChange={(e) =>
+                                                    setNewPhase((prev) => ({ ...prev, viewDetails: e.target.value }))
+                                                }
+                                                className='w-full text-sm'
+                                                placeholder='Enter details URL'
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className='text-sm text-black block mb-1'>Construction Update</label>
+                                            <Dropdown
+                                                options={constructionUpdateOptions}
+                                                onSelect={(value) =>
+                                                    setNewPhase((prev) => ({ ...prev, constructionUpdate: value }))
+                                                }
+                                                defaultValue={newPhase.constructionUpdate || ''}
+                                                placeholder='Select status'
+                                                className='relative w-full'
+                                                triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
+                                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className='flex gap-2'>
+                                        <Button
+                                            bgColor='bg-green-600'
+                                            textColor='text-white'
+                                            className='px-3 py-1 h-8 text-sm'
+                                            onClick={handleAddPhase}
+                                        >
+                                            Add Phase
+                                        </Button>
+                                        <Button
+                                            bgColor='bg-gray-400'
+                                            textColor='text-white'
+                                            className='px-3 py-1 h-8 text-sm'
+                                            onClick={() => {
+                                                setIsAddingPhase(false)
+                                                setNewPhase({})
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
                             <FlexibleTable
                                 data={projectDetails?.phaseDetails || []}
                                 columns={getPhaseColumns()}
@@ -315,12 +714,10 @@ const PostReraDetailsPage = () => {
                                     'projectStatus',
                                     projectStatuses,
                                 )}
-                                {renderField('Developer Details', projectDetails?.developerName, 'developerName')}
                             </div>
                             <div className='space-y-4'>
                                 {renderField('Project Type', projectDetails?.projectType, 'projectType', projectTypes)}
-                                {renderField('Ongoing', 'Ongoing', 'ongoing')}
-                                {renderField('Legal Name', projectDetails?.developerLegalName, 'developerLegalName')}
+                                {renderField('Developer Details', projectDetails?.developerName, 'developerName')}
                             </div>
                         </div>
                     </div>
@@ -449,36 +846,119 @@ const PostReraDetailsPage = () => {
 
                     {/* Development Details */}
                     <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Development Details</h2>
+                        <div className='flex items-center justify-between mb-4'>
+                            <h2 className='text-lg font-semibold text-black'>Development Details</h2>
+                            {isEditing && (
+                                <Button
+                                    bgColor='bg-blue-600'
+                                    textColor='text-white'
+                                    className='px-3 py-1 h-8 text-sm'
+                                    onClick={() => setIsAddingDevelopment(true)}
+                                >
+                                    + Add Development
+                                </Button>
+                            )}
+                        </div>
+
+                        {isAddingDevelopment && (
+                            <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4'>
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Inventory Type</label>
+                                        <Dropdown
+                                            options={inventoryTypes}
+                                            onSelect={(value) =>
+                                                setNewDevelopment((prev) => ({ ...prev, TypeOfInventory: value }))
+                                            }
+                                            defaultValue={newDevelopment.TypeOfInventory || ''}
+                                            placeholder='Select inventory type'
+                                            className='relative w-full'
+                                            triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
+                                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                            optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Number of Inventory</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter number'
+                                            value={newDevelopment.NumberOfInventory || 0}
+                                            onChange={(numValue: number | null) => {
+                                                setNewDevelopment((prev) => ({
+                                                    ...prev,
+                                                    NumberOfInventory: numValue || 0,
+                                                }))
+                                            }}
+                                            numberType='integer'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                </div>
+                                <div className='flex gap-2'>
+                                    <Button
+                                        bgColor='bg-green-600'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={handleAddDevelopment}
+                                    >
+                                        Add Development
+                                    </Button>
+                                    <Button
+                                        bgColor='bg-gray-400'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={() => {
+                                            setIsAddingDevelopment(false)
+                                            setNewDevelopment({})
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
                         <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
                             <table className='w-full'>
                                 <thead className='bg-gray-50'>
                                     <tr>
-                                        <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
+                                        <th className='px-4 py-3 text-left text-sm font-medium text-[#121516]'>
                                             Inventory Type
                                         </th>
-                                        <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
+                                        <th className='px-4 py-3 text-left text-sm font-medium text-[#121516]'>
                                             No of Inventory
                                         </th>
-                                        <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
-                                            Apartments
-                                        </th>
-                                        <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
-                                            Villas
-                                        </th>
+                                        {isEditing && (
+                                            <th className='px-4 py-3 text-left text-sm font-medium text-[#121516]'>
+                                                Actions
+                                            </th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr className='border-t'>
-                                        <td className='px-4 py-3 text-sm'>
-                                            {projectDetails?.developmentDetails?.TypeOfInventory}
-                                        </td>
-                                        <td className='px-4 py-3 text-sm'>
-                                            {projectDetails?.developmentDetails?.NumberOfInventory}
-                                        </td>
-                                        <td className='px-4 py-3 text-sm'>80</td>
-                                        <td className='px-4 py-3 text-sm'>20</td>
-                                    </tr>
+                                    {projectDetails.developmentDetails &&
+                                        projectDetails.developmentDetails.map((dev, index) => (
+                                            <tr key={index} className='border-t'>
+                                                <td className='px-4 py-3 text-sm'>{dev.TypeOfInventory}</td>
+                                                <td className='px-4 py-3 text-sm text-[#6A7881]'>
+                                                    {dev.NumberOfInventory}
+                                                </td>
+                                                {isEditing && (
+                                                    <td className='px-4 py-3 text-sm'>
+                                                        <Button
+                                                            bgColor='bg-red-600'
+                                                            textColor='text-white'
+                                                            className='px-2 py-1 h-6 text-xs'
+                                                            onClick={() => handleDeleteDevelopment(index)}
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
                                 </tbody>
                             </table>
                         </div>
@@ -500,13 +980,89 @@ const PostReraDetailsPage = () => {
 
                     {/* Amenities */}
                     <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Amenities</h2>
-                        <div className='grid grid-cols-2 gap-4'>
+                        <div className='flex items-center justify-between mb-4'>
+                            <h2 className='text-lg font-semibold text-black'>Amenities</h2>
+                        </div>
+
+                        {/* Add Amenities Section - Only shown when editing */}
+                        {isEditing && (
+                            <div className='mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg'>
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+                                    <div>
+                                        <label className='text-sm text-black block mb-2'>
+                                            Select from predefined amenities
+                                        </label>
+                                        <div className='flex gap-2'>
+                                            <div className='flex-1'>
+                                                <Dropdown
+                                                    options={amenitiesOptions}
+                                                    onSelect={(value) => setSelectedAmenity(value)}
+                                                    defaultValue={selectedAmenity}
+                                                    placeholder='Select amenity'
+                                                    className='relative w-full'
+                                                    triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
+                                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto'
+                                                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                                />
+                                            </div>
+                                            <Button
+                                                bgColor='bg-blue-600'
+                                                textColor='text-white'
+                                                className='px-3 py-2 h-10 text-sm'
+                                                onClick={handleAddAmenityFromDropdown}
+                                                disabled={!selectedAmenity}
+                                            >
+                                                Add
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-2'>Add custom amenity</label>
+                                        <div className='flex gap-2'>
+                                            <div className='flex-1'>
+                                                <StateBaseTextField
+                                                    value={newAmenity}
+                                                    onChange={(e) => setNewAmenity(e.target.value)}
+                                                    className='w-full text-sm'
+                                                    placeholder='Enter custom amenity'
+                                                />
+                                            </div>
+                                            <Button
+                                                bgColor='bg-green-600'
+                                                textColor='text-white'
+                                                className='px-3 py-2 h-10 text-sm'
+                                                onClick={handleAddCustomAmenity}
+                                                disabled={!newAmenity.trim()}
+                                            >
+                                                Add
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Display Amenities */}
+                        <div className='flex flex-wrap gap-2'>
                             {projectDetails?.projectAmenities?.map((amenity, index) => (
-                                <div key={index} className='text-sm text-gray-700'>
-                                    {amenity}
+                                <div
+                                    key={index}
+                                    className='flex items-center gap-2 text-sm text-[#101419] px-3 py-1 rounded-2xl bg-[#E9EDF1]'
+                                >
+                                    <span>{amenity}</span>
+                                    {isEditing && (
+                                        <button
+                                            onClick={() => handleRemoveAmenity(amenity)}
+                                            className='text-red-500 hover:text-red-700 ml-1'
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
                                 </div>
                             ))}
+                            {(!projectDetails?.projectAmenities || projectDetails.projectAmenities.length === 0) && (
+                                <div className='text-gray-500 text-sm'>No amenities added yet</div>
+                            )}
                         </div>
                     </div>
 
@@ -550,10 +1106,10 @@ const PostReraDetailsPage = () => {
                                     <label className='text-sm text-gray-600 block mb-1'>CDP Map</label>
                                     {isEditing ? (
                                         <StateBaseTextField
-                                            value=''
-                                            onChange={(e) => updateField('cdpMap', e.target.value)}
+                                            value={projectDetails?.CDPMapURL || ''}
+                                            onChange={(e) => updateField('CDPMapURL', e.target.value)}
                                             className='w-full text-sm'
-                                            placeholder='Enter COP Map URL'
+                                            placeholder='Enter CDP Map URL'
                                         />
                                     ) : (
                                         <a

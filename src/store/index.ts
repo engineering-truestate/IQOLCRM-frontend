@@ -1,13 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit'
-import propertiesReducer from './reducers/acn/propertiesReducers'
-import platformReducer from './reducers/platformSlice'
-import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist'
+import { persistStore, persistReducer } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
-
+import userReducer from './reducers/user/userReducer'
+import qcReducer from './reducers/acn/qcReducer'
 const persistConfig = {
     key: 'root',
     storage,
-    whitelist: ['platform'],
+    whitelist: ['primaryProperties'],
 }
 
 const persistedPlatformReducer = persistReducer(persistConfig, platformReducer)
@@ -25,21 +24,16 @@ const store = configureStore({
         preRera: preReraReducer,
         postRera: postReraReducer,
         requirements: requirementsReducer,
+        user: userReducer,
+        qc: qcReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
-            serializableCheck: {
-                ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-            },
+            serializableCheck: false,
         }),
 })
 
-// RootState type inferred from the store
-export type RootState = ReturnType<typeof store.getState>
-
-// AppDispatch type inferred from the store
-export type AppDispatch = typeof store.dispatch
-
 export const persistor = persistStore(store)
-
+export type AppDispatch = typeof store.dispatch
+export type RootState = ReturnType<typeof rootReducer>
 export default store

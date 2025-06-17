@@ -4,6 +4,7 @@ export interface TowerDetail {
 }
 
 export interface PhaseDetail {
+    id: string
     phaseName: string
     viewDetails: string
     constructionUpdate: string
@@ -12,9 +13,9 @@ export interface PhaseDetail {
 export interface DevelopmentDetail {
     TypeOfInventory: string
     NumberOfInventory: number
-    CarpetAreaSqMtr: number
-    BalconyVerandahSqMtr: number
-    OpenTerraceSqMtr: number
+    CarpetAreaSqMtr?: number
+    BalconyVerandahSqMtr?: number
+    OpenTerraceSqMtr?: number
 }
 
 export interface ConfigurationDetails {
@@ -117,7 +118,7 @@ export interface PostReraProperty {
     coveredParking: string
     numberOfGarage: string
     waterSource: string[]
-    developmentDetails: DevelopmentDetail
+    developmentDetails: DevelopmentDetail[]
     configurationDetails: ConfigurationDetails
     totalTowers: number
     floorAreaRatio: number

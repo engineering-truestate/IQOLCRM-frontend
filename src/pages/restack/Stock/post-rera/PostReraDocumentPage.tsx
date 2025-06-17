@@ -27,22 +27,13 @@ const PostReraDocumentPage: React.FC = () => {
         }
     }, [selectedProperty])
 
-    const documents = projectDetails?.documents
-        .flatMap((doc) => [
-            { name: 'Commencement Certificate', url: doc.CommencementCertificate },
-            { name: 'Approval Certificate', url: doc.approvalCertificate },
-            { name: 'Approved Building Plan', url: doc.approvedBuildingPlan },
-            { name: 'Environmental Clearance', url: doc.environmentalClearance },
-            { name: 'Occupancy Certificate', url: doc.occupancyCertificate },
-        ])
-        .filter((doc) => doc.url)
+    // Documents are now passed directly as they come from the API
+    const documents = projectDetails?.documents || []
 
     return (
         <Layout loading={loading}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-4 px-6 bg-white min-h-screen'>
-                    {projectDetails && <PostReraDocument documents={documents} />}
-                </div>
+                <PostReraDocument documents={documents} />
             </div>
         </Layout>
     )
