@@ -15,6 +15,13 @@ import postReraReducer from './reducers/restack/postReraReducer'
 // import agentsReducer from './slices/agentsSlice'
 // import agentDetailsReducer from './slices/agentDetailsSlice'
 // import type { IInventory, IRequirement } from '../data_types/acn/types'
+import taskIdReducer from './reducers/canvas-homes/taskIdReducer'
+
+interface TaskIdState {
+    taskId: string | null
+    enquiryId: string | null
+    leadId: string | null
+}
 
 interface PropertyData {
     inventories: IInventory[]
@@ -44,6 +51,8 @@ const rootReducer = combineReducers({
     requirements: requirementsReducer,
     user: userReducer,
     qc: qcReducer,
+    taskId: taskIdReducer,
+
     // leads: leadsReducer,
     // agents: agentsReducer,
     // agentDetails: agentDetailsReducer,
@@ -63,6 +72,7 @@ export const store = configureStore({
         requirements: requirementsReducer,
         user: userReducer,
         qc: qcReducer,
+        taskId: taskIdReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -76,6 +86,7 @@ export const persistor = persistStore(store)
 
 export type RootState = ReturnType<typeof store.getState> & {
     agents: AgentsState
+    taskId: TaskIdState
 }
 export type AppDispatch = typeof store.dispatch
 

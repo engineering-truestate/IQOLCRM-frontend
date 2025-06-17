@@ -2,8 +2,8 @@ import React from 'react'
 import Dropdown from './Dropdown'
 import type { Task } from '../../../services/canvas_homes/types' // Assuming you have a type for Task
 import { useDispatch } from 'react-redux'
-import { setTaskId } from '../../../store/actions/canvas-homes/taskIdSlice'
-
+import { setEnquiryId, setTaskId } from '../../../store/reducers/canvas-homes/taskIdReducer'
+import type { AppDispatch } from '../../../store'
 interface TaskCardProps {
     task: Task // Assuming Task is the type of your task object from Firebase
     index: number
@@ -25,11 +25,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
     updating = false,
     children,
 }) => {
-    const dispatch = useDispatch()
+    const dispatch = useDispatch<AppDispatch>()
     // Handle task card click to toggle expansion (if the task isn't complete)
     const handleCardClick = () => {
-        dispatch(setTaskId(task.id))
         if (task.status !== 'complete') {
+            dispatch(setTaskId(task.id))
+            dispatch(setEnquiryId(task.enquiryId))
             onToggleExpansion(task.id) // task.id assumes you have an 'id' in your task object from Firebase
         }
     }

@@ -9,6 +9,7 @@ import {
     where,
     orderBy,
     onSnapshot,
+    limit,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { Enquiry, NoteItem, ActivityHistoryItem } from './types'
