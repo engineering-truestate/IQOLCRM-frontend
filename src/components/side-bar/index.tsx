@@ -1,5 +1,6 @@
 // import Platforms from '../Platforms'
-import { acnMenuItems } from './menu-options/acn'
+// import { acnMenuItems } from './menu-options/acn'
+import { restackMenuItems } from './menu-options/restack'
 // import { useSelector } from 'react-redux'
 // import type { RootState } from '../../store'
 // import { canvasHomesMenuItems } from './menu-options/canvas-homes'
@@ -39,7 +40,7 @@ const Sidebar = () => {
     // const menuItems = getMenuItems()
 
     return (
-        <div className='flex flex-col w-[16%] min-h-screen h-full bg-[#F7F7F7] border-r border-[#ececec]'>
+        <div className='flex flex-col w-[16%] min-h-screen h-full bg-[#F7F7F7] border-r border-[#ececec] sticky top-0 z-10'>
             <div className='px-6 py-4'>{/* <Platforms /> */}</div>
 
             <nav className='flex-1 mt-2'>
