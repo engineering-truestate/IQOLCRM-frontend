@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Phone, Calendar, Info, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface AgentDetails {
     [key: string]: string | number | boolean | null | undefined
@@ -161,48 +161,68 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
     return (
         <div className=' mx-auto bg-gray-50 max-h-[calc(100vh-80px)] overflow-y-auto'>
             {/* Header - Now clickable */}
-            <div className='bg-white '>
-                <button
-                    onClick={toggleMainDropdown}
-                    className='w-full px-4 py-4 text-left  transition-colors duration-200'
-                >
-                    <div className='flex items-center justify-between'>
-                        <div className='flex items-center space-x-3'>
-                            <div className='w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center'>
-                                <span className='text-sm font-medium text-gray-600'>
-                                    {agentDetails.name
-                                        ?.toString()
-                                        .split(' ')
-                                        .map((n) => n[0])
-                                        .join('') || 'HR'}
-                                </span>
-                            </div>
-                            <div>
-                                <h1 className='font-medium text-gray-900'>{agentDetails.name || 'Agent Name'}</h1>
-                                <p className='text-xs text-gray-500'>
-                                    {agentDetails.cpId} | {agentDetails.reraId}
-                                </p>
-                            </div>
+            <div className='bg-white px-4 py-4 w-full'>
+                <div className='flex items-center justify-between'>
+                    {/* Left: Avatar + Name + ID */}
+                    <div className='flex items-center gap-3'>
+                        <div className='w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center'>
+                            <span className='text-sm font-medium text-gray-600'>
+                                {agentDetails.name
+                                    ?.toString()
+                                    .split(' ')
+                                    .map((n) => n[0])
+                                    .join('') || 'HR'}
+                            </span>
                         </div>
+                        <div className='flex flex-col'>
+                            <span className='font-semibold text-gray-900 text-sm'>
+                                {agentDetails.name || 'Agent Name'}
+                            </span>
+                            <span className='text-xs text-gray-500'>
+                                {agentDetails.cpId} | {agentDetails.reraId}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Right: Chevron */}
+                    <button onClick={toggleMainDropdown}>
                         {isMainDropdownOpen ? (
                             <ChevronUp className='w-4 h-4 text-gray-400' />
                         ) : (
                             <ChevronDown className='w-4 h-4 text-gray-400' />
                         )}
-                    </div>
-                    <div className='mt-3 flex justify-between text-xs'>
-                        <div>
-                            <span className='text-gray-500'>Credits:</span>
-                            <span className='ml-1 font-medium'>{agentDetails.monthlyCredits || 0}</span>
+                    </button>
+                </div>
+
+                {/* Bottom Row: Credits / Plan / Icons */}
+                <div className=' flex items-center justify-between text-xs'>
+                    {/* Credits + Plan */}
+                    <div className='flex gap-4'>
+                        <div className='text-gray-600'>
+                            <span className='text-gray-500'>Credits: </span>
+                            <span className='font-semibold text-black'>{agentDetails.monthlyCredits || 0}</span>
                         </div>
-                        <div>
-                            <span className='text-gray-500'>Plan:</span>
-                            <span className='ml-1 font-medium text-blue-600 capitalize'>
+                        <div className='text-gray-600'>
+                            <span className='text-gray-500'>Plan: </span>
+                            <span className='font-semibold text-black capitalize'>
                                 {agentDetails.userType || 'N/A'}
                             </span>
                         </div>
                     </div>
-                </button>
+
+                    {/* Action Icons */}
+                    <div className='flex items-center gap-2'>
+                        <button className='bg-gray-100 p-1.5 rounded'>
+                            <Phone className='w-4 h-4 text-gray-600' />
+                        </button>
+                        <button className='bg-gray-100 p-1.5 rounded'>
+                            <Calendar className='w-4 h-4 text-gray-600' />
+                        </button>
+                        <button className='bg-gray-100 p-1.5 rounded'>
+                            <Info className='w-4 h-4 text-gray-600' />
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Sections - Now conditionally rendered based on main dropdown state */}
