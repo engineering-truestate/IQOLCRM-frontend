@@ -1,7 +1,7 @@
 import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
-const searchClient = algoliasearch('754A0N2FFU', '440ca58a1a23b6028205bb0d83f13412')
-const INDEX_NAME = 'QC_Index'
+const searchClient = algoliasearch('YRTIP4R3ZR', '53f176209e2536837f335aba4c8e093d')
+const INDEX_NAME = 'qc-inventories'
 
 export interface InventorySearchFilters {
     kamId?: string[]
@@ -69,7 +69,7 @@ export const searchInventory = async (params: InventorySearchParams): Promise<In
                     query,
                     page,
                     hitsPerPage,
-                    filters: buildFilterString(filters),
+                    // filters: buildFilterString(filters),
                     facets: ['kamId', 'stage', 'KamStatus', 'assetType'],
                     maxValuesPerFacet: 100,
                 },

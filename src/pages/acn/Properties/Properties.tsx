@@ -1046,9 +1046,22 @@ const PropertiesPage = () => {
                             <SortFilter />
 
                             <Button
-                                bgColor='bg-white'
-                                textColor='text-gray-700'
-                                className='px-3 py-1 text-sm border border-gray-300'
+                                bgColor='bg-[#F0F0F5]'
+                                textColor='text-black'
+                                leftIcon={
+                                    <svg
+                                        xmlns='http://www.w3.org/2000/svg'
+                                        width='16'
+                                        height='16'
+                                        viewBox='0 0 16 16'
+                                        fill='none'
+                                    >
+                                        <path d='M2 4.66797H14' stroke='#3A3A47' stroke-linecap='round' />
+                                        <path d='M4 8H12' stroke='#3A3A47' stroke-linecap='round' />
+                                        <path d='M6.66602 11.332H9.33268' stroke='#3A3A47' stroke-linecap='round' />
+                                    </svg>
+                                }
+                                className='h-7 font-semibold text-sm'
                                 // onClick={() => console.log('Filter clicked')}
                                 onClick={() => {
                                     setIsAddFilterModalOpen(true)

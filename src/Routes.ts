@@ -1,8 +1,12 @@
 import type { RouteObject } from 'react-router-dom'
 import React from 'react'
+import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
-import Dashboard from './pages/canvas-homes/Dashboard'
+import Dashboard from './pages/canvas_homes/Dashboard'
+import Marketing from './pages/canvas_homes/marketing_dashboard/Marketing'
+import MarketingDetails from './pages/canvas_homes/marketing_dashboard/MarketingDetails'
+import Sales from './pages/canvas_homes/sales_dashboard/Sales'
 import LeadsPage from './pages/acn/Leads/Leads'
 import RequirementsPage from './pages/acn/Requirements/Requirements'
 import RequirementDetailsPage from './pages/acn/Requirements/RequirementDetails'
@@ -11,12 +15,23 @@ import Logout from './pages/auth/Logout'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import PreLaunchPage from './pages/restack/PreLaunch/PreLaunch'
 import PreLaunchDetailsPage from './pages/restack/PreLaunch/PreLaunchDetails'
+import Home from './Home'
+import AgentsPage from './pages/acn/Agents/AgentsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
 import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+import PropertiesPage from './pages/acn/Properties/Properties'
+import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
+import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
+import AgentDetailsPage from './pages/acn/Agents/AgentDetailsPage'
+import QCDashboardPage from './pages/acn/QCDashboard/QCDashboardPage'
+import QCPropertyDetailsPage from './pages/acn/QCDashboard/QCPropertyDetails'
+import PreReraPage from './pages/restack/Stock/Pre-Rera/PreReraPage'
+import PreReraDetailsPage from './pages/restack/Stock/Pre-Rera/PreReraDetailsPage'
+import PreReraEditPage from './pages/restack/Stock/Pre-Rera/PreReraEditPage'
+import ErrorPage from './404'
 import ComplaintsPage from './pages/restack/Primary/ComplaintsPage'
 import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
-import PropertiesPage from './pages/acn/Properties/Properties'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -43,6 +58,14 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(Dashboard, null)),
     },
     {
+        path: '/acn/agents',
+        element: React.createElement(React.Suspense, null, React.createElement(AgentsPage, null)),
+    },
+    {
+        path: '/acn/agents/:agentId',
+        element: React.createElement(React.Suspense, null, React.createElement(AgentDetailsPage, null)),
+    },
+    {
         path: '/acn/leads',
         element: React.createElement(React.Suspense, null, React.createElement(LeadsPage, null)),
     },
@@ -53,6 +76,22 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/acn/properties',
         element: React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
+    },
+    {
+        path: '/acn/agents/:agentId/properties',
+        element: React.createElement(React.Suspense, null, React.createElement(AgentDetailsPage, null)),
+    },
+    {
+        path: '/acn/qc/dashboard',
+        element: React.createElement(React.Suspense, null, React.createElement(QCDashboardPage, null)),
+    },
+    {
+        path: '/acn/qc/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(QCPropertyDetailsPage, null)),
+    },
+    {
+        path: '/acn/properties/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PropertyDetailsPage, null)),
     },
     {
         path: '/acn/requirements/:id/details',
@@ -84,15 +123,27 @@ export const protectedRoutes: RouteObject[] = [
     },
     {
         path: '/restack/primary/:id/typology',
-        element: React.createElement(React.Suspense, null, React.createElement(TypologyPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(TypologyPage, null)),
+        ),
     },
     {
         path: '/restack/primary/:id/complaints',
-        element: React.createElement(React.Suspense, null, React.createElement(ComplaintsPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(ComplaintsPage, null)),
+        ),
     },
     {
         path: '/restack/primary/:id/documents',
-        element: React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
+        ),
     },
 ]
 

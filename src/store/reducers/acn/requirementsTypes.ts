@@ -1,5 +1,7 @@
 // types.ts
 
+import { type INote } from '../../../services/acn/requirements/requirementsService'
+
 interface BudgetRange {
     from: number
     to: number
@@ -36,6 +38,7 @@ export interface IRequirement {
     added: number
     lastModified: number
     matchingProperties: string[]
+    notes: INote[]
 }
 
 export type RequirementState = {

@@ -246,6 +246,7 @@ export const getNextPropertyId = createAsyncThunk('properties/getNextId', async 
 export const fetchPropertyById = createAsyncThunk(
     'properties/fetchById',
     async (propertyId: string, { rejectWithValue }) => {
+        console.log('hullara:', propertyId)
         try {
             console.log('🔍 Fetching property with ID:', propertyId)
 

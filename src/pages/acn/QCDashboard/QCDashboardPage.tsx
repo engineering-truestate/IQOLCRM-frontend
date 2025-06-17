@@ -16,29 +16,11 @@ import {
 // Removed dummy data imports
 import resetic from '/icons/acn/rotate-left.svg'
 import verifyIcon from '/icons/acn/verify.svg'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import type { IQCInventory } from '../../../data_types/acn/types'
 
 // Define types locally instead of importing from dummy data
 export type QCReviewStatus = 'pending' | 'approved' | 'duplicate' | 'primary' | 'reject'
-
-export interface QCProperty {
-    id: string
-    projectName: string
-    assetType: string
-    phoneNumber: string
-    agent: string
-    sbua: string
-    plotSize: string
-    price: string
-    micromarket: string
-    kamReviewed: QCReviewStatus
-    dataReviewed: QCReviewStatus
-    kam: string
-    kamReviewDate?: string
-    dataReviewDate?: string
-    createdDate: string
-    stage?: string
-    status?: string
-}
 
 type TabType = 'kam' | 'data' | 'notApproved'
 
@@ -49,7 +31,7 @@ const QCDashboardPage = () => {
     const [selectedSort, setSelectedSort] = useState('')
     const [selectedAssetType, setSelectedAssetType] = useState<string[]>([])
     const [currentPage, setCurrentPage] = useState(0) // Algolia uses 0-based pagination
-    const [qcData, setQcData] = useState<QCProperty[]>([])
+    const [qcData, setQcData] = useState<IQCInventory[]>([])
     const [loading, setLoading] = useState(false)
     const [totalHits, setTotalHits] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
@@ -61,29 +43,100 @@ const QCDashboardPage = () => {
     const ITEMS_PER_PAGE = 50
 
     // Default KAM ID - you may want to get this from user context or props
-    const DEFAULT_KAM_ID = 'INT001' // Replace with actual KAM ID logic
+    const DEFAULT_KAM_ID = 'INT103' // Replace with actual KAM ID logic
 
     // Transform Algolia data to QCProperty format
-    const transformAlgoliaData = (hits: any[]): QCProperty[] => {
-        console.log('hidsst', hits)
+    const transformAlgoliaData = (hits: any[]): IQCInventory[] => {
         return hits.map((hit, index) => ({
-            id: hit.objectID || `QC${index.toString().padStart(4, '0')}`,
-            projectName: hit.nameOfTheProperty || hit.project_name || 'N/A',
-            assetType: hit.assetType || hit.asset_type || 'N/A',
-            phoneNumber: hit.phoneNumber || hit.phone_number || 'N/A',
-            agent: hit.agent || hit.agent_name || 'N/A',
-            sbua: hit.sbua || hit.built_up_area || 'N/A',
-            plotSize: hit.plotSize || hit.plot_size || 'N/A',
-            price: hit.price || 'N/A',
+            propertyId: hit.objectID || `QC${index.toString().padStart(4, '0')}`,
+            propertyName: hit.propertyName || hit.project_name || 'N/A',
+            unitNo: hit.unitNo || 'N/A',
+            path: hit.path || 'N/A',
+            _geoloc: hit._geoloc || { lat: 0, lng: 0 },
+            address: hit.address || 'N/A',
+            area: hit.area || 'N/A',
             micromarket: hit.micromarket || hit.micro_market || 'N/A',
-            kamReviewed: (hit.kamReviewed || hit.kam_reviewed || 'pending') as QCReviewStatus,
-            dataReviewed: (hit.dataReviewed || hit.data_reviewed || 'pending') as QCReviewStatus,
-            kam: hit.kam || hit.kam_name || 'N/A',
-            kamReviewDate: hit.kamReviewDate || hit.kam_review_date,
-            dataReviewDate: hit.dataReviewDate || hit.data_review_date,
-            createdDate: hit.createdDate || hit.created_date || new Date().toLocaleDateString(),
-            stage: hit.stage || 'kam',
-            status: hit.status || 'active',
+            mapLocation: hit.mapLocation || 'N/A',
+            assetType: (hit.assetType || hit.asset_type || 'N/A') as
+                | 'villa'
+                | 'apartment'
+                | 'plot'
+                | 'commercial'
+                | 'warehouse'
+                | 'office',
+            unitType: (hit.unitType || '1 bhk') as '1 bhk' | '2 bhk' | '3 bhk' | '4 bhk' | '5+ bhk',
+            subType: hit.subType || 'N/A',
+            communityType: (hit.communityType || 'gated') as 'gated' | 'open' | 'independent',
+            sbua: hit.sbua || hit.built_up_area || 0,
+            carpet: hit.carpet || 0,
+            plotSize: hit.plotSize || hit.plot_size || 0,
+            uds: hit.uds || 0,
+            structure: hit.structure || 0,
+            buildingAge: hit.buildingAge || 0,
+            floorNo: hit.floorNo || 0,
+            exactFloor: hit.exactFloor || 0,
+            facing: (hit.facing || 'north') as
+                | 'north'
+                | 'south'
+                | 'east'
+                | 'west'
+                | 'northeast'
+                | 'northwest'
+                | 'southeast'
+                | 'southwest',
+            plotFacing: (hit.plotFacing || 'north') as 'north' | 'south' | 'east' | 'west',
+            balconyFacing: (hit.balconyFacing || 'north') as 'north' | 'south' | 'east' | 'west' | 'outside',
+            noOfBalconies: hit.noOfBalconies || 'N/A',
+            noOfBathrooms: hit.noOfBathrooms || 'N/A',
+            carPark: hit.carPark || 0,
+            cornerUnit: hit.cornerUnit || false,
+            extraRoom: hit.extraRoom || [],
+            furnishing: (hit.furnishing || 'unfurnished') as 'fullFurnished' | 'semiFurnished' | 'unfurnished',
+            totalAskPrice: hit.totalAskPrice || 0,
+            askPricePerSqft: hit.askPricePerSqft || 0,
+            priceHistory: hit.priceHistory || [],
+            rentalIncome: hit.rentalIncome || 0,
+            status: (hit.status || 'available') as 'available' | 'delisted' | 'sold' | 'hold',
+            currentStatus: (hit.currentStatus || 'ready to move') as
+                | 'ready to move'
+                | 'under construction'
+                | 'new launch',
+            exclusive: hit.exclusive || false,
+            tenanted: hit.tenanted || false,
+            eKhata: hit.eKhata || false,
+            buildingKhata: hit.buildingKhata || 'N/A',
+            landKhata: hit.landKhata || 'N/A',
+            ocReceived: hit.ocReceived || false,
+            bdaApproved: hit.bdaApproved || false,
+            biappaApproved: hit.biappaApproved || false,
+            stage: (hit.stage || 'kam') as 'kam' | 'data' | 'live',
+            qcStatus: (hit.qcStatus || 'pending') as 'approved' | 'pending' | 'reject' | 'duplicate' | 'primary',
+            qcReview: hit.qcReview || {
+                kamReviewed: 'pending',
+                dataReviewed: 'pending',
+                kam: 'N/A',
+                kamReviewDate: null,
+                dataReviewDate: null,
+            },
+            kamStatus: (hit.kamStatus || 'pending') as 'approved' | 'pending' | 'rejected',
+            cpId: hit.cpId || hit.agent_name || 'N/A',
+            kamName: hit.kamName || hit.kam_name || 'N/A',
+            kamId: hit.kamId || 'N/A',
+            handoverDate: hit.handoverDate || 0,
+            photo: hit.photo || [],
+            video: hit.video || [],
+            document: hit.document || [],
+            driveLink: hit.driveLink || 'N/A',
+            noOfEnquiries: hit.noOfEnquiries || 0,
+            dateOfInventoryAdded: hit.dateOfInventoryAdded || 0,
+            lastModified: hit.lastModified || 0,
+            dateOfStatusLastChecked: hit.dateOfStatusLastChecked || 0,
+            ageOfInventory: hit.ageOfInventory || 0,
+            ageOfStatus: hit.ageOfStatus || 0,
+            qcHistory: hit.qcHistory || [],
+            extraDetails: hit.extraDetails || 'N/A',
+            __position2: hit.__position2 || 0,
+            _highlightResult: hit._highlightResult || {},
         }))
     }
 
@@ -300,26 +353,33 @@ const QCDashboardPage = () => {
     // Base columns for kam and data tabs
     const getBaseColumns = (): TableColumn[] => [
         {
-            key: 'projectName',
+            key: 'propertyName',
             header: 'Project Name/Location',
+            render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
+        },
+        {
+            key: 'kamId',
+            header: 'Kam',
             render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
         },
         {
             key: 'assetType',
             header: 'Asset type',
             render: (value) => (
-                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                    {toCapitalizedWords(value)}
+                </span>
             ),
         },
         {
-            key: 'phoneNumber',
+            key: 'cpId',
             header: 'Phone Number',
             render: (value) => (
                 <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
             ),
         },
         {
-            key: 'agent',
+            key: 'cpId',
             header: 'Agent',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
@@ -334,9 +394,16 @@ const QCDashboardPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
-            key: 'price',
+            key: 'totalAskPrice',
             header: 'Price',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'kamStatus',
+            header: 'Kam Review',
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>{toCapitalizedWords(value)}</span>
+            ),
         },
         {
             key: 'micromarket',
@@ -353,9 +420,9 @@ const QCDashboardPage = () => {
                     <button
                         className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
                         onClick={() => {
-                            navigate(`/acn/qc/${row.id}/details`)
+                            navigate(`/acn/qc/${row.propertyId}/details`)
                         }}
-                        title='Verify'
+                        // title='Verify'
                     >
                         <img src={verifyIcon} alt='Verify Icon' className='w-7 h-7 flex-shrink-0' />
                     </button>
@@ -368,7 +435,7 @@ const QCDashboardPage = () => {
     const getNotApprovedColumns = (): TableColumn[] => [
         ...getBaseColumns().slice(0, -2), // Remove micromarket and actions columns temporarily
         {
-            key: 'kamReviewed',
+            key: 'qcReview.kamReviewed',
             header: 'Kam Review',
             render: (value) => (
                 <div className='whitespace-nowrap w-auto'>
@@ -377,7 +444,7 @@ const QCDashboardPage = () => {
             ),
         },
         {
-            key: 'kam',
+            key: 'qcReview.kam',
             header: 'Kam',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },

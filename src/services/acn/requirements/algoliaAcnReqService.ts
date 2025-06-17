@@ -3,8 +3,8 @@
 import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
 // Algolia client configuration
-const searchClient = algoliasearch('J150UQXDLH', '146a46f31a26226786751f663e88ae33')
-const INDEX_NAME = 'acn-agent-requirement'
+const searchClient = algoliasearch('YXMDFDHYEO', '9394fe020e50445263e0171877e37a2a')
+const INDEX_NAME = 'requirements'
 
 // Types for search parameters
 export interface RequirementSearchFilters {

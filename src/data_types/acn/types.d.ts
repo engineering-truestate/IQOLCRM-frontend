@@ -247,6 +247,14 @@ type RentalInventoryState = {
 
 // ==================== REQUIREMENT TYPES ====================
 
+// Note interface
+export interface INote {
+    id: string
+    author: string
+    content: string
+    timestamp: number
+}
+
 interface BudgetRange {
     from: number
     to: number
@@ -259,6 +267,8 @@ interface SizeRange {
 
 interface IRequirement {
     requirementId: string
+    agentNumber: string
+    agentName: string
     cpId: string
     location: string
     assetType: 'villa' | 'apartment' | 'plot' | 'commercial' | 'warehouse' | 'office'
@@ -266,6 +276,7 @@ interface IRequirement {
     _geoloc: GeoLocation
     micromarket: string
     budget: BudgetRange
+    note: string[]
     size: SizeRange
     bedrooms: string
     bathrooms: string
@@ -297,6 +308,11 @@ interface InventoryStatus {
 }
 
 interface IAgent {
+    planId: string
+    inventories: string[]
+    requirements: string[]
+    enquiries: string[]
+    legalLeads: string[]
     cpId: string
     name: string
     phoneNumber: string

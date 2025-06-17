@@ -5,28 +5,48 @@ import { useState, useEffect, useMemo } from 'react'
 import StateBaseTextFieldTest from '../../../components/design-elements/StateBaseTextField'
 import Button from '../../../components/design-elements/Button'
 import addinventoryic from '/icons/acn/user-add.svg'
-import { useDispatch } from 'react-redux'
-import type { IInventory, IRequirement } from '../../../store/reducers/types'
-import { fetchAllRequirements } from '../../../services/acn/requirements/requirementService'
+import { useDispatch, useSelector } from 'react-redux'
+import type { IInventory, IRequirement } from '../../../data_types/acn/types'
+import { fetchAgentDetails } from '../../../services/acn/agents/agentThunkService'
+import { fetchAgentInfo } from '../../../store/thunks/agentDetailsThunk'
+import type { AppDispatch, RootState } from '../../../store'
+import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
+import { formatCost } from '../../../components/helper/formatCost'
+import { formatUnixDate } from '../../../components/helper/formatDate'
 
 import AgentInventoryTable from './AgentInventoryTable'
 import AgentRequirementTable from './AgentRequirementTable'
 import AgentEnquiryTable from './AgentEnquiryTable'
+import Dropdown from '../../../components/design-elements/Dropdown'
 
-import { fetchAllProperties } from '../../../services/acn/properties/propertiesService'
-import { fetchAllEnquiries } from '../../../services/acn/enquiries/enquiryService'
+interface PropertyData {
+    inventories: IInventory[]
+    requirements: IRequirement[]
+    enquiries: any[]
+}
+
+interface AgentsState {
+    resale: PropertyData
+    rental: PropertyData
+    loading: boolean
+    error: string | null
+}
 
 const AgentDetailsPage = () => {
     const { agentId } = useParams()
     const [searchValue, setSearchValue] = useState('')
     const navigate = useNavigate()
-    const [selectedInventoryStatus, setSelectedInventoryStatus] = useState('')
-    const [inventoryData, setInventoryData] = useState<IInventory[]>([])
-    const [requirementsData, setRequirementsData] = useState<IRequirement[]>([])
-    const [enquiryData, setEnquiryData] = useState<any[]>([])
-
+    const dispatch = useDispatch<AppDispatch>()
     const [activeTab, setActiveTab] = useState<'Inventory' | 'Requirement' | 'Enquiry'>('Inventory')
-    const [activePropertyTab, setActivePropertyTab] = useState<'Resale' | 'Rental' | null>(null)
+    const [activePropertyTab, setActivePropertyTab] = useState<'Resale' | 'Rental'>('Resale')
+    const [selectedStatus, setSelectedStatus] = useState('')
+    const [selectedPropertyType, setSelectedPropertyType] = useState('')
+    // Get data from Redux store
+    const { resale, rental, loading, error } = useSelector((state: RootState) => state.agents)
+    const { data: agentDetails, loading: agentDetailsLoading } = useSelector((state: RootState) => state.agentDetails)
+
+    // Get current property data based on active tab
+    const currentPropertyData = activePropertyTab === 'Resale' ? resale : rental
 
     const handleTabClick = (tab: string) => {
         if (tab === 'Resale' || tab === 'Rental') {
@@ -36,43 +56,251 @@ const AgentDetailsPage = () => {
         }
     }
 
+    // Initial data fetch and data refresh when property type changes
     useEffect(() => {
-        const fetchData = async () => {
-            if (!agentId) return
-            const filters = { cpId: 'INT001' }
-
-            // Fetch properties
-            const propertiesResponse = await fetchAllProperties(filters)
-            if (propertiesResponse.success && propertiesResponse?.data) {
-                setInventoryData(propertiesResponse.data)
-            } else {
-                console.error('Failed to fetch properties:', propertiesResponse.error)
-            }
-
-            // Fetch requirements
-            const requirementsResponse = await fetchAllRequirements(filters)
-            if (requirementsResponse.success && requirementsResponse.data) {
-                setRequirementsData(requirementsResponse.data)
-
-                console.log(requirementsData, 'hello')
-            } else {
-                console.error('Failed to fetch requirements:', requirementsResponse.error)
-            }
-
-            // Fetch enquiry
-            const enquiryResponse = await fetchAllEnquiries(filters)
-            if (enquiryResponse.success && enquiryResponse.data) {
-                setEnquiryData(enquiryResponse.data)
-            } else {
-                console.error('Failed to fetch requirements:', enquiryResponse.error)
-            }
+        if (agentId) {
+            // Fetch agent details
+            dispatch(fetchAgentInfo({ agentId }))
+            // Always fetch both Resale and Rental data
+            dispatch(fetchAgentDetails({ agentId, propertyType: 'Resale' }))
+            dispatch(fetchAgentDetails({ agentId, propertyType: 'Rental' }))
         }
+    }, [dispatch, agentId])
 
-        fetchData()
-    })
+    // Filter data based on search and property type
+    const filteredData = useMemo(() => {
+        if (!currentPropertyData) return []
+
+        const searchLower = searchValue.toLowerCase()
+        let filtered = []
+
+        switch (activeTab) {
+            case 'Inventory':
+                filtered = currentPropertyData.inventories.filter(
+                    (inv: IInventory) =>
+                        inv.propertyName?.toLowerCase().includes(searchLower) ||
+                        inv.propertyId?.toLowerCase().includes(searchLower),
+                )
+                // Apply status filter if selected
+                if (selectedStatus) {
+                    filtered = filtered.filter((inv: IInventory) => inv.status === selectedStatus)
+                }
+                // Apply property type filter if selected
+                if (selectedPropertyType) {
+                    filtered = filtered.filter((inv: IInventory) => inv.assetType === selectedPropertyType)
+                }
+                return filtered
+            case 'Requirement':
+                return currentPropertyData.requirements.filter(
+                    (req: IRequirement) =>
+                        req.propertyName?.toLowerCase().includes(searchLower) ||
+                        req.requirementId?.toLowerCase().includes(searchLower),
+                )
+            case 'Enquiry':
+                return currentPropertyData.enquiries.filter(
+                    (enq: any) =>
+                        enq.propertyName?.toLowerCase().includes(searchLower) ||
+                        enq.enquiryId?.toLowerCase().includes(searchLower),
+                )
+            default:
+                return []
+        }
+    }, [activeTab, currentPropertyData, searchValue, selectedStatus, selectedPropertyType])
+
+    // Get counts for each tab
+    const getTabCount = (type: 'Inventory' | 'Requirement' | 'Enquiry') => {
+        if (!currentPropertyData) return 0
+
+        switch (type) {
+            case 'Inventory':
+                return currentPropertyData.inventories.length
+            case 'Requirement':
+                return currentPropertyData.requirements.length
+            case 'Enquiry':
+                return currentPropertyData.enquiries.length
+            default:
+                return 0
+        }
+    }
+
+    const getStatusOptions = () => {
+        return [
+            { label: 'All Status', value: '' },
+            { label: 'Available', value: 'Available' },
+            { label: 'Sold', value: 'Sold' },
+            { label: 'Hold', value: 'Hold' },
+            { label: 'Delisted', value: 'De-Listed' },
+            { label: 'Pending QC', value: 'Pending QC' },
+        ]
+    }
+
+    const getPropertyTypeOptions = () => {
+        return [
+            { label: 'All', value: '' },
+            { label: 'Plot', value: 'Plot' },
+            { label: 'Apartment', value: 'Apartment' },
+            { label: 'Villa', value: 'Villa' },
+            { label: 'Villament', value: 'Villament' },
+            { label: 'Row House', value: 'Row House' },
+        ]
+    }
+
+    // Define columns based on active tab
+    const columns = useMemo<TableColumn[]>(() => {
+        switch (activeTab) {
+            case 'Inventory':
+                return [
+                    {
+                        key: 'propertyId',
+                        header: 'Property ID',
+                        render: (value) => (
+                            <span
+                                onClick={() => navigate(`/acn/properties/${value}/details`)}
+                                className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
+                            >
+                                {value}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'propertyName',
+                        header: 'Property Name',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'assetType',
+                        header: 'Asset Type',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'totalAskPrice',
+                        header: 'Price',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {formatCost(value)}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'status',
+                        header: 'Status',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'dateOfInventoryAdded',
+                        header: 'Added On',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {formatUnixDate(value)}
+                            </span>
+                        ),
+                    },
+                ]
+            case 'Requirement':
+                return [
+                    {
+                        key: 'requirementId',
+                        header: 'Requirement ID',
+                        render: (value) => (
+                            <span
+                                onClick={() => navigate(`/acn/requirements/${value}/details`)}
+                                className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
+                            >
+                                {value}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'propertyName',
+                        header: 'Property Name',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'assetType',
+                        header: 'Asset Type',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'budget',
+                        header: 'Budget',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {formatCost(value.from)} - {formatCost(value.to)}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'requirementStatus',
+                        header: 'Status',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'added',
+                        header: 'Added On',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {formatUnixDate(value)}
+                            </span>
+                        ),
+                    },
+                ]
+            case 'Enquiry':
+                return [
+                    {
+                        key: 'enquiryId',
+                        header: 'Enquiry ID',
+                        render: (value) => (
+                            <span
+                                onClick={() => navigate(`/acn/enquiries/${value}/details`)}
+                                className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
+                            >
+                                {value}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'propertyName',
+                        header: 'Property Name',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'status',
+                        header: 'Status',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'createdAt',
+                        header: 'Created On',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {formatUnixDate(value)}
+                            </span>
+                        ),
+                    },
+                ]
+            default:
+                return []
+        }
+    }, [activeTab, navigate])
 
     return (
-        <Layout loading={false}>
+        <Layout loading={loading || agentDetailsLoading}>
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 px-6 bg-white min-h-screen'>
                     {/* Header */}
@@ -99,7 +327,9 @@ const AgentDetailsPage = () => {
                                         }
                                         placeholder='Search'
                                         value={searchValue}
-                                        onChange={(e) => setSearchValue(e.target.value)}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                            setSearchValue(e.target.value)
+                                        }
                                         className='h-8'
                                     />
                                 </div>
@@ -116,63 +346,110 @@ const AgentDetailsPage = () => {
                         </div>
                     </div>
 
+                    {/* Error message */}
+                    {error && <div className='mb-4 p-4 bg-red-50 text-red-700 rounded-md'>{error}</div>}
+
                     {/* tabs */}
-                    <div className='flex items-center space-x-4'>
-                        <div className='flex space-x-4'>
-                            <div
-                                onClick={() => handleTabClick('Inventory')}
-                                className={`cursor-pointer ${activeTab === 'Inventory' ? 'border-b-2 border-black' : ''}`}
-                            >
-                                Inventory ({inventoryData.length})
+                    <div className='flex items-center justify-between'>
+                        <div className='flex flex-col gap-[10px]'>
+                            <div className='flex items-center space-x-4'>
+                                <div className='flex space-x-4'>
+                                    <div
+                                        onClick={() => handleTabClick('Inventory')}
+                                        className={`cursor-pointer ${activeTab === 'Inventory' ? 'border-b-2 border-black' : ''}`}
+                                    >
+                                        Inventory ({getTabCount('Inventory')})
+                                    </div>
+                                    <div
+                                        onClick={() => handleTabClick('Requirement')}
+                                        className={`cursor-pointer ${activeTab === 'Requirement' ? 'border-b-2 border-black' : ''}`}
+                                    >
+                                        Requirement ({getTabCount('Requirement')})
+                                    </div>
+                                    <div
+                                        onClick={() => handleTabClick('Enquiry')}
+                                        className={`cursor-pointer ${activeTab === 'Enquiry' ? 'border-b-2 border-black' : ''}`}
+                                    >
+                                        Enquiry ({getTabCount('Enquiry')})
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className='flex items-center bg-gray-100 rounded-md p-1 h-8 w-fit'>
+                                        <button
+                                            onClick={() => handleTabClick('Resale')}
+                                            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                                                activePropertyTab === 'Resale'
+                                                    ? 'bg-white text-black shadow-sm'
+                                                    : 'text-gray-600 hover:text-black'
+                                            }`}
+                                        >
+                                            Resale
+                                        </button>
+                                        <button
+                                            onClick={() => handleTabClick('Rental')}
+                                            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                                                activePropertyTab === 'Rental'
+                                                    ? 'bg-white text-black shadow-sm'
+                                                    : 'text-gray-600 hover:text-black'
+                                            }`}
+                                        >
+                                            Rental
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div
-                                onClick={() => handleTabClick('Requirement')}
-                                className={`cursor-pointer ${activeTab === 'Requirement' ? 'border-b-2 border-black' : ''}`}
-                            >
-                                Requirement ({requirementsData.length})
-                            </div>
-                            <div
-                                onClick={() => handleTabClick('Enquiry')}
-                                className={`cursor-pointer ${activeTab === 'Enquiry' ? 'border-b-2 border-black' : ''}`}
-                            >
-                                Enquiry ({enquiryData.length})
+                            <div className='flex items-center gap-[10px]'>
+                                <Dropdown
+                                    className='h-8 font-semibold'
+                                    options={getStatusOptions()}
+                                    onSelect={(value) => setSelectedStatus(value)}
+                                    defaultValue={selectedStatus}
+                                    placeholder='Inventory Status'
+                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                />
+                                <Dropdown
+                                    className='h-8 font-semibold'
+                                    options={getPropertyTypeOptions()}
+                                    onSelect={(value) => setSelectedPropertyType(value)}
+                                    defaultValue={selectedPropertyType}
+                                    placeholder='Property Type'
+                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                />
                             </div>
                         </div>
-                        <div>
-                            <div className='flex items-center bg-gray-100 rounded-md p-1 h-8 w-fit'>
-                                <button
-                                    onClick={() => setActivePropertyTab('Resale')}
-                                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                                        activePropertyTab === 'Resale'
-                                            ? 'bg-white text-black shadow-sm'
-                                            : 'text-gray-600 hover:text-black'
-                                    }`}
-                                >
-                                    Resale
-                                </button>
-                                <button
-                                    onClick={() => setActivePropertyTab('Rental')}
-                                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                                        activePropertyTab === 'Rental'
-                                            ? 'bg-white text-black shadow-sm'
-                                            : 'text-gray-600 hover:text-black'
-                                    }`}
-                                >
-                                    Rental
-                                </button>
-                            </div>
+                        <div className='flex items-center space-x-4 border border-gray-300 rounded-md p-2'>
+                            <span>Agent Details</span>
+                            <span>{agentDetails?.name}</span>
+                            <span>{agentDetails?.cpId}</span>
+                            <span>{agentDetails?.phoneNumber}</span>
+                            <span>{agentDetails?.planId}</span>
+                            <span>{agentDetails?.monthlyCredits}</span>
                         </div>
                     </div>
 
-                    {activeTab === 'Inventory' && (
-                        <AgentInventoryTable inventoryData={inventoryData} agentId={agentId} />
-                    )}
-
-                    {activeTab === 'Requirement' && (
-                        <AgentRequirementTable requirementsData={requirementsData} agentId={agentId} />
-                    )}
-
-                    {activeTab === 'Enquiry' && <AgentEnquiryTable enquiryData={enquiryData} agentId={agentId} />}
+                    {/* Table */}
+                    <div className='mt-4'>
+                        <FlexibleTable
+                            columns={columns}
+                            data={filteredData}
+                            emptyMessage={`No ${activeTab.toLowerCase()} found`}
+                            hoverable={true}
+                            borders={{
+                                table: false,
+                                header: true,
+                                rows: true,
+                                cells: false,
+                                outer: false,
+                            }}
+                            maxHeight='65vh'
+                            className='rounded-lg'
+                            stickyHeader={true}
+                        />
+                    </div>
                 </div>
             </div>
         </Layout>

@@ -42,7 +42,7 @@ export interface HighlightResult {
 
 export interface IQCInventory {
     propertyId: string
-    nameOfTheProperty: string
+    propertyName: string
     unitNo: string
     path: string
     _geoloc: GeoLocation

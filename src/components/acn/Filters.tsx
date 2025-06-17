@@ -1,9 +1,15 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MdLocationOn } from 'react-icons/md'
+import algoliaService, {
+    type SearchFilters,
+    type FacetValue,
+} from '../../services/acn/properties/algoliaPropertiesService'
+
 // ---------- Types ----------
 type SelectorProps = {
-    selected: string
+    selected: string[]
     onChange: (value: string) => void
+    facets: FacetValue[]
 }
 
 type TabSelectorProps = {
@@ -38,16 +44,18 @@ type DropdownProps = {
 
 const assetTypes = ['Apartment', 'Duplex', 'Triplex', 'Penthouse', 'Villament', 'Plot', 'Villa', 'Row House']
 
-function AssetTypeSelector({ selected, onChange }: SelectorProps) {
+function AssetTypeSelector({ selected, onChange, facets }: SelectorProps) {
     return (
         <div className='flex flex-wrap gap-2 mb-4'>
-            {assetTypes.map((type) => (
+            {facets.map((facet) => (
                 <button
-                    key={type}
-                    onClick={() => onChange(type)}
-                    className={`px-3 py-1 rounded border border-[#E3E3E3] ${selected === type ? 'bg-[#24252E] text-white' : 'bg-white text-black'}`}
+                    key={facet.value}
+                    onClick={() => onChange(facet.value)}
+                    className={`px-3 py-1 rounded border border-[#E3E3E3] ${
+                        selected.includes(facet.value) ? 'bg-[#24252E] text-white' : 'bg-white text-black'
+                    }`}
                 >
-                    {type}
+                    {facet.value} ({facet.count})
                 </button>
             ))}
         </div>
@@ -159,10 +167,15 @@ function SelectDropdown({ label, options, selected, onChange }: DropdownProps) {
 interface AddFilterModalProps {
     isOpen: boolean
     onClose: () => void
+    onApplyFilters?: (filters: SearchFilters) => void
 }
 
-export const AddFilterModal: React.FC<AddFilterModalProps> = ({ isOpen, onClose }) => {
-    const [assetType, setAssetType] = useState('')
+export const AddFilterModal: React.FC<AddFilterModalProps> = ({ isOpen, onClose, onApplyFilters }) => {
+    // Algolia state
+    const [facets, setFacets] = useState<Record<string, FacetValue[]>>({})
+
+    // Filter state
+    const [assetTypes, setAssetTypes] = useState<string[]>([])
     const [selectedTab, setSelectedTab] = useState('Landmark')
     const [landmark, setLandmark] = useState('')
     const [bedroom, setBedroom] = useState<number | null>(null)
@@ -170,24 +183,31 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({ isOpen, onClose 
     const [balcony, setBalcony] = useState<number | null>(null)
     const [price, setPrice] = useState<[number, number]>([100, 2000])
     const [sbua, setSbua] = useState<[number, number]>([100, 2000])
-    const [facing, setFacing] = useState('')
-    const [floor, setFloor] = useState('')
+    const [facing, setFacing] = useState<string[]>([])
+    const [floor, setFloor] = useState<string[]>([])
     const [carpet, setCarpet] = useState<[number, number]>([100, 2000])
-    const [availability, setAvailability] = useState('')
+    const [availability, setAvailability] = useState<string[]>([])
     const [pricePerSqft, setPricePerSqft] = useState<[number, number]>([100, 2000])
     const [area, setArea] = useState('')
 
-    const areas = [
-        'Centre Bangalore',
-        'North Bangalore',
-        'South Bangalore',
-        'East Bangalore',
-        'West Bangalore',
-        'PAN Bangalore',
-    ]
+    // Load facets on component mount
+    useEffect(() => {
+        const loadFacets = async () => {
+            try {
+                const facetData = await algoliaService.getAllFacets()
+                setFacets(facetData)
+            } catch (error) {
+                console.error('Failed to load facets:', error)
+            }
+        }
+
+        if (isOpen) {
+            loadFacets()
+        }
+    }, [isOpen])
 
     const handleReset = () => {
-        setAssetType('')
+        setAssetTypes([])
         setSelectedTab('Landmark')
         setLandmark('')
         setBedroom(null)
@@ -195,13 +215,27 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({ isOpen, onClose 
         setBalcony(null)
         setPrice([100, 2000])
         setSbua([100, 2000])
-        setFacing('')
-        setFloor('')
+        setFacing([])
+        setFloor([])
         setCarpet([100, 2000])
-        setAvailability('')
+        setAvailability([])
         setPricePerSqft([100, 2000])
         setArea('')
-        onClose() // close modal
+    }
+
+    const handleApply = () => {
+        const filters: SearchFilters = {
+            assetType: assetTypes,
+            priceRange: {
+                min: price[0],
+                max: price[1],
+            },
+        }
+
+        if (onApplyFilters) {
+            onApplyFilters(filters)
+        }
+        onClose()
     }
 
     if (!isOpen) return null
@@ -214,18 +248,34 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({ isOpen, onClose 
             <div className='w-[40%] h-full overflow-y-auto bg-white p-4 shadow-lg animate-slide-in'>
                 <div className='flex justify-between items-center mb-4'>
                     <h2 className='text-xl font-normal'>Filters</h2>
-                    <button
-                        onClick={handleReset}
-                        className='text-sm text-[#24252E] border border-[#24252E] px-3 py-1 rounded hover:bg-[#24252E] hover:text-white transition'
-                    >
-                        Reset
-                    </button>
+                    <div className='flex gap-2'>
+                        <button
+                            onClick={handleReset}
+                            className='text-sm text-[#24252E] border border-[#24252E] px-3 py-1 rounded hover:bg-[#24252E] hover:text-white transition'
+                        >
+                            Reset
+                        </button>
+                        <button
+                            onClick={handleApply}
+                            className='text-sm bg-[#24252E] text-white px-3 py-1 rounded hover:opacity-90 transition'
+                        >
+                            Apply
+                        </button>
+                    </div>
                 </div>
                 <div className='w-full h-px bg-gray-400 my-5' />
                 <div className='mb-1 font-normal'>Asset Type</div>
                 <div style={{ marginTop: '20px', marginBottom: '20px' }}></div>
 
-                <AssetTypeSelector selected={assetType} onChange={setAssetType} />
+                <AssetTypeSelector
+                    selected={assetTypes}
+                    onChange={(value) => {
+                        setAssetTypes((prev) =>
+                            prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+                        )
+                    }}
+                    facets={facets.assetType || []}
+                />
                 <LocationSelector
                     selectedTab={selectedTab}
                     onTabChange={setSelectedTab}
@@ -249,31 +299,75 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({ isOpen, onClose 
                 <RangeSelector label='SBUA (sqft)' min={sbua[0]} max={sbua[1]} onChange={setSbua} />
                 <div style={{ marginTop: '20px', marginBottom: '20px' }}></div>
 
-                <div className='flex gap-4'>
-                    <SelectDropdown
-                        label='Facing'
-                        options={['North', 'South', 'East', 'West']}
-                        selected={facing}
-                        onChange={setFacing}
-                    />
-                    <SelectDropdown
-                        label='Floor'
-                        options={['Ground', '1', '2', '3+']}
-                        selected={floor}
-                        onChange={setFloor}
-                    />
+                <div className='my-2'>
+                    <div className='mb-1 font-normal'>Facing</div>
+                    <div className='flex flex-wrap gap-2'>
+                        {['North', 'South', 'East', 'West'].map((direction) => (
+                            <button
+                                key={direction}
+                                onClick={() => {
+                                    setFacing((prev) =>
+                                        prev.includes(direction)
+                                            ? prev.filter((v) => v !== direction)
+                                            : [...prev, direction],
+                                    )
+                                }}
+                                className={`px-3 py-1 rounded border ${
+                                    facing.includes(direction) ? 'bg-[#24252E] text-white' : 'bg-white text-black'
+                                }`}
+                            >
+                                {direction}
+                            </button>
+                        ))}
+                    </div>
                 </div>
+
+                <div style={{ marginTop: '20px', marginBottom: '20px' }}></div>
+
+                <div className='my-2'>
+                    <div className='mb-1 font-normal'>Floor</div>
+                    <div className='flex flex-wrap gap-2'>
+                        {['Ground', '1', '2', '3+'].map((floorOption) => (
+                            <button
+                                key={floorOption}
+                                onClick={() => {
+                                    setFloor((prev) =>
+                                        prev.includes(floorOption)
+                                            ? prev.filter((v) => v !== floorOption)
+                                            : [...prev, floorOption],
+                                    )
+                                }}
+                                className={`px-3 py-1 rounded border ${
+                                    floor.includes(floorOption) ? 'bg-[#24252E] text-white' : 'bg-white text-black'
+                                }`}
+                            >
+                                {floorOption}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ marginTop: '20px', marginBottom: '20px' }}></div>
 
                 <div className='my-2'>
                     <div className='mb-1 font-normal'>Area</div>
                     <div className='flex flex-wrap gap-2'>
-                        {areas.map((ar) => (
+                        {[
+                            'Centre Bangalore',
+                            'North Bangalore',
+                            'South Bangalore',
+                            'East Bangalore',
+                            'West Bangalore',
+                            'PAN Bangalore',
+                        ].map((areaOption) => (
                             <button
-                                key={ar}
-                                onClick={() => setArea(ar)}
-                                className={`px-3 py-1 rounded border ${area === ar ? 'bg-[#24252E] text-white' : 'bg-white text-black'}`}
+                                key={areaOption}
+                                onClick={() => setArea(area === areaOption ? '' : areaOption)}
+                                className={`px-3 py-1 rounded border ${
+                                    area === areaOption ? 'bg-[#24252E] text-white' : 'bg-white text-black'
+                                }`}
                             >
-                                {ar}
+                                {areaOption}
                             </button>
                         ))}
                     </div>
@@ -283,12 +377,18 @@ export const AddFilterModal: React.FC<AddFilterModalProps> = ({ isOpen, onClose 
                 <div style={{ marginTop: '20px', marginBottom: '20px' }}></div>
                 <div className='my-2'>
                     <div className='mb-1 font-normal'>Availability</div>
-                    <div className='flex gap-2'>
+                    <div className='flex flex-wrap gap-2'>
                         {['Low', 'Ready-to-move', 'Not Ready-to-move'].map((status) => (
                             <button
                                 key={status}
-                                onClick={() => setAvailability(status)}
-                                className={`px-3 py-1 rounded border ${availability === status ? 'bg-[#24252E] text-white' : 'bg-white text-black'}`}
+                                onClick={() => {
+                                    setAvailability((prev) =>
+                                        prev.includes(status) ? prev.filter((v) => v !== status) : [...prev, status],
+                                    )
+                                }}
+                                className={`px-3 py-1 rounded border ${
+                                    availability.includes(status) ? 'bg-[#24252E] text-white' : 'bg-white text-black'
+                                }`}
                             >
                                 {status}
                             </button>

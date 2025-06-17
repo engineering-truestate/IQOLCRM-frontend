@@ -45,7 +45,7 @@ export const fetchQCInventoryById = createAsyncThunk<IQCInventory, string, { rej
         try {
             console.log('🔍 Fetching QC inventory with ID:', qcId)
 
-            const docRef = doc(db, 'acn-qc-inventories', qcId)
+            const docRef = doc(db, 'acnQCInventories', qcId)
             const docSnap = await getDoc(docRef)
 
             if (docSnap.exists()) {
@@ -255,7 +255,7 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
             }
 
             // Update QC inventory
-            const qcDocRef = doc(db, 'acn-qc-inventories', property.propertyId)
+            const qcDocRef = doc(db, 'acnQCInventories', property.propertyId)
             await updateDoc(qcDocRef, dataToSave)
 
             // Send notification

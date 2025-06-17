@@ -16,6 +16,9 @@ import { toast } from 'react-toastify'
 import shareIcon from '/icons/acn/share.svg'
 import editIcon from '/icons/acn/write.svg'
 import priceDropIcon from '/icons/acn/share.svg'
+import { formatCost } from '../../../components/helper/formatCost'
+import { camelCaseToCapitalizedWords } from '../../../components/helper/wordFormatter'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 
 interface Note {
     id: string
@@ -26,8 +29,8 @@ interface Note {
 
 const QCPropertyDetailsPage = () => {
     const navigate = useNavigate()
-    const { id } = useParams<{ id: string }>()
     const dispatch = useDispatch<AppDispatch>()
+    const { id } = useParams()
 
     // Redux state
     const {
@@ -411,12 +414,14 @@ const QCPropertyDetailsPage = () => {
                                               : 'bg-green-100 text-green-800 border-green-200'
                                     }`}
                                 >
-                                    {agentData.role}
+                                    {camelCaseToCapitalizedWords(agentData.role)}
                                 </span>
                             </div>
                             <div className='flex items-center gap-2'>
                                 <span className='text-gray-600'>Active Tab:</span>
-                                <span className='text-sm font-medium text-gray-900 capitalize'>{getActiveTab()}</span>
+                                <span className='text-sm font-medium text-gray-900 capitalize'>
+                                    {camelCaseToCapitalizedWords(getActiveTab())}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -445,7 +450,7 @@ const QCPropertyDetailsPage = () => {
                                 <div className='flex items-start justify-between mb-4'>
                                     <div>
                                         <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
-                                            {safeDisplay(qcProperty.nameOfTheProperty)}
+                                            {safeDisplay(qcProperty.propertyName)}
                                         </h1>
                                         <div className='flex items-center gap-6 text-sm text-gray-600'>
                                             <div className='flex items-center gap-1'>
@@ -512,7 +517,7 @@ const QCPropertyDetailsPage = () => {
                                     </div>
                                     <div className='text-right'>
                                         <div className='text-2xl font-bold text-gray-900 mb-2'>
-                                            {formatCurrency(qcProperty.totalAskPrice || 0)}
+                                            {formatCost(qcProperty.totalAskPrice || 0)}
                                         </div>
                                         <div className='flex items-center gap-3'>
                                             <div className='w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
@@ -626,14 +631,16 @@ const QCPropertyDetailsPage = () => {
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Stage</span>
-                                        <span className='font-medium capitalize'>{safeDisplay(qcProperty.stage)}</span>
+                                        <span className='font-medium capitalize'>
+                                            {camelCaseToCapitalizedWords(qcProperty.stage)}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>KAM Status</span>
                                         <span
                                             className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.qcReview?.kamReview?.status || 'pending')}`}
                                         >
-                                            {qcProperty.qcReview?.kamReview?.status || 'pending'}
+                                            {toCapitalizedWords(qcProperty.qcReview?.kamReview?.status || 'pending')}
                                         </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
@@ -641,7 +648,7 @@ const QCPropertyDetailsPage = () => {
                                         <span
                                             className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.qcReview?.dataReview?.status || 'pending')}`}
                                         >
-                                            {qcProperty.qcReview?.dataReview?.status || 'pending'}
+                                            {toCapitalizedWords(qcProperty.qcReview?.dataReview?.status || 'pending')}
                                         </span>
                                     </div>
                                 </div>
