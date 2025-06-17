@@ -64,7 +64,7 @@ const PreLaunchDetailsPage = () => {
     useEffect(() => {
         if (pId) {
             // First try to find in existing properties
-            const existingProperty = properties.find((prop) => prop.projectId === pId)
+            const existingProperty = properties.find((prop: any) => prop.projectId === pId)
             if (existingProperty) {
                 setProjectDetails(existingProperty)
                 setOriginalDetails(existingProperty)
