@@ -10,6 +10,7 @@ const Dropdown = ({
     optionClassName = '',
     nestedOptionClassName = '',
     placeholder = 'Select...',
+    disabled = false,
 }) => {
     // State Management
     const [isOpen, setIsOpen] = useState(false)
@@ -63,6 +64,7 @@ const Dropdown = ({
 
     const handleToggle = (e) => {
         e.stopPropagation()
+        if (disabled) return
         setIsOpen(!isOpen)
         setNestedOpen(null)
     }

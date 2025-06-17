@@ -88,6 +88,10 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(LeadDetails, null)),
     },
     {
+        path: '/canvas-homes/sales/leaddetails/:leadId',
+        element: React.createElement(React.Suspense, null, React.createElement(LeadDetails, null)),
+    },
+    {
         path: '/acn/leads',
         element: React.createElement(
             ProtectedRoute,
