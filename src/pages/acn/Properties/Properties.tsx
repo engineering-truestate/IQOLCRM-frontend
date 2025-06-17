@@ -22,6 +22,7 @@ import algoliaService, {
     type AlgoliaSearchResponse,
     type FacetValue,
 } from '../../../services/acn/properties/algoliaPropertiesService'
+import { formatCost } from '../../../components/helper/formatCost'
 
 type PropertyType = 'Resale' | 'Rental'
 type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'Delisted' | 'Pending QC' | 'Rented'
@@ -83,7 +84,7 @@ const PropertiesPage = () => {
     const [selectedProperty, setSelectedProperty] = useState<IInventory | null>(null)
 
     // Constants
-    const ITEMS_PER_PAGE = 50
+    const ITEMS_PER_PAGE = 20
 
     // Initialize facets on component mount
     useEffect(() => {
@@ -127,6 +128,7 @@ const PropertiesPage = () => {
                     hitsPerPage: ITEMS_PER_PAGE,
                     sortBy: sort || undefined,
                 })
+                console.log('😂😂😂', response, 'kudi')
 
                 setSearchResults(response)
 
@@ -807,7 +809,7 @@ const PropertiesPage = () => {
             header: activeTab === 'Resale' ? 'Sale Price' : 'Monthly Rent',
             render: (value) => (
                 <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                    {value ? formatCurrency(value) : 'N/A'}
+                    {value ? formatCost(value) : 'N/A'}
                 </span>
             ),
         })

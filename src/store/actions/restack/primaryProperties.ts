@@ -1,51 +1,25 @@
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import type { RERAProject } from '../../../pages/dummy_data/restack_primary_dummy_data'
-import {
-    FETCH_PRIMARY_PROPERTIES_REQUEST,
-    FETCH_PRIMARY_PROPERTIES_SUCCESS,
-    FETCH_PRIMARY_PROPERTIES_FAILURE,
-    SET_PRIMARY_PROPERTIES_FILTER,
-    SET_PRIMARY_PROPERTIES_PAGE,
-} from '../../actionTypes/primaryProperties'
-import type { Dispatch } from 'redux'
+import type { PrimaryProperty } from '../../../data_types/restack/restack-primary'
+import { SET_PRIMARY_PROPERTIES_FILTER, SET_PRIMARY_PROPERTIES_PAGE } from '../../actionTypes/primaryProperties'
+import { createAsyncThunk } from '@reduxjs/toolkit'
 
-export const fetchPrimaryProperties = () => {
-    return async (dispatch: Dispatch) => {
-        dispatch({ type: FETCH_PRIMARY_PROPERTIES_REQUEST })
+export const fetchPrimaryProperties = createAsyncThunk<PrimaryProperty[], void, { rejectValue: string }>(
+    'primary/fetchPrimaryProperties',
+    async (_, { rejectWithValue }) => {
         try {
-            // Verify Firebase is initialized
-            if (!db) {
-                throw new Error('Firebase is not initialized')
-            }
-
-            // Log the collection name for debugging
-            console.log('Fetching from collection: restack_primary_properties')
-
             const querySnapshot = await getDocs(collection(db, 'restack_primary_properties'))
-
-            if (querySnapshot.empty) {
-                console.log('No documents found in collection')
-                dispatch({ type: FETCH_PRIMARY_PROPERTIES_SUCCESS, payload: [] })
-                return
-            }
-
             const properties = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
+                projectId: doc.id,
                 ...doc.data(),
-            })) as RERAProject[]
+            })) as PrimaryProperty[]
 
-            console.log(`Successfully fetched ${properties.length} properties`)
-            dispatch({ type: FETCH_PRIMARY_PROPERTIES_SUCCESS, payload: properties })
+            return properties
         } catch (error) {
-            console.error('Error fetching properties:', error)
-            dispatch({
-                type: FETCH_PRIMARY_PROPERTIES_FAILURE,
-                payload: error instanceof Error ? error.message : 'An error occurred while fetching properties',
-            })
+            return rejectWithValue('Failed to fetch properties')
         }
-    }
-}
+    },
+)
 
 export const setPrimaryPropertiesFilter = (filter: string) => ({
     type: SET_PRIMARY_PROPERTIES_FILTER,
@@ -56,3 +30,29 @@ export const setPrimaryPropertiesPage = (page: number) => ({
     type: SET_PRIMARY_PROPERTIES_PAGE,
     payload: page,
 })
+
+export const fetchPrimaryPropertyById = createAsyncThunk<PrimaryProperty, string, { rejectValue: string }>(
+    'primary/fetchPrimaryPropertyById',
+    async (id: string, { rejectWithValue }) => {
+        try {
+            const docRef = doc(db, 'restack_primary_properties', id)
+            const docSnap = await getDoc(docRef)
+
+            if (!docSnap.exists()) {
+                return rejectWithValue('Document does not exist')
+            }
+
+            const data = docSnap.data()
+            if (!data) {
+                return rejectWithValue('No data found')
+            }
+
+            return {
+                projectId: docSnap.id,
+                ...data,
+            } as PrimaryProperty
+        } catch (error) {
+            return rejectWithValue('Failed to fetch property')
+        }
+    },
+)
