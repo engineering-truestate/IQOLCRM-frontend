@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, getDoc, addDoc, updateDoc, query, orderBy } from 'firebase/firestore'
+import { collection, doc, getDocs, getDoc, setDoc, updateDoc, limit, query, orderBy } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { User } from './types'
 
@@ -34,13 +34,25 @@ class UserService {
 
     async create(userData: Omit<User, 'userId' | 'added' | 'lastModified'>): Promise<string> {
         try {
+            const q = query(collection(db, this.collectionName), orderBy('userId', 'desc'), limit(1))
+            const snapshot = await getDocs(q)
+            let nextUserId = 'user001'
+            if (!snapshot.empty) {
+                // Retrieve the last lead's ID and parse the number from it
+                const lastUserId = snapshot.docs[0].data().userId
+                const lastNumber = parseInt(lastUserId.replace('user', '')) // Remove 'lead' and convert to integer
+                const newNumber = lastNumber + 1 // Increment the last number
+                nextUserId = `user${newNumber.toString().padStart(3, '0')}` // Generate the next leadId with padding
+            }
             const newUser = {
                 ...userData,
+                userId: nextUserId,
                 added: Date.now(),
                 lastModified: Date.now(),
             }
-            const docRef = await addDoc(collection(db, this.collectionName), newUser)
-            return docRef.id
+            await setDoc(doc(db, this.collectionName, nextUserId), newUser)
+
+            return nextUserId // Return the generated leadId
         } catch (error) {
             console.error('Error creating user:', error)
             throw error

@@ -8,9 +8,11 @@ import Requirements from './tabs/Requirements'
 import Tasks from './tabs/Tasks'
 import CreateTaskModal from '../../../components/canvas_homes/CreateTaskModal'
 import AddDetailsModal from '../../../components/canvas_homes/AddDetailsModal'
+import AddEnquiryModal from '../../../components/canvas_homes/AddEnquiryModal'
 import type { AgentHistoryItem } from '../../../services/canvas_homes/types'
 import google from '/icons/canvas_homes/google.svg'
 import CloseLeadSideModal from '../../../components/canvas_homes/CloseLeadSideModal'
+import ChangeAgentModal from '../../../components/canvas_homes/ChangeAgentModal'
 
 // Update the interface to make leadId optional since we'll get it from URL
 interface LeadDetailProps {
@@ -32,7 +34,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         urlParams: useParams(),
     })
 
-    // ✅ FIXED: Call hooks at the top level, before any conditional returns
     const {
         leadData,
         enquiries,
@@ -56,6 +57,9 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false)
     const [isAddDetailsModalOpen, setIsAddDetailsModalOpen] = useState(false)
     const [isCloseLeadSideModalOpen, setIsCloseLeadSideModalOpen] = useState(false)
+    const [isAddEnquiryModalOpen, setIsAddEnquiryModalOpen] = useState(false)
+    const [isChangeAgentModalOpen, setIsChangeAgentModalOpen] = useState(false)
+    console.log('Hare Krishna', selectedEnquiryId)
 
     // Early return AFTER hooks are called
     if (!actualLeadId) {
@@ -82,6 +86,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     const handleCreateTaskClick = () => {
         setIsCreateTaskModalOpen(true)
     }
+    const handleChangeAgentModal = () => {
+        setIsChangeAgentModalOpen(true)
+    }
+    const AddEnquiryClick = () => {
+        setIsCreateTaskModalOpen(true)
+    }
 
     const handleCloseCreateTaskModal = () => {
         setIsCreateTaskModalOpen(false)
@@ -92,14 +102,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     const handleAddDetailsClick = () => {
         setIsAddDetailsModalOpen(true)
     }
-    const handleCloseLeadClick = () => {
-        setIsCloseLeadSideModalOpen(true)
-    }
-
-    const handleCloseAddDetailsModal = () => {
-        setIsAddDetailsModalOpen(false)
-    }
-
     const handleDetailsAdded = () => {
         console.log('Details added - refreshing lead data...')
         refreshData()
@@ -475,7 +477,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                 <div className='flex-shrink-0'>
                                     <div className='flex items-center justify-between mb-3'>
                                         <h3 className='font-medium text-sm text-gray-900'>Enquiry Details</h3>
-                                        <button className='bg-gray-200 h-8 w-26 text-gray-700 p-2 rounded text-xs font-medium hover:bg-gray-300 transition-colors'>
+                                        <button
+                                            className='bg-gray-200 h-8 w-26 text-gray-700 p-2 rounded text-xs font-medium hover:bg-gray-300 transition-colors'
+                                            onClick={() => {
+                                                setIsAddEnquiryModalOpen(true)
+                                            }}
+                                        >
                                             Add Enquiry
                                         </button>
                                     </div>
@@ -556,7 +563,9 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                             ) : (
                                                                 <div className='w-4 h-4 bg-gray-500 rounded-full flex items-center justify-center'>
                                                                     <span className='text-white text-xs font-bold'>
-                                                                        {currentEnquiry.source.charAt(0).toUpperCase()}
+                                                                        {currentEnquiry?.source
+                                                                            ?.charAt(0)
+                                                                            .toUpperCase()}
                                                                     </span>
                                                                 </div>
                                                             )}
@@ -609,7 +618,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                 <div className='flex-1 flex flex-col min-h-0'>
                                     <div className='flex items-center justify-between mb-3'>
                                         <h3 className='font-medium text-sm text-gray-900'>Agent Details</h3>
-                                        <button className='bg-gray-200 h-8 w-26 text-gray-700 p-2 rounded text-xs font-medium hover:bg-gray-300 transition-colors'>
+                                        <button
+                                            className='bg-gray-200 h-8 w-26 text-gray-700 p-2 rounded text-xs font-medium hover:bg-gray-300 transition-colors'
+                                            onClick={() => {
+                                                setIsChangeAgentModalOpen(true)
+                                            }}
+                                        >
                                             Change Agent
                                         </button>
                                     </div>
@@ -674,6 +688,19 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 currentPhoneNumber={leadData?.phoneNumber}
                 currentLabel={leadData?.label}
                 additionalPhoneNumbers={leadData?.phoneNumbers || []}
+            />
+            <ChangeAgentModal
+                isOpen={isChangeAgentModalOpen}
+                onClose={() => setIsChangeAgentModalOpen(false)}
+                onDetailsAdded={handleDetailsAdded}
+                leadId={actualLeadId}
+                enquiryId={selectedEnquiryId}
+            />
+            <AddEnquiryModal
+                isOpen={isAddEnquiryModalOpen}
+                onClose={() => setIsAddEnquiryModalOpen(false)}
+                onDetailsAdded={refreshData}
+                leadId={actualLeadId}
             />
             <CloseLeadSideModal
                 isOpen={isCloseLeadSideModalOpen}

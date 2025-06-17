@@ -6,6 +6,7 @@ import {
     setDoc,
     updateDoc,
     query,
+    limit,
     where,
     orderBy,
     onSnapshot,

@@ -11,6 +11,7 @@ import hot from '/icons/canvas_homes/hoticon.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
 import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
+import { useNavigate } from 'react-router-dom'
 
 // Status card component
 const StatusCard = ({
@@ -54,6 +55,7 @@ const Leads = () => {
     const [selectedTask, setSelectedTask] = useState('')
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
+    const navigate = useNavigate()
 
     // Algolia state
     const [allLeadsData, setAllLeadsData] = useState<any[]>([])
@@ -237,7 +239,7 @@ const Leads = () => {
             key: 'name',
             header: 'Name',
             render: (value, row) => (
-                <div className='whitespace-nowrap'>
+                <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
                     <div className='text-sm font-medium text-gray-900'>{value || row.name}</div>
                     <div className='text-xs text-gray-500 font-normal'>
                         {row.addedDate || `Added ${new Date(row.added).toLocaleDateString()}`}
@@ -297,11 +299,21 @@ const Leads = () => {
         {
             key: 'aslc',
             header: 'ASLC',
-            render: (value) => (
-                <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                    {value || 0}
-                </span>
-            ),
+            render: (value, row) => {
+                const today = new Date().getTime()
+
+                // Get the correct date based on lead state
+                const dateToUse = row.leadState === 'fresh' ? row.added : row.scheduledDate
+
+                // Calculate the difference in days
+                const daysDifference = Math.floor((today - dateToUse) / (1000 * 60 * 60 * 24))
+
+                return (
+                    <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
+                        {daysDifference || 0} days
+                    </span>
+                )
+            },
         },
         {
             key: 'taskType',

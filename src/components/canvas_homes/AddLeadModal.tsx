@@ -1,31 +1,14 @@
 import React, { useState } from 'react'
 import Dropdown from '../../components/design-elements/Dropdown'
-import { leadService } from '../../services/canvas_homes/leadService' // Adjust path as needed
+import { leadService } from '../../services/canvas_homes/leadService'
+import { userService } from '../../services/canvas_homes/userService'
+import { enquiryService } from '../../services/canvas_homes/enquiryService'
+import type { Lead, User, Enquiry } from '../../services/canvas_homes/types'
 
 interface AddLeadModalProps {
     isOpen: boolean
     onClose: () => void
     onLeadAdded?: () => void // Callback to refresh the leads list
-}
-
-// Lead interface for type safety
-interface Lead {
-    leadId: string
-    agentId: string
-    agentName: string
-    name: string
-    phoneNumber: string
-    propertyName: string
-    tag: 'cold' | 'potential' | 'hot' | 'super hot'
-    userId: string | null
-    source: string
-    stage: 'lead registered' | 'initial contacted' | 'site visited' | 'eoi collected' | 'booking confirmed' | null
-    taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking' | null
-    scheduledDate: number | null
-    leadStatus: 'interested' | 'not interested' | 'booking dropped'
-    leadState: 'open' | 'closed' | 'fresh' | 'dropped'
-    added: number
-    lastModified: number
 }
 
 const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdded }) => {
@@ -41,7 +24,6 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Sample data for dropdowns with label-value format
     const propertyOptions = [
         { label: 'Select property name', value: '' },
         { label: 'Sunset Villa', value: 'Sunset Villa' },
@@ -106,13 +88,21 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
             setError('Phone Number is required')
             return false
         }
-        // Basic phone number validation - removed unnecessary escapes
         const phoneRegex = /^\+?[\d\s\-()]{10,15}$/
         if (!phoneRegex.test(formData.phoneNumber.trim())) {
             setError('Please enter a valid phone number')
             return false
         }
         return true
+    }
+
+    const formatPhoneNumber = (number: string): string => {
+        const cleanNumber = number.replace(/[^\d]/g, '') // Remove non-digit characters
+        if (cleanNumber.length === 10) {
+            // Format the phone number as +91 9999999999
+            return `+91 ${cleanNumber}`
+        }
+        return cleanNumber
     }
 
     const handleSave = async () => {
@@ -125,7 +115,20 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
         setIsLoading(true)
 
         try {
-            // Create lead data according to Lead interface
+            // Step 1: Create User
+            const userData: Omit<User, 'userId' | 'added' | 'lastModified'> = {
+                name: formData.name.trim(),
+                phonenumber: formData.phoneNumber.trim(),
+                emailAddress: '', // Optional, can be added if available
+                label: null, // No label by default
+                added: Date.now(),
+                lastModified: Date.now(),
+            }
+
+            const userId = await userService.create(userData)
+            console.log('User created successfully with ID:', userId)
+
+            // Step 2: Create Lead
             const leadData: Omit<Lead, 'leadId' | 'added' | 'lastModified'> = {
                 agentId: formData.agentId || 'agent_default',
                 agentName: formData.agentName || 'Unassigned',
@@ -133,7 +136,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                 phoneNumber: formData.phoneNumber.trim(),
                 propertyName: formData.propertyName || 'Not specified',
                 tag: 'potential', // Default tag
-                userId: null, // You might want to get this from auth context
+                userId: userId, // Associate User ID to Lead
                 source: formData.source,
                 stage: null, // Default stage
                 taskType: null, // Default task type
@@ -142,25 +145,40 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                 leadState: 'fresh', // Default state
             }
 
-            console.log('Creating lead with data:', leadData)
-
-            // Create lead using the service
             const leadId = await leadService.create(leadData)
-
             console.log('Lead created successfully with ID:', leadId)
+
+            // Step 3: Create Enquiry
+            const enquiryData: Omit<Enquiry, 'enquiryId' | 'added' | 'lastModified'> = {
+                leadId: leadId, // Associate Lead to Enquiry
+                agentId: formData.agentId || 'agent_default',
+                propertyName: formData.propertyName || 'Not specified',
+                source: formData.source,
+                status: 'interested', // Default status
+                stage: null, // Default stage
+                agentHistory: [],
+                notes: [],
+                activityHistory: [],
+                tag: 'potential', // Default tag
+                documents: [],
+                requirements: [],
+                added: Date.now(),
+                lastModified: Date.now(),
+            }
+
+            await enquiryService.create(enquiryData)
+            console.log('Enquiry created successfully for lead ID:', leadId)
 
             // Call the callback to refresh the leads list
             if (onLeadAdded) {
                 onLeadAdded()
             }
 
-            // Show success message
-            alert('Lead created successfully!')
+            alert('Lead, User, and Enquiry created successfully!')
 
-            // Reset and close
             handleDiscard()
         } catch (error) {
-            console.error('Error creating lead:', error)
+            console.error('Error creating lead, user, or enquiry:', error)
             setError('Failed to create lead. Please try again.')
         } finally {
             setIsLoading(false)
@@ -184,13 +202,9 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
 
     return (
         <>
-            {/* Modal Overlay */}
             <div className='fixed top-0 left-0 w-[75%] h-full bg-black opacity-50 z-40' onClick={onClose} />
-
-            {/* Modal Container */}
             <div className='fixed top-0 right-0 h-full w-[25%] bg-white z-50 shadow-2xl border-l border-gray-200'>
                 <div className='flex flex-col h-full'>
-                    {/* Modal Header */}
                     <div className='flex items-center justify-between p-6 pb-0'>
                         <h2 className='text-xl font-semibold text-black'>Add Lead</h2>
                         <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-md' disabled={isLoading}>
@@ -209,9 +223,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                         </button>
                     </div>
 
-                    {/* Modal Content */}
                     <div className='flex-1 p-6 overflow-y-auto'>
-                        {/* Error Message */}
                         {error && (
                             <div className='mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm'>
                                 {error}
@@ -219,7 +231,6 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                         )}
 
                         <div className='space-y-6'>
-                            {/* Lead Name Input */}
                             <div>
                                 <label className='block text-sm font-medium mb-2'>
                                     Lead Name <span className='text-red-500'>*</span>
@@ -234,7 +245,6 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                                 />
                             </div>
 
-                            {/* Phone Number Input */}
                             <div>
                                 <label className='block text-sm font-medium mb-2'>
                                     Phone No. <span className='text-red-500'>*</span>
@@ -249,7 +259,6 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                                 />
                             </div>
 
-                            {/* Property Dropdown */}
                             <div>
                                 <label className='block text-sm font-medium mb-2'>Property</label>
                                 <Dropdown
@@ -264,9 +273,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                                 />
                             </div>
 
-                            {/* Source and Agent Row */}
                             <div className='grid grid-cols-2 gap-4'>
-                                {/* Source Dropdown */}
                                 <div>
                                     <label className='block text-sm font-medium mb-2'>Source</label>
                                     <Dropdown
@@ -281,7 +288,6 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                                     />
                                 </div>
 
-                                {/* Agent Dropdown */}
                                 <div>
                                     <label className='block text-sm font-medium mb-2'>Agent</label>
                                     <Dropdown
@@ -301,7 +307,6 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                         </div>
                     </div>
 
-                    {/* Modal Footer */}
                     <div className='p-6'>
                         <div className='flex items-center justify-center gap-6'>
                             <button

@@ -2,18 +2,27 @@ import React, { useState } from 'react'
 import { enquiryService } from '../../services/canvas_homes/enquiryService' // Adjust path as needed
 import { leadService } from '../../services/canvas_homes/leadService' // Adjust path as needed
 import Dropdown from './tasks/Dropdown'
-import type { enquiry } from '../../services/canvas_homes/tpyes'
+import type { enquiry } from '../../services/canvas_homes/types' // Fixed typo: tpyes -> types
 
-interface AddEnquiryModalProps {
+interface ChangeAgentModalProps {
+    // Fixed interface name to match component name
     isOpen: boolean
     onClose: () => void
     leadId: string
+    enquiryId: string
     onEnquiryAdded?: () => void
     properties: Array<{ label: string; value: string }>
     agents: Array<{ label: string; value: string }>
 }
 
-const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, leadId, onEnquiryAdded }) => {
+const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
+    isOpen,
+    onClose,
+    leadId,
+    enquiryId, // Now using the enquiryId prop
+    onEnquiryAdded,
+    agents, // Using agents from props instead of hardcoded array
+}) => {
     const [formData, setFormData] = useState({
         propertyName: '',
         agentName: '',
@@ -22,29 +31,19 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const properties = [
-        { label: 'Select property name', value: '' },
-        { label: 'Sunset Villa', value: 'Sunset Villa' },
-        { label: 'Ocean View Apartment', value: 'Ocean View Apartment' },
-        { label: 'Downtown Condo', value: 'Downtown Condo' },
-        { label: 'Garden Heights', value: 'Garden Heights' },
-        { label: 'Riverside Towers', value: 'Riverside Towers' },
-        { label: 'Sattva Hills', value: 'Sattva Hills' },
-        { label: 'Prestige Gardenia', value: 'Prestige Gardenia' },
-        { label: 'Brigade Cosmopolis', value: 'Brigade Cosmopolis' },
-        { label: 'Sobha City', value: 'Sobha City' },
-        { label: 'Embassy Springs', value: 'Embassy Springs' },
-        { label: 'Mantri Energia', value: 'Mantri Energia' },
+
+    // Remove hardcoded agents array since it's passed as props
+    // If you want to keep default agents as fallback:
+    const defaultAgents = [
+        { label: 'Select Agent', value: '', id: '' },
+        { label: 'Deepak Goyal', value: 'Deepak Goyal', id: 'agent001' },
+        { label: 'Rajan Yadav', value: 'Rajan Yadav', id: 'agent002' },
+        { label: 'Deepak Singh Chauhan', value: 'Deepak Singh Chauhan', id: 'agent003' },
+        { label: 'Samarth Jangir', value: 'Samarth Jangir', id: 'agent004' },
+        { label: 'Rahul Mehta', value: 'Rahul Mehta', id: 'agent005' },
     ]
 
-    const agents = [
-        { label: 'Select Agent', value: '', id: '' },
-        { label: 'Deepak Goyal', value: 'Deepak Goyal' },
-        { label: 'Rajan Yadav', value: 'Rajan Yadav' },
-        { label: 'Deepak Singh Chauhan', value: 'Deepak Singh Chauhan' },
-        { label: 'Samarth Jangir', value: 'Samarth Jangir' },
-        { label: 'Rahul Mehta', value: 'Rahul Mehta' },
-    ]
+    const agentOptions = agents && agents.length > 0 ? agents : defaultAgents
 
     const handleInputChange = (field: keyof typeof formData, value: string) => {
         setFormData((prev) => ({
@@ -54,21 +53,10 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
     }
 
     const validateForm = (): boolean => {
-        if (!formData.propertyName.trim()) {
-            setError('Property Name is required')
-            return false
-        }
-
         if (!formData.agentName.trim()) {
             setError('Agent Name is required')
             return false
         }
-
-        if (!formData.enquiryDate.trim()) {
-            setError('Enquiry Date is required')
-            return false
-        }
-
         return true
     }
 
@@ -82,32 +70,50 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
         setIsLoading(true)
 
         try {
-            // Prepare the new enquiry data
-            const enquiryData: enquiry = {
-                enquiryId: null,
-                leadId: leadId || null,
-                agentId: null,
-                propertyName: formData.propertyName.trim() || null,
-                source: null,
-                status: null,
-                stage: null,
-                agentHistory: null,
-                notes: null,
-                activityHistory: null,
-                tag: null,
-                documents: null,
-                requirements: null,
-                added: Date.now() || null,
-                lastModified: Date.now() || null,
+            // Find the selected agent's ID
+            const selectedAgent = agentOptions.find((agent) => agent.value === formData.agentName)
+            const agentId = selectedAgent?.value || formData.agentName
+            const agentName = selectedAgent?.label || formData.agentName
+
+            // Get current enquiry data to preserve existing agent history
+            const currentEnquiry = await enquiryService.getById(enquiryId)
+
+            // Create new agent history entry
+            const newAgentHistoryEntry = {
+                timestamp: Date.now(),
+                agentId: agentId,
+                agentName: agentName,
+                lastStage: currentEnquiry?.stage || 'assigned',
             }
 
-            // Create the enquiry using the service
-            await enquiryService.create(enquiryData)
+            // Prepare updated agent history
+            const updatedAgentHistory = [...(currentEnquiry?.agentHistory || []), newAgentHistoryEntry]
+
+            // Update enquiry with new agent and agent history
+            const enquiryUpdateData = {
+                enquiryId: enquiryId,
+                agentId: agentId,
+                agentName: agentName,
+                agentHistory: updatedAgentHistory,
+                lastModified: Date.now(),
+            }
+
+            await enquiryService.update(enquiryId, enquiryUpdateData)
+
+            // Update lead with new agent information
+            const leadUpdateData = {
+                leadId: leadId,
+                agentId: agentId,
+                agentName: agentName,
+                lastModified: Date.now(),
+            }
+
+            await leadService.update(leadId, leadUpdateData)
 
             // Show success message
-            alert('Enquiry added successfully!')
+            alert('Agent changed successfully!')
 
-            // Call the callback to refresh the lead data or perform actions after enquiry creation
+            // Call the callback to refresh the data
             if (onEnquiryAdded) {
                 onEnquiryAdded()
             }
@@ -115,8 +121,8 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
             // Close the modal after successful operation
             onClose()
         } catch (error) {
-            console.error('Error adding enquiry:', error)
-            setError('Failed to add enquiry. Please try again.')
+            console.error('Error changing agent:', error)
+            setError('Failed to change agent. Please try again.')
         } finally {
             setIsLoading(false)
         }
@@ -133,6 +139,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
     }
 
     if (!isOpen) return null
+    console.log('Hare Krishna', enquiryId)
 
     return (
         <>
@@ -144,7 +151,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
                 <div className='flex flex-col'>
                     {/* Modal Header */}
                     <div className='flex items-center justify-between p-6 pb-4'>
-                        <h2 className='text-lg font-semibold text-black'>Add Enquiry</h2>
+                        <h2 className='text-lg font-semibold text-black'>Change Agent</h2>
                         <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-md' disabled={isLoading}>
                             <svg
                                 width='16'
@@ -173,38 +180,15 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
                             </div>
                         )}
 
-                        {/* Property Name */}
-                        <div>
-                            <label className='block text-sm font-medium mb-2 text-gray-700'>Property Name</label>
-                            <Dropdown
-                                options={properties}
-                                onSelect={(value) => handleInputChange('propertyName', value)}
-                                defaultValue={formData.propertyName}
-                                placeholder='Select Property'
-                                className='w-full'
-                            />
-                        </div>
-
                         {/* Agent Name */}
                         <div>
                             <label className='block text-sm font-medium mb-2 text-gray-700'>Agent Name</label>
                             <Dropdown
-                                options={agents}
+                                options={agentOptions}
                                 onSelect={(value) => handleInputChange('agentName', value)}
                                 defaultValue={formData.agentName}
                                 placeholder='Select Agent'
                                 className='w-full'
-                            />
-                        </div>
-
-                        {/* Enquiry Date */}
-                        <div>
-                            <label className='block text-sm font-medium mb-2 text-gray-700'>Enquiry Date</label>
-                            <input
-                                type='datetime-local'
-                                value={formData.enquiryDate}
-                                onChange={(e) => handleInputChange('enquiryDate', e.target.value)}
-                                className='w-full px-3 py-2 border border-gray-300 rounded-md'
                             />
                         </div>
                     </div>
@@ -221,7 +205,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
                         <button
                             onClick={handleSave}
                             disabled={isLoading}
-                            className='px-4 py-2 bg-blue-500 text-white rounded-md'
+                            className='px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-500/90'
                         >
                             {isLoading ? 'Saving...' : 'Save'}
                         </button>
@@ -232,4 +216,4 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
     )
 }
 
-export default AddEnquiryModal
+export default ChangeAgentModal // Fixed export name to match component name

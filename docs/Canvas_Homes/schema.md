@@ -45,7 +45,7 @@ Stores information about CRM leads, their contact status, interest level, and co
 | userId        | string      | "user_789"          | —                                                                                          |
 | source        | string      | "META"              | —                                                                                          |
 | stage         | string      | "lead registered"   | lead registered \| initial contacted \| site visited \| eoi collected \| booking confirmed |
-| taskType      | string      | "lead registration" | lead registration \| initial contact \| site visit \| eoi collection \| booking            |
+| taskTyfe      | string      | "lead registration" | lead registration \| initial contact \| site visit \| eoi collection \| booking            |
 | scheduledDate | number (TS) | 1717833600000       | —                                                                                          |
 | leadStatus    | string      | "interested"        | interested \| not interested \|booking dropped\|                                           |
 | leadState     | string      | "open"              | open \| closed \| fresh \| dropped                                                         |
