@@ -42,7 +42,11 @@ const QCPropertyDetailsPage = () => {
         error: userError,
     } = useSelector((state: RootState) => state.user)
 
-    const { qcProperty, loading: qcLoading, error: qcError } = useSelector((state: RootState) => state.qc)
+    const {
+        currentQCInventory: qcProperty,
+        loading: qcLoading,
+        error: qcError,
+    } = useSelector((state: RootState) => state.qc)
 
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [newNote, setNewNote] = useState('')
