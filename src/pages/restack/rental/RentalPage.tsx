@@ -1,144 +1,123 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import Layout from '../../../../layout/Layout'
-import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
-import Button from '../../../../components/design-elements/Button'
-import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
-import {
-    sampleRERAProjects,
-    generateRERAProjects,
-    type RERAProject,
-} from '../../../dummy_data/restack_primary_dummy_data'
+import { useDispatch } from 'react-redux'
+import { rentalPropertiesDummyData } from '../../dummy_data/restack_rental_dummy_data'
+import type { RentalProperty } from '../../../data_types/restack/restack-rental'
+import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
+import Layout from '../../../layout/Layout'
+import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+import Button from '../../../components/design-elements/Button'
+import resetic from '/icons/acn/rotate-left.svg'
 
-const PrimaryPage = () => {
+const RentalPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
-    const [paginatedData, setPaginatedData] = useState<RERAProject[]>([])
-    const [filteredData, setFilteredData] = useState<RERAProject[]>([])
+    const [selectedListedBy, setSelectedListedBy] = useState('all')
+    const [selectedStatus, setSelectedStatus] = useState('all')
+    const [selectedAssetType, setSelectedAssetType] = useState('all')
     const navigate = useNavigate()
-    // Items per page
-    const ITEMS_PER_PAGE = 50
+    const dispatch = useDispatch<any>()
 
-    // Initialize projects data
-    const [projectsData, setProjectsData] = useState<RERAProject[]>(() => {
-        // Use sample data that matches the image, then add more generated data
-        const additionalProjects = generateRERAProjects(50)
-        return [...sampleRERAProjects, ...additionalProjects]
-    })
+    const properties: RentalProperty[] = rentalPropertiesDummyData
+    const loading = false
+    const error = null
 
-    // Filter data based on search
+    const ITEMS_PER_PAGE = 20
+
+    const [filteredProperties, setFilteredProperties] = useState<RentalProperty[]>([])
+    const [paginatedProperties, setPaginatedProperties] = useState<RentalProperty[]>([])
+
     useEffect(() => {
-        if (searchValue.trim() === '') {
-            setFilteredData(projectsData)
-        } else {
-            const filtered = projectsData.filter(
-                (project) =>
-                    project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.status.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.district.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.projectType.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    project.registrationNumber.toLowerCase().includes(searchValue.toLowerCase()),
-            )
-            setFilteredData(filtered)
-        }
-        setCurrentPage(1) // Reset to first page when searching
-    }, [searchValue, projectsData])
+        //dispatch(fetchPostReraProperties(undefined))
+    }, [dispatch])
 
-    // Calculate total pages
-    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
+    useEffect(() => {
+        const filtered = properties.filter((project) => {
+            const matchesSearch =
+                project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
+                project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
+                project.propertyType.toLowerCase().includes(searchValue.toLowerCase())
 
-    // Update paginated data when page changes or filtered data changes
+            const matchesStatus = selectedStatus === 'all' || project.listingStatus === selectedStatus
+            const matchesAssetType =
+                selectedAssetType === 'all' || project.propertyType.toLowerCase() === selectedAssetType.toLowerCase()
+            const matchesListedBy = selectedListedBy === 'all' || project.listedBy === selectedListedBy
+
+            return matchesSearch && matchesStatus && matchesAssetType && matchesListedBy
+        })
+
+        setFilteredProperties(filtered)
+        setCurrentPage(1)
+    }, [searchValue, properties, selectedStatus, selectedAssetType, selectedListedBy])
+
     useEffect(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
         const endIndex = startIndex + ITEMS_PER_PAGE
-        setPaginatedData(filteredData.slice(startIndex, endIndex))
-    }, [currentPage, filteredData])
+        const slicedProperties = filteredProperties.slice(startIndex, endIndex)
+        setPaginatedProperties(slicedProperties)
+    }, [currentPage, filteredProperties])
 
-    // Status badge component
-    const StatusBadge = ({ status }: { status: string }) => {
-        const getStatusColor = (status: string) => {
-            switch (status.toLowerCase()) {
-                case 'active':
-                    return 'bg-green-100 text-green-800'
-                case 'completed':
-                    return 'bg-blue-100 text-blue-800'
-                case 'planning':
-                    return 'bg-yellow-100 text-yellow-800'
-                default:
-                    return 'bg-gray-100 text-gray-800'
-            }
-        }
+    const totalPages = Math.ceil(filteredProperties.length / ITEMS_PER_PAGE)
 
-        return (
-            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(status)}`}>
-                {status}
-            </span>
-        )
-    }
+    const uniqueListedBy = ['all', ...Array.from(new Set(properties.map((p) => p.listedBy)))]
+    // Get unique values for filters
+    const uniqueStatuses = ['all', ...Array.from(new Set(properties.map((p) => p.listingStatus || 'apartment')))]
+    const uniqueAssetTypes = ['all', ...Array.from(new Set(properties.map((p) => p.propertyType)))]
 
-    // Table columns configuration
     const columns: TableColumn[] = [
         {
             key: 'projectName',
             header: 'Project Name',
-            render: (value) => <span className='whitespace-nowrap text-sm font-semibold text-gray-900'>{value}</span>,
+            render: (value: string, row: RentalProperty) => (
+                <span
+                    className='whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600'
+                    onClick={() => navigate(`/restack/rental/${row.propertyId}/details`)}
+                >
+                    {value}
+                </span>
+            ),
         },
         {
-            key: 'registrationNumber',
-            header: 'Registration Number',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-mono'>{value}</span>,
+            key: 'propertyId',
+            header: 'Project ID',
+            render: (value: string) => <span className='whitespace-nowrap text-sm text-blue-600'>{value}</span>,
         },
         {
-            key: 'district',
-            header: 'District',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
+            key: 'propertyType',
+            header: 'Asset Type',
+            render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
-            key: 'status',
+            key: 'postedOn',
+            header: 'Inventory Date',
+            render: (value: number) => (
+                <span className='whitespace-nowrap text-sm text-gray-600'>{formatUnixDate(value)}</span>
+            ),
+        },
+        {
+            key: 'listingStatus',
             header: 'Status',
-            render: (value) => <StatusBadge status={value} />,
-        },
-        {
-            key: 'projectStartDate',
-            header: 'Project Start Date',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    })}
+            render: (value: string) => (
+                <span className='whitespace-nowrap text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded'>
+                    {value || 'apartment'}
                 </span>
             ),
         },
+        // {
+        //     key: 'listedBy',
+        //     header: 'Listed By',
+        //     render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
+        // },
         {
-            key: 'proposedCompletionDate',
-            header: 'Proposed Completion Date',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    })}
-                </span>
-            ),
-        },
-        {
-            key: 'projectType',
-            header: 'Project Type',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
-        {
-            key: 'action',
-            header: 'Action',
-            render: (_, row) => (
+            key: 'actions',
+            header: 'View Details',
+            render: (value: any, row: RentalProperty) => (
                 <button
-                    className='text-gray-900 text-sm font-medium transition-colors'
-                    onClick={() => navigate(`/restack/primary/${row.id}`)}
+                    onClick={() => navigate(`/restack/rental/${row.propertyId}/details`)}
+                    className='bg-black text-white px-3 py-1 rounded text-xs font-medium hover:bg-gray-800 transition-colors'
                 >
                     View Details
                 </button>
@@ -147,15 +126,15 @@ const PrimaryPage = () => {
     ]
 
     return (
-        <Layout loading={false}>
+        <Layout loading={loading}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-4 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                <div className='py-6 px-6 bg-gray-50 min-h-screen'>
                     {/* Header */}
-                    <div className='mb-2'>
-                        <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Primary</h1>
-                            <div className='flex items-center gap-4'>
-                                <div className='w-80'>
+                    <div className='mb-6'>
+                        <div className='flex gap-6 mb-4'>
+                            {/* Search Bar */}
+                            <div className='flex mb-4  w-1/2'>
+                                <div className='w-full'>
                                     <StateBaseTextField
                                         leftIcon={
                                             <svg
@@ -174,20 +153,55 @@ const PrimaryPage = () => {
                                         }
                                         placeholder='Search here'
                                         value={searchValue}
-                                        onChange={(e) => setSearchValue(e.target.value)}
-                                        className='h-8'
+                                        onChange={(e: any) => setSearchValue(e.target.value)}
+                                        className='h-10 w-full'
                                     />
                                 </div>
                             </div>
+
+                            {/* Filter Tabs */}
+
+                            <Button
+                                className='h-10'
+                                onClick={() => setSelectedListedBy('Owner')}
+                                textColor='text-[#0A0B0A]'
+                                bgColor='bg-[#F3F3F3]'
+                                borderColor='[#0A0B0A]'
+                            >
+                                Listed by Owner
+                            </Button>
+                            <Button
+                                className='h-10'
+                                textColor='text-[#0A0B0A]'
+                                bgColor='bg-[#F3F3F3]'
+                                borderColor='[#0A0B0A]'
+                                onClick={() => setSelectedListedBy('Broker')}
+                            >
+                                Listed by Broker
+                            </Button>
+
+                            {selectedListedBy != 'all' && (
+                                <button
+                                    className='p-1 text-[#0A0B0A] h-10 cursor-pointer bg-[#F3F3F3] rounded-[8px] border border-[#0A0B0A]'
+                                    onClick={() => {
+                                        setSelectedListedBy('all')
+                                        setSelectedStatus('all')
+                                        setSelectedAssetType('all')
+                                        setSearchValue('')
+                                    }}
+                                    title='Reset Filters'
+                                >
+                                    <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
+                                </button>
+                            )}
                         </div>
                     </div>
-                    <hr className='border-gray-200 mb-4 w-full' />
 
-                    {/* Table with vertical scrolling */}
-                    <div className='bg-white rounded-lg overflow-hidden'>
-                        <div className='h-[80vh] overflow-y-auto'>
+                    {/* Table Card */}
+                    <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
+                        <div className='max-h-[70vh] overflow-y-auto'>
                             <FlexibleTable
-                                data={paginatedData}
+                                data={paginatedProperties}
                                 columns={columns}
                                 hoverable={true}
                                 borders={{
@@ -197,7 +211,7 @@ const PrimaryPage = () => {
                                     cells: false,
                                     outer: false,
                                 }}
-                                maxHeight='80vh'
+                                maxHeight='70vh'
                                 className='rounded-lg'
                                 stickyHeader={true}
                             />
@@ -205,14 +219,13 @@ const PrimaryPage = () => {
 
                         {/* Pagination */}
                         {totalPages > 1 && (
-                            <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
+                            <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200 bg-gray-50'>
                                 <div className='text-sm text-gray-500 font-medium'>
                                     Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} of{' '}
-                                    {filteredData.length} projects
-                                    {searchValue && ` (filtered from ${projectsData.length} total projects)`}
+                                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredProperties.length)} of{' '}
+                                    {filteredProperties.length} projects
+                                    {searchValue && ` (filtered from ${properties.length} total projects)`}
                                 </div>
-
                                 <div className='flex items-center gap-2'>
                                     <button
                                         onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -235,7 +248,6 @@ const PrimaryPage = () => {
 
                                     {Array.from({ length: totalPages }, (_, i) => i + 1)
                                         .filter((page) => {
-                                            // Show first page, last page, current page, and pages around current page
                                             return (
                                                 page === 1 ||
                                                 page === totalPages ||
@@ -243,7 +255,6 @@ const PrimaryPage = () => {
                                             )
                                         })
                                         .map((page, index, array) => {
-                                            // Add ellipsis between non-consecutive pages
                                             const showEllipsisBefore = index > 0 && array[index - 1] !== page - 1
                                             const showEllipsisAfter =
                                                 index < array.length - 1 && array[index + 1] !== page + 1
@@ -304,4 +315,4 @@ const PrimaryPage = () => {
     )
 }
 
-export default PrimaryPage
+export default RentalPage

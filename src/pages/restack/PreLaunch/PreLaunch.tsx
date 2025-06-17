@@ -10,7 +10,7 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 import PreLaunchModal, { type PreLaunchFormData } from '../../../components/restack/AddPreLaunchProjectModal'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchPreLaunchProperties, addPreLaunchProperty } from '../../../store/actions/restack/preLaunchActions'
-import type { Property } from '../../../store/reducers/restack/types'
+import type { Property } from '../../../store/reducers/restack/preLaunchtypes'
 import type { AppDispatch, RootState } from '../../../store'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 
@@ -84,7 +84,7 @@ const PreLaunchPage = () => {
             header: 'Action',
             render: (_, row) => (
                 <button
-                    className='text-gray-900 text-sm font-medium transition-colors'
+                    className='text-gray-900 text-sm font-medium transition-colors cursor-pointer'
                     onClick={() => navigate(`/restack/prelaunch/${row.projectId}`)}
                 >
                     View Details

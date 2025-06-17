@@ -61,7 +61,7 @@ export const SelectionGroup: React.FC<SelectionGroupProps> = ({
     return (
         <div className={containerClasses}>
             <h3 className='text-sm font-semibold text-gray-900'>{title}</h3>
-            <div className='space-y-2'>
+            <div className='flex gap-4 flex-wrap'>
                 {options.map((option) => (
                     <SelectionButton
                         key={option.value}

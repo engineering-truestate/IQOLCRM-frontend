@@ -8,6 +8,7 @@ interface Props {
 
 const ProtectedRoute: React.FC<Props> = ({ children }) => {
     const { user, loading } = useAuth()
+    console.log('ProtectedRoute user:', user)
     const navigate = useNavigate()
 
     useEffect(() => {

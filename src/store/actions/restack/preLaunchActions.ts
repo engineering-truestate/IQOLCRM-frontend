@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import type { Property, PropertyFilters } from '../../reducers/restack/types'
+import type { Property, PropertyFilters } from '../../reducers/restack/preLaunchtypes'
 import {
     fetchPreLaunchPropertyRequest,
     fetchPreLaunchPropertySuccess,
