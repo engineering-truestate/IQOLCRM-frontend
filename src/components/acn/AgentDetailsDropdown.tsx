@@ -43,7 +43,11 @@ const formatValue = (value: any): string => {
     return String(value)
 }
 
-export const AgentDetailsDropdown: React.FC<DropdownProps> = ({ agentDetails }) => {
+export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
+    // State for the main dropdown visibility
+    const [isMainDropdownOpen, setIsMainDropdownOpen] = useState(true)
+
+    // State for individual sections
     const [openSections, setOpenSections] = useState({
         userDetails: true,
         planDetails: false,
@@ -52,6 +56,10 @@ export const AgentDetailsDropdown: React.FC<DropdownProps> = ({ agentDetails }) 
         enquiryDetails: false,
         credits: false,
     })
+
+    const toggleMainDropdown = () => {
+        setIsMainDropdownOpen(!isMainDropdownOpen)
+    }
 
     const toggleSection = (section: string) => {
         setOpenSections((prev) => ({
@@ -92,38 +100,35 @@ export const AgentDetailsDropdown: React.FC<DropdownProps> = ({ agentDetails }) 
         inventory: agentDetails.noOfinventories,
         Requirement: agentDetails.noOfrequirements,
         EnquiriesDid: agentDetails.noOfEnquiries,
-        noOfleagalLeads: agentDetails.noOfleagalLeads,
+        EnquiriesReceived: '',
     }
 
     const rentalDetailsFields = {
-        businessCategory: agentDetails.businessCategory,
-        firmSize: agentDetails.firmSize,
-        activity: agentDetails.activity,
-        contactStatus: agentDetails.contactStatus,
+        inventory: agentDetails.noOfinventories,
+        Requirement: agentDetails.noOfrequirements,
+        EnquiriesDid: agentDetails.noOfEnquiries,
+        EnquiriesReceived: '',
     }
 
     const enquiryDetailsFields = {
-        lastEnquiry: agentDetails.lastEnquiry,
-        lastConnected: agentDetails.lastConnected,
-        lastSeen: agentDetails.lastSeen,
-        lastTried: agentDetails.lastTried,
+        enquiryToday: '',
+        enquiryThisWeek: '',
+        enquiryThisMonth: '',
     }
 
     const creditsFields = {
-        monthlyCredits: agentDetails.monthlyCredits,
-        inboundReqCredits: agentDetails.inboundReqCredits,
-        inboundEnqCredits: agentDetails.inboundEnqCredits,
-        boosterCredits: agentDetails.boosterCredits,
+        monthly: agentDetails.monthlyCredits,
+        purchased: '',
     }
 
     const renderSection = (title: string, fields: any, sectionKey: string) => {
         const isOpen = openSections[sectionKey as keyof typeof openSections]
 
         return (
-            <div className='border-b border-gray-200 last:border-b-0'>
+            <div className='border-b border-gray-200 last:border-b-0 max-h-[calc(100vh-80px)] overflow-y-auto'>
                 <button
                     onClick={() => toggleSection(sectionKey)}
-                    className='w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors duration-200 flex justify-between items-center text-left'
+                    className='w-full px-4 py-3  transition-colors duration-200 flex justify-between items-center text-left'
                 >
                     <span className='font-medium text-gray-900 text-sm'>{title}</span>
                     {isOpen ? (
@@ -134,17 +139,16 @@ export const AgentDetailsDropdown: React.FC<DropdownProps> = ({ agentDetails }) 
                 </button>
 
                 {isOpen && (
-                    <div className='px-4 py-3 bg-white'>
+                    <div className='px-4 py-2 bg-white'>
                         {Object.entries(fields).map(([key, value]) =>
                             value !== undefined && value !== null ? (
-                                <div
-                                    key={key}
-                                    className='flex justify-between items-center py-1.5 border-b border-gray-100 last:border-b-0'
-                                >
+                                <div key={key} className='flex justify-between items-center py-1.5 first:mt-[-5%]'>
                                     <span className='text-xs text-gray-600'>{formatFieldName(key)}</span>
-                                    <span className='text-xs text-gray-900 font-medium text-right max-w-[60%] truncate'>
-                                        {formatValue(value)}
-                                    </span>
+                                    <div className='w-[50%]'>
+                                        <span className='text-xs text-gray-900 font-medium truncate'>
+                                            {formatValue(value)}
+                                        </span>
+                                    </div>
                                 </div>
                             ) : null,
                         )}
@@ -155,52 +159,63 @@ export const AgentDetailsDropdown: React.FC<DropdownProps> = ({ agentDetails }) 
     }
 
     return (
-        <div className='max-w-md mx-auto bg-gray-50 min-h-screen'>
-            {/* Header */}
-            <div className='bg-white px-4 py-4 border-b border-gray-200'>
-                <div className='flex items-center justify-between'>
-                    <div className='flex items-center space-x-3'>
-                        <div className='w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center'>
-                            <span className='text-sm font-medium text-gray-600'>
-                                {agentDetails.name
-                                    ?.toString()
-                                    .split(' ')
-                                    .map((n) => n[0])
-                                    .join('') || 'HR'}
-                            </span>
+        <div className=' mx-auto bg-gray-50 max-h-[calc(100vh-80px)] overflow-y-auto'>
+            {/* Header - Now clickable */}
+            <div className='bg-white '>
+                <button
+                    onClick={toggleMainDropdown}
+                    className='w-full px-4 py-4 text-left  transition-colors duration-200'
+                >
+                    <div className='flex items-center justify-between'>
+                        <div className='flex items-center space-x-3'>
+                            <div className='w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center'>
+                                <span className='text-sm font-medium text-gray-600'>
+                                    {agentDetails.name
+                                        ?.toString()
+                                        .split(' ')
+                                        .map((n) => n[0])
+                                        .join('') || 'HR'}
+                                </span>
+                            </div>
+                            <div>
+                                <h1 className='font-medium text-gray-900'>{agentDetails.name || 'Agent Name'}</h1>
+                                <p className='text-xs text-gray-500'>
+                                    {agentDetails.cpId} | {agentDetails.reraId}
+                                </p>
+                            </div>
+                        </div>
+                        {isMainDropdownOpen ? (
+                            <ChevronUp className='w-4 h-4 text-gray-400' />
+                        ) : (
+                            <ChevronDown className='w-4 h-4 text-gray-400' />
+                        )}
+                    </div>
+                    <div className='mt-3 flex justify-between text-xs'>
+                        <div>
+                            <span className='text-gray-500'>Credits:</span>
+                            <span className='ml-1 font-medium'>{agentDetails.monthlyCredits || 0}</span>
                         </div>
                         <div>
-                            <h1 className='font-medium text-gray-900'>{agentDetails.name || 'Agent Name'}</h1>
-                            <p className='text-xs text-gray-500'>
-                                {agentDetails.cpId} | {agentDetails.reraId}
-                            </p>
+                            <span className='text-gray-500'>Plan:</span>
+                            <span className='ml-1 font-medium text-blue-600 capitalize'>
+                                {agentDetails.userType || 'N/A'}
+                            </span>
                         </div>
                     </div>
-                    <ChevronDown className='w-4 h-4 text-gray-400' />
-                </div>
-                <div className='mt-3 flex justify-between text-xs'>
-                    <div>
-                        <span className='text-gray-500'>Credits:</span>
-                        <span className='ml-1 font-medium'>{agentDetails.monthlyCredits || 0}</span>
-                    </div>
-                    <div>
-                        <span className='text-gray-500'>Plan:</span>
-                        <span className='ml-1 font-medium text-blue-600 capitalize'>
-                            {agentDetails.userType || 'N/A'}
-                        </span>
-                    </div>
-                </div>
+                </button>
             </div>
 
-            {/* Sections */}
-            <div className='bg-white border border-gray-200 mx-4 mt-4 rounded-lg overflow-hidden'>
-                {renderSection('User Details', userDetailsFields, 'userDetails')}
-                {renderSection('Plan Details', planDetailsFields, 'planDetails')}
-                {renderSection('Resale Details', resaleDetailsFields, 'resaleDetails')}
-                {renderSection('Rental Details', rentalDetailsFields, 'rentalDetails')}
-                {renderSection('Enquiry Details', enquiryDetailsFields, 'enquiryDetails')}
-                {renderSection('Credits', creditsFields, 'credits')}
-            </div>
+            {/* Sections - Now conditionally rendered based on main dropdown state */}
+            {isMainDropdownOpen && (
+                <div className='bg-white border-y border-gray-200 overflow-hidden'>
+                    {renderSection('User Details', userDetailsFields, 'userDetails')}
+                    {renderSection('Plan Details', planDetailsFields, 'planDetails')}
+                    {renderSection('Resale Details', resaleDetailsFields, 'resaleDetails')}
+                    {renderSection('Rental Details', rentalDetailsFields, 'rentalDetails')}
+                    {renderSection('Enquiry Details', enquiryDetailsFields, 'enquiryDetails')}
+                    {renderSection('Credits', creditsFields, 'credits')}
+                </div>
+            )}
         </div>
     )
 }
