@@ -2,29 +2,32 @@
 
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
 import Button from '../../../../components/design-elements/Button'
 import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
-import usePreRera from '../../../../hooks/restack/usePreRera'
 import { formatUnixDate } from '../../../../components/helper/getUnixDateTime'
-import type { PreReraProperty } from '../../../../store/reducers/restack/preReraTypes'
+import { fetchPostReraProperties } from '../../../../store/actions/restack/postReraActions'
+import type { PostReraProperty } from '../../../../store/reducers/restack/postReraTypes'
+import type { RootState } from '../../../../store'
 
-const PreReraPage = () => {
+const PostReraPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const navigate = useNavigate()
+    const dispatch = useDispatch<any>()
 
-    const { properties, loading, fetchProperties } = usePreRera()
+    const { properties, loading, error } = useSelector((state: RootState) => state.postRera)
 
-    const ITEMS_PER_PAGE = 50
+    const ITEMS_PER_PAGE = 5
 
-    const [filteredProperties, setFilteredProperties] = useState<PreReraProperty[]>([])
-    const [paginatedProperties, setPaginatedProperties] = useState<PreReraProperty[]>([])
+    const [filteredProperties, setFilteredProperties] = useState<PostReraProperty[]>([])
+    const [paginatedProperties, setPaginatedProperties] = useState<PostReraProperty[]>([])
 
     useEffect(() => {
-        fetchProperties()
-    }, [fetchProperties])
+        dispatch(fetchPostReraProperties(undefined))
+    }, [dispatch])
 
     useEffect(() => {
         const filtered = properties.filter(
@@ -52,14 +55,14 @@ const PreReraPage = () => {
             render: (value, row) => (
                 <span
                     className='whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer'
-                    onClick={() => navigate(`/restack/stock/pre-rera/${row.projectId}/details`)}
+                    onClick={() => navigate(`/restack/stock/post-rera/${row.projectId}/details`)}
                 >
                     {value}
                 </span>
             ),
         },
         {
-            key: 'startDate',
+            key: 'projectStartDate',
             header: 'Project Start Date',
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{formatUnixDate(value)}</span>,
         },
@@ -133,7 +136,7 @@ const PreReraPage = () => {
 
                     {/* Table with vertical scrolling */}
                     <div className='bg-white rounded-lg overflow-hidden'>
-                        <div className='h-[80vh] overflow-y-auto'>
+                        <div className='max-h-[80vh] overflow-y-auto'>
                             <FlexibleTable
                                 data={paginatedProperties}
                                 columns={columns}
@@ -266,6 +269,11 @@ const PreReraPage = () => {
                                     ? 'Try adjusting your search criteria.'
                                     : 'Get started by adding a new stock project.'}
                             </p>
+                            {!searchValue && error && (
+                                <div className='mt-6'>
+                                    <p className='text-red-500'>{error}</p>
+                                </div>
+                            )}
                             {/* {!searchValue && (
                                 <div className='mt-6'>
                                     <Button
@@ -286,4 +294,4 @@ const PreReraPage = () => {
     )
 }
 
-export default PreReraPage
+export default PostReraPage
