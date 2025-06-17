@@ -109,7 +109,7 @@ const QCDashboardPage = () => {
             ocReceived: hit.ocReceived || false,
             bdaApproved: hit.bdaApproved || false,
             biappaApproved: hit.biappaApproved || false,
-            stage: (hit.stage || 'kam') as 'kam' | 'data' | 'live',
+            stage: hit.stage === 'data' ? 'dataTeam' : hit.stage || 'kam',
             qcStatus: (hit.qcStatus || 'pending') as 'approved' | 'pending' | 'reject' | 'duplicate' | 'primary',
             qcReview: hit.qcReview || {
                 kamReviewed: 'pending',
@@ -205,7 +205,7 @@ const QCDashboardPage = () => {
                     query: '',
                     filters: {
                         kamId: [DEFAULT_KAM_ID],
-                        stage: ['dataTeam'],
+                        stage: ['data'],
                     },
                     hitsPerPage: 0,
                 }),

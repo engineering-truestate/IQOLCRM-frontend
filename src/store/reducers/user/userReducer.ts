@@ -14,6 +14,8 @@ interface AgentData {
     role: 'kam' | 'dataTeam' | 'kamModerator'
     name?: string
     id?: string
+    phone?: string
+    cpId?: string
 }
 
 interface UserState {
@@ -32,6 +34,13 @@ const initialState: UserState = {
     loading: false,
     error: null,
     authInitialized: false,
+}
+
+const validRoles = ['kam', 'dataTeam', 'kamModerator'] as const
+type ValidRole = (typeof validRoles)[number]
+
+function toValidRole(role: string): ValidRole {
+    return validRoles.includes(role as ValidRole) ? (role as ValidRole) : 'kam'
 }
 
 const userSlice = createSlice({
@@ -63,6 +72,8 @@ const userSlice = createSlice({
                 state.loading = false
                 state.currentUser = action.payload.user
                 state.agentData = action.payload.agentData
+                    ? { ...action.payload.agentData, role: toValidRole(action.payload.agentData.role) }
+                    : null
                 state.userRole = action.payload.agentData?.role || null
                 state.authInitialized = true
                 state.error = null
@@ -85,6 +96,8 @@ const userSlice = createSlice({
                 state.loading = false
                 state.currentUser = action.payload.user
                 state.agentData = action.payload.agentData
+                    ? { ...action.payload.agentData, role: toValidRole(action.payload.agentData.role) }
+                    : null
                 state.userRole = action.payload.agentData?.role || null
                 state.authInitialized = true
                 state.error = null
@@ -102,7 +115,7 @@ const userSlice = createSlice({
             })
             .addCase(fetchUserRoleByEmail.fulfilled, (state, action) => {
                 state.loading = false
-                state.agentData = action.payload
+                state.agentData = { ...action.payload, role: toValidRole(action.payload.role) }
                 state.userRole = action.payload.role
                 state.error = null
             })

@@ -8,6 +8,7 @@ interface GeoLocation {
 interface PriceHistoryItem {
     timestamp: number
     price: number
+    updatedBy: string
 }
 
 interface ContactHistoryItem {
@@ -33,6 +34,15 @@ interface PaymentHistoryItem {
 interface QCHistoryItem {
     timestamp: number
     qcStatus: string
+    userName: string
+    userRole: string
+    userEmail: string
+    userPhone: string
+    cpId: string
+    action: string
+    details: string
+    performedBy: string
+    date: number
 }
 
 interface HighlightResultItem {
@@ -117,16 +127,30 @@ type InventoryState = {
 
 // ==================== QC INVENTORY TYPES ====================
 
+// Add ReviewDetails interface for review objects
+interface ReviewDetails {
+    status: string
+    reviewDate: number
+    reviewedBy: string
+    comments: string
+}
+
 interface QCReview {
     type: 'rejected' | 'duplicate'
     rejectedFields: string[]
     qcNote: string
     originalPropertyId: string
+    kamReview: ReviewDetails
+    dataReview: ReviewDetails
 }
 
-interface IQCInventory {
+// Base QC Inventory type with required fields
+interface BaseQCInventory {
     propertyId: string
     propertyName: string
+    cpId: string
+    lastModified: number
+    __position2: number
     unitNo: string
     path: string
     _geoloc: GeoLocation
@@ -169,11 +193,10 @@ interface IQCInventory {
     ocReceived: boolean
     bdaApproved: boolean
     biappaApproved: boolean
-    stage: 'kam' | 'data' | 'live'
+    stage: 'kam' | 'dataTeam' | 'live'
     qcStatus: 'approved' | 'pending' | 'reject' | 'duplicate' | 'primary'
     qcReview: QCReview
     kamStatus: 'approved' | 'pending' | 'rejected'
-    cpId: string
     kamName: string
     kamId: string
     handoverDate: number
@@ -183,22 +206,37 @@ interface IQCInventory {
     driveLink: string
     noOfEnquiries: number
     dateOfInventoryAdded: number
-    lastModified: number
     dateOfStatusLastChecked: number
     ageOfInventory: number
     ageOfStatus: number
     qcHistory: QCHistoryItem[]
     extraDetails: string
-    __position2: number
-    _highlightResult: HighlightResult
+    _highlightResult?: HighlightResult
 }
 
+// QC Inventory type for API responses
+type IQCInventory = BaseQCInventory
+
+// Type for partial updates
+type QCInventoryUpdate = Partial<BaseQCInventory>
+
+// Update QCInventoryState type
 type QCInventoryState = {
-    qcInventories: IQCInventory[]
+    qcInventories: BaseQCInventory[]
+    currentQCInventory: BaseQCInventory | null
     loading: boolean
     error: string | null
     lastFetch: Date | null
 }
+
+// Add a type for the action payload
+type UpdateQCStatusPayload = {
+    propertyId: string
+    updates: QCInventoryUpdate
+}
+
+// Add a type for the thunk response
+type QCInventoryResponse = BaseQCInventory
 
 // ==================== RENTAL INVENTORY TYPES ====================
 
@@ -503,4 +541,33 @@ interface RequirementFilters {
     assetType?: string[]
     configuration?: string[]
     micromarket?: string[]
+}
+
+// ==================== AGENT DATA TYPE ====================
+
+export interface AgentData {
+    role: string
+    email: string
+    phone: string
+    cpId: string
+    // Add any other fields as needed
+}
+
+// ==================== USER AUTH TYPES ====================
+
+export interface FirebaseUser {
+    uid: string
+    email: string | null
+    displayName: string | null
+    photoURL: string | null
+}
+
+export interface UserAuthResponse {
+    user: FirebaseUser | null
+    agentData: AgentData | null
+}
+
+export interface AuthStateResponse {
+    user: FirebaseUser | null
+    agentData: AgentData | null
 }

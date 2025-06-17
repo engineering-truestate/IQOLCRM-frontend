@@ -11,7 +11,7 @@ import { clearCurrentQCInventory, clearError } from '../../../store/reducers/acn
 import Layout from '../../../layout/Layout'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import { toast } from 'react-toastify'
-import type { QCInventoryState, IQCInventory } from '../../../data_types/acn/qc'
+import type { QCInventoryState, IQCInventory, AgentData } from '../../../data_types/acn/types'
 
 // Icons
 import shareIcon from '/icons/acn/share.svg'
@@ -20,6 +20,8 @@ import priceDropIcon from '/icons/acn/share.svg'
 import { formatCost } from '../../../components/helper/formatCost'
 import { camelCaseToCapitalizedWords } from '../../../components/helper/wordFormatter'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import { formatUnixDateTime } from '../../../components/helper/formatDate'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 
 interface Note {
     id: string
@@ -129,7 +131,7 @@ const QCPropertyDetailsPage = () => {
                 updateQCStatusWithRoleCheck({
                     property: qcProperty,
                     status,
-                    agentData,
+                    agentData: agentData as AgentData,
                     activeTab,
                     reviewedBy: currentUser.displayName || currentUser.email || 'Unknown User',
                 }),
@@ -529,7 +531,7 @@ const QCPropertyDetailsPage = () => {
                                                     {safeDisplay(qcProperty.kamName)}
                                                 </div>
                                                 <div className='text-sm text-gray-600'>
-                                                    {safeDisplay(qcProperty.cpCode)}
+                                                    {safeDisplay(qcProperty.cpId)}
                                                 </div>
                                             </div>
                                         </div>
@@ -735,7 +737,7 @@ const QCPropertyDetailsPage = () => {
                                             <div className='flex justify-between'>
                                                 <span className='text-gray-600'>KAM Review Date</span>
                                                 <span className='font-medium'>
-                                                    {formatDate(qcProperty.qcReview.kamReview.reviewDate)}
+                                                    {formatUnixDate(qcProperty.qcReview.kamReview.reviewDate)}
                                                 </span>
                                             </div>
                                         )}
@@ -756,37 +758,24 @@ const QCPropertyDetailsPage = () => {
                                 <h3 className='text-lg font-semibold text-gray-900 mb-4'>QC History</h3>
                                 <div className='space-y-3 max-h-64 overflow-y-auto'>
                                     {qcProperty.qcHistory && qcProperty.qcHistory.length > 0 ? (
-                                        qcProperty.qcHistory.map(
-                                            (
-                                                item: {
-                                                    action: string
-                                                    date: number
-                                                    performedBy: string
-                                                    details: string
-                                                },
-                                                index: number,
-                                            ) => (
-                                                <div
-                                                    key={index}
-                                                    className='border-b border-gray-100 pb-3 last:border-b-0'
-                                                >
-                                                    <div className='flex justify-between items-start mb-1'>
-                                                        <span className='text-sm font-medium text-gray-900'>
-                                                            {safeDisplay(item.action)}
-                                                        </span>
-                                                        <span className='text-xs text-gray-500'>
-                                                            {formatDate(item.date)}
-                                                        </span>
-                                                    </div>
-                                                    <div className='text-xs text-gray-600'>
-                                                        By: {safeDisplay(item.performedBy)}
-                                                    </div>
-                                                    <div className='text-xs text-gray-600 mt-1'>
-                                                        {safeDisplay(item.details)}
-                                                    </div>
+                                        qcProperty.qcHistory.map((item, index) => (
+                                            <div key={index} className='border-b border-gray-100 pb-3 last:border-b-0'>
+                                                <div className='flex justify-between items-start mb-1'>
+                                                    <span className='text-sm font-medium text-gray-900'>
+                                                        {safeDisplay(item.qcStatus)}
+                                                    </span>
+                                                    <span className='text-xs text-gray-500'>
+                                                        {formatDate(item.timestamp)}
+                                                    </span>
                                                 </div>
-                                            ),
-                                        )
+                                                <div className='text-xs text-gray-600'>
+                                                    By: {safeDisplay(item.userName)}
+                                                </div>
+                                                <div className='text-xs text-gray-600 mt-1'>
+                                                    Role: {safeDisplay(item.userRole)}
+                                                </div>
+                                            </div>
+                                        ))
                                     ) : (
                                         <div className='text-sm text-gray-500'>No history available</div>
                                     )}

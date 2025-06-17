@@ -1,6 +1,11 @@
 // store/reducers/qcReducer.ts
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import type { IQCInventory, QCInventoryState } from './qcTypes'
+import { createSlice } from '@reduxjs/toolkit'
+import type {
+    BaseQCInventory,
+    QCInventoryState,
+    QCInventoryUpdate,
+    UpdateQCStatusPayload,
+} from '../../../data_types/acn/types'
 import { fetchQCInventoryById, updateQCStatusWithRoleCheck } from '../../../services/acn/qc/qcService'
 
 const initialState: QCInventoryState = {
@@ -8,7 +13,7 @@ const initialState: QCInventoryState = {
     currentQCInventory: null,
     loading: false,
     error: null,
-    lastFetch: null, // Initialize as null
+    lastFetch: null,
 }
 
 const qcSlice = createSlice({
@@ -16,73 +21,61 @@ const qcSlice = createSlice({
     initialState,
     reducers: {
         clearCurrentQCInventory: (state) => {
-            console.log('🧹 Clearing current QC inventory from state')
             state.currentQCInventory = null
             state.error = null
         },
         clearError: (state) => {
-            console.log('🧹 Clearing QC error')
             state.error = null
         },
-        setCurrentQCInventory: (state, action: PayloadAction<IQCInventory>) => {
-            console.log('📋 Setting current QC inventory:', action.payload.propertyId)
+        setCurrentQCInventory: (state, action) => {
             state.currentQCInventory = action.payload
         },
     },
     extraReducers: (builder) => {
         builder
-            // Fetch QC inventory by ID cases
             .addCase(fetchQCInventoryById.pending, (state) => {
-                console.log('⏳ Fetch QC inventory by ID - pending')
                 state.loading = true
                 state.error = null
             })
-            .addCase(fetchQCInventoryById.fulfilled, (state, action: PayloadAction<IQCInventory>) => {
-                console.log('✅ Fetch QC inventory by ID - fulfilled:', action.payload.propertyId)
+            .addCase(fetchQCInventoryById.fulfilled, (state, action) => {
+                const payload = action.payload as unknown as BaseQCInventory
                 state.loading = false
-                state.currentQCInventory = action.payload
-                state.lastFetch = Date.now() // Store as Unix timestamp instead of Date object
+                state.currentQCInventory = payload
+                state.lastFetch = new Date()
                 state.error = null
 
-                const index = state.qcInventories.findIndex((qc) => qc.propertyId === action.payload.propertyId)
+                const index = state.qcInventories.findIndex((qc) => qc.propertyId === payload.propertyId)
                 if (index !== -1) {
-                    state.qcInventories[index] = action.payload
+                    state.qcInventories[index] = payload
                 } else {
-                    state.qcInventories.push(action.payload)
+                    state.qcInventories.push(payload)
                 }
             })
             .addCase(fetchQCInventoryById.rejected, (state, action) => {
-                console.log('❌ Fetch QC inventory by ID - rejected:', action.payload)
                 state.loading = false
                 state.error = action.payload as string
                 state.currentQCInventory = null
             })
-
-            // Update QC status with role check cases
             .addCase(updateQCStatusWithRoleCheck.pending, (state) => {
-                console.log('⏳ Update QC status with role check - pending')
                 state.loading = true
                 state.error = null
             })
             .addCase(updateQCStatusWithRoleCheck.fulfilled, (state, action) => {
-                console.log('✅ Update QC status with role check - fulfilled:', action.payload)
                 state.loading = false
 
-                // Update current QC inventory if it matches
-                if (state.currentQCInventory && state.currentQCInventory.propertyId === action.payload.propertyId) {
-                    state.currentQCInventory = { ...state.currentQCInventory, ...action.payload.updates }
+                const { propertyId, updates } = action.payload as UpdateQCStatusPayload
+                if (state.currentQCInventory?.propertyId === propertyId) {
+                    state.currentQCInventory = { ...state.currentQCInventory, ...updates }
                 }
 
-                // Update in qcInventories array
-                const index = state.qcInventories.findIndex((qc) => qc.propertyId === action.payload.propertyId)
+                const index = state.qcInventories.findIndex((qc) => qc.propertyId === propertyId)
                 if (index !== -1) {
-                    state.qcInventories[index] = { ...state.qcInventories[index], ...action.payload.updates }
+                    state.qcInventories[index] = { ...state.qcInventories[index], ...updates }
                 }
 
                 state.error = null
             })
             .addCase(updateQCStatusWithRoleCheck.rejected, (state, action) => {
-                console.log('❌ Update QC status with role check - rejected:', action.payload)
                 state.loading = false
                 state.error = action.payload as string
             })

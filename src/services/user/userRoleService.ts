@@ -4,7 +4,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 import { db } from '../../firebase'
 import { getAuth } from 'firebase/auth'
-import type { AgentData, FirebaseUser, AuthStateResponse, UserAuthResponse } from '../../store/reducers/acn/qcTypes'
+import type { AgentData, FirebaseUser, AuthStateResponse, UserAuthResponse } from '../../data_types/acn/types'
 
 const auth = getAuth()
 

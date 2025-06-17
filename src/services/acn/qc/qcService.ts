@@ -2,7 +2,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
 import { doc, getDoc, updateDoc, setDoc, runTransaction } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import type { IQCInventory, AgentData } from '../../../store/reducers/acn/qcTypes'
+import type { IQCInventory, BaseQCInventory, AgentData } from '../../../data_types/acn/types'
 
 // Helper function to get current Unix timestamp
 const getCurrentTimestamp = () => Date.now()
@@ -67,11 +67,11 @@ export const fetchQCInventoryById = createAsyncThunk<IQCInventory, string, { rej
 export const updateQCStatusWithRoleCheck = createAsyncThunk<
     {
         propertyId: string
-        updates: Partial<IQCInventory>
+        updates: Partial<BaseQCInventory>
         propertyCreated: boolean
     },
     {
-        property: IQCInventory
+        property: BaseQCInventory
         status: string
         agentData: AgentData
         activeTab: string
@@ -103,7 +103,6 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                     if (status === property.qcReview.dataReview.status) {
                         return rejectWithValue(`You cannot change the status of a property that is already: ${status}`)
                     }
-
                     dataToSave = {
                         qcReview: {
                             ...property.qcReview,
@@ -116,14 +115,17 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                         },
                         qcStatus: status as any,
                         status: status === 'approved' ? 'available' : (status as any),
-                        lastmodified: currentTime,
+                        lastModified: currentTime,
                         qcHistory: [
                             ...property.qcHistory,
                             {
-                                date: currentTime,
-                                action: `Data Review: ${status}`,
-                                performedBy: reviewedBy,
-                                details: `Data review status updated to ${status}`,
+                                timestamp: currentTime,
+                                qcStatus: status as any,
+                                userName: reviewedBy,
+                                userRole: agentData.role,
+                                userEmail: agentData.email,
+                                userPhone: agentData.phone,
+                                cpId: property.cpId,
                             },
                         ],
                     }
@@ -157,14 +159,17 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                         },
                         kamStatus: status as any,
                         stage: status === 'approved' ? 'dataTeam' : 'kam',
-                        lastmodified: currentTime,
+                        lastModified: currentTime,
                         qcHistory: [
                             ...property.qcHistory,
                             {
-                                date: currentTime,
-                                action: `KAM Review: ${status}`,
-                                performedBy: reviewedBy,
-                                details: `KAM review status updated to ${status}`,
+                                timestamp: currentTime,
+                                qcStatus: status as any,
+                                userName: reviewedBy,
+                                userRole: agentData.role,
+                                userEmail: agentData.email,
+                                userPhone: agentData.phone,
+                                cpId: property.cpId,
                             },
                         ],
                     }
@@ -190,14 +195,17 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                             },
                             kamStatus: status as any,
                             stage: status === 'approved' ? 'dataTeam' : 'kam',
-                            lastmodified: currentTime,
+                            lastModified: currentTime,
                             qcHistory: [
                                 ...property.qcHistory,
                                 {
-                                    date: currentTime,
-                                    action: `KAM Review (Moderator): ${status}`,
-                                    performedBy: reviewedBy,
-                                    details: `KAM review status updated to ${status} by moderator`,
+                                    timestamp: currentTime,
+                                    qcStatus: status as any,
+                                    userName: reviewedBy,
+                                    userRole: agentData.role,
+                                    userEmail: agentData.email,
+                                    userPhone: agentData.phone,
+                                    cpId: property.cpId,
                                 },
                             ],
                         }
@@ -224,14 +232,17 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                             },
                             qcStatus: status as any,
                             status: status === 'approved' ? 'available' : (status as any),
-                            lastmodified: currentTime,
+                            lastModified: currentTime,
                             qcHistory: [
                                 ...property.qcHistory,
                                 {
-                                    date: currentTime,
-                                    action: `Data Review (Moderator): ${status}`,
-                                    performedBy: reviewedBy,
-                                    details: `Data review status updated to ${status} by moderator`,
+                                    timestamp: currentTime,
+                                    qcStatus: status as any,
+                                    userName: reviewedBy,
+                                    userRole: agentData.role,
+                                    userEmail: agentData.email,
+                                    userPhone: agentData.phone,
+                                    cpId: property.cpId,
                                 },
                             ],
                         }
@@ -256,6 +267,7 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
 
             // Update QC inventory
             const qcDocRef = doc(db, 'acnQCInventories', property.propertyId)
+            console.log((await getDoc(qcDocRef)).data())
             await updateDoc(qcDocRef, dataToSave)
 
             // Send notification
@@ -284,7 +296,7 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                     ageOfStatus: 0,
                 }
 
-                const propertyDocRef = doc(db, 'acn-properties', propertyId)
+                const propertyDocRef = doc(db, 'acnProperties', propertyId)
                 await setDoc(propertyDocRef, propertyData)
 
                 // Send property creation notification

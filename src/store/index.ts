@@ -14,7 +14,6 @@ import leadsReducer from './reducers/acn/leadsReducers'
 import agentsReducer from './slices/agentsSlice'
 import agentDetailsReducer from './slices/agentDetailsSlice'
 import type { IInventory, IRequirement } from '../data_types/acn/types'
-import type { QCInventoryState } from '../data_types/acn/qc'
 
 interface PropertyData {
     inventories: IInventory[]
