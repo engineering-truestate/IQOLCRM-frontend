@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-
+import { MdLocationOn } from 'react-icons/md'
 // ---------- Types ----------
 type SelectorProps = {
     selected: string
@@ -60,27 +60,40 @@ function LocationSelector({ selectedTab, onTabChange, landmark, onLandmarkChange
             <div className='flex'>
                 <button
                     onClick={() => onTabChange('Landmark')}
-                    className={`flex-1 p-2 ${selectedTab === 'Landmark' ? 'bg-[#24252E] text-white' : 'bg-white text-black'}`}
+                    className={`flex-1 p-2 ${
+                        selectedTab === 'Landmark' ? 'bg-[#24252E] text-white' : 'bg-gray-300 text-black'
+                    }`}
                 >
                     Landmark
                 </button>
                 <button
                     onClick={() => onTabChange('Micromarket')}
-                    className={`flex-1 p-2 ${selectedTab === 'Micromarket' ? 'bg-[#24252E] text-white' : 'bg-white text-black'}`}
+                    className={`flex-1 p-2 ${
+                        selectedTab === 'Micromarket' ? 'bg-[#24252E] text-white' : 'bg-gray-300 text-black'
+                    }`}
                 >
                     Micromarket
                 </button>
             </div>
-            <input
-                type='text'
-                value={landmark}
-                onChange={(e) => onLandmarkChange(e.target.value)}
-                placeholder='Search by landmark'
-                className='w-full border p-2 mt-2'
-            />
+
+            {/* Input with location icon */}
+            <div className='relative w-full mt-2'>
+                <span className='absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500'>
+                    <MdLocationOn />
+                </span>
+                <input
+                    type='text'
+                    value={landmark}
+                    onChange={(e) => onLandmarkChange(e.target.value)}
+                    placeholder='Search by landmark'
+                    className='w-full border p-2 pl-10'
+                />
+            </div>
         </div>
     )
 }
+
+export default LocationSelector
 
 function NumberSelector({ label, values, selected, onChange }: NumberSelectorProps) {
     return (
