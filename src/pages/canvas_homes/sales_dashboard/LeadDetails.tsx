@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLeadDetails } from '../../../hooks/canvas_homes/useLeadDetails'
 import Layout from '../../../layout/Layout'
@@ -12,7 +12,9 @@ import AddEnquiryModal from '../../../components/canvas_homes/AddEnquiryModal'
 import type { AgentHistoryItem } from '../../../services/canvas_homes/types'
 import google from '/icons/canvas_homes/google.svg'
 import CloseLeadSideModal from '../../../components/canvas_homes/CloseLeadSideModal'
-import ChangeAgentModal from '../../../components/canvas_homes/ChangeAgentModal'
+import { useDispatch } from 'react-redux'
+import { setEnquiryId } from '../../../store/reducers/canvas-homes/taskIdReducer'
+import type { AppDispatch } from '../../../store'
 
 // Update the interface to make leadId optional since we'll get it from URL
 interface LeadDetailProps {
@@ -22,6 +24,7 @@ interface LeadDetailProps {
 
 const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose }) => {
     const navigate = useNavigate()
+    const dispatch = useDispatch<AppDispatch>()
     const { leadId: urlLeadId } = useParams<{ leadId: string }>()
 
     // Use prop leadId first, then URL param
@@ -346,7 +349,9 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                             {tabs.map((tab) => (
                                                 <button
                                                     key={tab}
-                                                    onClick={() => setActiveTab(tab)}
+                                                    onClick={() => {
+                                                        setActiveTab(tab)
+                                                    }}
                                                     className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                                                         activeTab === tab
                                                             ? 'border-blue-500 text-blue-600'
@@ -551,7 +556,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                     <div className='flex justify-between items-center'>
                                                         <span className='text-sm w-[60%] text-gray-600'>Source</span>
                                                         <div className='w-[40%] flex items-center gap-2 text-left'>
-                                                            {currentEnquiry.source === 'Google' ? (
+                                                            {currentEnquiry?.source === 'Google' ? (
                                                                 <img src={google} alt='Google' className='w-4 h-4' />
                                                             ) : currentEnquiry.source === 'META' ||
                                                               currentEnquiry.source === 'Facebook' ? (

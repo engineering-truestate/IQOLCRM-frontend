@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import type { PropertyState, Property, PropertyFilters } from './types'
+import type { PropertyState, Property, PropertyFilters } from './preLaunchtypes'
 
 const initialState: PropertyState = {
     properties: [],

@@ -49,6 +49,7 @@ const Tasks: React.FC<TasksProps> = ({
         return firebaseTasks
             .map((firebaseTask) => ({
                 id: firebaseTask.taskId,
+                enquiryId: firebaseTask.enquiryId,
                 type: firebaseTask.type,
                 title: getTaskTitle(firebaseTask.type),
                 date: formatDateTime(firebaseTask.added),
@@ -284,6 +285,7 @@ const Tasks: React.FC<TasksProps> = ({
                 {displayTasks.map((task, index) => (
                     <TaskCard
                         key={task.id}
+                        enquiryId={task.enquiryId}
                         task={task}
                         index={index}
                         isExpanded={expandedTasks[task.id]}

@@ -3,8 +3,8 @@
 import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
 // Algolia client configuration
-const searchClient = algoliasearch('IX7SWC1B42', '72106b08028d186542a82eafa570fc88')
-const INDEX_NAME = 'propertyId'
+const searchClient = algoliasearch('1F93ZRBESW', 'b9023694178852d83995620a6c9ba933')
+const INDEX_NAME = 'properties'
 
 // Types for search parameters
 export interface SearchFilters {
@@ -89,8 +89,7 @@ const getIndexNameForSort = (sortBy?: string): string => {
     const sortIndexMap: Record<string, string> = {
         price_asc: `${INDEX_NAME}_price_asc`,
         price_desc: `${INDEX_NAME}_price_desc`,
-        date_desc: `${INDEX_NAME}_date_desc`,
-        date_asc: `${INDEX_NAME}_date_asc`,
+        recent: `${INDEX_NAME}`,
     }
 
     return sortIndexMap[sortBy] || INDEX_NAME
@@ -120,7 +119,7 @@ export const searchProperties = async (params: SearchParams = {}): Promise<Algol
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: ['status', 'kam', 'assetType', 'micromarket'],
+                    facets: ['micromarket', 'assetType', 'status', 'kam'],
                     maxValuesPerFacet: 100,
                     analytics: true,
                 },
@@ -341,6 +340,7 @@ export const searchForFacetValues = async (
 
 // Get object by ID
 export const getPropertyById = async (objectID: string): Promise<any | null> => {
+    console.log(objectID, 'objectID')
     try {
         const response = await searchClient.getObject({
             indexName: INDEX_NAME,

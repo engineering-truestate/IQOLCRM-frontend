@@ -1,4 +1,9 @@
 import React, { useState } from 'react'
+import { useSelector } from 'react-redux'
+import { useParams } from 'react-router'
+import { enquiryService } from '../../services/canvas_homes'
+import { leadService } from '../../services/canvas_homes'
+import { taskService } from '../../services/canvas_homes'
 
 interface ChangePropertyModalProps {
     isOpen: boolean
@@ -7,13 +12,16 @@ interface ChangePropertyModalProps {
 }
 
 const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, onChangeProperty }) => {
+    const taskIds: string = useSelector((state: RootState) => state.taskId.taskId)
+    const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId)
+
+    const { leadId } = useParams()
+
     const [formData, setFormData] = useState({
         reason: '',
+        leadId: leadId,
+        state: 'open',
         newProperty: '',
-        taskStatus: 'Complete',
-        leadStatus: 'Property Changed',
-        tag: 'Cold',
-        note: '',
     })
 
     const reasonOptions = [
@@ -47,10 +55,10 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     ]
 
     const tagOptions = [
-        { value: 'Cold', label: 'Cold' },
-        { value: 'potential', label: 'Potential' },
         { value: 'hot', label: 'Hot' },
         { value: 'super hot', label: 'Super Hot' },
+        { value: 'potential', label: 'Potential' },
+        { value: 'Cold', label: 'Cold' },
     ]
 
     const handleInputChange = (field: string, value: string) => {
@@ -60,9 +68,33 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
         }))
     }
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!formData.reason || !formData.newProperty) {
             alert('Please select a reason and new property')
+            return
+        }
+
+        try {
+            if (enquiryId && leadId && taskIds) {
+                const enqData = {
+                    leadStatus: 'Property Changed',
+                }
+                await enquiryService.update(enquiryId, enqData)
+                await enquiryService.create(enqData)
+
+                const data = {
+                    stage: null,
+                    state: 'fresh',
+                    status: 'interested',
+                }
+                await leadService.update(leadId, data)
+                await taskService.update(taskIds, { status: 'complete' })
+            } else {
+                console.error('enquiryId is undefined')
+            }
+        } catch (error) {
+            console.error('Error updating enquiry:', error)
+            alert('Failed to update enquiry')
             return
         }
 
@@ -71,6 +103,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
         // Reset form
         setFormData({
+            leadId: leadId,
             reason: '',
             newProperty: '',
             taskStatus: 'Complete',
@@ -95,7 +128,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     if (!isOpen) return null
 
     return (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50' onClick={onClose}>
+        <div className='fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50' onClick={onClose}>
             <div className='bg-white rounded-lg shadow-xl w-full max-w-md mx-4' onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className='flex items-center justify-between p-4 border-b border-gray-200'>
@@ -130,7 +163,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     <div>
                         <label className='block text-sm font-medium text-gray-700 mb-1'>Add New Property</label>
                         <select
-                            value={formData.newProperty}
+                            value={newProperty}
                             onChange={(e) => handleInputChange('newProperty', e.target.value)}
                             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50'
                         >
@@ -167,10 +200,11 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                 <label className='block text-sm font-medium text-gray-700 mb-1'>Lead Status</label>
                                 <input
                                     type='text'
-                                    value={formData.leadStatus}
+                                    value='Property Changed'
                                     onChange={(e) => handleInputChange('leadStatus', e.target.value)}
                                     className='w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs'
                                     placeholder='Property Changed'
+                                    disabled
                                 />
                             </div>
                         </div>
@@ -186,7 +220,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                 <label className='block text-sm font-medium text-gray-700 mb-1'>Lead Status</label>
                                 <input
                                     type='text'
-                                    value='Property Changed'
+                                    value='Interested'
                                     disabled
                                     className='w-full px-2 py-2 border border-gray-300 rounded-md text-xs bg-gray-100 text-gray-500'
                                 />
