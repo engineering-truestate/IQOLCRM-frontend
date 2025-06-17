@@ -33,18 +33,24 @@ Stores basic information about users including contact details and timestamps fo
 
 Stores information about CRM leads, their contact status, interest level, and communication history.
 
-| Field        | Type        | Example             | Options                                                                                    |
-| ------------ | ----------- | ------------------- | ------------------------------------------------------------------------------------------ |
-| leadId       | string      | "lead_001"          | —                                                                                          |
-| agentId      | string      | "agent_123"         | —                                                                                          |
-| agentName    | string      | "Rahul Mehta"       | —                                                                                          |
-| userId       | string      | "user_789"          | —                                                                                          |
-| source       | string      | "Facebook Ads"      | —                                                                                          |
-| stage        | string      | "lead registered"   | lead registered \| initial contacted \| site visited \| eoi collected \| booking confirmed |
-| taskType     | string      | "lead registration" | lead registration \| initial contact \| site visit \| eoi collection \| booking            |
-| status       | string      | "open"              | open \| closed \| fresh \| dropped                                                         |
-| added        | number (TS) | 1717833600000       | —                                                                                          |
-| lastModified | number (TS) | 1717916400000       | —                                                                                          |
+| Field         | Type        | Example             | Options                                                                                    |
+| ------------- | ----------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| leadId        | string      | "lead_001"          | —                                                                                          |
+| agentId       | string      | "agent_123"         | —                                                                                          |
+| agentName     | string      | "Rahul Mehta"       | —                                                                                          |
+| leadName      | string      | "Deepak"            | —                                                                                          |
+| phoneNumber   | string      | "+91 9999999999"    | —                                                                                          |
+| propertyName  | string      | "Sattva Hills"      | —                                                                                          |
+| tag           | string      | "hot"               | cold \| potential \| hot \| super hot                                                      |
+| userId        | string      | "user_789"          | —                                                                                          |
+| source        | string      | "META"              | —                                                                                          |
+| stage         | string      | "lead registered"   | lead registered \| initial contacted \| site visited \| eoi collected \| booking confirmed |
+| taskType      | string      | "lead registration" | lead registration \| initial contact \| site visit \| eoi collection \| booking            |
+| scheduledDate | number (TS) | 1717833600000       | —                                                                                          |
+| leadStatus    | string      | "interested"        | interested \| not interested \|booking dropped\|                                           |
+| leadState     | string      | "open"              | open \| closed \| fresh \| dropped                                                         |
+| added         | number (TS) | 1717833600000       | —                                                                                          |
+| lastModified  | number (TS) | 1717916400000       | —                                                                                          |
 
 ## campaigns (collection Name - canvas_homes-campaigns)
 
@@ -81,11 +87,16 @@ Tracks property enquiries made by leads, current status of enquiry, activity his
 | stage                               | string      | "lead registered" | lead registered \| initial contacted \| site visited \| eoi collected \| booking confirmed                                                                   |
 | agentHistory                        | array       | Array of objects  | —                                                                                                                                                            |
 | ├─ agentHistory[].timestamp         | number (TS) | 1717905000000     | —                                                                                                                                                            |
-| ├─ agentHistory[].agentId           | string      | "Rahul Mehta"     | —                                                                                                                                                            |
+| ├─ agentHistory[].agentId           | string      | "agent-456"       | —                                                                                                                                                            |
+| ├─ agentHistory[].agentName         | string      | "Rahul Mehta"     | —                                                                                                                                                            |
 | └─ agentHistory[].lastStage         | string      | "site visited"    | —                                                                                                                                                            |
 | notes                               | array       | Array of objects  | —                                                                                                                                                            |
 | ├─ notes[].timestamp                | number (TS) | 1717906000000     | —                                                                                                                                                            |
 | ├─ notes[].agentId                  | string      | "agent_456"       | —                                                                                                                                                            |
+| —                                   |
+| ├─ notes[].agentName                | string      | "agent_456"       | —                                                                                                                                                            |
+| —                                   |
+| ├─ notes[].TaskType                 | string      | "agent_456"       | —                                                                                                                                                            |
 | └─ notes[].note                     | string      | "Follow up call"  | —                                                                                                                                                            |
 | activityHistory                     | array       | Array of objects  | —                                                                                                                                                            |
 | ├─ activityHistory[].timestamp      | number (TS) | 1717907000000     | —                                                                                                                                                            |
@@ -103,15 +114,16 @@ Tracks property enquiries made by leads, current status of enquiry, activity his
 
 Contains scheduled tasks or activities assigned to agents related to enquiries, including status and deadlines.
 
-| Field          | Type        | Example             | Options                                                                         |
-| -------------- | ----------- | ------------------- | ------------------------------------------------------------------------------- |
-| taskId         | string      | "task_001"          | —                                                                               |
-| enquiryId      | string      | "enq_123"           | —                                                                               |
-| agentId        | string      | "agent_456"         | —                                                                               |
-| agentName      | string      | "Rahul Mehta"       | —                                                                               |
-| type           | string      | "lead registration" | lead registration \| initial contact \| site visit \| eoi collection \| booking |
-| status         | string      | "open"              | open \| complete                                                                |
-| scheduledDate  | number (TS) | 1717833600000       | —                                                                               |
-| added          | number (TS) | 1717651200000       | —                                                                               |
-| completionDate | number (TS) | 1717923600000       | —                                                                               |
-| lastModified   | number (TS) | 1717927200000       | —                                                                               |
+| Field          | Type                            | Example             | Options                                                                         |
+| -------------- | ------------------------------- | ------------------- | ------------------------------------------------------------------------------- |
+| taskId         | string                          | "task_001"          | —                                                                               |
+| enquiryId      | string                          | "enq_123"           | —                                                                               |
+| agentId        | string                          | "agent_456"         | —                                                                               |
+| agentName      | string                          | "Rahul Mehta"       | —                                                                               |
+| type           | string                          | "lead registration" | lead registration \| initial contact \| site visit \| eoi collection \| booking |
+| status         | string                          | "open"              | open \| complete                                                                |
+| taskResult     | string (initially take as null) | "change property"   | eoi collectedf \|eoi not collected\|change property                             |
+| scheduledDate  | number (TS)                     | 1717833600000       | —                                                                               |
+| added          | number (TS)                     | 1717651200000       | —                                                                               |
+| completionDate | number (TS)                     | 1717923600000       | —                                                                               |
+| lastModified   | number (TS)                     | 1717927200000       | —                                                                               |

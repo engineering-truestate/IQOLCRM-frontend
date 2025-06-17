@@ -1,6 +1,7 @@
 /* Tailwind CSS v4.0 - CSS-first Configuration */
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&display=swap');
 @import 'tailwindcss';
+@import 'tailwind-scrollbar-hide/v4';
 
 /* Import IBM Plex Sans Font */
 

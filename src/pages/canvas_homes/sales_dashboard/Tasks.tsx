@@ -262,15 +262,11 @@ const Tasks = () => {
     const getTaskStatusColor = (status: string) => {
         switch (status) {
             case 'Complete':
-                return 'bg-green-100 text-green-800'
+                return 'bg-[#E1F6DF]'
             case 'Open':
-                return 'bg-blue-100 text-blue-800'
-            case 'Overdue':
-                return 'bg-red-100 text-red-800'
-            case 'Upcoming':
-                return 'bg-yellow-100 text-yellow-800'
+                return 'bg-[#DADAE2]'
             default:
-                return 'bg-gray-100 text-gray-800'
+                return 'bg-gray-100'
         }
     }
 
@@ -356,9 +352,9 @@ const Tasks = () => {
             key: 'taskStatus',
             header: 'Task Status',
             render: (value) => (
-                <span className={`p-2 rounded-sm h-7 w-22.5 text-xs font-medium ${getTaskStatusColor(value)}`}>
+                <div className={`p-2 rounded-sm h-7 w-22.5 text-xs font-medium ${getTaskStatusColor(value)}`}>
                     {value}
-                </span>
+                </div>
             ),
         },
         {
@@ -369,43 +365,41 @@ const Tasks = () => {
     ]
 
     return (
-        <div className='w-full'>
+        <div className='w-full p-3 pb-0'>
             {/* Search and Filters */}
             <div className='flex items-center gap-3 mb-5'>
-                <div className='w-64'>
-                    <StateBaseTextField
-                        leftIcon={
-                            <svg
-                                className='w-4 h-4 text-gray-400'
-                                fill='none'
-                                stroke='currentColor'
-                                viewBox='0 0 16 16'
-                                width='16'
-                                height='16'
-                                xmlns='http://www.w3.org/2000/svg'
-                            >
-                                <path
-                                    d='M7.66668 13.9999C11.1645 13.9999 14 11.1644 14 7.66659C14 4.16878 11.1645 1.33325 7.66668 1.33325C4.16887 1.33325 1.33334 4.16878 1.33334 7.66659C1.33334 11.1644 4.16887 13.9999 7.66668 13.9999Z'
-                                    stroke='#3A3A47'
-                                    strokeWidth='1.5'
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                />
-                                <path
-                                    d='M14.6667 14.6666L13.3333 13.3333'
-                                    stroke='#3A3A47'
-                                    strokeWidth='1.5'
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                />
-                            </svg>
-                        }
-                        placeholder='Search name and number'
-                        value={searchValue}
-                        onChange={(e) => setSearchValue(e.target.value)}
-                        className='h-7'
-                    />
-                </div>
+                <StateBaseTextField
+                    leftIcon={
+                        <svg
+                            className='w-4 h-4 text-gray-400'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 16 16'
+                            width='16'
+                            height='16'
+                            xmlns='http://www.w3.org/2000/svg'
+                        >
+                            <path
+                                d='M7.66668 13.9999C11.1645 13.9999 14 11.1644 14 7.66659C14 4.16878 11.1645 1.33325 7.66668 1.33325C4.16887 1.33325 1.33334 4.16878 1.33334 7.66659C1.33334 11.1644 4.16887 13.9999 7.66668 13.9999Z'
+                                stroke='#3A3A47'
+                                strokeWidth='1.5'
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                            />
+                            <path
+                                d='M14.6667 14.6666L13.3333 13.3333'
+                                stroke='#3A3A47'
+                                strokeWidth='1.5'
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                            />
+                        </svg>
+                    }
+                    placeholder='Search name and number'
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    className='h-7 w-68'
+                />
 
                 <Dropdown
                     options={dateRangeOptions}
@@ -413,7 +407,7 @@ const Tasks = () => {
                     defaultValue={selectedDateRange}
                     placeholder='Date Range'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -424,7 +418,7 @@ const Tasks = () => {
                     defaultValue={selectedProperty}
                     placeholder='Property'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -435,7 +429,7 @@ const Tasks = () => {
                     defaultValue={selectedLeadStage}
                     placeholder='Lead Stage'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -446,7 +440,7 @@ const Tasks = () => {
                     defaultValue={selectedTask}
                     placeholder='Task'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -457,7 +451,7 @@ const Tasks = () => {
                     defaultValue={selectedTag}
                     placeholder='Tag'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -468,7 +462,7 @@ const Tasks = () => {
                     defaultValue={selectedLeadStatus}
                     placeholder='Lead Status'
                     className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -501,7 +495,7 @@ const Tasks = () => {
             </div>
 
             {/* Table */}
-            <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[58vh]'>
+            <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[63vh]'>
                 <FlexibleTable
                     data={tasksData}
                     columns={columns}
@@ -514,7 +508,7 @@ const Tasks = () => {
                     className='rounded-lg'
                     stickyHeader={true}
                     hoverable={true}
-                    maxHeight='58vh'
+                    maxHeight='63vh'
                 />
             </div>
         </div>
