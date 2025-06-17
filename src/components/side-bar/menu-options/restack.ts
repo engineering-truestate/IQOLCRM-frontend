@@ -4,4 +4,5 @@ export const restackMenuItems = [
     { label: 'Post-Rera', path: '/restack/stock/post-rera' },
     { label: 'Primary', path: '/restack/primary' },
     { label: 'Resale', path: '/restack/resale' },
+    { label: 'Rental', path: '/restack/rental' },
 ]

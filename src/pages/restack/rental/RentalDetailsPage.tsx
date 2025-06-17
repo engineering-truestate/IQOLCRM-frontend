@@ -371,7 +371,7 @@ const RentalDetailsPage = () => {
                             </div>
                             <div className='flex gap-2'>
                                 <div className='px-3 py-1 border-[#0069D0] border-[1px] text-black rounded-[20px] text-sm font-medium'>
-                                    Listed by owner
+                                    Listed by {propertyDetails?.postedBy}
                                 </div>
                                 {isEditing ? (
                                     <>
@@ -405,8 +405,8 @@ const RentalDetailsPage = () => {
                                         </Button>
                                         <Button
                                             leftIcon={<img src={editic} alt='Update Status' className='w-4 h-4' />}
-                                            bgColor='bg-black'
-                                            textColor='text-white'
+                                            bgColor='bg-[#F3F3F3]'
+                                            textColor='text-[#3A3A47]'
                                             className='px-4 h-8 font-semibold'
                                         >
                                             Update Status

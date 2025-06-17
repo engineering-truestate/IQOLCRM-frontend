@@ -1,5 +1,6 @@
 import PostReraPage from './pages/restack/Stock/post-rera/PostReraPage'
 import PostReraDocumentPage from './pages/restack/Stock/post-rera/PostReraDocumentPage'
+import RentalPage from './pages/restack/rental/RentalPage'
 import type { RouteObject } from 'react-router-dom'
 import React from 'react'
 import Login from './pages/auth/Login'
@@ -175,6 +176,10 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/restack/rental/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(RentalDetailsPage, null)),
+    },
+    {
+        path: '/restack/rental',
+        element: React.createElement(React.Suspense, null, React.createElement(RentalPage, null)),
     },
 ]
 
