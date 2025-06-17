@@ -172,7 +172,7 @@ const PostReraDetailsPage = () => {
             }
 
             return (
-                <div>
+                <div className='border-b border-[#D4DBE2] pb-2 mb-4 flex justify-between'>
                     <label className='text-sm text-gray-600 block mb-1'>{label}</label>
                     <div className='text-sm text-black font-medium'>{displayValue}</div>
                 </div>
@@ -242,7 +242,7 @@ const PostReraDetailsPage = () => {
                                 </h1>
                                 <div className='text-sm text-gray-500 mt-1'>
                                     <button
-                                        onClick={() => navigate('/restack/postrera')}
+                                        onClick={() => navigate('/restack/stock/post-rera')}
                                         className='hover:text-gray-700'
                                     >
                                         Post-rera
@@ -286,7 +286,7 @@ const PostReraDetailsPage = () => {
                         </div>
 
                         {/* Phase Details Table */}
-                        <div className='mb-6'>
+                        <div className='mb-6 border border-gray-200 rounded-lg overflow-hidden'>
                             <FlexibleTable
                                 data={projectDetails?.phaseDetails || []}
                                 columns={getPhaseColumns()}
@@ -452,19 +452,13 @@ const PostReraDetailsPage = () => {
                         <h2 className='text-lg font-semibold text-black mb-4'>Development Details</h2>
                         <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
                             <table className='w-full'>
-                                <thead className='bg-gray-50'>
+                                <thead className='bg-gray-50 '>
                                     <tr>
-                                        <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
+                                        <th className='px-4 py-3 text-left text-sm font-medium text-[#121516] items-center'>
                                             Inventory Type
                                         </th>
-                                        <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
+                                        <th className='px-4 py-3 text-left text-sm font-medium text-[#121516] items-center'>
                                             No of Inventory
-                                        </th>
-                                        <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
-                                            Apartments
-                                        </th>
-                                        <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
-                                            Villas
                                         </th>
                                     </tr>
                                 </thead>
@@ -473,11 +467,9 @@ const PostReraDetailsPage = () => {
                                         <td className='px-4 py-3 text-sm'>
                                             {projectDetails?.developmentDetails?.TypeOfInventory}
                                         </td>
-                                        <td className='px-4 py-3 text-sm'>
+                                        <td className='px-4 py-3 text-sm text-[#6A7881]'>
                                             {projectDetails?.developmentDetails?.NumberOfInventory}
                                         </td>
-                                        <td className='px-4 py-3 text-sm'>80</td>
-                                        <td className='px-4 py-3 text-sm'>20</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -501,9 +493,9 @@ const PostReraDetailsPage = () => {
                     {/* Amenities */}
                     <div className='mb-8'>
                         <h2 className='text-lg font-semibold text-black mb-4'>Amenities</h2>
-                        <div className='grid grid-cols-2 gap-4'>
+                        <div className='flex flex-wrap gap-2'>
                             {projectDetails?.projectAmenities?.map((amenity, index) => (
-                                <div key={index} className='text-sm text-gray-700'>
+                                <div key={index} className='text-sm text-[#101419] px-3 py-1 rounded-2xl bg-[#E9EDF1]'>
                                     {amenity}
                                 </div>
                             ))}

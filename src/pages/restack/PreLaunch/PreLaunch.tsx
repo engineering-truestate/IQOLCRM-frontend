@@ -84,7 +84,7 @@ const PreLaunchPage = () => {
             header: 'Action',
             render: (_, row) => (
                 <button
-                    className='text-gray-900 text-sm font-medium transition-colors'
+                    className='text-gray-900 text-sm font-medium transition-colors cursor-pointer'
                     onClick={() => navigate(`/restack/prelaunch/${row.projectId}`)}
                 >
                     View Details
