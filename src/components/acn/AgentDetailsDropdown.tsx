@@ -1,5 +1,9 @@
 import React, { useState } from 'react'
-import { Phone, Calendar, Info, ChevronDown, ChevronUp } from 'lucide-react'
+import phoneIcon from '/icons/acn/phone1.svg'
+import chevronUp from '/icons/acn/chevron-up.svg'
+import chevronDown from '/icons/acn/chevron-down.svg'
+import calendarIcon from '/icons/acn/calendar.svg'
+import walletAdd from '/icons/acn/wallet-add.svg'
 
 interface AgentDetails {
     [key: string]: string | number | boolean | null | undefined
@@ -49,12 +53,12 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
 
     // State for individual sections
     const [openSections, setOpenSections] = useState({
-        userDetails: false,
-        planDetails: false,
-        resaleDetails: false,
-        rentalDetails: false,
-        enquiryDetails: false,
-        credits: false,
+        userDetails: true,
+        planDetails: true,
+        resaleDetails: true,
+        rentalDetails: true,
+        enquiryDetails: true,
+        credits: true,
     })
 
     const toggleMainDropdown = () => {
@@ -132,9 +136,10 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                 >
                     <span className='font-medium text-gray-900 text-sm'>{title}</span>
                     {isOpen ? (
-                        <ChevronUp className='w-4 h-4 text-gray-500' />
+                        <img src={chevronUp} alt='Chevron Up' className='w-4 h-4 text-gray-500' />
                     ) : (
-                        <ChevronDown className='w-4 h-4 text-gray-500' />
+                        // <img src={phoneIcon} alt="Phone Icon" className="w-6 h-6" />
+                        <img src={chevronDown} alt='Chevron Down' className='w-4 h-4 text-gray-500' />
                     )}
                 </button>
 
@@ -187,9 +192,9 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                     {/* Right: Chevron */}
                     <button onClick={toggleMainDropdown}>
                         {isMainDropdownOpen ? (
-                            <ChevronUp className='w-4 h-4 text-gray-400' />
+                            <img src={chevronUp} alt='Chevron Up' className='w-4 h-4 text-gray-500' />
                         ) : (
-                            <ChevronDown className='w-4 h-4 text-gray-400' />
+                            <img src={chevronDown} alt='Chevron Down' className='w-4 h-4 text-gray-500' />
                         )}
                     </button>
                 </div>
@@ -213,13 +218,13 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                     {/* Action Icons */}
                     <div className='flex items-center gap-2'>
                         <button className='bg-gray-100 p-1.5 rounded'>
-                            <Phone className='w-4 h-4 text-gray-600' />
+                            <img src={phoneIcon} alt='Phone Icon' className='w-6 h-6' />
                         </button>
                         <button className='bg-gray-100 p-1.5 rounded'>
-                            <Calendar className='w-4 h-4 text-gray-600' />
+                            <img src={calendarIcon} alt='Calendar Icon' className='w-6 h-6' />
                         </button>
                         <button className='bg-gray-100 p-1.5 rounded'>
-                            <Info className='w-4 h-4 text-gray-600' />
+                            <img src={walletAdd} alt='Wallet Add Icon' className='w-6 h-6' />
                         </button>
                     </div>
                 </div>
