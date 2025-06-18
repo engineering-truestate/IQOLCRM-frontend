@@ -74,6 +74,14 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(RequirementsPage, null)),
     },
     {
+        path: '/acn/properties/:id/edit',
+        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+    },
+    {
+        path: '/acn/properties/addinv',
+        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+    },
+    {
         path: '/acn/properties',
         element: React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
     },

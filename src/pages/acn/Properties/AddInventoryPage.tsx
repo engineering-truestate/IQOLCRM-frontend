@@ -1,4 +1,3 @@
-// AddEditInventoryPage.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -22,7 +21,7 @@ import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 const assetTypes: { label: string; value: PropertyType; icon: string }[] = [
     { label: 'flats/apartments', value: 'apartments', icon: '🏢' },
     { label: 'Villa', value: 'villa', icon: '🏡' },
-    { label: 'plot', value: 'plot', icon: '🏞️' },
+    { label: 'Plot', value: 'plot', icon: '🏞️' },
     { label: 'Row House', value: 'rowhouse', icon: '🏘️' },
     { label: 'Villament', value: 'villament', icon: '🏠' },
     { label: 'Independent Building', value: 'independent', icon: '🏛️' },
@@ -39,6 +38,7 @@ const formatUnixTimestamp = (timestamp: number | null | undefined): string => {
 const mapPropertyToFormData = (property: IInventory): Record<string, any> => {
     return {
         // Basic Information
+
         communityType: 'gated',
         projectName: property.nameOfTheProperty || property.area,
         sbua: property.sbua?.toString() || '',
@@ -167,6 +167,8 @@ const AddEditInventoryPage = () => {
     const [successMessage, setSuccessMessage] = useState('')
     const [nextPropertyId, setNextPropertyId] = useState<string>('')
     const [loadingNextId, setLoadingNextId] = useState(false)
+    const [agentIdInput, setAgentIdInput] = useState('')
+    const [fetchedAgentId, setFetchedAgentId] = useState<string | null>(null)
 
     // Load property data if in edit mode or get next property ID for new properties
     useEffect(() => {
@@ -283,6 +285,11 @@ const AddEditInventoryPage = () => {
         }
     }
 
+    const handleFetchAgentId = () => {
+        // Simulate fetching agent id
+        setFetchedAgentId('101')
+    }
+
     const currentConfig = formConfigs[selectedAssetType]
 
     // Loading state
@@ -329,25 +336,185 @@ const AddEditInventoryPage = () => {
 
     return (
         <Layout loading={false}>
-            <div className='w-full overflow-hidden font-sans'>
-                <div className='py-6 px-6 bg-white min-h-screen'>
-                    {/* Header */}
-                    <div className='mb-6'>
-                        <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
-                            {isEditMode ? 'Edit Inventory' : 'Add Inventory'}
-                        </h1>
+            <div className='flex'>
+                {/* Sticky Left Sidebar */}
+                <div className='w-64 sticky top-0 h-screen overflow-y-auto border-r p-4'>
+                    <h2 className='text-lg font-medium text-gray-900 mb-4'>Asset Type</h2>
+                    <div className='flex flex-col gap-4'>
+                        {assetTypes.map((type) => (
+                            <button
+                                key={type.value}
+                                onClick={() => setSelectedAssetType(type.value)}
+                                disabled={isEditMode}
+                                className={`p-4 rounded-lg border-2 transition-all duration-200 text-left flex items-center gap-x-3 ${
+                                    selectedAssetType === type.value
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                                } ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                <div className='text-2xl'>{type.icon}</div>
+                                <div className='text-sm font-medium'>{type.label}</div>
+                            </button>
+                        ))}
+                    </div>
+                    {isEditMode && (
+                        <p className='text-sm text-gray-500 mt-4'>Asset type cannot be changed in edit mode</p>
+                    )}
+                </div>
 
-                        {isEditMode && property && (
-                            <p className='text-gray-600 mb-6'>
-                                Editing: {property.nameOfTheProperty || property.area} ({property.propertyId})
-                            </p>
-                        )}
-
-                        {!isEditMode && (
+                {/* Right Content Area */}
+                <div className='flex-1 pl-6 overflow-y-auto'>
+                    {/* Your scrollable content/form goes here */}
+                    <div className='w-full overflow-hidden font-sans'>
+                        <div className='py-6 px-6 bg-white min-h-screen'>
+                            {/* Header */}
                             <div className='mb-6'>
-                                {loadingNextId ? (
-                                    <p className='text-gray-600'>
-                                        <span className='inline-flex items-center gap-2'>
+                                <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
+                                    {isEditMode ? 'Edit Inventory' : 'Add Inventory'}
+                                </h1>
+
+                                {isEditMode && property && (
+                                    <p className='text-gray-600 mb-6'>
+                                        Editing: {property.nameOfTheProperty || property.area} ({property.propertyId})
+                                    </p>
+                                )}
+
+                                {!isEditMode && (
+                                    <div className='mb-6'>
+                                        {loadingNextId ? (
+                                            <p className='text-gray-600'>
+                                                <span className='inline-flex items-center gap-2'>
+                                                    <svg
+                                                        className='animate-spin h-4 w-4'
+                                                        fill='none'
+                                                        viewBox='0 0 24 24'
+                                                    >
+                                                        <circle
+                                                            className='opacity-25'
+                                                            cx='12'
+                                                            cy='12'
+                                                            r='10'
+                                                            stroke='currentColor'
+                                                            strokeWidth='4'
+                                                        ></circle>
+                                                        <path
+                                                            className='opacity-75'
+                                                            fill='currentColor'
+                                                            d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                                                        ></path>
+                                                    </svg>
+                                                    Loading next property ID...
+                                                </span>
+                                            </p>
+                                        ) : nextPropertyId ? (
+                                            <p className='text-gray-600'>
+                                                Next Property ID:{' '}
+                                                <span className='font-semibold text-blue-600'>{nextPropertyId}</span>
+                                            </p>
+                                        ) : (
+                                            <p className='text-gray-600'>
+                                                Next Property ID:{' '}
+                                                <span className='font-semibold text-gray-400'>Loading...</span>
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Add this block for text field and fetch button */}
+                                <div className='flex gap-2 mb-6 items-center'>
+                                    <input
+                                        type='text'
+                                        placeholder='Agent Number'
+                                        className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                        value={agentIdInput}
+                                        onChange={(e) => setAgentIdInput(e.target.value)}
+                                    />
+                                    <button
+                                        className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition'
+                                        onClick={() => setFetchedAgentId('101 | Name')}
+                                        type='button'
+                                    >
+                                        Fetch
+                                    </button>
+                                    {fetchedAgentId && (
+                                        <span className='ml-4 text-green-700 font-semibold'>{fetchedAgentId}</span>
+                                    )}
+                                </div>
+                                {/* End of added block */}
+
+                                {/* Success/Error Messages */}
+                                {successMessage && (
+                                    <div className='mb-4 p-3 bg-green-50 border border-green-200 rounded-lg'>
+                                        <div className='flex items-center gap-2'>
+                                            <svg
+                                                className='w-5 h-5 text-green-600'
+                                                fill='none'
+                                                stroke='currentColor'
+                                                viewBox='0 0 24 24'
+                                            >
+                                                <path
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                    strokeWidth={2}
+                                                    d='M5 13l4 4L19 7'
+                                                />
+                                            </svg>
+                                            <div className='text-sm text-green-700'>{successMessage}</div>
+                                        </div>
+                                        <div className='text-xs text-green-600 mt-1'>
+                                            Redirecting to property details...
+                                        </div>
+                                    </div>
+                                )}
+
+                                {error && (
+                                    <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                                        <div className='text-sm text-red-700'>{error}</div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Form Sections */}
+                            <div className='space-y-4'>
+                                {currentConfig.map((section, sectionIndex) => (
+                                    <div key={sectionIndex} className='bg-white '>
+                                        {/* <h3 className='text-lg font-semibold text-gray-900 mb-6'>{section.title}</h3> */}
+                                        <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+                                            {section.fields.map((field) => (
+                                                <FormFieldRenderer
+                                                    key={field.id}
+                                                    field={field}
+                                                    value={formData[field.id]}
+                                                    onChange={(value) => handleFieldChange(field.id, value)}
+                                                    error={errors[field.id]}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className='flex justify-end gap-4 mt-8 pt-6 '>
+                                {/* Save as Draft */}
+                                <Button
+                                    bgColor='bg-gray-200'
+                                    textColor='text-gray-700'
+                                    className='px-1 py-1 border border-gray-300 hover:bg-gray-100 text-base font-medium'
+                                    // onClick={handleSaveAsDraft}
+                                    disabled={loading}
+                                >
+                                    Save as Draft
+                                </Button>
+                                <Button
+                                    bgColor={loading ? 'bg-gray-400' : successMessage ? 'bg-green-600' : 'bg-gray-900'}
+                                    textColor='text-white'
+                                    className='px-4 py-2 hover:bg-gray-800 text-base font-medium'
+                                    onClick={handleSubmit}
+                                    disabled={loading || successMessage !== ''}
+                                >
+                                    {loading ? (
+                                        <div className='flex items-center gap-2'>
                                             <svg className='animate-spin h-4 w-4' fill='none' viewBox='0 0 24 24'>
                                                 <circle
                                                     className='opacity-25'
@@ -363,144 +530,33 @@ const AddEditInventoryPage = () => {
                                                     d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
                                                 ></path>
                                             </svg>
-                                            Loading next property ID...
-                                        </span>
-                                    </p>
-                                ) : nextPropertyId ? (
-                                    <p className='text-gray-600'>
-                                        Next Property ID:{' '}
-                                        <span className='font-semibold text-blue-600'>{nextPropertyId}</span>
-                                    </p>
-                                ) : (
-                                    <p className='text-gray-600'>
-                                        Next Property ID:{' '}
-                                        <span className='font-semibold text-gray-400'>Loading...</span>
-                                    </p>
-                                )}
+                                            {isEditMode ? 'Updating...' : 'Creating...'}
+                                        </div>
+                                    ) : successMessage ? (
+                                        <div className='flex items-center gap-2'>
+                                            <svg
+                                                className='w-4 h-4'
+                                                fill='none'
+                                                stroke='currentColor'
+                                                viewBox='0 0 24 24'
+                                            >
+                                                <path
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                    strokeWidth={2}
+                                                    d='M5 13l4 4L19 7'
+                                                />
+                                            </svg>
+                                            {isEditMode ? 'Updated!' : 'Created!'}
+                                        </div>
+                                    ) : isEditMode ? (
+                                        'Update Property'
+                                    ) : (
+                                        'Submit'
+                                    )}
+                                </Button>
                             </div>
-                        )}
-
-                        {/* Success/Error Messages */}
-                        {successMessage && (
-                            <div className='mb-4 p-3 bg-green-50 border border-green-200 rounded-lg'>
-                                <div className='flex items-center gap-2'>
-                                    <svg
-                                        className='w-5 h-5 text-green-600'
-                                        fill='none'
-                                        stroke='currentColor'
-                                        viewBox='0 0 24 24'
-                                    >
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M5 13l4 4L19 7'
-                                        />
-                                    </svg>
-                                    <div className='text-sm text-green-700'>{successMessage}</div>
-                                </div>
-                                <div className='text-xs text-green-600 mt-1'>Redirecting to property details...</div>
-                            </div>
-                        )}
-
-                        {error && (
-                            <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg'>
-                                <div className='text-sm text-red-700'>{error}</div>
-                            </div>
-                        )}
-
-                        {/* Asset Type Selection */}
-                        <div className='mb-8'>
-                            <h2 className='text-lg font-medium text-gray-900 mb-4'>Asset Type</h2>
-                            <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4'>
-                                {assetTypes.map((type) => (
-                                    <button
-                                        key={type.value}
-                                        onClick={() => setSelectedAssetType(type.value)}
-                                        disabled={isEditMode}
-                                        className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                                            selectedAssetType === type.value
-                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                                        } ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    >
-                                        <div className='text-2xl mb-2'>{type.icon}</div>
-                                        <div className='text-sm font-medium'>{type.label}</div>
-                                    </button>
-                                ))}
-                            </div>
-                            {isEditMode && (
-                                <p className='text-sm text-gray-500 mt-2'>Asset type cannot be changed in edit mode</p>
-                            )}
                         </div>
-                    </div>
-
-                    {/* Form Sections */}
-                    <div className='space-y-8'>
-                        {currentConfig.map((section, sectionIndex) => (
-                            <div key={sectionIndex} className='bg-white border border-gray-200 rounded-lg p-6'>
-                                <h3 className='text-lg font-semibold text-gray-900 mb-6'>{section.title}</h3>
-                                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                                    {section.fields.map((field) => (
-                                        <FormFieldRenderer
-                                            key={field.id}
-                                            field={field}
-                                            value={formData[field.id]}
-                                            onChange={(value) => handleFieldChange(field.id, value)}
-                                            error={errors[field.id]}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className='flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200'>
-                        <Button
-                            bgColor={loading ? 'bg-gray-400' : successMessage ? 'bg-green-600' : 'bg-gray-900'}
-                            textColor='text-white'
-                            className='px-8 py-3 hover:bg-gray-800 text-base font-medium'
-                            onClick={handleSubmit}
-                            disabled={loading || successMessage !== ''}
-                        >
-                            {loading ? (
-                                <div className='flex items-center gap-2'>
-                                    <svg className='animate-spin h-4 w-4' fill='none' viewBox='0 0 24 24'>
-                                        <circle
-                                            className='opacity-25'
-                                            cx='12'
-                                            cy='12'
-                                            r='10'
-                                            stroke='currentColor'
-                                            strokeWidth='4'
-                                        ></circle>
-                                        <path
-                                            className='opacity-75'
-                                            fill='currentColor'
-                                            d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                                        ></path>
-                                    </svg>
-                                    {isEditMode ? 'Updating...' : 'Creating...'}
-                                </div>
-                            ) : successMessage ? (
-                                <div className='flex items-center gap-2'>
-                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M5 13l4 4L19 7'
-                                        />
-                                    </svg>
-                                    {isEditMode ? 'Updated!' : 'Created!'}
-                                </div>
-                            ) : isEditMode ? (
-                                'Update Property'
-                            ) : (
-                                'Add Property'
-                            )}
-                        </Button>
                     </div>
                 </div>
             </div>
