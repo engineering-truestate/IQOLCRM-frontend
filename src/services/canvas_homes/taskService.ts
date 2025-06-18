@@ -17,6 +17,9 @@ import type { Task } from './types'
 class TaskService {
     private collectionName = 'canvashomesTasks'
 
+    /**
+     * Fetch a single task by its ID.
+     */
     async getById(taskId: string): Promise<Task | null> {
         try {
             const taskDoc = await getDoc(doc(db, this.collectionName, taskId))
@@ -30,6 +33,9 @@ class TaskService {
         }
     }
 
+    /**
+     * Get all tasks associated with a specific enquiry, sorted by scheduledDate.
+     */
     async getByEnquiryId(enquiryId: string): Promise<Task[]> {
         try {
             const q = query(collection(db, this.collectionName), where('enquiryId', '==', enquiryId))
@@ -46,7 +52,7 @@ class TaskService {
                 .sort((a, b) => {
                     const aDate = a.scheduledDate?.toMillis?.() ?? 0
                     const bDate = b.scheduledDate?.toMillis?.() ?? 0
-                    return aDate - bDate // Ascending
+                    return aDate - bDate // Sort by date ascending
                 })
 
             return tasks
@@ -56,6 +62,10 @@ class TaskService {
         }
     }
 
+    /**
+     * Get all tasks assigned to a specific agent with optional filtering by status and type.
+     * Results are sorted by scheduledDate.
+     */
     async getByAgentId(
         agentId: string,
         filters?: {
@@ -66,6 +76,7 @@ class TaskService {
         try {
             let q = query(collection(db, this.collectionName), where('agentId', '==', agentId))
 
+            // Apply filters if provided
             if (filters?.status) {
                 q = query(q, where('status', '==', filters.status))
             }
@@ -89,8 +100,12 @@ class TaskService {
         }
     }
 
+    /**
+     * Create a new task with an auto-incremented taskId (e.g., task001, task002).
+     */
     async create(taskData: Omit<Task, 'taskId' | 'added' | 'lastModified'>): Promise<string> {
         try {
+            // Fetch the last created task to determine the next taskId
             const q = query(collection(db, this.collectionName), orderBy('taskId', 'desc'), limit(1))
             const snapshot = await getDocs(q)
 
@@ -102,6 +117,7 @@ class TaskService {
                 nextTaskId = `task${newNumber.toString().padStart(3, '0')}`
             }
 
+            // Prepare the task object
             const newTask = {
                 ...taskData,
                 taskId: nextTaskId,
@@ -118,6 +134,10 @@ class TaskService {
         }
     }
 
+    /**
+     * Update only the status and optionally the result of a task.
+     * Automatically updates lastModified and completionDate if completed.
+     */
     async updateStatus(taskId: string, status: 'open' | 'complete', taskResult?: string): Promise<void> {
         try {
             const updateData: any = {
@@ -139,6 +159,10 @@ class TaskService {
         }
     }
 
+    /**
+     * Generic update for a task using partial fields.
+     * Automatically updates lastModified timestamp.
+     */
     async update(taskId: string, updates: Partial<Task>): Promise<void> {
         try {
             const updateData = {
@@ -152,6 +176,9 @@ class TaskService {
         }
     }
 
+    /**
+     * Delete a task by its taskId.
+     */
     async delete(taskId: string): Promise<void> {
         try {
             await deleteDoc(doc(db, this.collectionName, taskId))

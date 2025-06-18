@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Dropdown from '../design-elements/Dropdown'
 import { leadService } from '../../services/canvas_homes/leadService' // Adjust path as needed
+import { userService } from '../../services/canvas_homes/userService' // Adjust path as needed
 
 interface AddDetailsModalProps {
     isOpen: boolean
@@ -22,6 +23,7 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
     onClose,
     onDetailsAdded,
     leadId,
+    userId,
     currentPhoneNumber = '',
     currentLabel = 'call',
     additionalPhoneNumbers = [],
@@ -46,23 +48,50 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             ...prev,
             [field]: value,
         }))
+
+        // Clear error when user makes changes
+        if (error) setError(null)
+    }
+
+    const formatPhoneNumber = (number: string): string => {
+        const cleanNumber = number.replace(/[^\d+]/g, '') // Remove non-digit characters except +
+
+        // If it's an Indian number without country code, add +91
+        if (cleanNumber.length === 10 && /^\d{10}$/.test(cleanNumber)) {
+            return `+91 ${cleanNumber}`
+        }
+
+        // If it already has a plus, ensure there's a space after the country code
+        if (cleanNumber.startsWith('+')) {
+            // Find the country code (1-3 digits after +)
+            const countryCodeMatch = cleanNumber.match(/^\+(\d{1,3})/)
+            if (countryCodeMatch) {
+                const countryCode = countryCodeMatch[1]
+                const rest = cleanNumber.substring(countryCode.length + 1)
+                return `+${countryCode} ${rest}`
+            }
+        }
+
+        return cleanNumber
     }
 
     const validateForm = (): boolean => {
+        // Phone number is required
         if (!formData.phoneNumber.trim()) {
             setError('Phone Number is required')
             return false
         }
 
-        // Basic phone number validation - removed unnecessary escapes
+        // Basic phone number validation
         const phoneRegex = /^\+?[\d\s\-()]{10,15}$/
         if (!phoneRegex.test(formData.phoneNumber.trim())) {
-            setError('Please enter a valid phone number')
+            setError('Please enter a valid phone number (e.g., +91 9999999999)')
             return false
         }
 
         // Check if phone number already exists (current or additional)
-        const newNumber = formData.phoneNumber.trim()
+        const newNumber = formatPhoneNumber(formData.phoneNumber.trim())
+
         if (currentPhoneNumber === newNumber) {
             setError('This phone number is already the main number for this lead')
             return false
@@ -83,6 +112,12 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             }
         }
 
+        // Check if lead ID is provided
+        if (!leadId) {
+            setError('Lead ID is required')
+            return false
+        }
+
         return true
     }
 
@@ -93,17 +128,15 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             return
         }
 
-        if (!leadId) {
-            setError('Lead ID is required')
-            return
-        }
-
         setIsLoading(true)
 
         try {
+            // Format phone number consistently
+            const formattedPhoneNumber = formatPhoneNumber(formData.phoneNumber.trim())
+
             // Prepare the new phone number entry
             const newPhoneEntry = {
-                number: formData.phoneNumber.trim(),
+                number: formattedPhoneNumber,
                 label: formData.label,
                 addedAt: Date.now(),
             }
@@ -132,7 +165,7 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
                 updateData.phoneNumbers = [mainPhoneEntry, newPhoneEntry]
             } else {
                 // No phone numbers at all, set as main number
-                updateData.phoneNumber = formData.phoneNumber.trim()
+                updateData.phoneNumber = formattedPhoneNumber
                 updateData.label = formData.label
             }
 
@@ -140,19 +173,19 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
 
             // Update lead using the service
             await leadService.update(leadId, updateData)
-
+            await userService.update(userId, updateData)
             console.log('Lead updated successfully')
+
+            // Call the callback to refresh the lead data
+            if (onDetailsAdded) {
+                onDetailsAdded()
+            }
 
             // Show success message
             alert('Details added successfully!')
 
             // Reset form and close modal
             handleDiscard()
-
-            // Call the callback to refresh the lead data
-            if (onDetailsAdded) {
-                onDetailsAdded()
-            }
         } catch (error) {
             console.error('Error updating lead:', error)
             setError('Failed to add details. Please try again.')
@@ -182,9 +215,14 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 bg-white z-50 rounded-lg shadow-2xl'>
                 <div className='flex flex-col'>
                     {/* Modal Header */}
-                    <div className='flex items-center justify-between p-6 pb-4'>
+                    <div className='flex items-center justify-between p-6 pb-4 border-b border-gray-100'>
                         <h2 className='text-lg font-semibold text-black'>Add Details</h2>
-                        <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-md' disabled={isLoading}>
+                        <button
+                            onClick={onClose}
+                            className='p-1 hover:bg-gray-100 rounded-md'
+                            disabled={isLoading}
+                            aria-label='Close'
+                        >
                             <svg
                                 width='16'
                                 height='16'
@@ -213,42 +251,58 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
                         )}
 
                         <div className='space-y-4'>
-                            {/* Phone Number Input */}
-                            <div>
-                                <label className='block text-sm font-medium mb-2 text-gray-700'>
-                                    Phone No. <span className='text-red-500'>*</span>
-                                </label>
-                                <input
-                                    type='tel'
-                                    value={formData.phoneNumber}
-                                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                                    placeholder='+91'
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
-                                    disabled={isLoading}
-                                />
-                            </div>
+                            {/* Phone Number and Label Section */}
+                            <div className='grid grid-cols-2 gap-3'>
+                                {/* Phone Number Input */}
+                                <div>
+                                    <label
+                                        htmlFor='phoneNumber'
+                                        className='block text-sm font-medium mb-2 text-gray-700'
+                                    >
+                                        Phone No. <span className='text-red-500'>*</span>
+                                    </label>
+                                    <input
+                                        id='phoneNumber'
+                                        type='tel'
+                                        value={formData.phoneNumber}
+                                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                                        placeholder='+91'
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                                        disabled={isLoading}
+                                        required
+                                    />
+                                </div>
 
-                            {/* Label Dropdown */}
-                            <div>
-                                <label className='block text-sm font-medium mb-2 text-gray-700'>
-                                    Label <span className='text-red-500'>*</span>
-                                </label>
-                                <Dropdown
-                                    options={labelOptions}
-                                    onSelect={(value) => handleInputChange('label', value as 'whatsapp' | 'call')}
-                                    defaultValue={formData.label}
-                                    placeholder='Select'
-                                    className='w-full'
-                                    triggerClassName='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left'
-                                    menuClassName='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'
-                                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
-                                />
+                                {/* Label Dropdown */}
+                                <div>
+                                    <label
+                                        htmlFor='phoneLabel'
+                                        className='block text-sm font-medium mb-2 text-gray-700'
+                                    >
+                                        Label <span className='text-red-500'>*</span>
+                                    </label>
+                                    <Dropdown
+                                        id='phoneLabel'
+                                        options={labelOptions}
+                                        onSelect={(value) => handleInputChange('label', value as 'whatsapp' | 'call')}
+                                        defaultValue={formData.label}
+                                        placeholder='Select'
+                                        className='w-full'
+                                        triggerClassName='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left'
+                                        menuClassName='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'
+                                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                        disabled={isLoading}
+                                    />
+                                </div>
                             </div>
 
                             {/* Email Input */}
                             <div>
-                                <label className='block text-sm font-medium mb-2 text-gray-700'>Email Id</label>
+                                <label htmlFor='emailAddress' className='block text-sm font-medium mb-2 text-gray-700'>
+                                    Email Id
+                                </label>
                                 <input
+                                    id='emailAddress'
                                     type='email'
                                     value={formData.emailAddress}
                                     onChange={(e) => handleInputChange('emailAddress', e.target.value)}
@@ -257,50 +311,22 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
                                     disabled={isLoading}
                                 />
                             </div>
-
-                            {/* Additional Phone Numbers Display */}
-                            {additionalPhoneNumbers.length > 0 && (
-                                <div>
-                                    <label className='block text-sm font-medium mb-2 text-gray-700'>
-                                        Additional Phone Numbers
-                                    </label>
-                                    <div className='space-y-2'>
-                                        {additionalPhoneNumbers.map((phone, index) => (
-                                            <div
-                                                key={index}
-                                                className='flex items-center justify-between p-2 bg-gray-50 rounded border'
-                                            >
-                                                <span className='text-sm'>{phone.number}</span>
-                                                <span
-                                                    className={`text-xs px-2 py-1 rounded ${
-                                                        phone.label === 'whatsapp'
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : 'bg-blue-100 text-blue-800'
-                                                    }`}
-                                                >
-                                                    {phone.label === 'whatsapp' ? 'WhatsApp' : 'Call'}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                    {/* Modal Footer */}
-                    <div className='flex items-center justify-end gap-3 p-6 pt-4'>
+                    {/* Modal Footer - Centered Buttons */}
+                    <div className='flex items-center justify-center gap-4 p-6 pt-4 border-t border-gray-100'>
                         <button
                             onClick={handleDiscard}
                             disabled={isLoading}
-                            className='px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                            className='px-5 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                         >
                             Discard
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={isLoading}
-                            className='px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+                            className='px-5 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[80px]'
                         >
                             {isLoading && (
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>

@@ -70,10 +70,10 @@ export const protectedRoutes: RouteObject[] = [
         path: '/canvas-homes/dashboard',
         element: React.createElement(React.Suspense, null, React.createElement(Dashboard, null)),
     },
-    // {
-    //     path: '/canvas-homes/sales/leaddetails',
-    //     element: React.createElement(React.Suspense, null, React.createElement(LeadDetails, null)),
-    // },
+    {
+        path: '/canvas-homes/sales/',
+        element: React.createElement(React.Suspense, null, React.createElement(Sales, null)),
+    },
     {
         path: '/canvas-homes/sales/leaddetails/:leadId',
         element: React.createElement(React.Suspense, null, React.createElement(LeadDetails, null)),

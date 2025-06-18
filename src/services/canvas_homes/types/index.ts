@@ -12,8 +12,19 @@ export interface Lead {
     stage: 'lead registered' | 'initial contacted' | 'site visited' | 'eoi collected' | 'booking confirmed' | null
     taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking' | null
     scheduledDate: number | null
-    leadStatus: 'interested' | 'not interested' | 'booking dropped' | null
-    leadState: 'open' | 'closed' | 'fresh' | 'dropped' | null
+    leadStatus:
+        | 'interested'
+        | 'follow up'
+        | 'not interested'
+        | 'not connected'
+        | 'visit unsuccessful'
+        | 'visit dropped'
+        | 'eoi dropped'
+        | 'booking dropped'
+        | 'requirement collected'
+        | 'closed'
+        | null
+    state: 'open' | 'closed' | 'fresh' | 'dropped' | null
     added: number | null
     lastModified: number | null
 }
@@ -23,8 +34,9 @@ export interface Enquiry {
     leadId: string | null
     agentId: string | null
     propertyName: string | null
+    propertyId: string | null
     source: string | null
-    status: string | null
+    leadStatus: string | null
     stage: string | null
     agentHistory: AgentHistoryItem[] | null
     notes: NoteItem[] | null
@@ -56,6 +68,7 @@ export interface Enquiry {
               added: string | null
           }[]
         | null
+    state: 'open' | 'closed' | 'fresh' | 'dropped' | null
     added: number | null
     lastModified: number | null
 }
@@ -64,7 +77,7 @@ export interface AgentHistoryItem {
     timestamp: number
     agentId: string
     agentName: string
-    lastStage: string
+    lastStage: string | null
 }
 
 export interface NoteItem {
@@ -78,9 +91,8 @@ export interface NoteItem {
 export interface ActivityHistoryItem {
     timestamp: number
     agentId: string
+    agentName: string
     activityType: string
-    activityStatus: string
-    activityNote: string
 }
 
 export interface Task {
@@ -88,14 +100,15 @@ export interface Task {
     enquiryId: string
     agentId: string
     agentName: string
+    name: string
+    leadAddDate: number
+    propertyName: string
     type: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking'
     status: 'open' | 'complete'
-    taskResult: 'eoi collected' | 'eoi not collected' | 'change property' | null
     stage: string // e.g., "Initial Contacted"
     leadStatus: string // e.g., "Interested"
     tag: string // e.g., "Hot"
     scheduledDate: number
-    dueDays: number
     added: number
     completionDate?: number
     lastModified: number

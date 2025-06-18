@@ -500,7 +500,6 @@ const Tasks = () => {
                     data={tasksData}
                     columns={columns}
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
-                    showCheckboxes={true}
                     selectedRows={selectedRows}
                     headerClassName='font-normal'
                     onRowSelect={handleRowSelect}

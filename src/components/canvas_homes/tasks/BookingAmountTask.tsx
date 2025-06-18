@@ -2,9 +2,32 @@ import React, { useState } from 'react'
 import Dropdown from './Dropdown'
 import CloseLeadModal from '../CloseLeadModal'
 import RescheduleEventModal from '../RescheduleEventModal'
-import ChangePropertyModal from '../ChangePropertyModal'
+import { useSelector } from 'react-redux'
+import { useParams } from 'react-router'
+import { enquiryService } from '../../../services/canvas_homes'
 
-const BookingAmountTask = ({
+interface RootState {
+    taskId: {
+        taskId: string
+        enquiryId: string
+    }
+}
+
+interface BookingAmountTaskProps {
+    taskId: string
+    updateTaskState: (taskId: string, field: string, value: any) => void
+    getTaskState: (taskId: string, field: string) => any
+    setActiveTab?: (tab: string) => void
+    onTaskStatusUpdate?: (taskId: string, status: string, result?: string) => Promise<void>
+    onUpdateEnquiry?: (data: any) => Promise<void>
+    onUpdateLead?: (data: any) => Promise<void>
+    onAddNote?: (data: any) => Promise<void>
+    onUpdateTask?: (taskId: string, data: any) => Promise<void>
+    agentId?: string
+    agentName?: string
+}
+
+const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
     taskId,
     updateTaskState,
     getTaskState,
@@ -17,53 +40,69 @@ const BookingAmountTask = ({
     agentId,
     agentName,
 }) => {
+    // Modal state
     const [isCloseLeadModalOpen, setIsCloseLeadModalOpen] = useState(false)
     const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
     const [isChangePropertyModalOpen, setIsChangePropertyModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
 
-    const bookingStatus = getTaskState(taskId, 'bookingStatus')
-    const isUnsuccessful = bookingStatus === 'unsuccessful'
+    // Redux and router hooks
+    const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId)
+    const { leadId } = useParams()
 
-    const handleSuccessfulClick = async (e) => {
+    // Task state
+    /**
+     * Handle successful booking
+     */
+    const handleSuccessfulClick = async (e: React.MouseEvent) => {
         e.stopPropagation()
         setIsLoading(true)
 
         try {
-            // Update local state
-            updateTaskState(taskId, 'bookingStatus', 'successful')
-
-            // Update task status to complete with successful result
-            if (typeof onTaskStatusUpdate === 'function') {
-                await onTaskStatusUpdate(taskId, 'complete', 'booking_successful')
+            // 1. Update the task status
+            if (onTaskStatusUpdate) {
+                await onTaskStatusUpdate(taskId, 'complete')
             }
 
-            // Update task result
-            if (typeof onUpdateTask === 'function') {
+            if (onUpdateTask) {
                 await onUpdateTask(taskId, {
                     taskResult: 'booking_successful',
                     status: 'complete',
                     lastModified: Date.now(),
+                    completionDate: Date.now(),
                 })
             }
 
-            // Update enquiry stage
-            if (typeof onUpdateEnquiry === 'function') {
-                await onUpdateEnquiry({
-                    stage: 'booking_confirmed',
-                })
+            // 2. Update enquiry with new status, stage, and tag
+            const enquiryUpdateData = {
+                status: 'closed',
+                stage: 'booking confirmed',
+                tag: null,
+                lastModified: Date.now(),
             }
 
-            // Update lead stage
-            if (typeof onUpdateLead === 'function') {
-                await onUpdateLead({
-                    stage: 'booking_confirmed',
-                    leadStatus: 'booking_confirmed',
-                    lastModified: Date.now(),
-                })
+            if (onUpdateEnquiry) {
+                await onUpdateEnquiry(enquiryUpdateData)
+            } else if (enquiryId) {
+                await enquiryService.update(enquiryId, enquiryUpdateData)
+                console.log('Enquiry updated with booking confirmed')
             }
 
-            console.log('Booking successful - all updates completed')
+            // 3. Update lead with new status, stage, and tag
+            const leadUpdateData = {
+                leadStatus: 'closed',
+                leadState: 'closed',
+                stage: 'booking confirmed',
+                tag: null,
+                lastModified: Date.now(),
+            }
+
+            if (onUpdateLead) {
+                await onUpdateLead(leadUpdateData)
+            }
+
+            // 4. Show success message
+            alert('Booking successful! Lead has been closed.')
         } catch (error) {
             console.error('Error updating booking successful:', error)
             alert('Failed to update booking status. Please try again.')
@@ -72,12 +111,16 @@ const BookingAmountTask = ({
         }
     }
 
+    // Options for "Not Connected" dropdown
     const notConnectedOptions = [
         { label: 'Reschedule Task', value: 'reschedule_task' },
         { label: 'Close Lead', value: 'close_lead' },
     ]
 
-    const handleNotConnectedAction = (value) => {
+    /**
+     * Handle "Not Connected" dropdown selection
+     */
+    const handleNotConnectedAction = (value: string) => {
         switch (value) {
             case 'reschedule_task':
                 setIsRescheduleModalOpen(true)
@@ -88,7 +131,10 @@ const BookingAmountTask = ({
         }
     }
 
-    const handleUnsuccessfulAction = (action) => {
+    /**
+     * Handle actions when booking is unsuccessful
+     */
+    const handleUnsuccessfulAction = (action: string) => {
         switch (action) {
             case 'change_property':
                 setIsChangePropertyModalOpen(true)
@@ -104,16 +150,19 @@ const BookingAmountTask = ({
         }
     }
 
-    const handleCloseLead = async (formData) => {
+    /**
+     * Close lead with the provided form data
+     */
+    const handleCloseLead = async (formData: any) => {
         setIsLoading(true)
 
         try {
             // Update task with booking unsuccessful result and reason
-            if (typeof onTaskStatusUpdate === 'function') {
+            if (onTaskStatusUpdate) {
                 await onTaskStatusUpdate(taskId, 'complete', 'booking_unsuccessful')
             }
 
-            if (typeof onUpdateTask === 'function') {
+            if (onUpdateTask) {
                 await onUpdateTask(taskId, {
                     taskResult: 'booking_unsuccessful',
                     status: 'complete',
@@ -123,7 +172,7 @@ const BookingAmountTask = ({
             }
 
             // Update enquiry status and tag
-            if (typeof onUpdateEnquiry === 'function') {
+            if (onUpdateEnquiry) {
                 await onUpdateEnquiry({
                     status: formData.leadStatus,
                     tag: formData.tag.toLowerCase(),
@@ -132,7 +181,7 @@ const BookingAmountTask = ({
             }
 
             // Update lead status, state, and tag
-            if (typeof onUpdateLead === 'function') {
+            if (onUpdateLead) {
                 await onUpdateLead({
                     leadStatus: 'closed',
                     leadState: 'closed',
@@ -142,7 +191,7 @@ const BookingAmountTask = ({
             }
 
             // Add note with booking task type
-            if (typeof onAddNote === 'function' && formData.note.trim()) {
+            if (onAddNote && formData.note?.trim()) {
                 await onAddNote({
                     agentId: agentId || 'system',
                     agentName: agentName || 'System',
@@ -161,11 +210,14 @@ const BookingAmountTask = ({
         }
     }
 
-    const handleReschedule = async (formData) => {
+    /**
+     * Reschedule task with the provided form data
+     */
+    const handleReschedule = async (formData: any) => {
         setIsLoading(true)
 
         try {
-            // Add reschedule history to task
+            // Create reschedule history entry
             const rescheduleEntry = {
                 timestamp: Date.now(),
                 reason: formData.reason,
@@ -177,7 +229,8 @@ const BookingAmountTask = ({
                 agentName: agentName || 'System',
             }
 
-            if (typeof onUpdateTask === 'function') {
+            // Update task with reschedule information
+            if (onUpdateTask) {
                 await onUpdateTask(taskId, {
                     rescheduleHistory: rescheduleEntry,
                     scheduledDate: new Date(`${formData.date}T${formData.time}`).getTime(),
@@ -195,12 +248,15 @@ const BookingAmountTask = ({
         }
     }
 
-    const handleChangeProperty = async (formData) => {
+    /**
+     * Change property with the provided form data
+     */
+    const handleChangeProperty = async (formData: any) => {
         setIsLoading(true)
 
         try {
             console.log('Changing property with data:', formData)
-            // Handle change property logic here
+            // Implement property change logic here
             alert('Property changed successfully!')
         } catch (error) {
             console.error('Error changing property:', error)
@@ -213,7 +269,9 @@ const BookingAmountTask = ({
     return (
         <>
             <div className='space-y-4'>
+                {/* Action buttons */}
                 <div className='flex gap-3'>
+                    {/* Successful button */}
                     <button
                         onClick={handleSuccessfulClick}
                         disabled={isLoading}
@@ -228,6 +286,7 @@ const BookingAmountTask = ({
                         )}
                     </button>
 
+                    {/* Not connected dropdown */}
                     <div className='relative'>
                         <Dropdown
                             options={notConnectedOptions}
@@ -241,6 +300,7 @@ const BookingAmountTask = ({
                             optionClassName='py-2 px-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer'
                         />
 
+                        {/* Unsuccessful booking options */}
                         {isUnsuccessful && !isLoading && (
                             <div className='absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 min-w-[150px]'>
                                 <div
@@ -296,13 +356,6 @@ const BookingAmountTask = ({
                 isOpen={isRescheduleModalOpen}
                 onClose={() => !isLoading && setIsRescheduleModalOpen(false)}
                 onReschedule={handleReschedule}
-                loading={isLoading}
-            />
-
-            <ChangePropertyModal
-                isOpen={isChangePropertyModalOpen}
-                onClose={() => !isLoading && setIsChangePropertyModalOpen(false)}
-                onChangeProperty={handleChangeProperty}
                 loading={isLoading}
             />
         </>

@@ -1,11 +1,10 @@
-import React from 'react'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import DateRangePicker from '../../../components/design-elements/DateRangePicker'
 import { searchLeads, type LeadSearchFilters } from '../../../services/canvas_homes/leadAlgoliaService'
-import searchIcon from '/icons/canvas_homes/searchIcon.svg'
 import google from '/icons/canvas_homes/google.svg'
 import hot from '/icons/canvas_homes/hoticon.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
@@ -28,7 +27,7 @@ const StatusCard = ({
     return (
         <button
             onClick={onClick}
-            className={`px-2 py-2.5 rounded-[12px] w-32 h-14 border transition-colors ${
+            className={`px-2 py-2.5 rounded-[12px] w-full sm:w-32 h-14 border transition-colors ${
                 isActive ? 'bg-[#E2F4FF] border-[#3279EA]' : 'border border-gray-200 bg-white hover:bg-gray-50'
             }`}
         >
@@ -47,6 +46,10 @@ const Leads = () => {
     const [selectedRows, setSelectedRows] = useState<string[]>([])
     const [searchValue, setSearchValue] = useState('')
     const [selectedDateRange, setSelectedDateRange] = useState('')
+    const [customDateRange, setCustomDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
+        startDate: null,
+        endDate: null,
+    })
     const [selectedProperty, setSelectedProperty] = useState('')
     const [selectedAgent, setSelectedAgent] = useState('')
     const [selectedSource, setSelectedSource] = useState('')
@@ -72,7 +75,7 @@ const Leads = () => {
 
     // Create filters object - Fixed to use actual values from dropdowns
     const createFilters = useCallback((): LeadSearchFilters => {
-        return {
+        const filters: LeadSearchFilters = {
             leadState: activeStatusCard !== 'All' ? [activeStatusCard.toLowerCase()] : undefined,
             propertyName: selectedProperty ? [selectedProperty] : undefined,
             agentName: selectedAgent ? [selectedAgent] : undefined,
@@ -83,6 +86,16 @@ const Leads = () => {
             leadStatus: selectedLeadStatus ? [selectedLeadStatus] : undefined,
             dateRange: selectedDateRange || undefined,
         }
+
+        // Handle custom date range from DateRangePicker
+        if (customDateRange.startDate || customDateRange.endDate) {
+            filters.addedRange = {
+                startDate: customDateRange.startDate || undefined,
+                endDate: customDateRange.endDate || undefined,
+            }
+        }
+
+        return filters
     }, [
         activeStatusCard,
         selectedProperty,
@@ -93,6 +106,7 @@ const Leads = () => {
         selectedTask,
         selectedLeadStatus,
         selectedDateRange,
+        customDateRange,
     ])
 
     // Search function - Added debugging
@@ -133,6 +147,7 @@ const Leads = () => {
         selectedTask,
         selectedLeadStatus,
         selectedDateRange,
+        customDateRange,
     ])
 
     // Search on text input change (debounced)
@@ -203,6 +218,15 @@ const Leads = () => {
         [facets],
     )
 
+    // Handle date range changes from DateRangePicker
+    const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
+        setCustomDateRange({ startDate, endDate })
+        // Clear preset selection when using custom range
+        if (startDate || endDate) {
+            setSelectedDateRange('')
+        }
+    }, [])
+
     const handleRowSelect = (rowId: string, selected: boolean) => {
         if (selected) {
             setSelectedRows([...selectedRows, rowId])
@@ -225,13 +249,7 @@ const Leads = () => {
         { title: 'Dropped', count: statusCounts.Dropped },
     ]
 
-    // Dropdown options (static for date range)
-    const dateRangeOptions = [
-        { label: 'Date Range', value: '' },
-        { label: 'Today', value: 'today' },
-        { label: 'Last 7 days', value: '7d' },
-        { label: 'Last 30 days', value: '30d' },
-    ]
+    const capitalizeFirst = (text: string) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : '')
 
     // Table columns (updated field names to match Algolia data)
     const columns: TableColumn[] = [
@@ -240,7 +258,7 @@ const Leads = () => {
             header: 'Name',
             render: (value, row) => (
                 <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
-                    <div className='text-sm font-medium text-gray-900'>{value || row.name}</div>
+                    <div className='text-sm font-medium text-gray-900'>{capitalizeFirst(value || row.name || '-')}</div>
                     <div className='text-xs text-gray-500 font-normal'>
                         {row.addedDate || `Added ${new Date(row.added).toLocaleDateString()}`}
                     </div>
@@ -250,7 +268,11 @@ const Leads = () => {
         {
             key: 'propertyName',
             header: 'Property',
-            render: (value, row) => <span className='text-sm font-normal text-gray-900'>{value || row.property}</span>,
+            render: (value, row) => (
+                <span className='text-sm font-normal text-gray-900'>
+                    {capitalizeFirst(value || row.property || '-')}
+                </span>
+            ),
         },
         {
             key: 'source',
@@ -261,7 +283,9 @@ const Leads = () => {
                     {value === 'LinkedIn' && <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />}
                     {value === 'META' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
                     {!['Google', 'LinkedIn', 'META'].includes(value) && (
-                        <span className='text-xs font-medium px-2 py-1 bg-gray-100 rounded'>{value}</span>
+                        <span className='text-xs font-medium px-2 py-1 bg-gray-100 rounded'>
+                            {capitalizeFirst(value || '-')}
+                        </span>
                     )}
                 </div>
             ),
@@ -269,22 +293,26 @@ const Leads = () => {
         {
             key: 'phoneNumber',
             header: 'Contact',
-            render: (value, row) => <span className='text-sm font-normal'>{value || row.contact}</span>,
+            render: (value, row) => <span className='text-sm font-normal'>{value || row.contact || '-'}</span>,
         },
         {
             key: 'agentName',
             header: 'Agent',
-            render: (value, row) => <span className='text-sm font-normal'>{value || row.agent}</span>,
+            render: (value, row) => (
+                <span className='text-sm font-normal'>{capitalizeFirst(value || row.agent || '-')}</span>
+            ),
         },
         {
             key: 'stage',
             header: 'Lead Stage',
-            render: (value, row) => <span className='text-sm text-gray-900'>{value || row.leadStage}</span>,
+            render: (value, row) => (
+                <span className='text-sm text-gray-900'>{capitalizeFirst(value || row.leadStage || '-')}</span>
+            ),
         },
         {
             key: 'leadStatus',
             header: 'Lead Status',
-            render: (value) => <span className='text-sm text-gray-900'>{value}</span>,
+            render: (value) => <span className='text-sm text-gray-900'>{capitalizeFirst(value || '-')}</span>,
         },
         {
             key: 'tag',
@@ -292,7 +320,7 @@ const Leads = () => {
             render: (value) => (
                 <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFEDD5] text-[#9A3412]'>
                     <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
-                    <span className='text-sm font-normal'>{value}</span>
+                    <span className='text-sm font-normal'>{capitalizeFirst(value || '-')}</span>
                 </div>
             ),
         },
@@ -300,12 +328,8 @@ const Leads = () => {
             key: 'aslc',
             header: 'ASLC',
             render: (value, row) => {
-                const today = new Date().getTime()
-
-                // Get the correct date based on lead state
+                const today = Date.now()
                 const dateToUse = row.leadState === 'fresh' ? row.added : row.scheduledDate
-
-                // Calculate the difference in days
                 const daysDifference = Math.floor((today - dateToUse) / (1000 * 60 * 60 * 24))
 
                 return (
@@ -318,26 +342,31 @@ const Leads = () => {
         {
             key: 'taskType',
             header: 'Schedule Task',
-            render: (value, row) => (
-                <div className='flex items-center gap-3'>
-                    <div>
-                        <div className='text-sm font-medium text-gray-900'>{value || row.scheduleTask?.type}</div>
-                        <div className='text-xs text-gray-500'>
-                            {row.scheduledDate
-                                ? new Date(row.scheduledDate).toLocaleDateString()
-                                : row.scheduleTask?.date}{' '}
-                            |{row.scheduleTask?.time}
+            render: (value, row) => {
+                const taskType = capitalizeFirst(value || row.scheduleTask?.type || '-')
+                const date = row.scheduledDate
+                    ? new Date(row.scheduledDate).toLocaleDateString()
+                    : row.scheduleTask?.date
+                const time = row.scheduleTask?.time
+
+                return (
+                    <div className='flex items-center gap-3'>
+                        <div>
+                            <div className='text-sm font-medium text-gray-900'>{taskType}</div>
+                            <div className='text-xs text-gray-500'>
+                                {date || time ? `${date || ''}${date && time ? ' | ' : ''}${time || ''}` : ''}
+                            </div>
                         </div>
                     </div>
-                </div>
-            ),
+                )
+            },
         },
     ]
 
     return (
         <div className='p-3 pb-0 h-full'>
             {/* Search and Filters */}
-            <div className='flex items-center gap-4 mb-5'>
+            <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-5'>
                 <StateBaseTextField
                     leftIcon={
                         <svg
@@ -368,18 +397,15 @@ const Leads = () => {
                     placeholder='Search name and number'
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className='h-7 w-68'
+                    className='h-7 w-full sm:w-68'
                 />
 
-                <Dropdown
-                    options={generateDropdownOptions('', 'Date Range', dateRangeOptions)}
-                    onSelect={setSelectedDateRange}
-                    defaultValue={selectedDateRange}
+                <DateRangePicker
+                    onDateRangeChange={handleDateRangeChange}
                     placeholder='Date Range'
-                    className='relative inline-block'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className='relative inline-block w-full sm:w-auto'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    menuClassName='absolute z-50 mt-1 w-full min-w-[160px] bg-white border border-gray-300 rounded-md shadow-lg'
                 />
 
                 <Dropdown
@@ -387,8 +413,8 @@ const Leads = () => {
                     onSelect={setSelectedProperty}
                     defaultValue={selectedProperty}
                     placeholder='Property'
-                    className='relative inline-block'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    className='relative inline-block w-full sm:w-auto'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -398,8 +424,8 @@ const Leads = () => {
                     onSelect={setSelectedAgent}
                     defaultValue={selectedAgent}
                     placeholder='Agent'
-                    className='relative inline-block'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    className='relative inline-block w-full sm:w-auto'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -409,8 +435,8 @@ const Leads = () => {
                     onSelect={setSelectedSource}
                     defaultValue={selectedSource}
                     placeholder='Source'
-                    className='relative inline-block'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    className='relative inline-block w-full sm:w-auto'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -420,8 +446,8 @@ const Leads = () => {
                     onSelect={setSelectedLeadStage}
                     defaultValue={selectedLeadStage}
                     placeholder='Lead Stage'
-                    className='relative inline-block'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    className='relative inline-block w-full sm:w-auto'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -431,8 +457,8 @@ const Leads = () => {
                     onSelect={setSelectedTag}
                     defaultValue={selectedTag}
                     placeholder='Tag'
-                    className='relative inline-block'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    className='relative inline-block w-full sm:w-auto'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -442,8 +468,8 @@ const Leads = () => {
                     onSelect={setSelectedTask}
                     defaultValue={selectedTask}
                     placeholder='Task'
-                    className='relative inline-block'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    className='relative inline-block w-full sm:w-auto'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -453,16 +479,16 @@ const Leads = () => {
                     onSelect={setSelectedLeadStatus}
                     defaultValue={selectedLeadStatus}
                     placeholder='Lead Status'
-                    className='relative inline-block'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    className='relative inline-block w-full sm:w-auto'
+                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
             </div>
 
             {/* Status Cards */}
-            <div className='flex items-center justify-between mb-7'>
-                <div className='flex gap-2'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7'>
+                <div className='grid grid-cols-2 sm:flex sm:gap-2'>
                     {statusCards.map((card) => (
                         <StatusCard
                             key={card.title}
@@ -476,7 +502,7 @@ const Leads = () => {
                 <Button
                     bgColor='bg-blue-600'
                     textColor='text-white'
-                    className='p-2 w-fit h-8 font-[10px] hover:bg-blue-700'
+                    className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-blue-700'
                     onClick={() => setIsAddLeadModalOpen(true)}
                 >
                     <span>+ Add Lead</span>
@@ -489,7 +515,6 @@ const Leads = () => {
                     data={filteredLeadsData}
                     columns={columns}
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
-                    showCheckboxes={true}
                     selectedRows={selectedRows}
                     headerClassName='font-normal'
                     onRowSelect={handleRowSelect}
