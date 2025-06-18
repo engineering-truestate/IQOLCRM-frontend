@@ -9,6 +9,7 @@ import { handleLogout } from '../../services/auth'
 // import { vaultMenuItems } from './menu-options/vault'
 import { useNavigate } from 'react-router-dom'
 import Button from '../design-elements/Button'
+import { canvasHomesMenuItems } from './menu-options/canvas-homes'
 
 // interface MenuItem {
 //     label: string
