@@ -242,17 +242,6 @@ const PropertiesPage = () => {
     }
 
     // Handle row selection
-    const handleRowSelect = (rowId: string, checked: boolean) => {
-        setSelectedRows((prev) => {
-            const newSet = new Set(prev)
-            if (checked) {
-                newSet.add(rowId)
-            } else {
-                newSet.delete(rowId)
-            }
-            return newSet
-        })
-    }
 
     // Handle bulk status update
     const handleBulkStatusUpdate = (status: PropertyStatus, soldPrice?: string) => {
@@ -764,15 +753,14 @@ const PropertiesPage = () => {
             {
                 key: 'select',
                 header: '',
-                render: (_, row) => (
+                render: () => (
                     <input
                         type='checkbox'
-                        checked={selectedRows.has(row.propertyId || row.id)}
-                        onChange={(e) => handleRowSelect(row.propertyId || row.id, e.target.checked)}
                         className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
                     />
                 ),
             },
+
             {
                 key: 'propertyId',
                 header: 'Property ID',
@@ -782,6 +770,7 @@ const PropertiesPage = () => {
                     </span>
                 ),
             },
+
             {
                 key: 'nameOfTheProperty',
                 header: 'Property Name',
