@@ -73,7 +73,22 @@ export const registerUser = async (
 export const loginUser = async (email: string, password: string) => {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password)
-        return userCredential.user
+        const user = userCredential.user
+
+        const idTokenResult = await user.getIdTokenResult()
+
+        return {
+            user,
+            customClaims: idTokenResult.claims,
+            role: idTokenResult.claims.role,
+            userData: {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                emailVerified: user.emailVerified,
+            },
+        }
     } catch (error: any) {
         console.error('Error signing in:', error)
         throw error

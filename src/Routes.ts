@@ -1,3 +1,4 @@
+import ProfilePage from './pages/ProfilePage'
 import PostReraPage from './pages/restack/Stock/post-rera/PostReraPage'
 import PostReraDocumentPage from './pages/restack/Stock/post-rera/PostReraDocumentPage'
 import RentalPage from './pages/restack/rental/RentalPage'
@@ -66,6 +67,10 @@ export const authRoutes: RouteObject[] = [
 ]
 
 export const protectedRoutes: RouteObject[] = [
+    {
+        path: '/profile',
+        element: React.createElement(React.Suspense, null, React.createElement(ProfilePage, null)),
+    },
     {
         path: '/canvas-homes/dashboard',
         element: React.createElement(React.Suspense, null, React.createElement(Dashboard, null)),
