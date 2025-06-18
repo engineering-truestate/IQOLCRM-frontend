@@ -959,7 +959,12 @@ const PropertiesPage = () => {
 
     return (
         <Layout loading={false}>
-            <AddFilterModal isOpen={isAddFilterModalOpen} onClose={() => setIsAddFilterModalOpen(false)} />
+            <AddFilterModal
+                isOpen={isAddFilterModalOpen}
+                onClose={() => setIsAddFilterModalOpen(false)}
+                filters={filters}
+                onFiltersChange={setFilters}
+            />
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}

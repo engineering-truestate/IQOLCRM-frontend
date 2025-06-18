@@ -126,6 +126,10 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                 userEmail: agentData.email,
                                 userPhone: agentData.phone,
                                 cpId: property.cpId,
+                                action: `Status changed to ${status}`,
+                                details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                performedBy: reviewedBy,
+                                date: currentTime,
                             },
                         ],
                     }
@@ -170,6 +174,10 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                 userEmail: agentData.email,
                                 userPhone: agentData.phone,
                                 cpId: property.cpId,
+                                action: `Status changed to ${status}`,
+                                details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                performedBy: reviewedBy,
+                                date: currentTime,
                             },
                         ],
                     }
@@ -206,6 +214,10 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                     userEmail: agentData.email,
                                     userPhone: agentData.phone,
                                     cpId: property.cpId,
+                                    action: `Status changed to ${status}`,
+                                    details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                    performedBy: reviewedBy,
+                                    date: currentTime,
                                 },
                             ],
                         }
@@ -243,6 +255,10 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                     userEmail: agentData.email,
                                     userPhone: agentData.phone,
                                     cpId: property.cpId,
+                                    action: `Status changed to ${status}`,
+                                    details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                    performedBy: reviewedBy,
+                                    date: currentTime,
                                 },
                             ],
                         }

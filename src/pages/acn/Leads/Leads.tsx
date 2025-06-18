@@ -37,6 +37,7 @@ import instagramic from '/icons/acn/insta.svg'
 import referic from '/icons/acn/referral.svg'
 import organicic from '/icons/acn/organic.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 
 // Define all available options as constants
 const ALL_LEAD_STATUS_OPTIONS = [
@@ -605,7 +606,7 @@ const LeadsPage = () => {
             header: 'Last Tried',
             render: (value) => (
                 <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                    {value ? new Date(value).toLocaleDateString() : 'Never'}
+                    {value ? formatUnixDate(value) : 'Never'}
                 </span>
             ),
         },
@@ -614,7 +615,7 @@ const LeadsPage = () => {
             header: 'Last Connect',
             render: (value) => (
                 <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                    {value ? new Date(value).toLocaleDateString() : 'Never'}
+                    {value ? formatUnixDate(value) : 'Never'}
                 </span>
             ),
         },
@@ -717,6 +718,7 @@ const LeadsPage = () => {
                     <button
                         className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
                         onClick={() => {
+                            console.log('row', row)
                             setSelectedRowData(row)
                             setIsVerificationModalOpen(true)
                         }}
@@ -965,11 +967,11 @@ const LeadsPage = () => {
                         rowData={selectedRowData}
                     />
 
-                    {/* <VerificationModal
+                    <VerificationModal
                         isOpen={isVerificationModalOpen}
                         onClose={() => setIsVerificationModalOpen(false)}
                         rowData={selectedRowData}
-                    /> */}
+                    />
 
                     <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
                 </div>

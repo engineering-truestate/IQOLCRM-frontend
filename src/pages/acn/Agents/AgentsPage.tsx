@@ -234,24 +234,24 @@ const AgentsPage = () => {
             ),
         },
         {
-            key: 'inventories',
+            key: 'noOfinventories',
             header: 'Inventories',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value?.length}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
-            key: 'requirements',
+            key: 'noOfrequirements',
             header: 'Requirements',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value?.length}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
-            key: 'enquiries',
+            key: 'noOfEnquiries',
             header: 'Enquiries',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value?.length}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
-            key: 'legalLeads',
+            key: 'noOfleagalLeads',
             header: 'Legal Leads',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value?.length}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
             key: 'lastSeen',
@@ -287,9 +287,11 @@ const AgentsPage = () => {
             ),
         },
         {
-            key: '',
+            key: 'lastEnquiry',
             header: 'Last Enq Rec',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatRelativeTime(value)}</span>
+            ),
         },
         {
             key: 'agentStatus',

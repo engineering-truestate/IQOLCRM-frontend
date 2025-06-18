@@ -248,7 +248,9 @@ const RequirementsPage = () => {
             key: 'assetType',
             header: 'Asset type',
             render: (value) => (
-                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                    {toCapitalizedWords(value)}
+                </span>
             ),
         },
         {
