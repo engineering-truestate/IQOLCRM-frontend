@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import Dropdown from './Dropdown'
 import CloseLeadModal from '../CloseLeadModal'
 import RescheduleEventModal from '../RescheduleEventModal'
+import ChangePropertyModal from '../ChangePropertyModal'
 import { useSelector } from 'react-redux'
 import { useParams } from 'react-router'
 import { enquiryService } from '../../../services/canvas_homes'
@@ -51,9 +52,7 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
     const { leadId } = useParams()
     const bookingStatus = getTaskState(taskId, 'bookingStatus') || 'unsuccessful'
     const isUnsuccessful = bookingStatus === 'unsuccessful'
-    // Task state
-    const bookingStatus = 'unsuccessful'
-    const isUnsuccessful = bookingStatus === 'unsuccessful'
+    const taskState = getTaskState(taskId, 'stage') || null
 
     /**
      * Handle successful booking
@@ -263,8 +262,17 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
 
         try {
             console.log('Changing property with data:', formData)
-            // Implement property change logic here
-            alert('Property changed successfully!')
+
+            // Update task status to complete
+            if (onTaskStatusUpdate) {
+                await onTaskStatusUpdate(taskId, 'complete')
+            }
+
+            // If using hooks for data updates, they'll handle the property change logic
+
+            setIsChangePropertyModalOpen(false)
+
+            // Will get refreshed through useLeadDetails refreshData function
         } catch (error) {
             console.error('Error changing property:', error)
             alert('Failed to change property. Please try again.')
@@ -357,6 +365,8 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                 onClose={() => !isLoading && setIsCloseLeadModalOpen(false)}
                 onCloseLead={handleCloseLead}
                 loading={isLoading}
+                taskType='booking'
+                taskState='booking unsuccessful'
             />
 
             <RescheduleEventModal
@@ -364,6 +374,13 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                 onClose={() => !isLoading && setIsRescheduleModalOpen(false)}
                 onReschedule={handleReschedule}
                 loading={isLoading}
+            />
+
+            <ChangePropertyModal
+                isOpen={isChangePropertyModalOpen}
+                onClose={() => !isLoading && setIsChangePropertyModalOpen(false)}
+                onChangeProperty={handleChangeProperty}
+                taskState={taskState}
             />
         </>
     )

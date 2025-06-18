@@ -496,7 +496,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                             Status
                                                         </span>
                                                         <span className='text-[13px] w-[40%] text-gray-900'>
-                                                            {formatValue(currentEnquiry.status)}
+                                                            {formatValue(currentEnquiry.leadStatus)}
                                                         </span>
                                                     </div>
 
