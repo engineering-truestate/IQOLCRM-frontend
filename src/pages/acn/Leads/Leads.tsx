@@ -412,7 +412,7 @@ const LeadsPage = () => {
         } catch (error) {
             console.error('Failed to update lead status:', error)
             // Revert optimistic update on error
-            searchLeads(false)
+            searchLeads()
         }
     }
 
@@ -434,7 +434,7 @@ const LeadsPage = () => {
             // ✅ No page reload - state is already updated optimistically
         } catch (error) {
             console.error('Failed to update KAM:', error)
-            searchLeads(false)
+            searchLeads()
         }
     }
 
@@ -456,7 +456,7 @@ const LeadsPage = () => {
             // ✅ No page reload - state is already updated optimistically
         } catch (error) {
             console.error('Failed to update boolean field:', error)
-            searchLeads(false)
+            searchLeads()
         }
     }
 

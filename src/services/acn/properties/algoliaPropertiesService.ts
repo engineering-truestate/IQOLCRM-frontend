@@ -3,8 +3,11 @@
 import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
 // Algolia client configuration
-const searchClient = algoliasearch('1F93ZRBESW', 'b9023694178852d83995620a6c9ba933')
-const INDEX_NAME = 'properties'
+const resaleClient = algoliasearch('1F93ZRBESW', 'b9023694178852d83995620a6c9ba933')
+const rentalClient = algoliasearch('6BDI6EEXAF', '39cc6c040a588fc945c2470671c9061a')
+
+const RESALE_INDEX_NAME = 'properties'
+const RENTAL_INDEX_NAME = 'rental-inventories'
 
 // Types for search parameters
 export interface SearchFilters {
@@ -24,6 +27,7 @@ export interface SearchParams {
     page?: number
     hitsPerPage?: number
     sortBy?: string
+    propertyType?: 'Resale' | 'Rental'
 }
 
 export interface AlgoliaSearchResponse {
@@ -80,27 +84,29 @@ const buildFilterString = (filters: SearchFilters): string => {
     return filterParts.join(' AND ')
 }
 
-// Helper function to get the correct index name for sorting
-const getIndexNameForSort = (sortBy?: string): string => {
+// Helper function to get the correct client and index
+const getClientAndIndex = (propertyType: 'Resale' | 'Rental' = 'Resale', sortBy?: string) => {
+    const client = propertyType === 'Resale' ? resaleClient : rentalClient
+    const baseIndex = propertyType === 'Resale' ? RESALE_INDEX_NAME : RENTAL_INDEX_NAME
+
     if (!sortBy || sortBy === 'relevance') {
-        return INDEX_NAME
+        return { client, indexName: baseIndex }
     }
 
     const sortIndexMap: Record<string, string> = {
-        price_asc: `${INDEX_NAME}_price_asc`,
-        price_desc: `${INDEX_NAME}_price_desc`,
-        recent: `${INDEX_NAME}`,
+        price_asc: `${baseIndex}_price_asc`,
+        price_desc: `${baseIndex}_price_desc`,
+        date_desc: `${baseIndex}_date_desc`,
     }
 
-    return sortIndexMap[sortBy] || INDEX_NAME
+    return { client, indexName: sortIndexMap[sortBy] || baseIndex }
 }
 
 // Main search function
 export const searchProperties = async (params: SearchParams = {}): Promise<AlgoliaSearchResponse> => {
     try {
-        const { query = '', filters = {}, page = 0, hitsPerPage = 50, sortBy } = params
-
-        const indexName = getIndexNameForSort(sortBy)
+        const { query = '', filters = {}, page = 0, hitsPerPage = 50, sortBy, propertyType = 'Resale' } = params
+        const { client, indexName } = getClientAndIndex(propertyType, sortBy)
         const filterString = buildFilterString(filters)
 
         console.log('Algolia search params:', {
@@ -111,7 +117,7 @@ export const searchProperties = async (params: SearchParams = {}): Promise<Algol
             filters: filterString,
         })
 
-        const response = await searchClient.search({
+        const response = await client.search({
             requests: [
                 {
                     indexName,
@@ -150,10 +156,10 @@ export const getFacetValues = async (
     maxFacetHits: number = 100,
 ): Promise<FacetValue[]> => {
     try {
-        const response = await searchClient.search({
+        const response = await resaleClient.search({
             requests: [
                 {
-                    indexName: INDEX_NAME,
+                    indexName: RESALE_INDEX_NAME,
                     query: query || '',
                     hitsPerPage: 0,
                     facets: [facetName],
@@ -178,14 +184,17 @@ export const getFacetValues = async (
 }
 
 // Get all facets for filters initialization
-export const getAllFacets = async (): Promise<Record<string, FacetValue[]>> => {
+export const getAllFacets = async (
+    propertyType: 'Resale' | 'Rental' = 'Resale',
+): Promise<Record<string, FacetValue[]>> => {
     try {
-        const response = await searchClient.search({
+        const { client, indexName } = getClientAndIndex(propertyType)
+        const response = await client.search({
             requests: [
                 {
-                    indexName: INDEX_NAME,
+                    indexName,
                     query: '',
-                    hitsPerPage: 0, // We only want facets, not hits
+                    hitsPerPage: 0,
                     facets: ['status', 'kam', 'assetType', 'micromarket'],
                     maxValuesPerFacet: 100,
                 },
@@ -202,7 +211,7 @@ export const getAllFacets = async (): Promise<Record<string, FacetValue[]>> => {
                         value,
                         count: count as number,
                     }))
-                    .sort((a, b) => b.count - a.count) // Sort by count descending
+                    .sort((a, b) => b.count - a.count)
             })
         }
 
@@ -216,10 +225,10 @@ export const getAllFacets = async (): Promise<Record<string, FacetValue[]>> => {
 // Search with autocomplete suggestions
 export const getSearchSuggestions = async (query: string): Promise<string[]> => {
     try {
-        const response = await searchClient.search({
+        const response = await resaleClient.search({
             requests: [
                 {
-                    indexName: INDEX_NAME,
+                    indexName: RESALE_INDEX_NAME,
                     query,
                     hitsPerPage: 5,
                     attributesToRetrieve: ['propertyId', 'nameOfTheProperty', 'micromarket'],
@@ -247,7 +256,7 @@ export const getSearchSuggestions = async (query: string): Promise<string[]> => 
 // Advanced search with multiple indices (if you have different property types)
 export const searchMultipleIndices = async (
     query: string,
-    indices: string[] = [INDEX_NAME],
+    indices: string[] = [RESALE_INDEX_NAME],
 ): Promise<Record<string, AlgoliaSearchResponse>> => {
     try {
         const requests = indices.map((indexName) => ({
@@ -257,7 +266,7 @@ export const searchMultipleIndices = async (
             facets: ['status', 'kam', 'assetType'],
         }))
 
-        const response = await searchClient.search({
+        const response = await resaleClient.search({
             requests,
         })
 
@@ -286,9 +295,9 @@ export const searchMultipleIndices = async (
 // Batch operations for getting multiple objects
 export const getPropertiesByIds = async (objectIDs: string[]): Promise<any[]> => {
     try {
-        const response = await searchClient.getObjects({
+        const response = await resaleClient.getObjects({
             requests: objectIDs.map((objectID) => ({
-                indexName: INDEX_NAME,
+                indexName: RESALE_INDEX_NAME,
                 objectID,
             })),
         })
@@ -308,10 +317,10 @@ export const searchForFacetValues = async (
     maxFacetHits: number = 10,
 ): Promise<FacetValue[]> => {
     try {
-        const response = await searchClient.search({
+        const response = await resaleClient.search({
             requests: [
                 {
-                    indexName: INDEX_NAME,
+                    indexName: RESALE_INDEX_NAME,
                     query: facetQuery,
                     hitsPerPage: 0,
                     facets: [facetName],
@@ -342,8 +351,8 @@ export const searchForFacetValues = async (
 export const getPropertyById = async (objectID: string): Promise<any | null> => {
     console.log(objectID, 'objectID')
     try {
-        const response = await searchClient.getObject({
-            indexName: INDEX_NAME,
+        const response = await resaleClient.getObject({
+            indexName: RESALE_INDEX_NAME,
             objectID,
         })
 
