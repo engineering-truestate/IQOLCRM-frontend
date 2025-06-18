@@ -8,14 +8,16 @@ import { taskService } from '../../services/canvas_homes'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
+import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 
 interface ChangePropertyModalProps {
     isOpen: boolean
     onClose: () => void
     onChangeProperty: (formData: any) => void
+    taskState: string
 }
 
-const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, onChangeProperty }) => {
+const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, onChangeProperty, taskState }) => {
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
@@ -24,46 +26,46 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
 
-    console.log('lusedata', user)
+    const currentTimestamp = Date.now()
+    const enquiryDateTimestamp = currentTimestamp
+    const { refreshData } = useLeadDetails(leadId)
 
     const [formData, setFormData] = useState({
         reason: '',
         leadId: leadId,
         state: 'open',
-        newProperty: '',
+        propertyId: '',
+        propertyName: '',
         agentId: agentId,
         agentName: agentName,
+        tag: 'potential',
+        status: 'complete',
     })
 
     const reasonOptions = [
         { value: '', label: 'Select reason' },
-        { value: 'customer_preference', label: 'Customer Preference' },
-        { value: 'budget_constraints', label: 'Budget Constraints' },
-        { value: 'location_change', label: 'Location Change' },
-        { value: 'size_requirements', label: 'Size Requirements' },
-        { value: 'amenities_mismatch', label: 'Amenities Mismatch' },
+        { value: 'not interested in current property', label: 'Not Interested in Current Property' },
         { value: 'other', label: 'Other' },
     ]
 
     const propertyOptions = [
         { value: '', label: 'Select new property' },
-        { value: 'property_1', label: 'Property 1' },
-        { value: 'property_2', label: 'Property 2' },
-        { value: 'property_3', label: 'Property 3' },
-        { value: 'property_4', label: 'Property 4' },
+        { value: 'prop001|Sunset Villa', label: 'Sunset Villa' },
+        { value: 'prop002|Ocean View Apartment', label: 'Ocean View Apartment' },
+        { value: 'prop003|Downtown Condo', label: 'Downtown Condo' },
+        { value: 'prop004|Garden Heights', label: 'Garden Heights' },
+        { value: 'prop005|Riverside Towers', label: 'Riverside Towers' },
+        { value: 'prop006|Sattva Hills', label: 'Sattva Hills' },
+        { value: 'prop007|Prestige Gardenia', label: 'Prestige Gardenia' },
+        { value: 'prop008|Brigade Cosmopolis', label: 'Brigade Cosmopolis' },
+        { value: 'prop009|Sobha City', label: 'Sobha City' },
+        { value: 'prop010|Embassy Springs', label: 'Embassy Springs' },
+        { value: 'prop011|Mantri Energia', label: 'Mantri Energia' },
     ]
 
-    const taskStatusOptions = [
-        { value: 'Complete', label: 'Complete' },
-        { value: 'Incomplete', label: 'Incomplete' },
-        { value: 'Pending', label: 'Pending' },
-    ]
+    const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
 
-    const leadStatusOptions = [
-        { value: 'Property Changed', label: 'Property Changed' },
-        { value: 'Follow Up', label: 'Follow Up' },
-        { value: 'Connected', label: 'Connected' },
-    ]
+    const leadStatusOptions = [{ value: 'Property Changed', label: 'Property Changed' }]
 
     const tagOptions = [
         { value: 'hot', label: 'Hot' },
@@ -77,18 +79,22 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             ...prev,
             [field]: value,
         }))
-    }
-    const handleNoteChange = (value: string) => {
-        const newNote = {
-            note: value,
-            timestamp: getUnixDateTime(),
-            agentName: formData.agentName,
-            agentId: formData.agentId,
-            taskType: '  registration',
+
+        // Set propertyId and propertyName when newProperty is selected
+        if (field === 'newProperty' && value) {
+            const [propertyId, propertyName] = value.split('|')
+            setFormData((prev) => ({
+                ...prev,
+                propertyId: propertyId,
+                propertyName: propertyName,
+            }))
         }
+    }
+
+    const handleNoteChange = (value: string) => {
         setFormData((prev) => ({
             ...prev,
-            notes: [newNote],
+            note: value,
         }))
     }
 
@@ -100,28 +106,78 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
         try {
             if (enquiryId && leadId && taskIds) {
+                // Update existing enquiry
                 const enqData = {
                     leadStatus: 'Property Changed',
+                    stage: null,
+                    state: 'open',
+                    lastModified: Date.now(),
                 }
                 await enquiryService.update(enquiryId, enqData)
-                await enquiryService.create(formData)
 
-                const data = {
+                // Create new enquiry
+                const newNote = formData.note
+                    ? {
+                          note: formData.note,
+                          timestamp: getUnixDateTime(),
+                          agentName: formData.agentName,
+                          agentId: formData.agentId,
+                          taskType: 'lead registration',
+                      }
+                    : null
+                enquiryService.addNote(enquiryId, newNote)
+
+                const newEnquiry = {
+                    leadId: leadId,
+                    agentId: agentId,
+                    propertyId: formData.propertyId,
+                    propertyName: formData.propertyName,
+                    source: 'Manual',
+                    leadStatus: 'interested', // Default status
                     stage: null,
-                    state: 'fresh' as 'open' | 'fresh' | 'closed' | 'dropped' | null | undefined,
-                    status: 'interested',
+                    agentHistory: [
+                        {
+                            agentId: agentId,
+                            agentName: agentName,
+                            timestamp: currentTimestamp,
+                            lastStage: null,
+                        },
+                    ],
+                    activityHistory: [],
+                    notes: [],
+                    state: 'open',
+                    tag: formData.tag || 'potential',
+                    documents: [],
+                    requirements: [],
+                    added: enquiryDateTimestamp,
+                    lastModified: currentTimestamp,
                 }
-                await leadService.update(leadId, data)
-                await taskService.update(taskIds, { status: 'complete' })
+
+                await enquiryService.create(newEnquiry)
+
+                // Update lead
+                const leadData = {
+                    stage: null,
+                    state: 'open',
+                    leadStatus: 'interested',
+                    lastModifie: currentTimestamp,
+                }
+                await leadService.update(leadId, leadData)
+
+                // Update task
+                await taskService.update(taskIds, { status: 'complete', completionDate: currentTimestamp })
 
                 toast.success('Property changed successfully')
+                refreshData()
             } else {
-                toast.error('enquiryId is undefined')
+                toast.error('Required IDs are missing')
             }
         } catch (error: any) {
             console.error('Error updating enquiry:', error)
             toast.error(error.message || 'Failed to update enquiry')
             return
+        } finally {
+            refreshData()
         }
 
         onChangeProperty(formData)
@@ -132,6 +188,10 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             ...prev,
             reason: '',
             newProperty: '',
+            propertyId: '',
+            propertyName: '',
+            tag: 'potential',
+            note: '',
         }))
     }
 
@@ -140,6 +200,10 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             ...prev,
             reason: '',
             newProperty: '',
+            propertyId: '',
+            propertyName: '',
+            tag: 'potential',
+            note: '',
         }))
         onClose()
     }
@@ -147,7 +211,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     if (!isOpen) return null
 
     return (
-        <div className='fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50' onClick={onClose}>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50' onClick={onClose}>
             <div className='bg-white rounded-lg shadow-xl w-full max-w-md mx-4' onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className='flex items-center justify-between p-4 border-b border-gray-200'>

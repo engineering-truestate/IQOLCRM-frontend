@@ -1,47 +1,123 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../store'
+import { useParams } from 'react-router'
+import { enquiryService } from '../../services/canvas_homes'
+import { leadService } from '../../services/canvas_homes'
+import { taskService } from '../../services/canvas_homes'
+import useAuth from '../../hooks/useAuth'
+import { toast } from 'react-toastify'
+import { getUnixDateTime } from '../helper/getUnixDateTime'
+import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 
-const CloseLeadModal = ({ isOpen, onClose, onCloseLead, loading = false }) => {
+interface CloseLeadModalProps {
+    isOpen: boolean
+    onClose: () => void
+    onCloseLead: (formData: any) => Promise<void>
+    loading?: boolean
+    taskState?: string | null
+    taskType: string
+}
+
+const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
+    isOpen,
+    onClose,
+    onCloseLead,
+    loading = false,
+    taskState,
+    taskType,
+}) => {
+    const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
+    const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
+    const { user } = useAuth()
+    const { leadId } = useParams()
+    const { refreshData } = useLeadDetails(leadId)
+
+    const agentId = user?.uid || ''
+    const agentName = user?.displayName || ''
+    const currentTimestamp = Date.now()
+
     const [formData, setFormData] = useState({
         reason: '',
-        taskStatus: 'Complete',
-        leadStatus: 'Not Connected',
         tag: 'Cold',
         note: '',
+        status: 'Complete',
+        state: 'dropped',
+        leadStatus: '',
+        stage: '',
+        leadId: leadId,
+        enquiryId: enquiryId,
+        taskId: taskIds,
+        agentId: agentId,
+        agentName: agentName,
+        timestamp: currentTimestamp,
     })
+
+    // Set lead status based on taskState when modal opens
+    useEffect(() => {
+        if (isOpen && taskState) {
+            let leadStatus = ''
+            let stage = ''
+
+            // Determine appropriate lead status based on task state
+            switch (taskState) {
+                case 'connected':
+                    leadStatus = 'not interested'
+                    stage = 'initial connected'
+                    break
+                case 'not connected':
+                    leadStatus = 'not connected'
+                    stage = 'lead registered'
+                    break
+                case 'site visited':
+                    leadStatus = 'visit unsuccessful'
+                    stage = 'site visited'
+                    break
+                case 'site not visited':
+                    leadStatus = 'visit dropped'
+                    stage = 'initial contacted'
+                    break
+                case 'eoi not collected':
+                    leadStatus = 'eoi dropped'
+                    stage = 'site visited'
+                    break
+                case 'booking unsuccessful':
+                    leadStatus = 'booking dropped'
+                    stage = 'eoi collected'
+                    break
+                default:
+                    leadStatus = 'dropped'
+            }
+
+            setFormData((prev) => ({
+                ...prev,
+                leadStatus,
+                stage,
+                timestamp: Date.now(),
+            }))
+        }
+    }, [isOpen, taskState, leadId, enquiryId, taskIds, agentId, agentName])
 
     const reasonOptions = [
         { value: '', label: 'Select reason' },
-        { value: 'not_interested', label: 'Not Interested' },
-        { value: 'budget_constraints', label: 'Budget Constraints' },
-        { value: 'wrong_timing', label: 'Wrong Timing' },
-        { value: 'found_alternative', label: 'Found Alternative' },
-        { value: 'no_response', label: 'No Response' },
-        { value: 'duplicate_lead', label: 'Duplicate Lead' },
-        { value: 'invalid_contact', label: 'Invalid Contact' },
+        { value: 'incorrect contact details', label: 'Incorrect Contact Details' },
+        { value: 'no response after multiple follow ups', label: 'No Response After Multiple Follow-Ups' },
+        { value: 'not interested', label: 'Not Interested' },
+        { value: 'property not suitable', label: 'Property Not Suitable' },
+        { value: 'visit dropped', label: 'Visit Dropped' },
+        { value: 'eoi dropped', label: 'EOI Dropped' },
+        { value: 'booking dropped', label: 'Booking Dropped' },
         { value: 'other', label: 'Other' },
-    ]
-
-    const taskStatusOptions = [
-        { value: 'Complete', label: 'Complete' },
-        { value: 'Incomplete', label: 'Incomplete' },
-        { value: 'Pending', label: 'Pending' },
-    ]
-
-    const leadStatusOptions = [
-        { value: 'Not Connected', label: 'Not Connected' },
-        { value: 'Connected', label: 'Connected' },
-        { value: 'Follow Up', label: 'Follow Up' },
-        { value: 'Closed', label: 'Closed' },
     ]
 
     const tagOptions = [
         { value: 'Cold', label: 'Cold' },
-        { value: 'Warm', label: 'Warm' },
         { value: 'Hot', label: 'Hot' },
-        { value: 'Dead', label: 'Dead' },
+        { value: 'Super Hot', label: 'Super Hot' },
+        { value: 'Potential', label: 'Potential' },
     ]
 
-    const handleInputChange = (field, value) => {
+    const handleInputChange = (field: string, value: string) => {
         setFormData((prev) => ({
             ...prev,
             [field]: value,
@@ -49,23 +125,81 @@ const CloseLeadModal = ({ isOpen, onClose, onCloseLead, loading = false }) => {
     }
 
     const handleSubmit = async () => {
-        if (!formData.reason) {
-            alert('Please select a reason for closing the lead')
+        if (!formData.reason || !formData.tag) {
+            toast.error('Please fill in all required fields.')
             return
         }
 
-        await onCloseLead(formData)
+        try {
+            const currentTimestamp = Date.now()
 
-        if (!loading) {
+            if (enquiryId && leadId && taskIds) {
+                // Update enquiry
+                const enqData = {
+                    state: 'dropped',
+                    stage: formData.stage,
+                    leadStatus: formData.leadStatus,
+                    tag: formData.tag.toLowerCase(),
+                    lastModified: currentTimestamp,
+                }
+                await enquiryService.update(enquiryId, enqData)
+
+                // Add note to enquiry if provided
+                if (formData.note) {
+                    const newNote = {
+                        note: formData.note,
+                        timestamp: getUnixDateTime(),
+                        agentName: agentName,
+                        agentId: agentId,
+                        taskType: taskType,
+                    }
+                    await enquiryService.addNote(enquiryId, newNote)
+                }
+
+                // Update lead
+                const leadData = {
+                    state: 'dropped',
+                    stage: formData.stage,
+                    leadStatus: formData.leadStatus,
+                    tag: formData.tag.toLowerCase(),
+                    lastModified: currentTimestamp,
+                }
+                await leadService.update(leadId, leadData)
+
+                // Update task
+                await taskService.update(taskIds, {
+                    status: 'complete',
+                    completionDate: currentTimestamp,
+                })
+
+                toast.success('Lead closed successfully')
+                refreshData()
+            } else {
+                toast.error('Required IDs are missing')
+            }
+
+            onCloseLead(formData)
             onClose()
+
             // Reset form
             setFormData({
                 reason: '',
-                taskStatus: 'Complete',
-                leadStatus: 'Not Connected',
+                status: 'Complete',
+                leadStatus: '',
                 tag: 'Cold',
+                state: 'dropped',
                 note: '',
+                stage: '',
+                leadId: leadId,
+                enquiryId: enquiryId,
+                taskId: taskIds,
+                agentId: agentId,
+                agentName: agentName,
+                timestamp: currentTimestamp,
             })
+        } catch (error: any) {
+            console.error('Error closing lead:', error)
+            toast.error(error.message || 'Failed to close lead')
         }
     }
 
@@ -74,15 +208,23 @@ const CloseLeadModal = ({ isOpen, onClose, onCloseLead, loading = false }) => {
 
         setFormData({
             reason: '',
-            taskStatus: 'Complete',
-            leadStatus: 'Not Connected',
+            status: 'Complete',
+            leadStatus: '',
             tag: 'Cold',
+            state: 'dropped',
             note: '',
+            stage: '',
+            leadId: leadId,
+            enquiryId: enquiryId,
+            taskId: taskIds,
+            agentId: agentId,
+            agentName: agentName,
+            timestamp: currentTimestamp,
         })
         onClose()
     }
 
-    const handleModalClick = (e) => {
+    const handleModalClick = (e: React.MouseEvent) => {
         if (loading) return // Prevent closing while loading
         onClose()
     }
@@ -144,38 +286,22 @@ const CloseLeadModal = ({ isOpen, onClose, onCloseLead, loading = false }) => {
                     <div className='grid grid-cols-3 gap-3'>
                         <div>
                             <label className='block text-sm font-medium text-gray-700 mb-1'>Task Status</label>
-                            <select
-                                value={formData.taskStatus}
-                                onChange={(e) => handleInputChange('taskStatus', e.target.value)}
-                                disabled={loading}
-                                className={`w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs ${
-                                    loading ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                            >
-                                {taskStatusOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <input
+                                type='text'
+                                value='Complete'
+                                disabled
+                                className='w-full px-2 py-2 border border-gray-300 rounded-md text-xs bg-gray-100 text-gray-500'
+                            />
                         </div>
 
                         <div>
                             <label className='block text-sm font-medium text-gray-700 mb-1'>Lead Status</label>
-                            <select
+                            <input
+                                type='text'
                                 value={formData.leadStatus}
-                                onChange={(e) => handleInputChange('leadStatus', e.target.value)}
-                                disabled={loading}
-                                className={`w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs ${
-                                    loading ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                            >
-                                {leadStatusOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                                disabled
+                                className='w-full px-2 py-2 border border-gray-300 rounded-md text-xs bg-gray-100 text-gray-500'
+                            />
                         </div>
 
                         <div>
