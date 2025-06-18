@@ -4,6 +4,7 @@ import RequirementCollectedModal from '../RquirementCollectionModal'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../store'
 import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
+import RescheduleEventModal from '../RescheduleEventModal'
 
 // Define interfaces for better type safety
 interface DropdownOption {
@@ -20,6 +21,7 @@ interface SiteVisitTaskProps {
 
 const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({ taskId, updateTaskState, setActiveTab }) => {
     const dispatch = useDispatch<AppDispatch>()
+    const [showResheduleModal, setShowRescheduleModal] = useState(false)
 
     const visitedOptions: DropdownOption[] = [
         { label: 'Want To Book', value: 'want to book' },
@@ -37,7 +39,11 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({ taskId, updateTaskState, 
     ]
 
     const notVisitedOptions: DropdownOption[] = [
-        { label: 'Reschedule Task', value: 'reschedule task' },
+        {
+            label: 'Reschedule Task',
+            value: 'reschedule task',
+            modal: useCallback(() => setShowRescheduleModal(true), [setShowRescheduleModal]),
+        },
         { label: 'Change Property', value: 'change property' },
         {
             label: 'Collect Requirement',
@@ -74,6 +80,14 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({ taskId, updateTaskState, 
                 triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                 placeholder='Not Visited'
             />
+
+            {showResheduleModal && (
+                <RescheduleEventModal
+                    isOpen={showResheduleModal}
+                    onClose={() => setShowRescheduleModal(false)}
+                    taskType='Site Not Visit'
+                />
+            )}
         </div>
     )
 }
