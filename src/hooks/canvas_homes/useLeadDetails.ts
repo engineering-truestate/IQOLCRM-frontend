@@ -34,7 +34,7 @@ interface UseLeadDetailsReturn {
     setActiveTab: (tab: string) => void
     setSelectedEnquiryId: (id: string) => void
     refreshData: () => void
-    updateTaskStatus: (taskId: string, status: 'open' | 'complete', taskResult?: string) => Promise<void>
+    updateTaskStatus: (taskId: string, status: 'open' | 'complete') => Promise<void>
     addNote: (noteData: { agentId: string; agentName: string; TaskType: string; note: string }) => Promise<void>
     createNewTask: (taskData: any) => Promise<void>
     addActivity: (activityData: {

@@ -12,6 +12,9 @@ interface CreateTaskModalProps {
     leadStatus?: string
     stage?: string
     tag?: string
+    propertyName?: string
+    leadAddDate?: number
+    name?: string
 }
 
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
@@ -22,13 +25,15 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     agentId = 'system',
     agentName = 'System',
     leadStatus = 'interested',
+    propertyName,
+    leadAddDate,
+    name,
     stage = 'lead registered',
     tag = 'potential',
 }) => {
     const [formData, setFormData] = useState({
         task: '',
         dueDate: '',
-        dueTime: '',
         assignedTo: '',
         priority: '',
         status: '',
@@ -36,7 +41,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     const [saving, setSaving] = useState(false)
 
-    // Task type options
     const taskOptions = [
         { label: 'Please select', value: '' },
         { label: 'Lead Registration', value: 'lead registration' },
@@ -72,36 +76,27 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         setSaving(true)
 
         try {
-            // Calculate scheduled date (due date - today)
+            const scheduledDate = new Date(formData.dueDate)
             const today = new Date()
-            const dueDate = new Date(formData.dueDate)
-            const scheduledDate = new Date(today)
-
-            // If due time is provided, use it; otherwise default to 9 AM
-            if (formData.dueTime) {
-                const [hours, minutes] = formData.dueTime.split(':')
-                scheduledDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-            } else {
-                scheduledDate.setHours(9, 0, 0, 0)
-            }
-
-            // Calculate due days (difference between due date and today)
-            const timeDiff = dueDate.getTime() - today.getTime()
+            const timeDiff = scheduledDate.getTime() - today.getTime()
             const dueDays = Math.ceil(timeDiff / (1000 * 3600 * 24))
 
             const taskData = {
-                enquiryId: enquiryId,
-                agentId: agentId,
-                agentName: agentName,
+                enquiryId,
+                agentId,
+                agentName,
+                propertyName: propertyName,
+                name,
+                leadAddDate: leadAddDate,
                 type: formData.task,
                 status: 'open',
-                taskResult: null,
-                stage: stage,
-                leadStatus: leadStatus,
-                tag: tag,
+                stage,
+                leadStatus,
+                tag,
                 scheduledDate: scheduledDate.getTime(),
-                dueDays: dueDays > 0 ? dueDays : 1, // Minimum 1 day
+                dueDays: dueDays > 0 ? dueDays : 1,
                 added: Date.now(),
+                completionDate: null,
                 lastModified: Date.now(),
             }
 
@@ -122,7 +117,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         setFormData({
             task: '',
             dueDate: '',
-            dueTime: '',
             assignedTo: '',
             priority: '',
             status: '',
@@ -130,23 +124,20 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         onClose()
     }
 
-    // Get current date in YYYY-MM-DD format for min date
-    const getCurrentDate = () => {
-        const today = new Date()
-        return today.toISOString().split('T')[0]
+    const getCurrentDateTime = () => {
+        const now = new Date()
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+        return now.toISOString().slice(0, 16)
     }
 
     if (!isOpen) return null
 
     return (
         <>
-            {/* Modal Overlay */}
             <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!saving ? onClose : undefined} />
 
-            {/* Modal Container */}
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[480px] bg-white z-50 rounded-lg shadow-2xl'>
                 <div className='flex flex-col'>
-                    {/* Modal Header */}
                     <div className='flex items-center justify-between p-6 pb-4'>
                         <h2 className='text-xl font-semibold text-gray-900'>Create Task</h2>
                         <button
@@ -186,9 +177,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         </button>
                     </div>
 
-                    {/* Modal Content */}
                     <div className='p-6 pt-0 space-y-4'>
-                        {/* Task Type Dropdown */}
+                        {/* Task Dropdown */}
                         <div>
                             <label className='block text-sm font-medium text-gray-700 mb-2'>Task</label>
                             <Dropdown
@@ -203,36 +193,20 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                             />
                         </div>
 
-                        {/* Due Date and Time Row */}
-                        <div className='grid grid-cols-2 gap-4'>
-                            {/* Due Date */}
-                            <div>
-                                <label className='block text-sm font-medium text-gray-700 mb-2'>Due Date</label>
-                                <input
-                                    type='date'
-                                    value={formData.dueDate}
-                                    onChange={(e) => handleInputChange('dueDate', e.target.value)}
-                                    min={getCurrentDate()}
-                                    disabled={saving}
-                                    className='w-full h-8 px-3 py-2.5 h-5 border  text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
-                                />
-                            </div>
-
-                            {/* Due Time */}
-                            <div>
-                                <label className='block text-sm font-medium text-gray-700 mb-2'>Due Time</label>
-                                <input
-                                    type='time'
-                                    value={formData.dueTime}
-                                    onChange={(e) => handleInputChange('dueTime', e.target.value)}
-                                    disabled={saving}
-                                    className='w-full px-3 h-8 py-2.5 h-5 border border-gray-300  text-gray-500 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
-                                />
-                            </div>
+                        {/* Due Date & Time */}
+                        <div className='col-span-2'>
+                            <label className='block text-sm font-medium text-gray-700 mb-2'>Due Date & Time</label>
+                            <input
+                                type='datetime-local'
+                                value={formData.dueDate}
+                                onChange={(e) => handleInputChange('dueDate', e.target.value)}
+                                min={getCurrentDateTime()}
+                                disabled={saving}
+                                className='w-full h-8 px-3 py-2.5 border text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
+                            />
                         </div>
                     </div>
 
-                    {/* Modal Footer */}
                     <div className='flex items-center justify-center w-full'>
                         <div className='flex w-fit items-center justify-between gap-3 p-6 pt-4'>
                             <button

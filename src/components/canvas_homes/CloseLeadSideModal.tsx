@@ -1,14 +1,22 @@
 import React, { useState } from 'react'
 import { leadService } from '../../services/canvas_homes/leadService' // Adjust path as needed
+import { enquiryService } from '../../services/canvas_homes/enquiryService' // Adjust path as needed
 
 interface CloseLeadSideModalProps {
     isOpen: boolean
     onClose: () => void
     leadId: string // The lead to update
+    enquiryId: string
     onLeadClosed?: () => void // Callback to refresh the lead data or perform actions post closure
 }
 
-const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({ isOpen, onClose, leadId, onLeadClosed }) => {
+const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
+    isOpen,
+    onClose,
+    leadId,
+    onLeadClosed,
+    enquiryId,
+}) => {
     const [reason, setReason] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
@@ -37,8 +45,11 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({ isOpen, onClose
         try {
             // Update the lead status to 'closed' with the provided reason
             await leadService.update(leadId, {
-                leadState: 'closed',
-                reason: reason.trim(),
+                state: 'closed',
+                lastModified: Date.now(),
+            })
+            await enquiryService.update(enquiryId, {
+                state: 'closed',
                 lastModified: Date.now(),
             })
 
@@ -77,7 +88,7 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({ isOpen, onClose
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 bg-white z-50 rounded-lg shadow-2xl'>
                 <div className='flex flex-col'>
                     {/* Modal Header */}
-                    <div className='flex items-center justify-between p-6 pb-4'>
+                    <div className='flex items-center justify-between p-6 pb-3'>
                         <h2 className='text-lg font-semibold text-black'>Close Lead</h2>
                         <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-md' disabled={isLoading}>
                             <svg

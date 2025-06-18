@@ -1,4 +1,4 @@
-// leadAlgoliaService.ts - Complete version with calendar range filter
+// leadAlgoliaService.ts - Fixed version
 
 import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
@@ -19,11 +19,6 @@ export interface LeadSearchFilters {
     leadStatus?: string[]
     userId?: string[]
     dateRange?: string
-    // Calendar-based range filter for 'added' field
-    addedRange?: {
-        startDate?: string | Date | number // Start date for range
-        endDate?: string | Date | number // End date for range
-    }
 }
 
 export interface LeadSearchParams {
@@ -50,25 +45,10 @@ export interface LeadFacetValue {
     highlighted?: string
 }
 
-// Helper function to convert date to timestamp
-const convertToTimestamp = (date: string | Date | number): number => {
-    if (typeof date === 'number') {
-        return date
-    }
-
-    if (typeof date === 'string') {
-        return new Date(date).getTime()
-    }
-
-    if (date instanceof Date) {
-        return date.getTime()
-    }
-
-    return 0
-}
-
 const buildLeadFilterString = (filters: LeadSearchFilters): string => {
     const filterParts: string[] = []
+
+    console.log('Building filters from:', filters) // Debug log
 
     if (filters.leadState && filters.leadState.length > 0) {
         const stateFilters = filters.leadState.map((state) => `leadState:'${state}'`).join(' OR ')
@@ -159,30 +139,6 @@ const buildLeadFilterString = (filters: LeadSearchFilters): string => {
         if (startTime > 0) {
             filterParts.push(`added >= ${startTime}`)
             console.log('Added date filter:', `added >= ${startTime}`)
-        }
-    }
-
-    // Calendar-based range filter for 'added' field
-    if (filters.addedRange) {
-        const rangeFilters: string[] = []
-
-        if (filters.addedRange.startDate) {
-            const startTimestamp = convertToTimestamp(filters.addedRange.startDate)
-            if (startTimestamp > 0) {
-                rangeFilters.push(`added >= ${startTimestamp}`)
-            }
-        }
-
-        if (filters.addedRange.endDate) {
-            const endTimestamp = convertToTimestamp(filters.addedRange.endDate)
-            if (endTimestamp > 0) {
-                rangeFilters.push(`added <= ${endTimestamp}`)
-            }
-        }
-
-        if (rangeFilters.length > 0) {
-            filterParts.push(`(${rangeFilters.join(' AND ')})`)
-            console.log('Added calendar range filter:', rangeFilters.join(' AND '))
         }
     }
 
@@ -445,19 +401,10 @@ export const formatLeadFiltersForDisplay = (filters: LeadSearchFilters): string 
     Object.entries(filters).forEach(([key, value]) => {
         if (Array.isArray(value) && value.length > 0) {
             parts.push(`${key}: ${value.join(', ')}`)
-        } else if (value && typeof value === 'object') {
-            if ('startDate' in value || 'endDate' in value) {
-                const range = value as { startDate?: string | Date | number; endDate?: string | Date | number }
-                const start = range.startDate
-                    ? new Date(convertToTimestamp(range.startDate)).toLocaleDateString()
-                    : 'Start'
-                const end = range.endDate ? new Date(convertToTimestamp(range.endDate)).toLocaleDateString() : 'End'
-                parts.push(`${key}: ${start} - ${end}`)
-            } else if ('min' in value) {
-                const range = value as { min?: number; max?: number }
-                if (range.min !== undefined || range.max !== undefined) {
-                    parts.push(`${key}: ${range.min || 0} - ${range.max || '∞'}`)
-                }
+        } else if (value && typeof value === 'object' && 'min' in value) {
+            const range = value as { min?: number; max?: number }
+            if (range.min !== undefined || range.max !== undefined) {
+                parts.push(`${key}: ${range.min || 0} - ${range.max || '∞'}`)
             }
         }
     })

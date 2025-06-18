@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
 import Dropdown from '../../components/design-elements/Dropdown'
-import { leadService } from '../../services/canvas_homes/leadService' // Adjust path as needed
+import { leadService } from '../../services/canvas_homes/leadService'
+import { userService } from '../../services/canvas_homes/userService'
+import { enquiryService } from '../../services/canvas_homes/enquiryService'
+import type { Lead, User, Enquiry } from '../../services/canvas_homes/types'
 
 interface AddLeadModalProps {
     isOpen: boolean
@@ -8,69 +11,55 @@ interface AddLeadModalProps {
     onLeadAdded?: () => void // Callback to refresh the leads list
 }
 
-// Lead interface for type safety
-interface Lead {
-    leadId: string
-    agentId: string
-    agentName: string
-    name: string
-    phoneNumber: string
-    propertyName: string
-    tag: 'cold' | 'potential' | 'hot' | 'super hot'
-    userId: string | null
-    source: string
-    stage: 'lead registered' | 'initial contacted' | 'site visited' | 'eoi collected' | 'booking confirmed' | null
-    taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking' | null
-    scheduledDate: number | null
-    leadStatus: 'interested' | 'not interested' | 'booking dropped'
-    leadState: 'open' | 'closed' | 'fresh' | 'dropped'
-    added: number
-    lastModified: number
-}
-
 const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdded }) => {
     const [formData, setFormData] = useState({
         name: '',
         phoneNumber: '',
+        propertyId: '',
         propertyName: '',
         source: '',
-        agentName: '',
         agentId: '',
+        agentName: '',
     })
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [isRefreshingAlgolia, setIsRefreshingAlgolia] = useState(false)
 
-    // Sample data for dropdowns with label-value format
+    // Property options with IDs
     const propertyOptions = [
         { label: 'Select property name', value: '' },
-        { label: 'Sunset Villa', value: 'Sunset Villa' },
-        { label: 'Ocean View Apartment', value: 'Ocean View Apartment' },
-        { label: 'Downtown Condo', value: 'Downtown Condo' },
-        { label: 'Garden Heights', value: 'Garden Heights' },
-        { label: 'Riverside Towers', value: 'Riverside Towers' },
-        { label: 'Sattva Hills', value: 'Sattva Hills' },
-        { label: 'Prestige Gardenia', value: 'Prestige Gardenia' },
-        { label: 'Brigade Cosmopolis', value: 'Brigade Cosmopolis' },
-        { label: 'Sobha City', value: 'Sobha City' },
-        { label: 'Embassy Springs', value: 'Embassy Springs' },
-        { label: 'Mantri Energia', value: 'Mantri Energia' },
+        { label: 'Sunset Villa', value: 'prop001|Sunset Villa' },
+        { label: 'Ocean View Apartment', value: 'prop002|Ocean View Apartment' },
+        { label: 'Downtown Condo', value: 'prop003|Downtown Condo' },
+        { label: 'Garden Heights', value: 'prop004|Garden Heights' },
+        { label: 'Riverside Towers', value: 'prop005|Riverside Towers' },
+        { label: 'Sattva Hills', value: 'prop006|Sattva Hills' },
+        { label: 'Prestige Gardenia', value: 'prop007|Prestige Gardenia' },
+        { label: 'Brigade Cosmopolis', value: 'prop008|Brigade Cosmopolis' },
+        { label: 'Sobha City', value: 'prop009|Sobha City' },
+        { label: 'Embassy Springs', value: 'prop010|Embassy Springs' },
+        { label: 'Mantri Energia', value: 'prop011|Mantri Energia' },
     ]
 
+    // Source options
     const sourceOptions = [
         { label: 'Select Source', value: '' },
         { label: 'Google', value: 'Google' },
         { label: 'LinkedIn', value: 'LinkedIn' },
         { label: 'Meta', value: 'META' },
+        { label: 'Referral', value: 'Referral' },
+        { label: 'Direct', value: 'Direct' },
     ]
 
+    // Agent options with standardized IDs
     const agentOptions = [
         { label: 'Select Agent', value: '' },
-        { label: 'Deepak Goyal', value: 'agent_001|Deepak Goyal' },
-        { label: 'Rajan Yadav', value: 'agent_002|Rajan Yadav' },
-        { label: 'Deepak Singh Chauhan', value: 'agent_003|Deepak Singh Chauhan' },
-        { label: 'Samarth Jangir', value: 'agent_004|Samarth Jangir' },
-        { label: 'Rahul Mehta', value: 'agent_123|Rahul Mehta' },
+        { label: 'Deepak Goyal', value: 'agent001|Deepak Goyal' },
+        { label: 'Rajan Yadav', value: 'agent002|Rajan Yadav' },
+        { label: 'Deepak Singh Chauhan', value: 'agent003|Deepak Singh Chauhan' },
+        { label: 'Samarth Jangir', value: 'agent004|Samarth Jangir' },
+        { label: 'Rahul Mehta', value: 'agent005|Rahul Mehta' },
     ]
 
     const handleInputChange = (field: keyof typeof formData, value: string) => {
@@ -78,6 +67,29 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
             ...prev,
             [field]: value,
         }))
+
+        // Clear error when user makes changes
+        if (error) setError(null)
+    }
+
+    const handlePropertySelect = (value: string) => {
+        if (value) {
+            const [propertyId, propertyName] = value.split('|')
+            setFormData((prev) => ({
+                ...prev,
+                propertyId,
+                propertyName,
+            }))
+        } else {
+            setFormData((prev) => ({
+                ...prev,
+                propertyId: '',
+                propertyName: '',
+            }))
+        }
+
+        // Clear error when user makes changes
+        if (error) setError(null)
     }
 
     const handleAgentSelect = (value: string) => {
@@ -95,24 +107,71 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                 agentName: '',
             }))
         }
+
+        // Clear error when user makes changes
+        if (error) setError(null)
     }
 
     const validateForm = (): boolean => {
+        // Name validation
         if (!formData.name.trim()) {
             setError('Lead Name is required')
             return false
         }
+
+        if (formData.name.trim().length < 2) {
+            setError('Lead Name must be at least 2 characters')
+            return false
+        }
+
+        // Phone validation
         if (!formData.phoneNumber.trim()) {
             setError('Phone Number is required')
             return false
         }
-        // Basic phone number validation - removed unnecessary escapes
-        const phoneRegex = /^\+?[\d\s\-()]{10,15}$/
+
+        // Validate Indian phone numbers (+91 followed by 10 digits)
+        // or international format with country code
+        const phoneRegex = /^(\+\d{1,3}\s?)?(\d{10,15})$/
         if (!phoneRegex.test(formData.phoneNumber.trim())) {
-            setError('Please enter a valid phone number')
+            setError('Please enter a valid phone number (e.g., +91 9999999999)')
             return false
         }
+
+        // Optional validations based on business requirements
+        if (!formData.propertyId) {
+            setError('Please select a property')
+            return false
+        }
+
+        if (!formData.source) {
+            setError('Please select a lead source')
+            return false
+        }
+
         return true
+    }
+
+    const formatPhoneNumber = (number: string): string => {
+        const cleanNumber = number.replace(/[^\d+]/g, '') // Remove non-digit characters except +
+
+        // If it's an Indian number without country code, add +91
+        if (cleanNumber.length === 10 && /^\d{10}$/.test(cleanNumber)) {
+            return `+91 ${cleanNumber}`
+        }
+
+        // If it already has a plus, ensure there's a space after the country code
+        if (cleanNumber.startsWith('+')) {
+            // Find the country code (1-3 digits after +)
+            const countryCodeMatch = cleanNumber.match(/^\+(\d{1,3})/)
+            if (countryCodeMatch) {
+                const countryCode = countryCodeMatch[1]
+                const rest = cleanNumber.substring(countryCode.length + 1)
+                return `+${countryCode} ${rest}`
+            }
+        }
+
+        return cleanNumber
     }
 
     const handleSave = async () => {
@@ -125,29 +184,73 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
         setIsLoading(true)
 
         try {
-            // Create lead data according to Lead interface
-            const leadData: Omit<Lead, 'leadId' | 'added' | 'lastModified'> = {
-                agentId: formData.agentId || 'agent_default',
-                agentName: formData.agentName || 'Unassigned',
+            // Format phone number
+            const formattedPhoneNumber = formatPhoneNumber(formData.phoneNumber.trim())
+
+            // Step 1: Create User
+            const userData: Omit<User, 'userId'> = {
                 name: formData.name.trim(),
-                phoneNumber: formData.phoneNumber.trim(),
-                propertyName: formData.propertyName || 'Not specified',
-                tag: 'potential', // Default tag
-                userId: null, // You might want to get this from auth context
-                source: formData.source,
-                stage: null, // Default stage
-                taskType: null, // Default task type
-                scheduledDate: null, // Default to 7 days from now
-                leadStatus: 'interested', // Default status
-                leadState: 'fresh', // Default state
+                phonenumber: formattedPhoneNumber,
+                emailAddress: '',
+                label: null,
+                added: Date.now(),
+                lastModified: Date.now(),
             }
 
-            console.log('Creating lead with data:', leadData)
+            const userId = await userService.create(userData)
+            console.log('User created successfully with ID:', userId)
 
-            // Create lead using the service
+            // Step 2: Create Lead
+            const leadData: Omit<Lead, 'leadId'> = {
+                agentId: formData.agentId || 'agent001', // Default to first agent
+                agentName: formData.agentName || 'Deepak Goyal', // Default agent name
+                name: formData.name.trim(),
+                phoneNumber: formattedPhoneNumber,
+                propertyName: formData.propertyName || 'Sunset Villa', // Default property
+                tag: 'potential', // Default tag
+                userId: userId, // Associate User ID to Lead
+                source: formData.source || 'Direct', // Default source
+                stage: null, // Default stage
+                taskType: null, // Default task type
+                scheduledDate: null, // Default scheduled date
+                leadStatus: 'interested', // Default status
+                state: 'fresh', // Default state
+                added: Date.now(),
+                lastModified: Date.now(),
+            }
+
             const leadId = await leadService.create(leadData)
-
             console.log('Lead created successfully with ID:', leadId)
+
+            // Step 3: Create Enquiry
+            const enquiryData: Omit<Enquiry, 'enquiryId'> = {
+                leadId: leadId, // Associate Lead to Enquiry
+                agentId: formData.agentId || 'agent001',
+                propertyId: formData.propertyId || 'prop001',
+                propertyName: formData.propertyName || 'Sunset Villa',
+                source: formData.source || 'Direct',
+                leadStatus: 'interested', // Default status
+                stage: null, // Default stage
+                agentHistory: [
+                    {
+                        agentId: formData.agentId,
+                        agentName: formData.agentName,
+                        timestamp: Date.now(),
+                        lastStage: null,
+                    },
+                ],
+                notes: [],
+                activityHistory: [],
+                tag: 'potential', // Default tag
+                documents: [],
+                state: 'fresh',
+                requirements: [],
+                added: Date.now(),
+                lastModified: Date.now(),
+            }
+
+            await enquiryService.create(enquiryData)
+            console.log('Enquiry created successfully for lead ID:', leadId)
 
             // Call the callback to refresh the leads list
             if (onLeadAdded) {
@@ -155,12 +258,12 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
             }
 
             // Show success message
-            alert('Lead created successfully!')
+            alert('Lead, User, and Enquiry created successfully!')
 
-            // Reset and close
+            // Reset form and close modal
             handleDiscard()
         } catch (error) {
-            console.error('Error creating lead:', error)
+            console.error('Error creating lead, user, or enquiry:', error)
             setError('Failed to create lead. Please try again.')
         } finally {
             setIsLoading(false)
@@ -171,10 +274,11 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
         setFormData({
             name: '',
             phoneNumber: '',
+            propertyId: '',
             propertyName: '',
             source: '',
-            agentName: '',
             agentId: '',
+            agentName: '',
         })
         setError(null)
         onClose()
@@ -184,16 +288,17 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
 
     return (
         <>
-            {/* Modal Overlay */}
             <div className='fixed top-0 left-0 w-[75%] h-full bg-black opacity-50 z-40' onClick={onClose} />
-
-            {/* Modal Container */}
             <div className='fixed top-0 right-0 h-full w-[25%] bg-white z-50 shadow-2xl border-l border-gray-200'>
                 <div className='flex flex-col h-full'>
-                    {/* Modal Header */}
                     <div className='flex items-center justify-between p-6 pb-0'>
                         <h2 className='text-xl font-semibold text-black'>Add Lead</h2>
-                        <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-md' disabled={isLoading}>
+                        <button
+                            onClick={onClose}
+                            className='p-1 hover:bg-gray-100 rounded-md'
+                            disabled={isLoading || isRefreshingAlgolia}
+                            aria-label='Close'
+                        >
                             <svg
                                 width='20'
                                 height='20'
@@ -209,9 +314,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                         </button>
                     </div>
 
-                    {/* Modal Content */}
                     <div className='flex-1 p-6 overflow-y-auto'>
-                        {/* Error Message */}
                         {error && (
                             <div className='mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm'>
                                 {error}
@@ -219,9 +322,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                         )}
 
                         <div className='space-y-6'>
-                            {/* Lead Name Input */}
                             <div>
-                                <label className='block text-sm font-medium mb-2'>
+                                <label htmlFor='leadName' className='block text-sm font-medium mb-2'>
                                     Lead Name <span className='text-red-500'>*</span>
                                 </label>
                                 <input
@@ -230,13 +332,14 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                                     onChange={(e) => handleInputChange('name', e.target.value)}
                                     placeholder='Enter lead name'
                                     className='w-full px-4 py-2.5 border font-medium border-gray-300 rounded-lg focus:outline-none focus:border-black text-xs'
-                                    disabled={isLoading}
+                                    disabled={isLoading || isRefreshingAlgolia}
+                                    required
+                                    maxLength={50}
                                 />
                             </div>
 
-                            {/* Phone Number Input */}
                             <div>
-                                <label className='block text-sm font-medium mb-2'>
+                                <label htmlFor='phoneNumber' className='block text-sm font-medium mb-2'>
                                     Phone No. <span className='text-red-500'>*</span>
                                 </label>
                                 <input
@@ -245,31 +348,38 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                                     onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                                     placeholder='Enter phone no. (e.g., +91 9999999999)'
                                     className='w-full px-4 py-2.5 border font-medium border-gray-300 rounded-lg focus:outline-none focus:border-black text-xs'
-                                    disabled={isLoading}
+                                    disabled={isLoading || isRefreshingAlgolia}
+                                    required
+                                    maxLength={15}
                                 />
                             </div>
 
-                            {/* Property Dropdown */}
                             <div>
-                                <label className='block text-sm font-medium mb-2'>Property</label>
+                                <label htmlFor='property' className='block text-sm font-medium mb-2'>
+                                    Property <span className='text-red-500'>*</span>
+                                </label>
                                 <Dropdown
                                     options={propertyOptions}
-                                    onSelect={(value) => handleInputChange('propertyName', value)}
-                                    defaultValue={formData.propertyName}
+                                    onSelect={handlePropertySelect}
+                                    defaultValue={
+                                        formData.propertyId ? `${formData.propertyId}|${formData.propertyName}` : ''
+                                    }
                                     placeholder='Select property name'
                                     className='w-full'
                                     triggerClassName='w-full px-4 py-2.5 border text-gray-500 font-medium text-xs border-gray-300 rounded-lg focus:outline-none focus:border-black appearance-none bg-white flex items-center justify-between text-left'
                                     menuClassName='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
                                     optionClassName='w-full px-4 py-2.5 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 text-sm'
+                                    disabled={isLoading || isRefreshingAlgolia}
                                 />
                             </div>
 
-                            {/* Source and Agent Row */}
                             <div className='grid grid-cols-2 gap-4'>
-                                {/* Source Dropdown */}
                                 <div>
-                                    <label className='block text-sm font-medium mb-2'>Source</label>
+                                    <label htmlFor='source' className='block text-sm font-medium mb-2'>
+                                        Source <span className='text-red-500'>*</span>
+                                    </label>
                                     <Dropdown
+                                        id='source'
                                         options={sourceOptions}
                                         onSelect={(value) => handleInputChange('source', value)}
                                         defaultValue={formData.source}
@@ -278,12 +388,14 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                                         triggerClassName='px-4 py-2.5 border border-gray-300 text-gray-500 font-medium rounded-lg focus:outline-none focus:border-black text-xs appearance-none bg-white flex items-center justify-between text-left'
                                         menuClassName='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
                                         optionClassName='w-full px-3 py-2 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 text-sm'
+                                        disabled={isLoading || isRefreshingAlgolia}
                                     />
                                 </div>
 
-                                {/* Agent Dropdown */}
                                 <div>
-                                    <label className='block text-sm font-medium mb-2'>Agent</label>
+                                    <label htmlFor='agent' className='block text-sm font-medium mb-2'>
+                                        Agent
+                                    </label>
                                     <Dropdown
                                         options={agentOptions}
                                         onSelect={handleAgentSelect}
@@ -292,34 +404,34 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                                         }
                                         placeholder='Select Agent'
                                         className='w-full'
-                                        triggerClassName='px-4 py-2.5 border border-gray-300 text-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-xs font-medium appearance-none bg-white flex items-center justify-between text-left'
+                                        triggerClassName='px-4 py-2.5 border border-gray-300 text-gray-500 rounded-lg focus:outline-none focus:border-black text-xs font-medium appearance-none bg-white flex items-center justify-between text-left'
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2 w-full text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                        disabled={isLoading || isRefreshingAlgolia}
                                     />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Modal Footer */}
                     <div className='p-6'>
                         <div className='flex items-center justify-center gap-6'>
                             <button
                                 onClick={handleDiscard}
-                                disabled={isLoading}
+                                disabled={isLoading || isRefreshingAlgolia}
                                 className='px-6 py-2 w-30 text-gray-600 bg-gray-100 rounded-sm hover:text-gray-800 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                             >
                                 Discard
                             </button>
                             <button
                                 onClick={handleSave}
-                                disabled={isLoading}
-                                className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+                                disabled={isLoading || isRefreshingAlgolia}
+                                className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                             >
-                                {isLoading && (
+                                {(isLoading || isRefreshingAlgolia) && (
                                     <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
                                 )}
-                                {isLoading ? 'Saving...' : 'Save'}
+                                {isLoading ? 'Saving...' : isRefreshingAlgolia ? 'Refreshing...' : 'Save'}
                             </button>
                         </div>
                     </div>

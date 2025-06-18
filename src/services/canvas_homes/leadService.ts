@@ -17,24 +17,22 @@ import type { Lead } from './types'
 class LeadService {
     private collectionName = 'canvashomesLeads'
 
+    /**
+     * Fetch a lead document by its leadId
+     */
     async getById(leadId: string): Promise<Lead | null> {
         try {
-            // Validate leadId
             if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {
                 console.error('Invalid leadId provided:', leadId)
                 return null
             }
 
-            console.log('Fetching lead with ID:', leadId)
-
             const leadDoc = await getDoc(doc(db, this.collectionName, leadId.trim()))
 
             if (leadDoc.exists()) {
                 const data = leadDoc.data()
-                console.log('Lead data fetched successfully:', data)
                 return { leadId: leadDoc.id, ...data } as Lead
             } else {
-                console.log('Lead document does not exist for ID:', leadId)
                 return null
             }
         } catch (error) {
@@ -43,10 +41,15 @@ class LeadService {
         }
     }
 
+    /**
+     * Fetch all leads with optional filtering based on agentId, stage, leadState, or tag.
+     * Results are ordered by 'added' timestamp in descending order.
+     */
     async getAll(filters?: { agentId?: string; stage?: string; leadState?: string; tag?: string }): Promise<Lead[]> {
         try {
             let q = query(collection(db, this.collectionName), orderBy('added', 'desc'))
 
+            // Apply filters dynamically
             if (filters?.agentId) {
                 q = query(q, where('agentId', '==', filters.agentId))
             }
@@ -71,40 +74,45 @@ class LeadService {
         }
     }
 
+    /**
+     * Create a new lead with a unique sequential leadId (e.g., lead001, lead002, ...)
+     */
     async create(leadData: Omit<Lead, 'leadId' | 'added' | 'lastModified'>): Promise<string> {
         try {
-            // Query the collection to get the lead with the highest leadId
+            // Get the most recent lead to determine the next leadId
             const q = query(collection(db, this.collectionName), orderBy('leadId', 'desc'), limit(1))
             const snapshot = await getDocs(q)
 
-            // Default the leadId to 'lead001' if no leads exist
             let nextLeadId = 'lead001'
 
             if (!snapshot.empty) {
-                // Retrieve the last lead's ID and parse the number from it
                 const lastLeadId = snapshot.docs[0].data().leadId
-                const lastNumber = parseInt(lastLeadId.replace('lead', '')) // Remove 'lead' and convert to integer
-                const newNumber = lastNumber + 1 // Increment the last number
-                nextLeadId = `lead${newNumber.toString().padStart(3, '0')}` // Generate the next leadId with padding
+                const lastNumber = parseInt(lastLeadId.replace('lead', ''))
+                const newNumber = lastNumber + 1
+                nextLeadId = `lead${newNumber.toString().padStart(3, '0')}`
             }
 
-            // Prepare the new lead data including the generated leadId and timestamps
+            // Construct new lead object with timestamps
             const newLead = {
                 ...leadData,
                 leadId: nextLeadId,
-                added: Date.now(), // Timestamp when the lead is created
-                lastModified: Date.now(), // Timestamp when the lead is last modified
+                added: Date.now(),
+                lastModified: Date.now(),
             }
 
-            // Save the lead to Firestore with the custom leadId
             await setDoc(doc(db, this.collectionName, nextLeadId), newLead)
 
-            return nextLeadId // Return the generated leadId
+            return nextLeadId
         } catch (error) {
-            console.error('Error creating lead:', error) // Log any errors
-            throw error // Re-throw the error for further handling
+            console.error('Error creating lead:', error)
+            throw error
         }
     }
+
+    /**
+     * Update an existing lead by its ID.
+     * Automatically updates the 'lastModified' timestamp.
+     */
     async update(leadId: string, updates: Partial<Lead>): Promise<void> {
         try {
             if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {
@@ -115,6 +123,7 @@ class LeadService {
                 ...updates,
                 lastModified: Date.now(),
             }
+
             await updateDoc(doc(db, this.collectionName, leadId.trim()), updateData)
         } catch (error) {
             console.error('Error updating lead:', error)
@@ -122,6 +131,9 @@ class LeadService {
         }
     }
 
+    /**
+     * Delete a lead by its leadId.
+     */
     async delete(leadId: string): Promise<void> {
         try {
             if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {

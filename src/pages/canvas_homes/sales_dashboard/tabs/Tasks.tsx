@@ -26,7 +26,6 @@ const Tasks: React.FC<TasksProps> = ({
     loading,
     onTaskStatusUpdate,
     error,
-    // ADD THESE LINES:
     setActiveTab,
     onUpdateEnquiry,
     onUpdateLead,
