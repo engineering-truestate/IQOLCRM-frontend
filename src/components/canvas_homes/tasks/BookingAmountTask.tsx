@@ -5,6 +5,9 @@ import RescheduleEventModal from '../RescheduleEventModal'
 import { useSelector } from 'react-redux'
 import { useParams } from 'react-router'
 import { enquiryService } from '../../../services/canvas_homes'
+import type { AppDispatch } from '../../../store'
+import { useDispatch } from 'react-redux'
+import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
 
 interface RootState {
     taskId: {
@@ -45,6 +48,7 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
     const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
     const [isChangePropertyModalOpen, setIsChangePropertyModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const dispatch = useDispatch<AppDispatch>()
 
     // Redux and router hooks
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId)
@@ -142,6 +146,7 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                 break
             case 'collect_requirement':
                 if (setActiveTab) {
+                    dispatch(setTaskState('Booking Unsuccessful'))
                     setActiveTab('Requirements')
                 }
                 break
@@ -290,6 +295,7 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                     {/* Not connected dropdown */}
                     <div className='relative'>
                         <Dropdown
+                            defaultValue=''
                             options={notConnectedOptions}
                             onSelect={handleNotConnectedAction}
                             disabled={isLoading}
@@ -357,7 +363,7 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                 isOpen={isRescheduleModalOpen}
                 onClose={() => !isLoading && setIsRescheduleModalOpen(false)}
                 onReschedule={handleReschedule}
-                loading={isLoading}
+                // loading={isLoading}
             />
         </>
     )

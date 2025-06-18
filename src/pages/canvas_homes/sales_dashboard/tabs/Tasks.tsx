@@ -193,9 +193,17 @@ const Tasks: React.FC<TasksProps> = ({
             case 'lead registration':
                 return <LeadRegistrationTask {...commonProps} taskStatusOptions={taskStatusOptions} />
             case 'initial contact':
-                return <InitialContactTask {...commonProps} taskStatusOptions={taskStatusOptions} />
+                return (
+                    <InitialContactTask
+                        {...commonProps}
+                        setActiveTab={setActiveTab}
+                        taskStatusOptions={taskStatusOptions}
+                    />
+                )
             case 'site visit':
-                return <SiteVisitTask {...commonProps} taskStatusOptions={taskStatusOptions} />
+                return (
+                    <SiteVisitTask {...commonProps} setActiveTab={setActiveTab} taskStatusOptions={taskStatusOptions} />
+                )
             case 'eoi collection':
                 return <CollectEOITask {...commonProps} taskStatusOptions={taskStatusOptions} />
             case 'booking':

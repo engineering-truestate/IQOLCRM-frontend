@@ -1,18 +1,32 @@
-import React from 'react'
+import React, { useCallback, useState } from 'react'
 import Dropdown from './Dropdown'
+import RequirementCollectedModal from '../RquirementCollectionModal'
+import type { AppDispatch } from '../../../store'
+import { useDispatch } from 'react-redux'
+import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
 
 const CollectEOITask = ({ taskId, updateTaskState, getTaskState }) => {
+    const dispatch = useDispatch<AppDispatch>()
+
     const visitedOptions = [
         { label: 'Want To Book', value: 'want to book' },
         { label: 'Change Property', value: 'change property' },
-        { label: 'Collect Requirement', value: 'collect requirement' },
+        {
+            label: 'Collect Requirement',
+            value: 'collect requirement',
+            modal: useCallback(() => dispatch(setTaskState('EOI Collected')), []),
+        },
         { label: 'Close Lead', value: 'close lead' },
     ]
 
     const notVisitedOptions = [
         { label: 'Reschedule Task', value: 'reschedule task' },
         { label: 'Change Property', value: 'change property' },
-        { label: 'Collect Requirement', value: 'collect requirement' },
+        {
+            label: 'Collect Requirement',
+            value: 'collect requirement',
+            modal: useCallback(() => dispatch(setTaskState('EOI Not Collected')), []),
+        },
         { label: 'Close Lead', value: 'close lead' },
     ]
 
@@ -34,6 +48,7 @@ const CollectEOITask = ({ taskId, updateTaskState, getTaskState }) => {
                 </button>
 
                 <Dropdown
+                    defaultValue=''
                     options={notVisitedOptions}
                     onSelect={handleSelectMode}
                     triggerClassName='flex items-center h-8 w-33.5 w-fit justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
