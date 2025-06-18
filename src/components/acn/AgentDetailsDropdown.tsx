@@ -45,11 +45,11 @@ const formatValue = (value: any): string => {
 
 export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
     // State for the main dropdown visibility
-    const [isMainDropdownOpen, setIsMainDropdownOpen] = useState(true)
+    const [isMainDropdownOpen, setIsMainDropdownOpen] = useState(false)
 
     // State for individual sections
     const [openSections, setOpenSections] = useState({
-        userDetails: true,
+        userDetails: false,
         planDetails: false,
         resaleDetails: false,
         rentalDetails: false,
