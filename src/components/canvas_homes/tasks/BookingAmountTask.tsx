@@ -49,7 +49,8 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
     // Redux and router hooks
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId)
     const { leadId } = useParams()
-
+    const bookingStatus = getTaskState(taskId, 'bookingStatus') || 'unsuccessful'
+    const isUnsuccessful = bookingStatus === 'unsuccessful'
     // Task state
     const bookingStatus = 'unsuccessful'
     const isUnsuccessful = bookingStatus === 'unsuccessful'

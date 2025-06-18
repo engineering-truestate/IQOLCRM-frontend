@@ -45,6 +45,7 @@ import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
+import Resale from './pages/restack/resale/Resale'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -127,12 +128,24 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(TypologyPage, null)),
     },
     {
+        path: '/restack/stock/post-rera',
+        element: React.createElement(React.Suspense, null, React.createElement(PostReraPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraPage, null)),
+    },
+    {
         path: '/restack/stock/post-rera/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
     },
     {
         path: '/restack/stock/post-rera/:id/documents',
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
     },
     {
         path: '/restack/stock/pre-rera/:id/edit',
@@ -186,6 +199,10 @@ export const protectedRoutes: RouteObject[] = [
         path: '/restack/rental',
         element: React.createElement(React.Suspense, null, React.createElement(RentalPage, null)),
     },
+    //  {
+    //     path: '/restack/resale',
+    //     element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
+    // },
 ]
 
 export const unprotectedRoutes: RouteObject[] = []
