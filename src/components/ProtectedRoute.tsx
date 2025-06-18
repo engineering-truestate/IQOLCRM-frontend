@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuth from '../hooks/useAuth'
+import { ClipLoader } from 'react-spinners'
 
 interface Props {
     children: React.ReactNode
@@ -18,7 +19,7 @@ const ProtectedRoute: React.FC<Props> = ({ children }) => {
     }, [user, loading, navigate])
 
     if (loading) {
-        return <div>Loading...</div>
+        return <ClipLoader />
     }
 
     return user ? <>{children}</> : null
