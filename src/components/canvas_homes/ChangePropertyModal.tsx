@@ -1,9 +1,13 @@
 import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
+import type { RootState } from '../../store'
 import { useParams } from 'react-router'
 import { enquiryService } from '../../services/canvas_homes'
 import { leadService } from '../../services/canvas_homes'
 import { taskService } from '../../services/canvas_homes'
+import useAuth from '../../hooks/useAuth'
+import { toast } from 'react-toastify'
+import { getUnixDateTime } from '../helper/getUnixDateTime'
 
 interface ChangePropertyModalProps {
     isOpen: boolean
@@ -12,16 +16,23 @@ interface ChangePropertyModalProps {
 }
 
 const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, onChangeProperty }) => {
-    const taskIds: string = useSelector((state: RootState) => state.taskId.taskId)
-    const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId)
-
+    const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
+    const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
+    const { user } = useAuth()
     const { leadId } = useParams()
+
+    const agentId = user?.uid || ''
+    const agentName = user?.displayName || ''
+
+    console.log('lusedata', user)
 
     const [formData, setFormData] = useState({
         reason: '',
         leadId: leadId,
         state: 'open',
         newProperty: '',
+        agentId: agentId,
+        agentName: agentName,
     })
 
     const reasonOptions = [
@@ -67,10 +78,23 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             [field]: value,
         }))
     }
+    const handleNoteChange = (value: string) => {
+        const newNote = {
+            note: value,
+            timestamp: getUnixDateTime(),
+            agentName: formData.agentName,
+            agentId: formData.agentId,
+            taskType: '  registration',
+        }
+        setFormData((prev) => ({
+            ...prev,
+            notes: [newNote],
+        }))
+    }
 
     const handleSubmit = async () => {
         if (!formData.reason || !formData.newProperty) {
-            alert('Please select a reason and new property')
+            toast.error('Please select a reason and new property')
             return
         }
 
@@ -80,21 +104,23 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     leadStatus: 'Property Changed',
                 }
                 await enquiryService.update(enquiryId, enqData)
-                await enquiryService.create(enqData)
+                await enquiryService.create(formData)
 
                 const data = {
                     stage: null,
-                    state: 'fresh',
+                    state: 'fresh' as 'open' | 'fresh' | 'closed' | 'dropped' | null | undefined,
                     status: 'interested',
                 }
                 await leadService.update(leadId, data)
                 await taskService.update(taskIds, { status: 'complete' })
+
+                toast.success('Property changed successfully')
             } else {
-                console.error('enquiryId is undefined')
+                toast.error('enquiryId is undefined')
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating enquiry:', error)
-            alert('Failed to update enquiry')
+            toast.error(error.message || 'Failed to update enquiry')
             return
         }
 
@@ -102,26 +128,19 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
         onClose()
 
         // Reset form
-        setFormData({
-            leadId: leadId,
+        setFormData((prev) => ({
+            ...prev,
             reason: '',
             newProperty: '',
-            taskStatus: 'Complete',
-            leadStatus: 'Property Changed',
-            tag: 'Cold',
-            note: '',
-        })
+        }))
     }
 
     const handleDiscard = () => {
-        setFormData({
+        setFormData((prev) => ({
+            ...prev,
             reason: '',
             newProperty: '',
-            taskStatus: 'Complete',
-            leadStatus: 'Property Changed',
-            tag: 'Cold',
-            note: '',
-        })
+        }))
         onClose()
     }
 
@@ -163,7 +182,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     <div>
                         <label className='block text-sm font-medium text-gray-700 mb-1'>Add New Property</label>
                         <select
-                            value={newProperty}
+                            value={formData.newProperty}
                             onChange={(e) => handleInputChange('newProperty', e.target.value)}
                             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50'
                         >
@@ -248,7 +267,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                         <label className='block text-sm font-medium text-gray-700 mb-1'>Add Note (Optional)</label>
                         <textarea
                             value={formData.note}
-                            onChange={(e) => handleInputChange('note', e.target.value)}
+                            onChange={(e) => handleNoteChange(e.target.value)}
                             placeholder='Add your notes here...'
                             rows={4}
                             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none'
