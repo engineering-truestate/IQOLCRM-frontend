@@ -13,6 +13,7 @@ import type { AppDispatch, RootState } from '../../../store'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import { formatCost } from '../../../components/helper/formatCost'
 import { formatUnixDate } from '../../../components/helper/formatDate'
+import AgentDetailsDropdown from '../../../components/acn/AgentDetailsDropdown'
 
 import AgentInventoryTable from './AgentInventoryTable'
 import AgentRequirementTable from './AgentRequirementTable'
@@ -58,6 +59,7 @@ const AgentDetailsPage = () => {
 
     // Initial data fetch and data refresh when property type changes
     useEffect(() => {
+        // console.log("check")
         if (agentId) {
             // Fetch agent details
             dispatch(fetchAgentInfo({ agentId }))
@@ -421,18 +423,14 @@ const AgentDetailsPage = () => {
                                 />
                             </div>
                         </div>
-                        <div className='flex items-center space-x-4 border border-gray-300 rounded-md p-2'>
-                            <span>Agent Details</span>
-                            <span>{agentDetails?.name}</span>
-                            <span>{agentDetails?.cpId}</span>
-                            <span>{agentDetails?.phoneNumber}</span>
-                            <span>{agentDetails?.planId}</span>
-                            <span>{agentDetails?.monthlyCredits}</span>
+                        {/* agent details dropdown */}
+                        <div className='absolute top-14 right-5 border-1 border-gray-300 rounded-md  transition-all duration-200 ease-in-out z-[100] w-[30%] bg-white '>
+                            <AgentDetailsDropdown label='Agent Field' agentDetails={agentDetails} />
                         </div>
                     </div>
 
                     {/* Table */}
-                    <div className='mt-4'>
+                    <div className='mt-10'>
                         <FlexibleTable
                             columns={columns}
                             data={filteredData}

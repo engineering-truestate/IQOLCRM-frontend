@@ -17,6 +17,7 @@
         "@types/xlsx": "^0.0.35",
         "algoliasearch": "^5.27.0",
         "firebase": "^11.8.1",
+        "lucide-react": "^0.516.0",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
         "react-icons": "^5.5.0",
