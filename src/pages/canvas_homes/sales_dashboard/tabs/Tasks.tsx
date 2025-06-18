@@ -11,8 +11,8 @@ interface TasksProps {
     tasks: Task[]
     loading: boolean
     onTaskStatusUpdate: (taskId: string, status: 'open' | 'complete', taskResult?: string) => Promise<void>
+    onUpdateTask?: (taskId: string, updates: any) => Promise<void> // Added missing function
     error?: string | null
-    // ADD THESE LINES:
     setActiveTab?: (tab: string) => void
     onUpdateEnquiry?: (updates: any) => Promise<void>
     onUpdateLead?: (updates: any) => Promise<void>
@@ -25,6 +25,7 @@ const Tasks: React.FC<TasksProps> = ({
     tasks: firebaseTasks = [],
     loading,
     onTaskStatusUpdate,
+    onUpdateTask, // Added missing prop
     error,
     setActiveTab,
     onUpdateEnquiry,
@@ -159,16 +160,40 @@ const Tasks: React.FC<TasksProps> = ({
         setUpdatingTasks((prev) => ({ ...prev, [taskId]: true }))
 
         try {
-            // Convert string status to proper type and call the Firebase update
-            const status = selectedStatus as 'open' | 'complete'
-            await onTaskStatusUpdate(taskId, status)
+            onTaskStatusUpdate(taskId, 'complete')
 
-            // Update local state to reflect the change immediately
+            // Update task with completion details
+            if (onUpdateTask) {
+                await onUpdateTask(taskId, {
+                    taskResult: 'lead registered',
+                    status: 'complete',
+                    lastModified: Date.now(),
+                })
+            }
+
+            // Update enquiry status and tag
+            if (onUpdateEnquiry) {
+                await onUpdateEnquiry({
+                    stage: 'lead registered',
+                    state: 'open',
+                })
+            }
+
+            // Update lead status, state, and tag
+            if (onUpdateLead) {
+                await onUpdateLead({
+                    stage: 'lead registered',
+                    state: 'open',
+                    lastModified: Date.now(),
+                })
+            }
+
+            // ✅ Fix: use selectedStatus instead of undefined status
             setTaskStates((prev) => ({
                 ...prev,
                 [taskId]: {
                     ...prev[taskId],
-                    status: status,
+                    status: selectedStatus,
                 },
             }))
         } catch (error) {
@@ -179,7 +204,7 @@ const Tasks: React.FC<TasksProps> = ({
         }
     }
 
-    const renderTaskContent = (task: Task) => {
+    const renderTaskContent = (task: any) => {
         const commonProps = {
             taskId: task.id,
             updateTaskState,
@@ -189,9 +214,9 @@ const Tasks: React.FC<TasksProps> = ({
             taskData: task.firebaseTask,
         }
 
-        switch (task.type) {
+        switch (task.type.toLowerCase()) {
             case 'lead registration':
-                return <LeadRegistrationTask {...commonProps} taskStatusOptions={taskStatusOptions} />
+                return <LeadRegistrationTask {...commonProps} propertyLink={task.firebaseTask.propertyLink || '#'} />
             case 'initial contact':
                 return <InitialContactTask {...commonProps} taskStatusOptions={taskStatusOptions} />
             case 'site visit':

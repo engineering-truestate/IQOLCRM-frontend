@@ -51,6 +51,9 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
     const { leadId } = useParams()
 
     // Task state
+    const bookingStatus = 'unsuccessful'
+    const isUnsuccessful = bookingStatus === 'unsuccessful'
+
     /**
      * Handle successful booking
      */
@@ -99,6 +102,9 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
 
             if (onUpdateLead) {
                 await onUpdateLead(leadUpdateData)
+            } else if (leadId) {
+                await enquiryService.update(leadId, leadUpdateData)
+                console.log('Lead updated with booking confirmed')
             }
 
             // 4. Show success message
