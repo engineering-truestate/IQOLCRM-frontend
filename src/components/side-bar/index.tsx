@@ -7,7 +7,6 @@ import { restackMenuItems } from './menu-options/restack'
 // import { truestateMenuItems } from './menu-options/truestate'
 import { handleLogout } from '../../services/auth'
 // import { vaultMenuItems } from './menu-options/vault'
-// import { restackMenuItems } from './menu-options/restack'
 import { useNavigate } from 'react-router-dom'
 import Button from '../design-elements/Button'
 
