@@ -11,7 +11,7 @@ import { fetchAgentDetails } from '../../../services/acn/agents/agentThunkServic
 import { fetchAgentInfo } from '../../../store/thunks/agentDetailsThunk'
 import type { AppDispatch, RootState } from '../../../store'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
-import { formatCost } from '../../../components/helper/formatCost'
+import { formatCost, formatExactCostToLacsOrCrs } from '../../../components/helper/formatCost'
 import { formatUnixDate } from '../../../components/helper/formatDate'
 import AgentDetailsDropdown from '../../../components/acn/AgentDetailsDropdown'
 import React from 'react'
@@ -20,11 +20,18 @@ import AgentRequirementTable from './AgentRequirementTable'
 import AgentEnquiryTable from './AgentEnquiryTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import type { Store } from 'redux'
+import algoliaAgentsService from '../../../services/acn/agents/algoliaAgentsService'
+import searchNormal from '/icons/acn/search-normal.svg'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import { updatePropertyStatus } from '../../../services/acn/properties/propertiesService'
+import { toast } from 'react-toastify'
+import { updateRequirementStatus } from '../../../services/acn/requirements/requirementsService'
 
 interface PropertyData {
     inventories: IInventory[]
     requirements: IRequirement[]
     enquiries: any[]
+    qc: any[]
 }
 interface StatusSelectCellProps {
     value: string
@@ -34,46 +41,6 @@ interface StatusSelectCellProps {
     options: { label: string; value: string }[]
     idKey: string
     getBgColor: (value: string) => string
-}
-
-const StatusSelectCell: React.FC<StatusSelectCellProps> = ({
-    value,
-    row,
-    statusMap,
-    setStatusMap,
-    options,
-    idKey,
-    getBgColor,
-}) => {
-    const [localStatus, setLocalStatus] = useState(statusMap[row[idKey]] ?? value)
-
-    useEffect(() => {
-        setLocalStatus(statusMap[row[idKey]] ?? value)
-    }, [statusMap[row[idKey]], value])
-
-    const bgColor = getBgColor(localStatus)
-
-    return (
-        <select
-            value={localStatus}
-            onChange={(e) => {
-                const newStatus = e.target.value
-                setLocalStatus(newStatus)
-                setStatusMap((prev) => ({
-                    ...prev,
-                    [row[idKey]]: newStatus,
-                }))
-                console.log(`${newStatus} pressed`)
-            }}
-            className={`text-sm text-gray-700 border rounded px-2 py-1 ${bgColor}`}
-        >
-            {options.map((option) => (
-                <option key={option.value} value={option.value}>
-                    {option.label}
-                </option>
-            ))}
-        </select>
-    )
 }
 
 interface AgentsState {
@@ -88,13 +55,15 @@ const AgentDetailsPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const navigate = useNavigate()
     const dispatch = useDispatch<AppDispatch>()
-    const [activeTab, setActiveTab] = useState<'Inventory' | 'Requirement' | 'Enquiry'>('Inventory')
+    const [activeTab, setActiveTab] = useState<'Inventory' | 'Requirement' | 'Enquiry' | 'QC'>('Inventory')
     const [activePropertyTab, setActivePropertyTab] = useState<'Resale' | 'Rental'>('Resale')
     const [selectedStatus, setSelectedStatus] = useState('')
     const [selectedPropertyType, setSelectedPropertyType] = useState('')
     // Get data from Redux store
     const { resale, rental, loading, error } = useSelector((state: RootState) => state.agents)
-    const { data: agentDetails, loading: agentDetailsLoading } = useSelector((state: RootState) => state.agentDetails)
+    const { loading: agentDetailsLoading } = useSelector((state: RootState) => state.agentDetails)
+    const [agentData, setAgentData] = useState<any>(null)
+    const [agentLoading, setAgentLoading] = useState(false)
 
     // Get current property data based on active tab
     const currentPropertyData = activePropertyTab === 'Resale' ? resale : rental
@@ -103,7 +72,7 @@ const AgentDetailsPage = () => {
         if (tab === 'Resale' || tab === 'Rental') {
             setActivePropertyTab(tab as 'Resale' | 'Rental')
         } else {
-            setActiveTab(tab as 'Inventory' | 'Requirement' | 'Enquiry')
+            setActiveTab(tab as 'Inventory' | 'Requirement' | 'Enquiry' | 'QC')
         }
     }
 
@@ -118,6 +87,23 @@ const AgentDetailsPage = () => {
             dispatch(fetchAgentDetails({ agentId, propertyType: 'Rental' }))
         }
     }, [dispatch, agentId])
+
+    // Fetch agent data from Algolia by ID
+    useEffect(() => {
+        const fetchAgent = async () => {
+            if (!agentId) return
+            setAgentLoading(true)
+            try {
+                const agent = await algoliaAgentsService.getAgentById(agentId)
+                setAgentData(agent || null)
+            } catch (err) {
+                setAgentData(null)
+            } finally {
+                setAgentLoading(false)
+            }
+        }
+        fetchAgent()
+    }, [agentId])
 
     // Filter data based on search and property type
     const filteredData = useMemo(() => {
@@ -154,13 +140,19 @@ const AgentDetailsPage = () => {
                         enq.propertyName?.toLowerCase().includes(searchLower) ||
                         enq.enquiryId?.toLowerCase().includes(searchLower),
                 )
+            case 'QC':
+                return currentPropertyData.qc.filter(
+                    (qc: any) =>
+                        qc.propertyName?.toLowerCase().includes(searchLower) ||
+                        qc.qcId?.toLowerCase().includes(searchLower),
+                )
             default:
                 return []
         }
     }, [activeTab, currentPropertyData, searchValue, selectedStatus, selectedPropertyType])
 
     // Get counts for each tab
-    const getTabCount = (type: 'Inventory' | 'Requirement' | 'Enquiry') => {
+    const getTabCount = (type: 'Inventory' | 'Requirement' | 'Enquiry' | 'QC') => {
         if (!currentPropertyData) return 0
 
         switch (type) {
@@ -170,6 +162,8 @@ const AgentDetailsPage = () => {
                 return currentPropertyData.requirements.length
             case 'Enquiry':
                 return currentPropertyData.enquiries.length
+            case 'QC':
+                return currentPropertyData.qc.length
             default:
                 return 0
         }
@@ -196,7 +190,81 @@ const AgentDetailsPage = () => {
             { label: 'Row House', value: 'Row House' },
         ]
     }
+
+    // Status dropdown options for inventory status updates
+    const statusDropdownOptions = [
+        { label: 'Available', value: 'Available', color: '#E1F6DF', textColor: '#000000' },
+        { label: 'Sold', value: 'Sold', color: '#FEE2E2', textColor: '#000000' },
+        { label: 'Hold', value: 'Hold', color: '#FEF3C7', textColor: '#000000' },
+        { label: 'De-Listed', value: 'De-Listed', color: '#F3F4F6', textColor: '#000000' },
+        { label: 'Pending QC', value: 'Pending QC', color: '#E0F2FE', textColor: '#000000' },
+    ]
+
+    // Requirement status dropdown options with colors
+    const requirementStatusOptions = [
+        { label: 'Open', value: 'open', color: '#E1F6DF', textColor: '#000000' },
+        { label: 'Close', value: 'close', color: '#FEE2E2', textColor: '#000000' },
+        { label: 'Hold', value: 'hold', color: '#FEF3C7', textColor: '#000000' },
+        { label: 'Pending', value: 'pending', color: '#E0F2FE', textColor: '#000000' },
+    ]
+
+    const internalStatusDropdownOptions = [
+        { label: 'New', value: 'new', color: '#E1F6DF', textColor: '#000000' },
+        { label: 'In Progress', value: 'in_progress', color: '#E0F2FE', textColor: '#000000' },
+        { label: 'On Hold', value: 'on_hold', color: '#FEF3C7', textColor: '#000000' },
+        { label: 'Completed', value: 'completed', color: '#E1F6DF', textColor: '#000000' },
+        { label: 'Cancelled', value: 'cancelled', color: '#FEE2E2', textColor: '#000000' },
+    ]
+
+    // Handle property status update
+    const handleUpdatePropertyStatus = async (propertyId: string, newStatus: string) => {
+        if (!agentId) return
+
+        try {
+            await dispatch(
+                updatePropertyStatus({
+                    propertyId,
+                    status: newStatus,
+                    activeTab: activePropertyTab,
+                }),
+            ).unwrap()
+
+            // Refetch agent details to update the UI
+            dispatch(fetchAgentDetails({ agentId, propertyType: activePropertyTab }))
+
+            toast.success(`Status updated successfully to ${newStatus}`)
+        } catch (error: any) {
+            console.error('Error updating property status:', error)
+            toast.error(error.message || 'Failed to update property status')
+        }
+    }
+
+    // Helper function to update requirement status
+    const updateRowData = async (rowId: string, field: keyof IRequirement, value: string) => {
+        try {
+            // Dispatch the update action and wait for it to complete
+            const result = await dispatch(
+                updateRequirementStatus({
+                    id: rowId,
+                    status: value,
+                    type: field === 'requirementStatus' ? 'requirement' : 'internal',
+                }),
+            ).unwrap()
+
+            console.log('✅ Status updated successfully:', result)
+
+            // Refetch agent details to update the UI
+            if (agentId) {
+                dispatch(fetchAgentDetails({ agentId, propertyType: activePropertyTab }))
+            }
+        } catch (error) {
+            console.error('❌ Failed to update status:', error)
+            toast.error('Failed to update requirement status')
+        }
+    }
+
     const [statusMap, setStatusMap] = useState<Record<string, string>>({})
+
     // Define columns based on active tab
     const columns = useMemo<TableColumn[]>(() => {
         switch (activeTab) {
@@ -205,70 +273,136 @@ const AgentDetailsPage = () => {
                     {
                         key: 'propertyId',
                         header: 'Property ID',
-                        render: (value) => (
+                        render: (value, row) => (
                             <span
                                 onClick={() => navigate(`/acn/properties/${value}/details`)}
                                 className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
                             >
-                                {value}
+                                {value || row.id || row.objectID}
                             </span>
                         ),
                     },
                     {
                         key: 'propertyName',
                         header: 'Property Name',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                        render: (value, row) => (
+                            <span
+                                className='whitespace-nowrap text-sm font-semibold w-auto cursor-pointer hover:text-blue-600'
+                                onClick={() => navigate(`/acn/properties/${row.propertyId || row.id}/details`)}
+                            >
+                                {value || row.area || 'Unknown Property'}
+                            </span>
                         ),
                     },
                     {
                         key: 'assetType',
                         header: 'Asset Type',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto capitalize'>
+                                {value}
+                            </span>
                         ),
                     },
                     {
                         key: 'totalAskPrice',
-                        header: 'Price',
+                        header: activePropertyTab === 'Resale' ? 'Sale Price' : 'Monthly Rent',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
-                                {formatCost(value)}
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                                {value ? formatCost(value) : 'N/A'}
                             </span>
+                        ),
+                    },
+                    {
+                        key: 'sbua',
+                        header: 'SBUA',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                                {value ? `${value} sq ft` : 'N/A'}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'plotSize',
+                        header: 'Plot Size',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                                {value && value !== '–' ? `${value}` : 'N/A'}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'facing',
+                        header: 'Facing',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value || 'N/A'}</span>
+                        ),
+                    },
+                    {
+                        key: 'micromarket',
+                        header: 'Micromarket',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value || 'N/A'}</span>
                         ),
                     },
                     {
                         key: 'status',
                         header: 'Status',
-                        render: (value, row) => (
-                            <StatusSelectCell
-                                value={value}
-                                row={row}
-                                statusMap={statusMap}
-                                setStatusMap={setStatusMap}
-                                options={getStatusOptions().filter(
-                                    (option) => option.label !== 'All Status' && option.label !== 'Pending QC',
-                                )}
-                                idKey='propertyId'
-                                getBgColor={(status) =>
-                                    status === 'Sold' || status === 'Available'
-                                        ? 'bg-green-100'
-                                        : status === 'De-Listed'
-                                          ? 'bg-red-100'
-                                          : status === 'Hold'
-                                            ? 'bg-gray-300'
-                                            : 'bg-white'
-                                }
-                            />
+                        dropdown: {
+                            options: statusDropdownOptions,
+                            placeholder: 'Select Status',
+                            onChange: (value, row) => {
+                                handleUpdatePropertyStatus(row.propertyId, value)
+                            },
+                        },
+                    },
+                    {
+                        key: 'dateOfStatusLastChecked',
+                        header: 'Last Check',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                                {value ? new Date(value).toLocaleDateString('en-IN') : 'N/A'}
+                            </span>
                         ),
                     },
                     {
-                        key: 'dateOfInventoryAdded',
-                        header: 'Added On',
+                        key: 'cpCode',
+                        header: 'Agent',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
-                                {formatUnixDate(value)}
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{agentData.name}</span>
+                        ),
+                    },
+                    {
+                        key: 'photo',
+                        header: 'Img/Vid',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                                {value && value.length > 0 ? (
+                                    <img src='/icons/acn/tick.svg' alt='Check Icon' className='w-8 h-8 flex-shrink-0' />
+                                ) : (
+                                    <img
+                                        src='/icons/acn/cross.svg'
+                                        alt='Cross Icon'
+                                        className='w-8 h-8 flex-shrink-0'
+                                    />
+                                )}
                             </span>
+                        ),
+                    },
+                    {
+                        key: 'actions',
+                        header: 'Actions',
+                        fixed: true,
+                        fixedPosition: 'right',
+                        render: (_, row) => (
+                            <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
+                                <button
+                                    className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
+                                    onClick={() => navigate(`/acn/properties/${row.propertyId || row.id}/edit`)}
+                                    title='Edit'
+                                >
+                                    <img src='/icons/acn/write.svg' alt='Edit Icon' className='w-7 h-7 flex-shrink-0' />
+                                </button>
+                            </div>
                         ),
                     },
                 ]
@@ -276,11 +410,11 @@ const AgentDetailsPage = () => {
                 return [
                     {
                         key: 'requirementId',
-                        header: 'Requirement ID',
-                        render: (value) => (
+                        header: 'Req ID',
+                        render: (value, row) => (
                             <span
-                                onClick={() => navigate(`/acn/requirements/${value}/details`)}
-                                className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
+                                onClick={() => navigate(`/acn/requirements/${row.requirementId}/details`)}
+                                className='whitespace-nowrap text-black hover:text-blue-800 text-sm font-normal w-auto cursor-pointer transition-colors'
                             >
                                 {value}
                             </span>
@@ -288,58 +422,104 @@ const AgentDetailsPage = () => {
                     },
                     {
                         key: 'propertyName',
-                        header: 'Property Name',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                        header: 'Project Name/Location',
+                        render: (value, row) => (
+                            <div className='relative group'>
+                                <span
+                                    onClick={() => navigate(`/acn/requirements/${row.requirementId}/details`)}
+                                    className='block max-w-70 truncate text-black hover:text-blue-800 text-sm font-semibold cursor-pointer transition-colors'
+                                    title={value}
+                                >
+                                    {value}
+                                </span>
+                                {/* Tooltip */}
+                                <div className='absolute left-0 top-full mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-normal max-w-xs break-words'>
+                                    {value}
+                                </div>
+                            </div>
                         ),
                     },
                     {
                         key: 'assetType',
-                        header: 'Asset Type',
+                        header: 'Asset type',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {toCapitalizedWords(value)}
+                            </span>
                         ),
                     },
                     {
                         key: 'budget',
                         header: 'Budget',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
-                                {formatCost(value.from)} - {formatCost(value.to)}
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                                {`from ${formatExactCostToLacsOrCrs(value.from)} to ${formatExactCostToLacsOrCrs(value.to)}`}
                             </span>
                         ),
                     },
                     {
-                        key: 'status',
+                        key: 'requirementStatus',
                         header: 'Status',
-                        render: (value, row) => (
-                            <StatusSelectCell
-                                value={value}
-                                row={row}
-                                statusMap={statusMap}
-                                setStatusMap={setStatusMap}
-                                options={[
-                                    { label: 'Open', value: 'Open' },
-                                    { label: 'Close', value: 'Close' },
-                                ]}
-                                idKey='propertyId'
-                                getBgColor={(status) =>
-                                    status === 'Open'
-                                        ? 'bg-green-100'
-                                        : status === 'Close'
-                                          ? 'bg-red-100'
-                                          : 'bg-green-100'
-                                }
-                            />
-                        ),
+                        dropdown: {
+                            options: requirementStatusOptions,
+                            placeholder: 'Select Status',
+                            onChange: (value, row) => {
+                                updateRowData(row.requirementId, 'requirementStatus', value)
+                            },
+                        },
                     },
                     {
-                        key: 'added',
-                        header: 'Added On',
+                        key: 'internalStatus',
+                        header: 'Int. Status',
+                        dropdown: {
+                            options: internalStatusDropdownOptions,
+                            placeholder: 'Select Status',
+                            onChange: (value, row) => {
+                                updateRowData(row.requirementId, 'internalStatus', value)
+                            },
+                        },
+                    },
+                    {
+                        key: 'lastModified',
+                        header: 'Last Updated',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
                                 {formatUnixDate(value)}
                             </span>
+                        ),
+                    },
+                    {
+                        key: 'agentCpid',
+                        header: 'Agent Name',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'agentNumber',
+                        header: 'Agent Number',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'actions',
+                        header: 'Actions',
+                        fixed: true,
+                        fixedPosition: 'right',
+                        render: (_, row) => (
+                            <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
+                                <span onClick={() => navigate(`/acn/requirements/${row.requirementId}/details`)}>
+                                    <Button
+                                        bgColor='bg-[#F3F3F3]'
+                                        textColor='text-[#3A3A47]'
+                                        className='px-4 h-8 font-semibold'
+                                        // you can omit onClick since <a> handles navigation
+                                    >
+                                        View Details
+                                    </Button>
+                                </span>
+                            </div>
                         ),
                     },
                 ]
@@ -368,7 +548,9 @@ const AgentDetailsPage = () => {
                         key: 'status',
                         header: 'Status',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {value || 'N/A'}
+                            </span>
                         ),
                     },
                     {
@@ -380,38 +562,147 @@ const AgentDetailsPage = () => {
                             </span>
                         ),
                     },
+                    {
+                        key: 'actions',
+                        header: 'Actions',
+                        fixed: true,
+                        fixedPosition: 'right',
+                        render: (_, row) => (
+                            <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
+                                <button
+                                    className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
+                                    onClick={() => navigate(`/acn/enquiries/${row.enquiryId}/details`)}
+                                    title='View Details'
+                                >
+                                    <img
+                                        src='/icons/acn/verify.svg'
+                                        alt='View Icon'
+                                        className='w-7 h-7 flex-shrink-0'
+                                    />
+                                </button>
+                            </div>
+                        ),
+                    },
+                ]
+            case 'QC':
+                return [
+                    {
+                        key: 'qcId',
+                        header: 'QC ID',
+                        render: (value) => (
+                            <span
+                                onClick={() => navigate(`/acn/qc/${value}/details`)}
+                                className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
+                            >
+                                {value}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'propertyName',
+                        header: 'Project Name/Location',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'kamId',
+                        header: 'Kam',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'assetType',
+                        header: 'Asset type',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {toCapitalizedWords(value)}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'cpId',
+                        header: 'Agent',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'cpPhone',
+                        header: 'Phone Number',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'sbua',
+                        header: 'SBUA',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'plotSize',
+                        header: 'Plot Size',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'totalAskPrice',
+                        header: 'Price',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'micromarket',
+                        header: 'Micromarket',
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
+                        ),
+                    },
+                    {
+                        key: 'actions',
+                        header: 'Action',
+                        fixed: true,
+                        fixedPosition: 'right',
+                        render: (_, row) => (
+                            <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
+                                <button
+                                    className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
+                                    onClick={() => {
+                                        navigate(`/acn/qc/${row.qcId}/details`)
+                                    }}
+                                >
+                                    <img
+                                        src='/icons/acn/verify.svg'
+                                        alt='Verify Icon'
+                                        className='w-7 h-7 flex-shrink-0'
+                                    />
+                                </button>
+                            </div>
+                        ),
+                    },
                 ]
             default:
                 return []
         }
-    }, [activeTab, navigate])
+    }, [activeTab, navigate, activePropertyTab])
 
     return (
-        <Layout loading={loading || agentDetailsLoading}>
+        <Layout loading={loading || agentDetailsLoading || agentLoading}>
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 px-6 bg-white min-h-screen'>
                     {/* Header */}
                     <div className='mb-4'>
                         <div className='flex items-center justify-between mb-2'>
-                            <Breadcrumb link='/acn/agents' parent='Agents' child={agentId || 'Details'} />
+                            {<Breadcrumb link='/acn/agents' parent='Agents' child={agentId || 'Details'} />}
                             <div className='flex items-center gap-4'>
-                                <div className='w-80'>
+                                <div className='w-54'>
                                     <StateBaseTextFieldTest
-                                        leftIcon={
-                                            <svg
-                                                className='w-4 h-4 text-gray-400'
-                                                fill='none'
-                                                stroke='currentColor'
-                                                viewBox='0 0 24 24'
-                                            >
-                                                <path
-                                                    strokeLinecap='round'
-                                                    strokeLinejoin='round'
-                                                    strokeWidth={2}
-                                                    d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
-                                                />
-                                            </svg>
-                                        }
+                                        leftIcon={<img src={searchNormal} alt='Search Icon' className='w-4 h-4' />}
                                         placeholder='Search'
                                         value={searchValue}
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -440,24 +731,30 @@ const AgentDetailsPage = () => {
                     <div className='flex items-center justify-between'>
                         <div className='flex flex-col gap-[10px]'>
                             <div className='flex items-center space-x-4'>
-                                <div className='flex space-x-4'>
+                                <div className='flex  border-b-1 border-gray-300 w-[100vh]'>
                                     <div
                                         onClick={() => handleTabClick('Inventory')}
-                                        className={`cursor-pointer ${activeTab === 'Inventory' ? 'border-b-2 border-black' : ''}`}
+                                        className={`cursor-pointer px-2 ${activeTab === 'Inventory' ? 'border-b-2 border-black' : ''}`}
                                     >
                                         Inventory ({getTabCount('Inventory')})
                                     </div>
                                     <div
                                         onClick={() => handleTabClick('Requirement')}
-                                        className={`cursor-pointer ${activeTab === 'Requirement' ? 'border-b-2 border-black' : ''}`}
+                                        className={`cursor-pointer px-2 ${activeTab === 'Requirement' ? 'border-b-2 border-black' : ''}`}
                                     >
                                         Requirement ({getTabCount('Requirement')})
                                     </div>
                                     <div
                                         onClick={() => handleTabClick('Enquiry')}
-                                        className={`cursor-pointer ${activeTab === 'Enquiry' ? 'border-b-2 border-black' : ''}`}
+                                        className={`cursor-pointer px-2 ${activeTab === 'Enquiry' ? 'border-b-2 border-black' : ''}`}
                                     >
                                         Enquiry ({getTabCount('Enquiry')})
+                                    </div>
+                                    <div
+                                        onClick={() => handleTabClick('QC')}
+                                        className={`cursor-pointer px-2 ${activeTab === 'QC' ? 'border-b-2 border-black' : ''}`}
+                                    >
+                                        QC ({getTabCount('QC')})
                                     </div>
                                 </div>
                                 <div>
@@ -509,13 +806,13 @@ const AgentDetailsPage = () => {
                             </div>
                         </div>
                         {/* agent details dropdown */}
-                        <div className='absolute top-14 right-5 border-1 border-gray-300 rounded-md  transition-all duration-200 ease-in-out z-[100] w-[30%] bg-white '>
-                            <AgentDetailsDropdown label='Agent Field' agentDetails={agentDetails} />
+                        <div className='absolute top-[39px] right-0 border-1 border-[#D3D4DD] max-h-[calc(100vh-39px)] scrollbar-hide overflow-y-auto transition-all duration-200 ease-in-out z-[100] w-[500px] bg-white '>
+                            <AgentDetailsDropdown label='Agent Field' agentDetails={agentData} />
                         </div>
                     </div>
 
                     {/* Table */}
-                    <div className='mt-10'>
+                    <div className='mt-[19px]'>
                         <FlexibleTable
                             columns={columns}
                             data={filteredData}

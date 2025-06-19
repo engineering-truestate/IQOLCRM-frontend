@@ -32,6 +32,7 @@ const RequirementsPage = () => {
     const [currentPage, setCurrentPage] = useState(0)
     const [paginatedData, setPaginatedData] = useState<IRequirement[]>([])
     const [filteredData, setFilteredData] = useState<IRequirement[]>([])
+    const [isAddRequirementModalOpen, setIsAddRequirementModalOpen] = useState(false)
     const navigate = useNavigate()
 
     // Items per page
@@ -270,13 +271,13 @@ const RequirementsPage = () => {
             ),
         },
         {
-            key: 'status',
+            key: 'requirementStatus',
             header: 'Status',
             render: (_, row) => {
-                const currentOption = statusDropdownOptions.find((option) => option.value === row.requirementStatus)
+                const currentOption = requirementStatusOptions.find((option) => option.value === row.requirementStatus)
                 return (
                     <Dropdown
-                        options={statusDropdownOptions}
+                        options={requirementStatusOptions}
                         placeholder={toCapitalizedWords(row.requirementStatus)}
                         onSelect={(value) => updateRowData(row.requirementId, 'requirementStatus', value)}
                         className='relative inline-block'
@@ -288,7 +289,7 @@ const RequirementsPage = () => {
             },
         },
         {
-            key: 'intStatus',
+            key: 'internalStatus',
             header: 'Int. Status',
             render: (_, row) => {
                 const currentOption = internalStatusDropdownOptions.find(
@@ -437,7 +438,7 @@ const RequirementsPage = () => {
 
                                 <Dropdown
                                     options={requirementStatusOptions}
-                                    onSelect={(value) => updateFilter('status', value)}
+                                    onSelect={(value) => updateFilter('requirementStatus', value)}
                                     defaultValue={selectedRequirementStatus}
                                     placeholder='Requirement Status'
                                     className='relative inline-block'

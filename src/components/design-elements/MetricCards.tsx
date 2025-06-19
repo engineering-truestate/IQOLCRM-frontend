@@ -10,7 +10,7 @@ interface MetricsCardsProps {
 
 export default function MetricsCards({ metrics, className = '' }: MetricsCardsProps) {
     return (
-        <div className={`flex gap-2 max-w-[100%] overflow-x-auto pb-2 ${className}`}>
+        <div className={`flex gap-2 max-w-[100%] overflow-x-auto ${className}`}>
             {metrics.map((metric, index) => (
                 <div
                     key={index}

@@ -38,6 +38,7 @@ import { formatCost } from '../../../components/helper/formatCost'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import StatusSelectCell from '../../../components/acn/Status'
 import { toast } from 'react-toastify'
+import filter from '/icons/acn/filter.svg'
 
 type PropertyType = 'Resale' | 'Rental'
 type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'De-listed' | 'Pending QC' | 'Rented'
@@ -164,7 +165,7 @@ const PropertiesPage = () => {
             status: searchParams.get('status')?.split(',').filter(Boolean) || [],
             assetType: searchParams.get('assetType')?.split(',').filter(Boolean) || [],
             micromarket: searchParams.get('micromarket')?.split(',').filter(Boolean) || [],
-            kam: searchParams.get('kam')?.split(',').filter(Boolean) || [],
+            kamName: searchParams.get('kamName')?.split(',').filter(Boolean) || [],
             sort: searchParams.get('sort') || '',
             page: parseInt(searchParams.get('page') || '1', 10),
         }),
@@ -176,7 +177,7 @@ const PropertiesPage = () => {
         status: urlParams.status || [],
         assetType: urlParams.assetType || [],
         micromarket: urlParams.micromarket || [],
-        kam: urlParams.kam || [],
+        kamName: urlParams.kamName || [],
         sort: urlParams.sort || '',
         page: urlParams.page || 1,
     }))
@@ -187,7 +188,7 @@ const PropertiesPage = () => {
             status: urlParams.status || [],
             assetType: urlParams.assetType || [],
             micromarket: urlParams.micromarket || [],
-            kam: urlParams.kam || [],
+            kamName: urlParams.kamName || [],
             sort: urlParams.sort || '',
             page: urlParams.page || 1,
         })
@@ -260,7 +261,7 @@ const PropertiesPage = () => {
                     status: urlParams.status,
                     assetType: urlParams.assetType,
                     micromarket: urlParams.micromarket,
-                    kam: urlParams.kam,
+                    kamName: urlParams.kamName,
                 },
                 page: Math.max(0, urlParams.page - 1),
                 hitsPerPage: ITEMS_PER_PAGE,
@@ -343,7 +344,7 @@ const PropertiesPage = () => {
         [updateURLParams],
     )
 
-    const handleKAMChange = useCallback((kams: string[]) => updateURLParams('kam', kams), [updateURLParams])
+    const handleKAMChange = useCallback((kams: string[]) => updateURLParams('kamName', kams), [updateURLParams])
 
     const handleSortChange = useCallback((sort: string) => updateURLParams('sort', sort || null), [updateURLParams])
 
@@ -663,8 +664,8 @@ const PropertiesPage = () => {
     }
 
     const KAMFilter = () => {
-        const kamFacets = originalFacets.kam || []
-        const selectedKAMs = urlParams.kam || []
+        const kamFacets = originalFacets.kamName || []
+        const selectedKAMs = urlParams.kamName || []
         const [isOpen, setIsOpen] = useState(false)
         const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -685,9 +686,9 @@ const PropertiesPage = () => {
         }, [isOpen])
 
         const getButtonText = () => {
-            if (selectedKAMs.length === 0) return 'KAM'
+            if (selectedKAMs.length === 0) return 'KAM Name'
             if (selectedKAMs.length === 1) return selectedKAMs[0]
-            return `KAM (${selectedKAMs.length})`
+            return `KAM Name (${selectedKAMs.length})`
         }
 
         return (
@@ -722,7 +723,7 @@ const PropertiesPage = () => {
                             </div>
                         </div>
                         {kamFacets.map((facet) => {
-                            const currentCount = getFacetCount('kam', facet.value)
+                            const currentCount = getFacetCount('kamName', facet.value)
                             const isSelected = selectedKAMs.includes(facet.value)
                             return (
                                 <div
@@ -1080,7 +1081,9 @@ const PropertiesPage = () => {
                 render: (value, row) => (
                     <span
                         className='whitespace-nowrap text-sm font-semibold w-auto cursor-pointer hover:text-blue-600'
-                        onClick={() => navigate(`/acn/properties/${row.propertyId || row.id}/details`)}
+                        onClick={() => {
+                            navigate(`/acn/properties/${row.propertyId || row.id}/details`)
+                        }}
                     >
                         {value || row.area || 'Unknown Property'}
                     </span>
@@ -1375,19 +1378,7 @@ const PropertiesPage = () => {
                             <Button
                                 bgColor='bg-[#F0F0F5]'
                                 textColor='text-black'
-                                leftIcon={
-                                    <svg
-                                        xmlns='http://www.w3.org/2000/svg'
-                                        width='16'
-                                        height='16'
-                                        viewBox='0 0 16 16'
-                                        fill='none'
-                                    >
-                                        <path d='M2 4.66797H14' stroke='#3A3A47' />
-                                        <path d='M4 8H12' stroke='#3A3A47' stroke-linecap='round' />
-                                        <path d='M6.66602 11.332H9.33268' stroke='#3A3A47' stroke-linecap='round' />
-                                    </svg>
-                                }
+                                leftIcon={<img src={filter} alt='Filter Icon' className='w-5 h-5' />}
                                 className='h-7 font-semibold text-sm'
                                 // onClick={() => console.log('Filter clicked')}
                                 onClick={() => {

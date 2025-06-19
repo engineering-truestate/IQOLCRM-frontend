@@ -12,7 +12,7 @@ const RENTAL_INDEX_NAME = 'rental-inventories'
 // Types for search parameters
 export interface SearchFilters {
     status?: string[]
-    kam?: string[]
+    kamName?: string[]
     assetType?: string[]
     micromarket?: string[]
     priceRange?: {
@@ -46,7 +46,21 @@ export interface FacetValue {
     highlighted?: string
 }
 
-const buildFilterString = (filters: SearchFilters): string => {
+// Memoization utility for buildFilterString
+function memoizeBuildFilterString(fn: (filters: SearchFilters) => string) {
+    const cache = new Map<string, string>()
+    return (filters: SearchFilters) => {
+        const key = JSON.stringify(filters)
+        if (cache.has(key)) {
+            return cache.get(key) as string
+        }
+        const result = fn(filters)
+        cache.set(key, result)
+        return result
+    }
+}
+
+const _buildFilterString = (filters: SearchFilters): string => {
     const filterParts: string[] = []
 
     // Always exclude closed properties
@@ -57,9 +71,9 @@ const buildFilterString = (filters: SearchFilters): string => {
         filterParts.push(`(${statusFilters})`)
     }
 
-    if (filters.kam && filters.kam.length > 0) {
-        const kamFilters = filters.kam.map((kam) => `kam:'${kam}'`).join(' OR ')
-        filterParts.push(`(${kamFilters})`)
+    if (filters.kamName && filters.kamName.length > 0) {
+        const kamNameFilters = filters.kamName.map((kamName) => `kamName:'${kamName}'`).join(' OR ')
+        filterParts.push(`(${kamNameFilters})`)
     }
 
     if (filters.assetType && filters.assetType.length > 0) {
@@ -83,6 +97,8 @@ const buildFilterString = (filters: SearchFilters): string => {
 
     return filterParts.join(' AND ')
 }
+
+export const buildFilterString = memoizeBuildFilterString(_buildFilterString)
 
 // Helper function to get the correct client and index
 const getClientAndIndex = (propertyType: 'Resale' | 'Rental' = 'Resale', sortBy?: string) => {
@@ -125,7 +141,7 @@ export const searchProperties = async (params: SearchParams = {}): Promise<Algol
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: ['micromarket', 'assetType', 'status', 'kam'],
+                    facets: ['micromarket', 'assetType', 'status', 'kamName'],
                     maxValuesPerFacet: 100,
                     analytics: true,
                 },
@@ -195,7 +211,7 @@ export const getAllFacets = async (
                     indexName,
                     query: '',
                     hitsPerPage: 0,
-                    facets: ['status', 'kam', 'assetType', 'micromarket'],
+                    facets: ['status', 'kamName', 'assetType', 'micromarket'],
                     maxValuesPerFacet: 100,
                 },
             ],
@@ -263,7 +279,7 @@ export const searchMultipleIndices = async (
             indexName,
             query,
             hitsPerPage: 20,
-            facets: ['status', 'kam', 'assetType'],
+            facets: ['status', 'kamName', 'assetType'],
         }))
 
         const response = await resaleClient.search({
