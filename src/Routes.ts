@@ -61,6 +61,10 @@ export const authRoutes: RouteObject[] = [
 
 export const protectedRoutes: RouteObject[] = [
     {
+        path: '/',
+        element: React.createElement(React.Suspense, null, React.createElement(Home, null)),
+    },
+    {
         path: '/profile',
         element: React.createElement(React.Suspense, null, React.createElement(ProfilePage, null)),
     },
