@@ -233,7 +233,13 @@ const Tasks: React.FC<TasksProps> = ({
                     <SiteVisitTask {...commonProps} setActiveTab={setActiveTab} taskStatusOptions={taskStatusOptions} />
                 )
             case 'eoi collection':
-                return <CollectEOITask {...commonProps} taskStatusOptions={taskStatusOptions} />
+                return (
+                    <CollectEOITask
+                        {...commonProps}
+                        setActiveTab={setActiveTab}
+                        taskStatusOptions={taskStatusOptions}
+                    />
+                )
             case 'booking':
                 return (
                     <BookingAmountTask

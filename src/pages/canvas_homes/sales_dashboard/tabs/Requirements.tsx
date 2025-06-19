@@ -3,6 +3,9 @@ import { enquiryService } from '../../../../services/canvas_homes'
 import RequirementCollectedModal from '../../../../components/canvas_homes/RquirementCollectionModal'
 import { toast } from 'react-toastify'
 import { useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch } from '../../../../store'
+import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 
 interface Requirement {
     id: string
@@ -39,6 +42,7 @@ const Requirements: React.FC<RequirementsProps> = ({
     const [activeRequirement, setActiveRequirement] = useState<string | null>(null)
     const [isAddingNew, setIsAddingNew] = useState(false)
     const [saving, setSaving] = useState(false)
+    const dispatch = useDispatch<AppDispatch>()
     const [formData, setFormData] = useState({
         expectedBudget: '',
         zone: '',
@@ -178,6 +182,7 @@ const Requirements: React.FC<RequirementsProps> = ({
             possessionType: '',
             notes: '',
         })
+        // dispatch(clearTaskId());
     }
 
     const handleRequirementSelect = (reqId: string) => {

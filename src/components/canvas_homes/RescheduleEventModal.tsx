@@ -6,6 +6,9 @@ import { getUnixDateTime, getUnixDateTimeCustom } from '../helper/getUnixDateTim
 import useAuth from '../../hooks/useAuth'
 import type { AppDispatch } from '../../store'
 import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
+import { enquiryService } from '../../services/canvas_homes/enquiryService'
+import { leadService } from '../../services/canvas_homes'
+import { taskService } from '../../services/canvas_homes'
 
 interface RootState {
     taskId: {
@@ -29,20 +32,15 @@ interface RescheduleEventModalProps {
     taskData?: any
     enquiryData?: any
     leadData?: any
-    onUpdateTask?: (taskId: string, updates: any) => Promise<void>
-    onUpdateLead?: (leadId: string, updates: any) => Promise<void>
-    onUpdateEnquiry?: (enquiryId: string, updates: any) => Promise<void>
-    onAddNote?: (enquiryId: string, note: any) => Promise<void>
 }
 
 const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
     isOpen,
     onClose,
     taskType,
-    onUpdateTask,
-    onUpdateLead,
-    onUpdateEnquiry,
-    onAddNote,
+    taskData = {},
+    enquiryData = {},
+    leadData = {},
 }) => {
     // State management
     const [formData, setFormData] = useState({
@@ -58,12 +56,14 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
     // Redux and route params
     const { taskId, enquiryId } = useSelector((state: RootState) => state.taskId)
+    const { leadId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
+
     const { user } = useAuth()
 
     // Agent details from auth
-    const agentId = user?.uid || ''
-    const agentName = user?.displayName || ''
+    const agentId = user?.uid || 'Agent001'
+    const agentName = user?.displayName || 'Agent Name'
 
     // Options
     const reasonOptions = [
@@ -80,6 +80,14 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
         { value: '', label: 'Select Event Name' },
         { value: 'visit scheduled', label: 'Site Visit' },
         { value: 'call scheduled', label: 'Schedule call' },
+    ]
+
+    const leadStatusOptions = [
+        { value: '', label: 'Status' },
+        { value: 'hot', label: 'Hot' },
+        { value: 'warm', label: 'Warm' },
+        { value: 'cold', label: 'Cold' },
+        { value: 'follow_up', label: 'Follow Up' },
     ]
 
     useEffect(() => {
@@ -121,6 +129,11 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             return
         }
 
+        if (!leadId) {
+            setError('Lead ID is missing')
+            return
+        }
+
         try {
             setIsSaving(true)
             setError(null)
@@ -128,30 +141,42 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             switch (taskType) {
                 case 'Site Not Visit':
                     leadData = {
-                        leadStatus: 'Interested',
+                        ...leadData,
+                        leadStatus: formData.eventName === 'Site Visit' ? 'Interested' : 'Follow Up',
                     }
                     break
-                case 'Initial Contact':
+                case 'Initial Contact - Connected':
                     leadData = {
-                        leadStatus: 'Interested',
+                        ...leadData,
+                        leadStatus: 'Follow Up',
+                        stage: 'Initial Contacted',
                     }
                     break
-
+                case 'Initial Contact - Not Connected':
+                    leadData = {
+                        ...leadData,
+                        leadStatus: 'Follow Up',
+                        stage: 'Lead Registered',
+                    }
+                    break
+                case 'EOI Not Collected':
+                    leadData = {
+                        ...leadData,
+                        leadStatus: formData.eventName === 'Site Visit' ? 'Interested' : 'Follow Up',
+                    }
+                    break
                 default:
                     break
             }
 
             // 1. Update task details
             const taskUpdateData = {
+                ...taskData,
                 eventName: formData.eventName,
                 lastModified: getUnixDateTime(),
-                scheduledDate: getUnixDateTimeCustom(`${formData.date}T${formData.date}`),
+                scheduledDate: getUnixDateTimeCustom(`${formData.date}T${formData.time}`),
             }
-
-            if (onUpdateTask) {
-                await onUpdateTask(taskId, taskUpdateData)
-            }
-
+            await taskService.update(taskId, taskUpdateData)
             // 2. Add note if provided
             if (formData.note.trim()) {
                 try {
@@ -163,16 +188,15 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                         taskType: taskType,
                     }
 
-                    if (onAddNote) {
-                        await onAddNote(noteData)
-                    } else {
-                        if (onUpdateEnquiry) {
-                            await onUpdateEnquiry({
-                                leadStatus: formda,
-                                lastModified: getUnixDateTime(),
-                            })
-                        }
-                    }
+                    const currentEnquiry = await enquiryService.getById(enquiryId)
+                    const updatedNotes = [...(currentEnquiry?.notes || []), noteData]
+
+                    await enquiryService.update(enquiryId, {
+                        ...enquiryData,
+                        notes: updatedNotes,
+                        leadStatus: leadData.leadStatus,
+                        lastModified: getUnixDateTime(),
+                    })
                 } catch (noteError) {
                     toast.error(
                         'Error adding note: ' + (noteError instanceof Error ? noteError.message : String(noteError)),
@@ -182,12 +206,11 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
             // 3. Update lead with new status
             const leadUpdateData = {
+                ...leadData,
                 lastModified: getUnixDateTime(),
             }
 
-            if (onUpdateLead) {
-                await onUpdateLead(leadUpdateData)
-            }
+            await leadService.update(leadId, leadUpdateData)
 
             // 5. Show success message and close modal
             dispatch(clearTaskId())
