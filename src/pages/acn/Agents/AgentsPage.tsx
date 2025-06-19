@@ -287,13 +287,6 @@ const AgentsPage = () => {
             ),
         },
         {
-            key: 'lastEnquiry',
-            header: 'Last Enq Rec',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatRelativeTime(value)}</span>
-            ),
-        },
-        {
             key: 'agentStatus',
             header: 'Agent Status',
             render: (value) => (

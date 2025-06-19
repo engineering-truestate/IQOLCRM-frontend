@@ -19,6 +19,7 @@ import AgentInventoryTable from './AgentInventoryTable'
 import AgentRequirementTable from './AgentRequirementTable'
 import AgentEnquiryTable from './AgentEnquiryTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
+import type { Store } from 'redux'
 
 interface PropertyData {
     inventories: IInventory[]

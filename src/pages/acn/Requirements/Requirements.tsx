@@ -1,8 +1,6 @@
 'use client'
 
-import React from 'react'
-
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
@@ -12,6 +10,7 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 // import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
 import resetic from '/icons/acn/rotate-left.svg'
 import leadaddic from '/icons/acn/user-add.svg'
+import { AddRequirementModal } from '../../../components/acn/AddRequirementModal'
 
 import algoliaRequirementsService, {
     type RequirementSearchFilters,
@@ -52,7 +51,7 @@ const RequirementsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
 
     // Perform Algolia search
-    const performSearch = async () => {
+    const performSearch = useCallback(async () => {
         setSearchLoading(true)
         setSearchError(null)
 
@@ -60,8 +59,9 @@ const RequirementsPage = () => {
             const response = await algoliaRequirementsService.searchRequirements({
                 query: searchValue,
                 filters: filters,
-                page: currentPage, // Use currentPage directly since it's 0-based
+                page: currentPage,
                 hitsPerPage: ITEMS_PER_PAGE,
+                propertyType: activeTab === 'rental' ? 'Rental' : 'Resale',
             })
 
             setSearchResults(response)
@@ -87,16 +87,23 @@ const RequirementsPage = () => {
         } finally {
             setSearchLoading(false)
         }
-    }
+    }, [searchValue, filters, currentPage, activeTab, ITEMS_PER_PAGE])
 
     useEffect(() => {
         performSearch()
-    }, [searchValue, filters, currentPage])
+    }, [performSearch])
 
     // Handle page change
     const handlePageChange = (newPage: number) => {
         setCurrentPage(newPage)
         performSearch()
+    }
+
+    // Handle tab change
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab)
+        setCurrentPage(0) // Reset to first page when changing tabs
+        setFilters({}) // Reset filters when changing tabs
     }
 
     // Calculate total pages from Algolia response
@@ -350,6 +357,10 @@ const RequirementsPage = () => {
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
+                    <AddRequirementModal
+                        isOpen={isAddRequirementModalOpen}
+                        onClose={() => setIsAddRequirementModalOpen(false)}
+                    />
                     <div className='mb-4'>
                         <div className='flex items-center justify-between mb-2'>
                             <h1 className='text-lg font-semibold text-black'>Requirement</h1>
@@ -382,7 +393,10 @@ const RequirementsPage = () => {
                                     bgColor='bg-[#F3F3F3]'
                                     textColor='text-[#3A3A47]'
                                     className='px-4 h-8 font-semibold'
-                                    onClick={() => {}}
+                                    onClick={() => {
+                                        setIsAddRequirementModalOpen(true)
+                                        // console.log(isAddRequirementModalOpen)
+                                    }}
                                 >
                                     Add Requirement
                                 </Button>
@@ -394,7 +408,7 @@ const RequirementsPage = () => {
                             {/* Tab Switches for Resale/Rental */}
                             <div className='flex items-center bg-gray-100 rounded-md p-1 h-8'>
                                 <button
-                                    onClick={() => setActiveTab('resale')}
+                                    onClick={() => handleTabChange('resale')}
                                     className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                                         activeTab === 'resale'
                                             ? 'bg-white text-black shadow-sm'
@@ -404,7 +418,7 @@ const RequirementsPage = () => {
                                     Resale
                                 </button>
                                 <button
-                                    onClick={() => setActiveTab('rental')}
+                                    onClick={() => handleTabChange('rental')}
                                     className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                                         activeTab === 'rental'
                                             ? 'bg-white text-black shadow-sm'

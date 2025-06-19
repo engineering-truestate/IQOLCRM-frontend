@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 import Layout from '../../../layout/Layout'
@@ -24,6 +24,7 @@ import {
     updateLeadLocal,
 } from '../../../store/reducers/acn/leadsReducers'
 import type { RootState, AppDispatch } from '../../../store/index'
+import { useSearchParams } from 'react-router-dom'
 
 // Import your existing icons
 import phoneic from '/icons/acn/phone.svg'
@@ -281,24 +282,101 @@ const MultiSelectDropdown = ({
 
 const LeadsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
+    const [searchParams, setSearchParams] = useSearchParams()
 
     // Use memoized selectors to prevent unnecessary re-renders
     const reduxLeads = useSelector(selectFilteredLeads)
     const reduxLoading = useSelector((state: RootState) => selectLeadsLoading(state))
     const reduxError = useSelector((state: RootState) => selectLeadsError(state))
 
-    // Search and filter states
-    const [searchValue, setSearchValue] = useState('')
-    const [selectedKAMs, setSelectedKAMs] = useState<string[]>([])
-    const [selectedSort, setSelectedSort] = useState('')
-    const [selectedConnectStatuses, setSelectedConnectStatuses] = useState<string[]>([])
-    const [selectedLeadStatuses, setSelectedLeadStatuses] = useState<string[]>([])
-    const [selectedSources, setSelectedSources] = useState<string[]>([])
+    // Memoize URL parameters to prevent unnecessary updates
+    const urlParams = useMemo(
+        () => ({
+            query: searchParams.get('query') || '',
+            leadStatus: searchParams.get('leadStatus')?.split(',').filter(Boolean) || [],
+            connectStatus: searchParams.get('connectStatus')?.split(',').filter(Boolean) || [],
+            source: searchParams.get('source')?.split(',').filter(Boolean) || [],
+            sort: searchParams.get('sort') || '',
+            page: parseInt(searchParams.get('page') || '1', 10),
+            kamName: searchParams.get('kamName')?.split(',').filter(Boolean) || [],
+        }),
+        [searchParams],
+    )
+
+    // Initialize state from URL parameters
+    const [filterState, setFilterState] = useState(() => ({
+        kamName: urlParams.kamName || [],
+        sort: urlParams.sort || '',
+        connectStatus: urlParams.connectStatus || [],
+        source: urlParams.source || [],
+        leadStatus: urlParams.leadStatus || [],
+        page: urlParams.page || 1,
+    }))
+
+    // Effect to sync URL parameters with filter state
+    useEffect(() => {
+        setFilterState({
+            kamName: urlParams.kamName || [],
+            sort: urlParams.sort || '',
+            connectStatus: urlParams.connectStatus || [],
+            source: urlParams.source || [],
+            leadStatus: urlParams.leadStatus || [],
+            page: urlParams.page || 1,
+        })
+    }, [urlParams])
+
+    // Update URL parameters
+    const updateURLParams = useCallback(
+        (key: string, value: string | string[] | null) => {
+            const newParams = new URLSearchParams(searchParams)
+            if (value === null || (Array.isArray(value) && value.length === 0)) {
+                newParams.delete(key)
+            } else if (Array.isArray(value)) {
+                newParams.set(key, value.join(','))
+            } else {
+                newParams.set(key, value)
+            }
+            if (key !== 'page') {
+                newParams.set('page', '1')
+            }
+            setSearchParams(newParams)
+        },
+        [searchParams, setSearchParams],
+    )
+
+    // Event handlers
+    const handleLeadStatusChange = useCallback(() => {
+        return (statuses: string[]) => updateURLParams('leadStatus', statuses)
+    }, [updateURLParams])
+
+    const handleConnectStatusChange = useCallback(() => {
+        return (statuses: string[]) => updateURLParams('connectStatus', statuses)
+    }, [updateURLParams])
+
+    const handleSourceChange = useCallback(() => {
+        return (sources: string[]) => updateURLParams('source', sources)
+    }, [updateURLParams])
+
+    const handleKAMChange = useCallback(() => {
+        return (kams: string[]) => updateURLParams('kamName', kams)
+    }, [updateURLParams])
+
+    const handleSortChange = useCallback(() => {
+        return (sort: string) => updateURLParams('sort', sort || null)
+    }, [updateURLParams])
+
+    const handlePageChange = useCallback(() => {
+        return (page: number) => updateURLParams('page', page.toString())
+    }, [updateURLParams])
+
+    // Reset all filters
+    const resetFilters = useCallback(() => {
+        setSearchParams({})
+    }, [setSearchParams])
 
     // Data and pagination states
     const [leads, setLeads] = useState<ILead[]>([])
     const [totalLeads, setTotalLeads] = useState(0)
-    const [currentPage, setCurrentPage] = useState(1)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -334,7 +412,7 @@ const LeadsPage = () => {
         } catch (error) {
             console.error('Failed to update lead status:', error)
             // Revert optimistic update on error
-            searchLeads(false)
+            searchLeads()
         }
     }
 
@@ -356,7 +434,7 @@ const LeadsPage = () => {
             // ✅ No page reload - state is already updated optimistically
         } catch (error) {
             console.error('Failed to update KAM:', error)
-            searchLeads(false)
+            searchLeads()
         }
     }
 
@@ -378,21 +456,35 @@ const LeadsPage = () => {
             // ✅ No page reload - state is already updated optimistically
         } catch (error) {
             console.error('Failed to update boolean field:', error)
-            searchLeads(false)
+            searchLeads()
         }
     }
 
-    // Debounced search function
-    const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): ((...args: Parameters<T>) => void) => {
-        let timeout: NodeJS.Timeout
-        return function executedFunction(...args: Parameters<T>) {
-            const later = () => {
+    // Debounced search function with cancel support
+    const debounce = <T extends (...args: any[]) => any>(
+        func: T,
+        wait: number,
+    ): { (...args: Parameters<T>): void; cancel: () => void } => {
+        let timeout: NodeJS.Timeout | null = null
+
+        function debouncedFn(...args: Parameters<T>) {
+            if (timeout) {
                 clearTimeout(timeout)
-                func(...args)
             }
-            clearTimeout(timeout)
-            timeout = setTimeout(later, wait)
+            timeout = setTimeout(() => {
+                timeout = null
+                func(...args)
+            }, wait)
         }
+
+        debouncedFn.cancel = () => {
+            if (timeout) {
+                clearTimeout(timeout)
+                timeout = null
+            }
+        }
+
+        return debouncedFn
     }
 
     // Load KAM options on component mount
@@ -408,96 +500,91 @@ const LeadsPage = () => {
         loadKamOptions()
     }, [])
 
-    // Search leads function
-    const searchLeads = useCallback(
-        async (resetPage = false) => {
-            setLoading(true)
-            setError(null)
+    // Memoized search function
+    const searchLeads = useCallback(async () => {
+        if (!mounted.current) return
 
+        setLoading(true)
+        setError(null)
+
+        try {
+            const response = await leadSearchService.searchLeads(
+                urlParams.query,
+                {
+                    leadStatus: urlParams.leadStatus,
+                    contactStatus: urlParams.connectStatus,
+                    source: urlParams.source,
+                },
+                Math.max(0, urlParams.page - 1),
+                ITEMS_PER_PAGE,
+                urlParams.sort || undefined,
+            )
+
+            if (!mounted.current) return
+
+            setLeads(response.hits || [])
+            setTotalLeads(response.nbHits || 0)
+            setFacets(response.facets || {})
+
+            // Update Redux store with fetched leads - wrap in try/catch to handle serialization issues
             try {
-                const filters: SearchFilters = {}
-
-                if (selectedLeadStatuses.length > 0) {
-                    filters.leadStatus = selectedLeadStatuses
-                }
-                if (selectedConnectStatuses.length > 0) {
-                    filters.contactStatus = selectedConnectStatuses
-                }
-                if (selectedKAMs.length > 0) {
-                    filters.kamName = selectedKAMs
-                }
-                if (selectedSources.length > 0) {
-                    filters.source = selectedSources
-                }
-
-                const page = resetPage ? 0 : currentPage - 1
-
-                const response = await leadSearchService.searchLeads(
-                    searchValue,
-                    filters,
-                    page,
-                    ITEMS_PER_PAGE,
-                    selectedSort || undefined,
-                )
-
-                setLeads(response.hits)
-                setTotalLeads(response.nbHits)
-                setFacets(response.facets || {})
-
-                // Update Redux store with fetched leads
                 dispatch(setReduxLeads(response.hits))
-
-                if (resetPage) {
-                    setCurrentPage(1)
-                }
             } catch (err) {
+                console.warn('Failed to update Redux store:', err)
+            }
+        } catch (err) {
+            console.error('Search error:', err)
+            if (mounted.current) {
                 setError(err instanceof Error ? err.message : 'Search failed')
-                console.error('Search error:', err)
-            } finally {
+                setLeads([])
+                setTotalLeads(0)
+                setFacets({})
+            }
+        } finally {
+            if (mounted.current) {
                 setLoading(false)
             }
-        },
-        [
-            searchValue,
-            selectedLeadStatuses,
-            selectedConnectStatuses,
-            selectedKAMs,
-            selectedSources,
-            selectedSort,
-            currentPage,
-            dispatch,
-        ],
-    )
-
-    // Debounced search
-    const debouncedSearch = useCallback(debounce(searchLeads, 300), [searchLeads])
-
-    // Initial load and search when filters change
-    useEffect(() => {
-        searchLeads(true)
-    }, [selectedLeadStatuses, selectedConnectStatuses, selectedKAMs, selectedSources, selectedSort])
-
-    // Search when search value changes (debounced)
-    useEffect(() => {
-        debouncedSearch(true)
-    }, [searchValue, debouncedSearch])
-
-    // Search when page changes
-    useEffect(() => {
-        if (currentPage > 1) {
-            searchLeads(false)
         }
-    }, [currentPage])
+    }, [urlParams, dispatch])
 
-    // Reset all filters
-    const resetFilters = () => {
-        setSearchValue('')
-        setSelectedKAMs([])
-        setSelectedSort('')
-        setSelectedConnectStatuses([])
-        setSelectedLeadStatuses([])
-        setSelectedSources([])
-        setCurrentPage(1)
+    // Add mounted ref to prevent memory leaks
+    const mounted = useRef(true)
+    useEffect(() => {
+        mounted.current = true
+        return () => {
+            mounted.current = false
+        }
+    }, [])
+
+    // Debounced search effect
+    const debouncedSearch = useMemo(() => {
+        const debouncedFn = debounce(() => {
+            if (mounted.current) {
+                searchLeads()
+            }
+        }, 300)
+        return debouncedFn
+    }, [searchLeads])
+
+    // Single unified effect for search
+    useEffect(() => {
+        if (urlParams.query) {
+            debouncedSearch()
+        } else {
+            searchLeads()
+        }
+
+        return () => {
+            debouncedSearch.cancel()
+        }
+    }, [urlParams, debouncedSearch, searchLeads])
+
+    // Update URL handlers
+    const handleSearchValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newParams = new URLSearchParams(searchParams)
+        newParams.set('query', e.target.value)
+        newParams.set('page', '1') // Reset page when search changes
+        setSearchParams(newParams)
     }
 
     // Memoized metrics calculation to prevent unnecessary recalculations
@@ -758,8 +845,8 @@ const LeadsPage = () => {
                                             </svg>
                                         }
                                         placeholder='Search name and number'
-                                        value={searchValue}
-                                        onChange={(e) => setSearchValue(e.target.value)}
+                                        value={urlParams.query}
+                                        onChange={handleSearchValueChange}
                                         className='h-8'
                                     />
                                 </div>
@@ -790,8 +877,8 @@ const LeadsPage = () => {
 
                             <MultiSelectDropdown
                                 allOptions={kamOptions}
-                                selectedValues={selectedKAMs}
-                                onSelectionChange={setSelectedKAMs}
+                                selectedValues={urlParams.kamName}
+                                onSelectionChange={handleKAMChange()}
                                 placeholder='KAM'
                                 label='Select KAMs'
                                 facets={facets.kamName || {}}
@@ -799,8 +886,8 @@ const LeadsPage = () => {
 
                             <Dropdown
                                 options={sortOptions}
-                                onSelect={setSelectedSort}
-                                defaultValue={selectedSort}
+                                onSelect={handleSortChange()}
+                                defaultValue={urlParams.sort}
                                 placeholder='Sort'
                                 className='relative inline-block'
                                 triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
@@ -810,8 +897,8 @@ const LeadsPage = () => {
 
                             <MultiSelectDropdown
                                 allOptions={mergeOptionsWithFacets(ALL_CONTACT_STATUS_OPTIONS, 'contactStatus')}
-                                selectedValues={selectedConnectStatuses}
-                                onSelectionChange={setSelectedConnectStatuses}
+                                selectedValues={urlParams.connectStatus}
+                                onSelectionChange={handleConnectStatusChange()}
                                 placeholder='Connect Status'
                                 label='Select Connect Status'
                                 facets={facets.contactStatus || {}}
@@ -819,8 +906,8 @@ const LeadsPage = () => {
 
                             <MultiSelectDropdown
                                 allOptions={mergeOptionsWithFacets(ALL_LEAD_STATUS_OPTIONS, 'leadStatus')}
-                                selectedValues={selectedLeadStatuses}
-                                onSelectionChange={setSelectedLeadStatuses}
+                                selectedValues={urlParams.leadStatus}
+                                onSelectionChange={handleLeadStatusChange()}
                                 placeholder='Lead Status'
                                 label='Select Lead Status'
                                 facets={facets.leadStatus || {}}
@@ -828,8 +915,8 @@ const LeadsPage = () => {
 
                             <MultiSelectDropdown
                                 allOptions={mergeOptionsWithFacets(ALL_SOURCE_OPTIONS, 'source')}
-                                selectedValues={selectedSources}
-                                onSelectionChange={setSelectedSources}
+                                selectedValues={urlParams.source}
+                                onSelectionChange={handleSourceChange()}
                                 placeholder='Source'
                                 label='Select Sources'
                                 facets={facets.source || {}}
@@ -867,16 +954,16 @@ const LeadsPage = () => {
                         {/* Pagination */}
                         <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
                             <div className='text-sm text-gray-500 font-medium'>
-                                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                                {Math.min(currentPage * ITEMS_PER_PAGE, totalLeads)} of {totalLeads} leads
+                                Showing {(filterState.page - 1) * ITEMS_PER_PAGE + 1} to{' '}
+                                {Math.min(filterState.page * ITEMS_PER_PAGE, totalLeads)} of {totalLeads} leads
                             </div>
 
                             <div className='flex items-center gap-2'>
                                 <button
-                                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                    disabled={currentPage === 1}
+                                    onClick={() => handlePageChange()(Math.max(filterState.page - 1, 1))}
+                                    disabled={filterState.page === 1}
                                     className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                        currentPage === 1
+                                        filterState.page === 1
                                             ? 'text-gray-400 cursor-not-allowed'
                                             : 'text-gray-700 hover:bg-gray-100'
                                     }`}
@@ -896,7 +983,7 @@ const LeadsPage = () => {
                                         return (
                                             page === 1 ||
                                             page === totalPages ||
-                                            (page >= currentPage - 1 && page <= currentPage + 1)
+                                            (page >= filterState.page - 1 && page <= filterState.page + 1)
                                         )
                                     })
                                     .map((page, index, array) => {
@@ -913,9 +1000,9 @@ const LeadsPage = () => {
                                                 )}
 
                                                 <button
-                                                    onClick={() => setCurrentPage(page)}
+                                                    onClick={() => handlePageChange()(page)}
                                                     className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
-                                                        currentPage === page
+                                                        filterState.page === page
                                                             ? 'bg-blue-600 text-white'
                                                             : 'text-gray-700 hover:bg-gray-100'
                                                     }`}
@@ -933,10 +1020,10 @@ const LeadsPage = () => {
                                     })}
 
                                 <button
-                                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                                    disabled={currentPage === totalPages}
+                                    onClick={() => handlePageChange()(Math.min(filterState.page + 1, totalPages))}
+                                    disabled={filterState.page === totalPages}
                                     className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                        currentPage === totalPages
+                                        filterState.page === totalPages
                                             ? 'text-gray-400 cursor-not-allowed'
                                             : 'text-gray-700 hover:bg-gray-100'
                                     }`}

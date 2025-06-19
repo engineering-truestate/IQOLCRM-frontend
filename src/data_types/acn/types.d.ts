@@ -77,7 +77,7 @@ type EnquiryState = {
 
 // ==================== INVENTORY TYPES ====================
 
-interface IInventory {
+export interface IInventory {
     id: string
     propertyId: string
     cpId: string

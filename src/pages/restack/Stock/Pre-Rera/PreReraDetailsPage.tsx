@@ -176,7 +176,7 @@ const PreReraProjectDetails = () => {
                     {project.images && project.images.length > 0 && (
                         <div className='mb-8'>
                             <div className='grid grid-cols-1 md:grid-cols-3 gap-4 border border-gray-200 rounded-lg p-4'>
-                                {project.images.map((image, index) => (
+                                {project.images.map((image) => (
                                     <img
                                         src={image}
                                         alt='Preview'

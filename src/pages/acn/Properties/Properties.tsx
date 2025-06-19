@@ -1,8 +1,8 @@
 // PropertiesPage.tsx
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Button from '../../../components/design-elements/Button'
@@ -16,6 +16,17 @@ import shareic from '/icons/acn/share.svg'
 import editicon from '/icons/acn/write.svg'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import { AddFilterModal } from '../../../components/acn/Filters'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch } from '../../../store'
+import {
+    setSearchResults,
+    updatePropertyStatusOptimistic,
+    updatePropetiesLocal,
+} from '../../../store/reducers/acn/propertiesReducers'
+import { updatePropertyStatus } from '../../../services/acn/properties/propertiesService'
+import type { RootState } from '../../../store'
+import checkicon from '/icons/acn/tick.svg'
+import crossicon from '/icons/acn/cross.svg'
 
 // Import our Algolia service
 import algoliaService, {
@@ -24,9 +35,20 @@ import algoliaService, {
     type FacetValue,
 } from '../../../services/acn/properties/algoliaPropertiesService'
 import { formatCost } from '../../../components/helper/formatCost'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import StatusSelectCell from '../../../components/acn/Status'
+import { toast } from 'react-toastify'
 
 type PropertyType = 'Resale' | 'Rental'
-type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'Delisted' | 'Pending QC' | 'Rented'
+type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'De-listed' | 'Pending QC' | 'Rented'
+
+interface StatusOption {
+    label: string
+    value: string
+    color: string
+    textColor: string
+    slug?: string
+}
 
 const getMetrics = (activeTab: PropertyType, searchResultFacets: Record<string, FacetValue[]>) => {
     const statusFacets = searchResultFacets.status || []
@@ -46,7 +68,7 @@ const getMetrics = (activeTab: PropertyType, searchResultFacets: Record<string, 
             { label: 'Available', value: statusCounts['Available'] || 0 },
             { label: 'Sold', value: statusCounts['Sold'] || 0 },
             { label: 'Hold', value: statusCounts['Hold'] || 0 },
-            { label: 'Delisted', value: statusCounts['Delisted'] || 0 },
+            { label: 'De-listed', value: statusCounts['De-listed'] || 0 },
             { label: 'Pending QC', value: statusCounts['Pending QC'] || 0 },
         ]
     } else {
@@ -55,7 +77,7 @@ const getMetrics = (activeTab: PropertyType, searchResultFacets: Record<string, 
             { label: 'Available', value: statusCounts['Available'] || 0 },
             { label: 'Rented', value: statusCounts['Rented'] || 0 },
             { label: 'Hold', value: statusCounts['Hold'] || 0 },
-            { label: 'Delisted', value: statusCounts['Delisted'] || 0 },
+            { label: 'De-listed', value: statusCounts['De-listed'] || 0 },
             { label: 'Pending QC', value: statusCounts['Pending QC'] || 0 },
         ]
     }
@@ -63,10 +85,278 @@ const getMetrics = (activeTab: PropertyType, searchResultFacets: Record<string, 
 
 const PropertiesPage = () => {
     const navigate = useNavigate()
+    const dispatch = useDispatch<AppDispatch>()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const [activeTab, setActiveTab] = useState<PropertyType>('Resale')
+    const [statusMap, setStatusMap] = useState<Record<string, string>>({})
+    const properties = useSelector((state: RootState) => state.properties.searchResults)
+    const nbHits = useSelector((state: RootState) => state.properties.totalHits)
+    const nbPages = useSelector((state: RootState) => state.properties.totalPages)
+
+    const statusConfig = {
+        available: {
+            slug: 'available',
+            label: 'Available',
+            value: 'Available',
+            color: '#E1F6DF',
+            textColor: '#065F46',
+        },
+        sold: {
+            slug: 'sold',
+            label: 'Sold',
+            value: 'Sold',
+            color: '#F5F5F5',
+            textColor: '#374151',
+        },
+        rented: {
+            slug: 'rented',
+            label: 'Rented',
+            value: 'Rented',
+            color: '#F5F5F5',
+            textColor: '#374151',
+        },
+        hold: {
+            slug: 'hold',
+            label: 'Hold',
+            value: 'Hold',
+            color: '#FFF4E6',
+            textColor: '#92400E',
+        },
+        delisted: {
+            slug: 'delisted',
+            label: 'De-listed',
+            value: 'De-listed',
+            color: '#FFC8B8',
+            textColor: '#991B1B',
+        },
+        pendingQc: {
+            slug: 'pending-qc',
+            label: 'Pending QC',
+            value: 'Pending QC',
+            color: '#E5E7EB',
+            textColor: '#4B5563',
+        },
+    }
+
+    const getStatusOptions = () => {
+        const baseOptions = [
+            { label: 'All Status', value: '', slug: 'all' },
+            statusConfig.available,
+            statusConfig.hold,
+            statusConfig.delisted,
+            statusConfig.pendingQc,
+        ]
+
+        // Add either Sold or Rented based on activeTab
+        if (activeTab === 'Resale') {
+            baseOptions.splice(1, 0, statusConfig.sold)
+        } else {
+            baseOptions.splice(1, 0, statusConfig.rented)
+        }
+
+        return baseOptions
+    }
+
+    // Memoize URL parameters to prevent unnecessary updates
+    const urlParams = useMemo(
+        () => ({
+            query: searchParams.get('query') || '',
+            status: searchParams.get('status')?.split(',').filter(Boolean) || [],
+            assetType: searchParams.get('assetType')?.split(',').filter(Boolean) || [],
+            micromarket: searchParams.get('micromarket')?.split(',').filter(Boolean) || [],
+            kam: searchParams.get('kam')?.split(',').filter(Boolean) || [],
+            sort: searchParams.get('sort') || '',
+            page: parseInt(searchParams.get('page') || '1', 10),
+        }),
+        [searchParams],
+    )
+
+    // Initialize state from URL parameters
+    const [filterState, setFilterState] = useState(() => ({
+        status: urlParams.status || [],
+        assetType: urlParams.assetType || [],
+        micromarket: urlParams.micromarket || [],
+        kam: urlParams.kam || [],
+        sort: urlParams.sort || '',
+        page: urlParams.page || 1,
+    }))
+
+    // Effect to sync URL parameters with filter state
+    useEffect(() => {
+        setFilterState({
+            status: urlParams.status || [],
+            assetType: urlParams.assetType || [],
+            micromarket: urlParams.micromarket || [],
+            kam: urlParams.kam || [],
+            sort: urlParams.sort || '',
+            page: urlParams.page || 1,
+        })
+    }, [urlParams])
+
+    // Update URL parameters
+    const updateURLParams = useCallback(
+        (key: string, value: string | string[] | null) => {
+            const newParams = new URLSearchParams(searchParams)
+            if (value === null || (Array.isArray(value) && value.length === 0)) {
+                newParams.delete(key)
+            } else if (Array.isArray(value)) {
+                newParams.set(key, value.join(','))
+            } else {
+                newParams.set(key, value)
+            }
+            if (key !== 'page') {
+                newParams.set('page', '1')
+            }
+            setSearchParams(newParams)
+        },
+        [searchParams, setSearchParams],
+    )
+
+    // Debounced search function with cancel support
+    const debounce = <T extends (...args: any[]) => any>(
+        func: T,
+        wait: number,
+    ): { (...args: Parameters<T>): void; cancel: () => void } => {
+        let timeout: NodeJS.Timeout | null = null
+
+        function debouncedFn(...args: Parameters<T>) {
+            if (timeout) {
+                clearTimeout(timeout)
+            }
+            timeout = setTimeout(() => {
+                timeout = null
+                func(...args)
+            }, wait)
+        }
+
+        debouncedFn.cancel = () => {
+            if (timeout) {
+                clearTimeout(timeout)
+                timeout = null
+            }
+        }
+
+        return debouncedFn
+    }
+
+    // Add mounted ref to prevent memory leaks
+    const mounted = useRef(true)
+    useEffect(() => {
+        mounted.current = true
+        return () => {
+            mounted.current = false
+        }
+    }, [])
+
+    // Memoized search function
+    const searchProperties = useCallback(async () => {
+        if (!mounted.current) return
+        setSearchLoading(true)
+        setSearchError(null)
+        try {
+            const response = await algoliaService.searchProperties({
+                query: urlParams.query,
+                filters: {
+                    status: urlParams.status,
+                    assetType: urlParams.assetType,
+                    micromarket: urlParams.micromarket,
+                    kam: urlParams.kam,
+                },
+                page: Math.max(0, urlParams.page - 1),
+                hitsPerPage: ITEMS_PER_PAGE,
+                sortBy: urlParams.sort || undefined,
+                propertyType: activeTab,
+            })
+            if (!mounted.current) return
+            dispatch(
+                setSearchResults({
+                    ...response,
+                    facets: response.facets || {},
+                }),
+            )
+            if (response.facets) {
+                const updatedSearchFacets: Record<string, FacetValue[]> = {}
+                Object.entries(response.facets).forEach(([facetName, facetValues]) => {
+                    updatedSearchFacets[facetName] = Object.entries(facetValues)
+                        .map(([value, count]) => ({ value, count: count as number }))
+                        .sort((a, b) => b.count - a.count)
+                })
+                setSearchResultFacets(updatedSearchFacets)
+            }
+        } catch (err) {
+            console.error('Search error:', err)
+            if (mounted.current) {
+                setSearchError(err instanceof Error ? err.message : 'Search failed')
+                setSearchResultFacets({})
+            }
+        } finally {
+            if (mounted.current) {
+                setSearchLoading(false)
+            }
+        }
+    }, [urlParams, activeTab, dispatch])
+
+    // Debounced search effect
+    const debouncedSearch = useMemo(() => {
+        const debouncedFn = debounce(() => {
+            if (mounted.current) {
+                searchProperties()
+            }
+        }, 300)
+        return debouncedFn
+    }, [searchProperties])
+
+    // Single unified effect for search
+    useEffect(() => {
+        if (urlParams.query) {
+            debouncedSearch()
+        } else {
+            searchProperties()
+        }
+
+        return () => {
+            debouncedSearch.cancel()
+        }
+    }, [urlParams, debouncedSearch, searchProperties])
+
+    // Update URL handlers
+    const handleSearchValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newParams = new URLSearchParams(searchParams)
+        newParams.set('query', e.target.value)
+        newParams.set('page', '1') // Reset page when search changes
+        setSearchParams(newParams)
+    }
+
+    // Event handlers for filters
+    const handleStatusChange = useCallback(
+        (statuses: string[]) => updateURLParams('status', statuses),
+        [updateURLParams],
+    )
+
+    const handleAssetTypeChange = useCallback(
+        (types: string[]) => updateURLParams('assetType', types),
+        [updateURLParams],
+    )
+
+    const handleMicromarketChange = useCallback(
+        (markets: string[]) => updateURLParams('micromarket', markets),
+        [updateURLParams],
+    )
+
+    const handleKAMChange = useCallback((kams: string[]) => updateURLParams('kam', kams), [updateURLParams])
+
+    const handleSortChange = useCallback((sort: string) => updateURLParams('sort', sort || null), [updateURLParams])
+
+    // Handle page change
+    const handlePageChange = useCallback((page: number) => updateURLParams('page', page.toString()), [updateURLParams])
+
+    // Reset all filters
+    const clearAllFilters = useCallback(() => {
+        setSearchParams({})
+    }, [setSearchParams])
 
     // Algolia search state
     const [searchQuery, setSearchQuery] = useState('')
-    const [searchResults, setSearchResults] = useState<AlgoliaSearchResponse | null>(null)
     const [searchLoading, setSearchLoading] = useState(false)
     const [searchError, setSearchError] = useState<string | null>(null)
 
@@ -78,7 +368,6 @@ const PropertiesPage = () => {
     const [isAddFilterModalOpen, setIsAddFilterModalOpen] = useState(false)
 
     // UI state
-    const [activeTab, setActiveTab] = useState<PropertyType>('Resale')
     const [currentPage, setCurrentPage] = useState(0)
     const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
@@ -86,13 +375,13 @@ const PropertiesPage = () => {
     const [selectedProperty, setSelectedProperty] = useState<IInventory | null>(null)
 
     // Constants
-    const ITEMS_PER_PAGE = 20
+    const ITEMS_PER_PAGE = 50
 
     // Initialize facets on component mount
     useEffect(() => {
         const initializeFacets = async () => {
             try {
-                const facets = await algoliaService.getAllFacets()
+                const facets = await algoliaService.getAllFacets(activeTab)
                 setOriginalFacets(facets)
             } catch (error) {
                 console.error('Failed to load facets:', error)
@@ -100,7 +389,7 @@ const PropertiesPage = () => {
         }
 
         initializeFacets()
-    }, [])
+    }, [activeTab])
 
     // Load initial data
     useEffect(() => {
@@ -115,24 +404,19 @@ const PropertiesPage = () => {
             setSearchError(null)
 
             try {
-                // Add tab-based filter
-                const tabFilters = { ...searchFilters }
-                if (activeTab === 'Resale') {
-                    tabFilters.assetType = [...(tabFilters.assetType || []), 'apartment', 'villa', 'plot', 'commercial']
-                } else {
-                    tabFilters.assetType = [...(tabFilters.assetType || []), 'apartment', 'villa', 'commercial']
-                }
-
                 const response = await algoliaService.searchProperties({
                     query: query.trim(),
-                    filters: tabFilters,
+                    filters: searchFilters,
                     page,
                     hitsPerPage: ITEMS_PER_PAGE,
                     sortBy: sort || undefined,
+                    propertyType: activeTab,
                 })
-                console.log('😂😂😂', response, 'kudi')
 
-                setSearchResults(response)
+                setSearchResults({
+                    ...response,
+                    facets: response.facets || {},
+                })
 
                 // Update search result facets
                 if (response.facets) {
@@ -151,14 +435,21 @@ const PropertiesPage = () => {
                 // Track search event
                 algoliaService.trackSearchEvent('property_search', {
                     query,
-                    filters: tabFilters,
+                    filters: searchFilters,
                     resultsCount: response.nbHits,
                     page,
                 })
             } catch (error) {
                 console.error('Search failed:', error)
                 setSearchError(error instanceof Error ? error.message : 'Search failed')
-                setSearchResults(null)
+                setSearchResults({
+                    hits: [],
+                    nbHits: 0,
+                    nbPages: 0,
+                    page: 0,
+                    facets: {},
+                    processingTimeMS: 0,
+                })
                 setSearchResultFacets({})
             } finally {
                 setSearchLoading(false)
@@ -180,62 +471,18 @@ const PropertiesPage = () => {
         performSearch(searchQuery, filters, 0, sortBy)
     }, [activeTab, searchQuery, filters, sortBy, performSearch])
 
-    // Handle page change
-    const handlePageChange = (newPage: number) => {
-        setCurrentPage(newPage)
-        performSearch(searchQuery, filters, newPage, sortBy)
-    }
-
-    // Update filter utility function
-    const updateFilter = (filterType: keyof SearchFilters, value: string | null) => {
-        setFilters((prev) => {
-            const newFilters = { ...prev }
-
-            if (value === null || value === '') {
-                delete newFilters[filterType]
-            } else {
-                if (filterType === 'priceRange') {
-                    return prev // Handle price range separately if needed
-                } else {
-                    // For array filters (status, kam, assetType, micromarket) - Multiselect
-                    const currentValues = (newFilters[filterType] as string[]) || []
-                    if (currentValues.includes(value)) {
-                        // Remove value
-                        newFilters[filterType] = currentValues.filter((v) => v !== value) as any
-                        if ((newFilters[filterType] as string[]).length === 0) {
-                            delete newFilters[filterType]
-                        }
-                    } else {
-                        // Add value (multiselect - add to existing array)
-                        newFilters[filterType] = [...currentValues, value] as any
-                    }
-                }
-            }
-
-            return newFilters
-        })
-    }
-
-    // Clear all filters
-    const clearAllFilters = () => {
-        setFilters({})
-        setSortBy('')
-        setSearchQuery('')
-        setCurrentPage(0)
-    }
-
-    // Get current data to display
+    // Render from Redux
     const getCurrentData = (): IInventory[] => {
-        return searchResults?.hits || []
+        return properties || []
     }
 
     const currentData = getCurrentData()
-    const totalItems = searchResults?.nbHits || 0
-    const totalPages = searchResults?.nbPages || 0
+    const totalItems = nbHits || 0
+    const totalPages = nbPages || 0
 
     // Helper function to get facet count for a specific value
     const getFacetCount = (facetName: string, value: string): number => {
-        const facetsToUse = searchResults ? searchResultFacets : originalFacets
+        const facetsToUse = properties ? searchResultFacets : originalFacets
         const facetValues = facetsToUse[facetName] || []
         const facetItem = facetValues.find((item) => item.value === value)
         return facetItem ? facetItem.count : 0
@@ -257,16 +504,62 @@ const PropertiesPage = () => {
     // Handle bulk status update
     const handleBulkStatusUpdate = (status: PropertyStatus, soldPrice?: string) => {
         const selectedRowIds = Array.from(selectedRows)
-        console.log('📝 Bulk updating status for:', selectedRowIds, 'to:', status, ' ', soldPrice)
+        // Convert old status name to new if needed
+        const updatedStatus = status === 'De-listed' ? 'De-listed' : status
+        console.log('📝 Bulk updating status for:', selectedRowIds, 'to:', updatedStatus, ' ', soldPrice)
 
         // TODO: Implement actual bulk update API call
         setSelectedRows(new Set())
     }
 
+    // Handle property status update
+    const handleUpdatePropertyStatus = useCallback(
+        async (propertyId: string, newStatus: string) => {
+            console.log('😒 Updating property status:', propertyId, newStatus)
+            dispatch(updatePropetiesLocal({ propertyId, updates: { status: newStatus } }))
+            // Optimistically update Redux
+            dispatch(updatePropertyStatusOptimistic({ propertyId, status: newStatus }))
+
+            try {
+                await dispatch(updatePropertyStatus({ propertyId, status: newStatus, activeTab })).unwrap()
+            } catch (error) {
+                // Optionally: revert or re-fetch
+                searchProperties()
+            }
+        },
+        [dispatch, activeTab, searchProperties],
+    )
+
+    // Helper function to get status config safely
+    const getStatusConfigByValue = (value: string) => {
+        const key = Object.keys(statusConfig).find(
+            (k) => statusConfig[k as keyof typeof statusConfig].value.toLowerCase() === value.toLowerCase(),
+        ) as keyof typeof statusConfig | undefined
+
+        return key ? statusConfig[key] : undefined
+    }
+
+    // Convert status config to dropdown options
+    const statusDropdownOptions = useMemo(
+        () =>
+            getStatusOptions()
+                .filter((option) => option.label !== 'All Status' && option.label !== 'Pending QC')
+                .map((option) => {
+                    const config = getStatusConfigByValue(option.value)
+                    return {
+                        label: option.label,
+                        value: option.value,
+                        color: config?.color || '#E5E7EB',
+                        textColor: config?.textColor || '#4B5563',
+                    }
+                }) as StatusOption[],
+        [],
+    ) // getStatusOptions uses activeTab from closure, so no need to include it as dependency
+
     // Filter Dropdown Components
     const StatusFilter = () => {
         const statusFacets = originalFacets.status || []
-        const selectedStatuses = filters.status || []
+        const selectedStatuses = urlParams.status || []
         const [isOpen, setIsOpen] = useState(false)
         const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -313,7 +606,7 @@ const PropertiesPage = () => {
                         <div
                             className='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md border-b border-gray-200'
                             onClick={() => {
-                                updateFilter('status', null)
+                                handleStatusChange([])
                             }}
                         >
                             <div className='flex items-center gap-2'>
@@ -335,7 +628,10 @@ const PropertiesPage = () => {
                                         isSelected ? 'bg-blue-50' : ''
                                     }`}
                                     onClick={() => {
-                                        updateFilter('status', facet.value)
+                                        const newStatuses = isSelected
+                                            ? selectedStatuses.filter((s) => s !== facet.value)
+                                            : [...selectedStatuses, facet.value]
+                                        handleStatusChange(newStatuses)
                                     }}
                                 >
                                     <div className='flex items-center justify-between'>
@@ -354,7 +650,7 @@ const PropertiesPage = () => {
                                             </span>
                                         </div>
                                         <span className='text-xs text-gray-500'>
-                                            ({searchResults ? currentCount : facet.count})
+                                            ({properties ? currentCount : facet.count})
                                         </span>
                                     </div>
                                 </div>
@@ -368,7 +664,7 @@ const PropertiesPage = () => {
 
     const KAMFilter = () => {
         const kamFacets = originalFacets.kam || []
-        const selectedKAMs = filters.kam || []
+        const selectedKAMs = urlParams.kam || []
         const [isOpen, setIsOpen] = useState(false)
         const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -413,7 +709,7 @@ const PropertiesPage = () => {
                         <div
                             className='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md border-b border-gray-200'
                             onClick={() => {
-                                updateFilter('kam', null)
+                                handleKAMChange([])
                             }}
                         >
                             <div className='flex items-center gap-2'>
@@ -435,7 +731,10 @@ const PropertiesPage = () => {
                                         isSelected ? 'bg-blue-50' : ''
                                     }`}
                                     onClick={() => {
-                                        updateFilter('kam', facet.value)
+                                        const newKAMs = isSelected
+                                            ? selectedKAMs.filter((k) => k !== facet.value)
+                                            : [...selectedKAMs, facet.value]
+                                        handleKAMChange(newKAMs)
                                     }}
                                 >
                                     <div className='flex items-center justify-between'>
@@ -454,7 +753,7 @@ const PropertiesPage = () => {
                                             </span>
                                         </div>
                                         <span className='text-xs text-gray-500'>
-                                            ({searchResults ? currentCount : facet.count})
+                                            ({properties ? currentCount : facet.count})
                                         </span>
                                     </div>
                                 </div>
@@ -468,7 +767,7 @@ const PropertiesPage = () => {
 
     const AssetTypeFilter = () => {
         const assetTypeFacets = originalFacets.assetType || []
-        const selectedAssetTypes = filters.assetType || []
+        const selectedAssetTypes = urlParams.assetType || []
         const [isOpen, setIsOpen] = useState(false)
         const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -515,7 +814,7 @@ const PropertiesPage = () => {
                         <div
                             className='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md border-b border-gray-200'
                             onClick={() => {
-                                updateFilter('assetType', null)
+                                handleAssetTypeChange([])
                             }}
                         >
                             <div className='flex items-center gap-2'>
@@ -537,7 +836,10 @@ const PropertiesPage = () => {
                                         isSelected ? 'bg-blue-50' : ''
                                     }`}
                                     onClick={() => {
-                                        updateFilter('assetType', facet.value)
+                                        const newTypes = isSelected
+                                            ? selectedAssetTypes.filter((t) => t !== facet.value)
+                                            : [...selectedAssetTypes, facet.value]
+                                        handleAssetTypeChange(newTypes)
                                     }}
                                 >
                                     <div className='flex items-center justify-between'>
@@ -556,7 +858,7 @@ const PropertiesPage = () => {
                                             </span>
                                         </div>
                                         <span className='text-xs text-gray-500'>
-                                            ({searchResults ? currentCount : facet.count})
+                                            ({properties ? currentCount : facet.count})
                                         </span>
                                     </div>
                                 </div>
@@ -570,7 +872,7 @@ const PropertiesPage = () => {
 
     const MicromarketFilter = () => {
         const micromarketFacets = originalFacets.micromarket || []
-        const selectedMicromarkets = filters.micromarket || []
+        const selectedMicromarkets = urlParams.micromarket || []
         const [isOpen, setIsOpen] = useState(false)
         const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -617,7 +919,7 @@ const PropertiesPage = () => {
                         <div
                             className='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md border-b border-gray-200'
                             onClick={() => {
-                                updateFilter('micromarket', null)
+                                handleMicromarketChange([])
                             }}
                         >
                             <div className='flex items-center gap-2'>
@@ -639,7 +941,10 @@ const PropertiesPage = () => {
                                         isSelected ? 'bg-blue-50' : ''
                                     }`}
                                     onClick={() => {
-                                        updateFilter('micromarket', facet.value)
+                                        const newMarkets = isSelected
+                                            ? selectedMicromarkets.filter((m) => m !== facet.value)
+                                            : [...selectedMicromarkets, facet.value]
+                                        handleMicromarketChange(newMarkets)
                                     }}
                                 >
                                     <div className='flex items-center justify-between'>
@@ -658,7 +963,7 @@ const PropertiesPage = () => {
                                             </span>
                                         </div>
                                         <span className='text-xs text-gray-500'>
-                                            ({searchResults ? currentCount : facet.count})
+                                            ({properties ? currentCount : facet.count})
                                         </span>
                                     </div>
                                 </div>
@@ -679,7 +984,7 @@ const PropertiesPage = () => {
             { label: 'Recent First', value: 'date_desc' },
         ]
 
-        const currentSort = sortOptions.find((option) => option.value === sortBy)
+        const currentSort = sortOptions.find((option) => option.value === urlParams.sort)
 
         return (
             <div className='relative inline-block'>
@@ -699,10 +1004,10 @@ const PropertiesPage = () => {
                             <div
                                 key={option.value}
                                 className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md ${
-                                    option.value === sortBy ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                    option.value === urlParams.sort ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                                 }`}
                                 onClick={() => {
-                                    setSortBy(option.value)
+                                    handleSortChange(option.value)
                                     setIsOpen(false)
                                 }}
                             >
@@ -724,7 +1029,6 @@ const PropertiesPage = () => {
             maximumFractionDigits: 0,
         }).format(amount)
     }
-
     const formatDate = (date: any) => {
         if (!date) return '-'
         let dateObj: Date
@@ -745,18 +1049,6 @@ const PropertiesPage = () => {
             year: 'numeric',
         })
     }
-
-    const statusDropdownOptions: DropdownOption[] = [
-        { label: 'Available', value: 'Available', color: '#E1F6DF', textColor: '#065F46' },
-        {
-            label: activeTab === 'Resale' ? 'Sold' : 'Rented',
-            value: activeTab === 'Resale' ? 'Sold' : 'Rented',
-            color: '#F5F5F5',
-            textColor: '#374151',
-        },
-        { label: 'Hold', value: 'Hold', color: '#FFF4E6', textColor: '#92400E' },
-        { label: 'Delisted', value: 'Delisted', color: '#FFC8B8', textColor: '#991B1B' },
-    ]
 
     // Table columns
     const getColumns = (): TableColumn[] => {
@@ -783,7 +1075,7 @@ const PropertiesPage = () => {
                 ),
             },
             {
-                key: 'nameOfTheProperty',
+                key: 'propertyName',
                 header: 'Property Name',
                 render: (value, row) => (
                     <span
@@ -807,7 +1099,7 @@ const PropertiesPage = () => {
 
         // Add price column
         baseColumns.push({
-            key: 'totalAskPrice',
+            key: activeTab === 'Resale' ? 'totalAskPrice' : 'rentPerMonthInLakhs',
             header: activeTab === 'Resale' ? 'Sale Price' : 'Monthly Rent',
             render: (value) => (
                 <span className='whitespace-nowrap text-sm font-normal w-auto'>
@@ -818,7 +1110,7 @@ const PropertiesPage = () => {
 
         const remainingColumns: TableColumn[] = [
             {
-                key: 'sbua',
+                key: activeTab === 'Resale' ? 'sbua' : 'SBUA',
                 header: 'SBUA',
                 render: (value) => (
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>
@@ -831,7 +1123,7 @@ const PropertiesPage = () => {
                 header: 'Plot Size',
                 render: (value) => (
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                        {value ? `${value} sq ft` : 'N/A'}
+                        {value && value !== '–' ? `${value}` : 'N/A'}
                     </span>
                 ),
             },
@@ -849,22 +1141,16 @@ const PropertiesPage = () => {
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>{value || 'N/A'}</span>
                 ),
             },
+
             {
                 key: 'status',
                 header: 'Status',
-                render: (value) => {
-                    const statusOption = statusDropdownOptions.find((opt) => opt.value === value)
-                    return (
-                        <span
-                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap`}
-                            style={{
-                                backgroundColor: statusOption?.color || '#F3F4F6',
-                                color: statusOption?.textColor || '#374151',
-                            }}
-                        >
-                            {value || 'Unknown'}
-                        </span>
-                    )
+                dropdown: {
+                    options: statusDropdownOptions,
+                    placeholder: 'Select Status',
+                    onChange: (value, row) => {
+                        handleUpdatePropertyStatus(row.propertyId, value)
+                    },
                 },
             },
             {
@@ -884,9 +1170,13 @@ const PropertiesPage = () => {
             {
                 key: 'photo',
                 header: 'Img/Vid',
-                render: (value, row) => (
+                render: (value, _) => (
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                        {(value && value.length > 0) || (row.video && row.video.length > 0) ? '✓' : '✗'}
+                        {value && value.length > 0 ? (
+                            <img src={checkicon} alt='Check Icon' className='w-8 h-8 flex-shrink-0' />
+                        ) : (
+                            <img src={crossicon} alt='Cross Icon' className='w-8 h-8 flex-shrink-0' />
+                        )}
                     </span>
                 ),
             },
@@ -924,8 +1214,41 @@ const PropertiesPage = () => {
         return [...baseColumns, ...remainingColumns]
     }
 
+    // Memoized metrics calculation to prevent unnecessary recalculations
+    const metrics = useMemo(() => {
+        if (!properties) return []
+
+        const totalProperties = nbHits
+        const statusFacets = searchResultFacets.status || []
+        const statusCounts = statusFacets.reduce(
+            (acc, facet) => {
+                acc[facet.value] = facet.count
+                return acc
+            },
+            {} as Record<string, number>,
+        )
+
+        if (activeTab === 'Resale') {
+            return [
+                { label: 'Total Listings', value: totalProperties },
+                { label: 'Available', value: statusCounts['Available'] || 0 },
+                { label: 'Sold', value: statusCounts['Sold'] || 0 },
+                { label: 'Hold', value: statusCounts['Hold'] || 0 },
+                { label: 'De-listed', value: statusCounts['De-listed'] || 0 },
+            ]
+        } else {
+            return [
+                { label: 'Total Listings', value: totalProperties },
+                { label: 'Available', value: statusCounts['Available'] || 0 },
+                { label: 'Rented', value: statusCounts['Rented'] || 0 },
+                { label: 'Hold', value: statusCounts['Hold'] || 0 },
+                { label: 'De-listed', value: statusCounts['De-listed'] || 0 },
+            ]
+        }
+    }, [properties, searchResultFacets, activeTab, nbHits])
+
     // Loading and error states
-    if (searchLoading && !searchResults) {
+    if (searchLoading && (!properties || properties.length === 0)) {
         return (
             <Layout loading={true}>
                 <div className='flex items-center justify-center h-64'>
@@ -937,8 +1260,7 @@ const PropertiesPage = () => {
             </Layout>
         )
     }
-
-    if (searchError && !searchResults) {
+    if (searchError && (!properties || properties.length === 0)) {
         return (
             <Layout loading={false}>
                 <div className='flex items-center justify-center h-64'>
@@ -947,7 +1269,7 @@ const PropertiesPage = () => {
                         <Button
                             bgColor='bg-blue-600'
                             textColor='text-white'
-                            onClick={() => performSearch(searchQuery, filters, currentPage, sortBy)}
+                            onClick={() => performSearch(searchQuery, filters, 0, sortBy)}
                         >
                             Retry
                         </Button>
@@ -958,7 +1280,7 @@ const PropertiesPage = () => {
     }
 
     return (
-        <Layout loading={false}>
+        <Layout loading={searchLoading}>
             <AddFilterModal
                 isOpen={isAddFilterModalOpen}
                 onClose={() => setIsAddFilterModalOpen(false)}
@@ -970,7 +1292,7 @@ const PropertiesPage = () => {
                     {/* Header */}
                     <div className='mb-4'>
                         <div className='flex items-center justify-between mb-2'>
-                            <h1 className='text-lg font-semibold text-black'>Properties</h1>
+                            <h1 className='text-lg font-semibold text-black'>Properties ({nbHits || 0})</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
                                     <StateBaseTextField
@@ -990,8 +1312,8 @@ const PropertiesPage = () => {
                                             </svg>
                                         }
                                         placeholder='Search properties...'
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        value={urlParams.query}
+                                        onChange={handleSearchValueChange}
                                         className='h-8'
                                     />
                                 </div>
@@ -1009,7 +1331,7 @@ const PropertiesPage = () => {
                         <hr className='border-gray-200 mb-4' />
 
                         {/* Metrics Cards */}
-                        <MetricsCards metrics={getMetrics(activeTab, searchResultFacets)} className='mb-2' />
+                        <MetricsCards metrics={metrics} className='mb-2' />
 
                         {/* Filters */}
                         <div className='flex items-center gap-2 mb-2'>
@@ -1061,7 +1383,7 @@ const PropertiesPage = () => {
                                         viewBox='0 0 16 16'
                                         fill='none'
                                     >
-                                        <path d='M2 4.66797H14' stroke='#3A3A47' stroke-linecap='round' />
+                                        <path d='M2 4.66797H14' stroke='#3A3A47' />
                                         <path d='M4 8H12' stroke='#3A3A47' stroke-linecap='round' />
                                         <path d='M6.66602 11.332H9.33268' stroke='#3A3A47' stroke-linecap='round' />
                                     </svg>
@@ -1128,9 +1450,22 @@ const PropertiesPage = () => {
                                     <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
                                     <span className='ml-3 text-gray-600'>Loading properties...</span>
                                 </div>
-                            ) : currentData.length > 0 ? (
+                            ) : searchError ? (
+                                <div className='flex items-center justify-center h-64'>
+                                    <div className='text-center'>
+                                        <div className='text-red-600 mb-4'>Error: {searchError}</div>
+                                        <Button
+                                            bgColor='bg-blue-600'
+                                            textColor='text-white'
+                                            onClick={() => searchProperties()}
+                                        >
+                                            Retry
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : properties?.length ? (
                                 <FlexibleTable
-                                    data={currentData}
+                                    data={properties}
                                     columns={getColumns()}
                                     hoverable={true}
                                     borders={{
@@ -1160,17 +1495,17 @@ const PropertiesPage = () => {
                         {!searchLoading && totalPages > 1 && (
                             <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
                                 <div className='text-sm text-gray-500 font-medium'>
-                                    Showing {currentPage * ITEMS_PER_PAGE + 1} to{' '}
-                                    {Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalItems)} of{' '}
+                                    Showing {(urlParams.page - 1) * ITEMS_PER_PAGE + 1} to{' '}
+                                    {Math.min(urlParams.page * ITEMS_PER_PAGE, totalItems)} of{' '}
                                     {totalItems.toLocaleString()} properties
                                 </div>
 
                                 <div className='flex items-center gap-2'>
                                     <button
-                                        onClick={() => handlePageChange(Math.max(currentPage - 1, 0))}
-                                        disabled={currentPage === 0}
+                                        onClick={() => handlePageChange(Math.max(urlParams.page - 1, 1))}
+                                        disabled={urlParams.page === 1}
                                         className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            currentPage === 0
+                                            urlParams.page === 1
                                                 ? 'text-gray-400 cursor-not-allowed'
                                                 : 'text-gray-700 hover:bg-gray-100'
                                         }`}
@@ -1188,13 +1523,13 @@ const PropertiesPage = () => {
                                     {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                                         let pageNum: number
                                         if (totalPages <= 7) {
-                                            pageNum = i
-                                        } else if (currentPage < 3) {
-                                            pageNum = i
-                                        } else if (currentPage > totalPages - 4) {
-                                            pageNum = totalPages - 7 + i
+                                            pageNum = i + 1
+                                        } else if (urlParams.page < 4) {
+                                            pageNum = i + 1
+                                        } else if (urlParams.page > totalPages - 4) {
+                                            pageNum = totalPages - 7 + i + 1
                                         } else {
-                                            pageNum = currentPage - 3 + i
+                                            pageNum = urlParams.page - 3 + i + 1
                                         }
 
                                         return (
@@ -1202,21 +1537,21 @@ const PropertiesPage = () => {
                                                 key={pageNum}
                                                 onClick={() => handlePageChange(pageNum)}
                                                 className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
-                                                    currentPage === pageNum
+                                                    urlParams.page === pageNum
                                                         ? 'bg-blue-600 text-white'
                                                         : 'text-gray-700 hover:bg-gray-100'
                                                 }`}
                                             >
-                                                {pageNum + 1}
+                                                {pageNum}
                                             </button>
                                         )
                                     })}
 
                                     <button
-                                        onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages - 1))}
-                                        disabled={currentPage >= totalPages - 1}
+                                        onClick={() => handlePageChange(Math.min(urlParams.page + 1, totalPages))}
+                                        disabled={urlParams.page >= totalPages}
                                         className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            currentPage >= totalPages - 1
+                                            urlParams.page >= totalPages
                                                 ? 'text-gray-400 cursor-not-allowed'
                                                 : 'text-gray-700 hover:bg-gray-100'
                                         }`}
