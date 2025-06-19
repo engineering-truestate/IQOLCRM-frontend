@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import { useParams } from 'react-router'
-import { enquiryService } from '../../services/canvas_homes'
-import { leadService } from '../../services/canvas_homes'
-import { taskService } from '../../services/canvas_homes'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
@@ -13,7 +10,10 @@ import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 interface CloseLeadModalProps {
     isOpen: boolean
     onClose: () => void
-    onCloseLead: (formData: any) => Promise<void>
+    onUpdateTask: (taskId: string, updates: any) => Promise<void>
+    onUpdateLead: (leadId: string, updates: any) => Promise<void>
+    onUdateEnquiry: (enquiryId: string, updates: any) => Promise<void>
+    onAddNote: (enquiryId: string, note: any) => Promise<void>
     loading?: boolean
     taskState?: string | null
     taskType: string
@@ -22,16 +22,16 @@ interface CloseLeadModalProps {
 const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
     isOpen,
     onClose,
-    onCloseLead,
+    onUpdateTask,
+    onUpdateLead,
+    onUpdateEnquiry,
+    onAddNote,
     loading = false,
     taskState,
     taskType,
 }) => {
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
-    const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
-    const { leadId } = useParams()
-    const { refreshData } = useLeadDetails(leadId)
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
@@ -45,8 +45,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
         state: 'dropped',
         leadStatus: '',
         stage: '',
-        leadId: leadId,
-        enquiryId: enquiryId,
         taskId: taskIds,
         agentId: agentId,
         agentName: agentName,
@@ -69,11 +67,11 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                     leadStatus = 'not connected'
                     stage = 'lead registered'
                     break
-                case 'site visited':
+                case 'visited':
                     leadStatus = 'visit unsuccessful'
                     stage = 'site visited'
                     break
-                case 'site not visited':
+                case 'not visited':
                     leadStatus = 'visit dropped'
                     stage = 'initial contacted'
                     break
@@ -96,7 +94,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                 timestamp: Date.now(),
             }))
         }
-    }, [isOpen, taskState, leadId, enquiryId, taskIds, agentId, agentName])
+    }, [isOpen, taskState, taskIds, agentId, agentName])
 
     const reasonOptions = [
         { value: '', label: 'Select reason' },
@@ -133,7 +131,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
         try {
             const currentTimestamp = Date.now()
 
-            if (enquiryId && leadId && taskIds) {
+            if (taskIds) {
                 // Update enquiry
                 const enqData = {
                     state: 'dropped',
@@ -142,7 +140,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                     tag: formData.tag.toLowerCase(),
                     lastModified: currentTimestamp,
                 }
-                await enquiryService.update(enquiryId, enqData)
+                await onUpdateEnquiry(enqData)
 
                 // Add note to enquiry if provided
                 if (formData.note) {
@@ -153,7 +151,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                         agentId: agentId,
                         taskType: taskType,
                     }
-                    await enquiryService.addNote(enquiryId, newNote)
+                    await onAddNote(newNote)
                 }
 
                 // Update lead
@@ -164,21 +162,19 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                     tag: formData.tag.toLowerCase(),
                     lastModified: currentTimestamp,
                 }
-                await leadService.update(leadId, leadData)
+                await onUpdateLead(leadData)
 
                 // Update task
-                await taskService.update(taskIds, {
+                await onUpdateTask(taskIds, {
                     status: 'complete',
                     completionDate: currentTimestamp,
                 })
 
                 toast.success('Lead closed successfully')
-                refreshData()
             } else {
                 toast.error('Required IDs are missing')
             }
 
-            onCloseLead(formData)
             onClose()
 
             // Reset form
@@ -190,8 +186,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                 state: 'dropped',
                 note: '',
                 stage: '',
-                leadId: leadId,
-                enquiryId: enquiryId,
                 taskId: taskIds,
                 agentId: agentId,
                 agentName: agentName,
@@ -214,8 +208,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
             state: 'dropped',
             note: '',
             stage: '',
-            leadId: leadId,
-            enquiryId: enquiryId,
             taskId: taskIds,
             agentId: agentId,
             agentName: agentName,

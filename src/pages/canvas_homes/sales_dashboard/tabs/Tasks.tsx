@@ -6,6 +6,7 @@ import SiteVisitTask from '../../../../components/canvas_homes/tasks/SiteVisitTa
 import CollectEOITask from '../../../../components/canvas_homes/tasks/CollectEOITask'
 import BookingAmountTask from '../../../../components/canvas_homes/tasks/BookingAmountTask'
 import type { Task } from '../../../../services/canvas_homes/types'
+import { updateLead } from '../../../../services/canvas_homes/leadAlgoliaService'
 
 interface TasksProps {
     tasks: Task[]
@@ -25,7 +26,7 @@ const Tasks: React.FC<TasksProps> = ({
     tasks: firebaseTasks = [],
     loading,
     onTaskStatusUpdate,
-    onUpdateTask, // Added missing prop
+    onUpdateTask,
     error,
     setActiveTab,
     onUpdateEnquiry,
@@ -56,18 +57,18 @@ const Tasks: React.FC<TasksProps> = ({
                 scheduledInfo: getScheduledInfo(firebaseTask),
                 scheduledDate: formatDateTime(firebaseTask.scheduledDate),
                 status: firebaseTask.status,
-                taskResult: firebaseTask.taskResult,
                 firebaseTask: firebaseTask,
             }))
             .sort((a, b) => {
                 const taskOrder: { [key: string]: number } = {
-                    lead_registration: 1,
-                    initial_contact: 2,
-                    site_visit: 3,
-                    collect_eoi: 4,
-                    booking_amount: 5,
+                    'lead registration': 1,
+                    'initial contact': 2,
+                    'site visit': 3,
+                    'eoi collection': 4,
+                    booking: 5,
                 }
-                return (taskOrder[a.type] || 999) - (taskOrder[b.type] || 999)
+
+                return (taskOrder[a.type] ?? 999) - (taskOrder[b.type] ?? 999)
             })
     }
 
@@ -165,7 +166,6 @@ const Tasks: React.FC<TasksProps> = ({
             // Update task with completion details
             if (onUpdateTask) {
                 await onUpdateTask(taskId, {
-                    taskResult: 'lead registered',
                     status: 'complete',
                     lastModified: Date.now(),
                 })
@@ -209,9 +209,12 @@ const Tasks: React.FC<TasksProps> = ({
             taskId: task.id,
             updateTaskState,
             getTaskState,
-            onStatusUpdate: handleTaskStatusUpdate,
+            onUpdateLead,
+            onUpdateTask,
+            onUpdateEnquiry,
+            onTaskStatusUpdate,
+            onAddNote,
             updating: updatingTasks[task.id] || false,
-            taskData: task.firebaseTask,
         }
 
         switch (task.type.toLowerCase()) {
@@ -316,8 +319,6 @@ const Tasks: React.FC<TasksProps> = ({
             >
                 {displayTasks.map((task, index) => (
                     <TaskCard
-                        key={task.id}
-                        enquiryId={task.enquiryId}
                         task={task}
                         index={index}
                         isExpanded={expandedTasks[task.id]}

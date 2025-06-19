@@ -1,11 +1,10 @@
 import React from 'react'
 import Dropdown from './Dropdown'
-import type { Task } from '../../../services/canvas_homes/types' // Assuming you have a type for Task
 import { useDispatch } from 'react-redux'
 import { setEnquiryId, setTaskId } from '../../../store/reducers/canvas-homes/taskIdReducer'
 import type { AppDispatch } from '../../../store'
 interface TaskCardProps {
-    task: Task // Assuming Task is the type of your task object from Firebase
+    task: any
     index: number
     isExpanded: boolean
     onToggleExpansion: (taskId: string) => void

@@ -3,8 +3,6 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import { useParams } from 'react-router'
 import { enquiryService } from '../../services/canvas_homes'
-import { leadService } from '../../services/canvas_homes'
-import { taskService } from '../../services/canvas_homes'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
@@ -14,10 +12,23 @@ interface ChangePropertyModalProps {
     isOpen: boolean
     onClose: () => void
     onChangeProperty: (formData: any) => void
-    taskState: string
+    onUpdateTask: (taskId: string, updates: any) => Promise<void>
+    onUpdateLead: (leadId: string, updates: any) => Promise<void>
+    onUpdateEnquiry: (enquiryId: string, updates: any) => Promise<void>
+    onAddNote: (enquiryId: string, note: any) => Promise<void>
+    taskType: string
 }
 
-const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, onChangeProperty, taskState }) => {
+const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({
+    isOpen,
+    onClose,
+    onChangeProperty,
+    onUpdateTask,
+    onUpdateLead,
+    onUpdateEnquiry,
+    onAddNote,
+    taskType,
+}) => {
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
@@ -113,7 +124,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     state: 'open',
                     lastModified: Date.now(),
                 }
-                await enquiryService.update(enquiryId, enqData)
+                await onUpdateEnquiry(enquiryId, enqData)
 
                 // Create new enquiry
                 const newNote = formData.note
@@ -122,10 +133,10 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                           timestamp: getUnixDateTime(),
                           agentName: formData.agentName,
                           agentId: formData.agentId,
-                          taskType: 'lead registration',
+                          taskType: taskType,
                       }
                     : null
-                enquiryService.addNote(enquiryId, newNote)
+                onAddNote(enquiryId, newNote)
 
                 const newEnquiry = {
                     leadId: leadId,
@@ -162,13 +173,13 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     leadStatus: 'interested',
                     lastModifie: currentTimestamp,
                 }
-                await leadService.update(leadId, leadData)
+                await onUpdateEnquiry(leadId, leadData)
 
                 // Update task
-                await taskService.update(taskIds, { status: 'complete', completionDate: currentTimestamp })
+                await onUpdateTask(taskIds, { status: 'complete', completionDate: currentTimestamp })
 
                 toast.success('Property changed successfully')
-                refreshData()
+                onClose()
             } else {
                 toast.error('Required IDs are missing')
             }
