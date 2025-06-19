@@ -68,7 +68,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
     ]
 
     const notVisitedOptions: DropdownOption[] = [
-        { label: 'Reschedule Task', value: 'reschedule task' },
+        { label: 'Reschedule Task', value: 'reschedule task', modal: () => setShowRescheduleEvent(true) },
         {
             label: 'Change Property',
             value: 'change property',
@@ -149,9 +149,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
             <RescheduleEventModal
                 isOpen={showRescheduleEvent}
                 onClose={() => setShowRescheduleEvent(false)}
-                taskType='site visit'
-                taskState={taskState}
-                {...commonModalProps}
+                taskType='Site Not Visit'
             />
         </>
     )

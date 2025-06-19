@@ -7,6 +7,7 @@ import CloseLeadModal from '../CloseLeadModal'
 import type { AppDispatch } from '../../../store'
 import { useDispatch } from 'react-redux'
 import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
+import RescheduleEventModal from '../RescheduleEventModal'
 
 interface InitialContactTaskProps {
     taskId: string
@@ -22,6 +23,8 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
     setActiveTab,
 }) => {
     const [isChangePropertyModalOpen, setIsChangePropertyModalOpen] = useState(false)
+    const [isResheduleEventModalOpen, setIsRescheduleEventModalOpen] = useState(false)
+    const [taskType, setTaskType] = useState('Initial Contact')
 
     const dispatch = useDispatch<AppDispatch>()
 
@@ -55,12 +58,22 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
         {
             label: 'Reschedule Event',
             value: 'reschedule_event',
-            task: () => console.log('Reschedule'),
+            modal: useCallback(() => {
+                setTaskType('Initial Contact - Connected')
+                setIsRescheduleEventModalOpen(true)
+            }, [setIsRescheduleEventModalOpen]),
         },
     ]
 
     const notConnectedOptions = [
-        { label: 'Reschedule Task', value: 'reschedule task' },
+        {
+            label: 'Reschedule Task',
+            value: 'reschedule task',
+            modal: useCallback(() => {
+                setTaskType('Initial Contact - Not Connected')
+                setIsRescheduleEventModalOpen(true)
+            }, [setIsRescheduleEventModalOpen]),
+        },
         { label: 'Close Lead', value: 'close lead' },
     ]
 
@@ -96,6 +109,13 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                     isOpen={isChangePropertyModalOpen}
                     onClose={() => setIsChangePropertyModalOpen(false)}
                     onChangeProperty={handleChangeProperty}
+                />
+            )}
+            {isResheduleEventModalOpen && (
+                <RescheduleEventModal
+                    isOpen={isResheduleEventModalOpen}
+                    onClose={() => setIsRescheduleEventModalOpen(false)}
+                    taskType={taskType}
                 />
             )}
         </div>

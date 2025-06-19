@@ -3,6 +3,7 @@ import Dropdown from './Dropdown'
 import { useDispatch } from 'react-redux'
 import { setEnquiryId, setTaskId } from '../../../store/reducers/canvas-homes/taskIdReducer'
 import type { AppDispatch } from '../../../store'
+import { formatUnixDateTime } from '../../helper/getUnixDateTime'
 interface TaskCardProps {
     task: any
     index: number
@@ -34,6 +35,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         }
     }
 
+    console.log('TaskCard task:', task)
     // Handle the status change and update the task status in the parent component
     const handleStatusChange = (selectedStatus: string) => {
         // Only update status if it's different from the current one
@@ -80,7 +82,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <div>
                     <div className='font-medium text-sm text-gray-900 mb-1'>{task.scheduledInfo || 'No Info'}</div>{' '}
                     {/* Ensure scheduledInfo exists */}
-                    <div className='text-xs text-gray-500'>{task.scheduledDate || 'Not Scheduled'}</div>{' '}
+                    <div className='text-xs text-gray-500'>
+                        {formatUnixDateTime(task.firebaseTask.scheduledDate) || 'Not Scheduled'}
+                    </div>{' '}
                     {/* Ensure scheduledDate exists */}
                 </div>
             </div>

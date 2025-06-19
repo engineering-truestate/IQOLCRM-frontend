@@ -4,9 +4,11 @@ import RequirementCollectedModal from '../RquirementCollectionModal'
 import type { AppDispatch } from '../../../store'
 import { useDispatch } from 'react-redux'
 import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
+import RescheduleEventModal from '../RescheduleEventModal'
 
-const CollectEOITask = ({ taskId, updateTaskState, getTaskState }) => {
+const CollectEOITask = ({ taskId, updateTaskState, getTaskState, setActiveTab }) => {
     const dispatch = useDispatch<AppDispatch>()
+    const [showRescheduleEventModal, setShowRescheduleEventModal] = useState(false)
 
     const visitedOptions = [
         { label: 'Want To Book', value: 'want to book' },
@@ -14,18 +16,27 @@ const CollectEOITask = ({ taskId, updateTaskState, getTaskState }) => {
         {
             label: 'Collect Requirement',
             value: 'collect requirement',
-            modal: useCallback(() => dispatch(setTaskState('EOI Collected')), []),
+            // modal: useCallback(() => { dispatch(setTaskState('EOI Collected')), setActiveTab('Requirements')} , [dispatch, setActiveTab]),
         },
         { label: 'Close Lead', value: 'close lead' },
     ]
 
     const notVisitedOptions = [
-        { label: 'Reschedule Task', value: 'reschedule task' },
+        {
+            label: 'Reschedule Task',
+            value: 'reschedule task',
+            modal: useCallback(() => setShowRescheduleEventModal(true), []),
+        },
         { label: 'Change Property', value: 'change property' },
         {
             label: 'Collect Requirement',
             value: 'collect requirement',
-            modal: useCallback(() => dispatch(setTaskState('EOI Not Collected')), []),
+            modal: useCallback(() => {
+                dispatch(setTaskState('EOI Not Collected'))
+                if (setActiveTab) {
+                    setActiveTab('Requirements')
+                }
+            }, [dispatch, setActiveTab]),
         },
         { label: 'Close Lead', value: 'close lead' },
     ]
@@ -89,6 +100,13 @@ const CollectEOITask = ({ taskId, updateTaskState, getTaskState }) => {
             >
                 Proceed
             </button>
+            {showRescheduleEventModal && (
+                <RescheduleEventModal
+                    isOpen={showRescheduleEventModal}
+                    onClose={() => setShowRescheduleEventModal(false)}
+                    taskType='EOI Not Collected'
+                />
+            )}
         </div>
     )
 }
