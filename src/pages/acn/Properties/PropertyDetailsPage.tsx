@@ -26,7 +26,7 @@ interface Note {
 
 const PropertyDetailsPage = () => {
     const navigate = useNavigate()
-    const { pId } = useParams<{ pId: string }>()
+    const { id } = useParams<{ id: string }>()
     const dispatch = useDispatch<AppDispatch>()
 
     // Redux state
@@ -55,9 +55,9 @@ const PropertyDetailsPage = () => {
 
     // Fetch property data when component mounts
     useEffect(() => {
-        if (pId) {
-            console.log('🔄 Fetching property with ID:', pId)
-            dispatch(fetchPropertyById(pId))
+        if (id) {
+            console.log('🔄 Fetching property with ID:', id)
+            dispatch(fetchPropertyById(id))
         }
 
         // Cleanup on unmount
@@ -65,7 +65,7 @@ const PropertyDetailsPage = () => {
             console.log('🧹 Clearing current property on unmount')
             dispatch(clearCurrentProperty())
         }
-    }, [pId, dispatch])
+    }, [id, dispatch])
 
     // Handle status change
     const handleStatusChange = (option: string) => {
@@ -184,7 +184,7 @@ const PropertyDetailsPage = () => {
                             <button
                                 onClick={() => {
                                     dispatch(clearError())
-                                    if (pId) dispatch(fetchPropertyById(pId))
+                                    if (id) dispatch(fetchPropertyById(id))
                                 }}
                                 className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
                             >
@@ -211,7 +211,7 @@ const PropertyDetailsPage = () => {
                     <div className='text-center'>
                         <div className='text-lg'>Property not found</div>
                         <div className='text-sm text-gray-600 mt-2'>
-                            The property with ID "{pId}" could not be found.
+                            The property with ID "{id}" could not be found.
                         </div>
                         <button
                             onClick={() => navigate('/acn/properties')}
@@ -252,7 +252,7 @@ const PropertyDetailsPage = () => {
                             Share
                         </button>
                         <button
-                            onClick={() => navigate(`/acn/properties/${pId}/edit`)}
+                            onClick={() => navigate(`/acn/properties/${id}/edit`)}
                             className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'
                         >
                             <img src={editIcon} alt='Edit' className='w-4 h-4' />
@@ -575,14 +575,14 @@ const PropertyDetailsPage = () => {
                             <div className='bg-white rounded-lg p-6'>
                                 <h3 className='text-lg font-semibold text-gray-900 mb-4'>Update Inventory Status</h3>
 
-                                <div className='mb-4'>
+                                <div className='flex flex-row justify-between mb-4'>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>Status</label>
                                     <Dropdown
                                         options={getStatusOptions()}
                                         onSelect={handleStatusChange}
                                         defaultValue={property.status}
                                         placeholder='Select Status'
-                                        className='w-full'
+                                        className=''
                                         triggerClassName='w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
                                         optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md'

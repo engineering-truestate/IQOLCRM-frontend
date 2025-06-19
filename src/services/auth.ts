@@ -6,9 +6,7 @@ import {
     sendPasswordResetEmail,
 } from 'firebase/auth'
 import { auth, storage } from '../firebase'
-import { getFunctions, httpsCallable } from 'firebase/functions'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { toast } from 'react-toastify'
 
 export const registerUser = async (
     email: string,

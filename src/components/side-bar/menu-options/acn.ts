@@ -1,5 +1,5 @@
 export const acnMenuItems = [
-    { label: 'agents', path: '/acn/agents' },
+    { label: 'Agents', path: '/acn/agents' },
     { label: 'Leads', path: '/acn/leads' },
     { label: 'Requirements', path: '/acn/requirements' },
     { label: 'Properties', path: '/acn/properties' },
