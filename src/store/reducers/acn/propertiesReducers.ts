@@ -105,7 +105,7 @@ const propertiesSlice = createSlice({
         ) => {
             state.facetValues[action.payload.facetName] = action.payload.values
         },
-        
+
         updatePropetiesLocal: (state, action: PayloadAction<{ propertyId: string; updates: Partial<IInventory> }>) => {
             const { propertyId, updates } = action.payload
             if (state.searchResults.find((property) => property.propertyId === propertyId)) {

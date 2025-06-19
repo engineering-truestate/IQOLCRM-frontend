@@ -1,4 +1,4 @@
-// store/services/userService.ts
+// services/userService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
@@ -7,54 +7,6 @@ import { getAuth } from 'firebase/auth'
 import type { AgentData, FirebaseUser, AuthStateResponse, UserAuthResponse } from '../../data_types/acn/types'
 
 const auth = getAuth()
-
-// Monitor Firebase auth state changes
-export const monitorAuthState = createAsyncThunk<AuthStateResponse, void, { rejectValue: string }>(
-    'user/monitorAuthState',
-    async (_, { dispatch, rejectWithValue }) => {
-        try {
-            return await new Promise<AuthStateResponse>((resolve, reject) => {
-                const unsubscribe = onAuthStateChanged(auth, async (user) => {
-                    try {
-                        if (user) {
-                            console.log('🔍 User authenticated:', user.email)
-
-                            // Fetch user role from internal-agents collection
-                            const agentData = await dispatch(fetchUserRoleByEmail(user.email!)).unwrap()
-
-                            const firebaseUser: FirebaseUser = {
-                                uid: user.uid,
-                                email: user.email,
-                                displayName: user.displayName,
-                                photoURL: user.photoURL,
-                            }
-
-                            resolve({
-                                user: firebaseUser,
-                                agentData,
-                            })
-                        } else {
-                            console.log('🚪 User logged out')
-                            resolve({
-                                user: null,
-                                agentData: null,
-                            })
-                        }
-                    } catch (error: any) {
-                        console.error('❌ Error in auth state change:', error)
-                        reject(error)
-                    }
-                })
-
-                // Store unsubscribe function for cleanup
-                return () => unsubscribe()
-            })
-        } catch (error: any) {
-            console.error('❌ Error monitoring auth state:', error)
-            return rejectWithValue(error.message || 'Failed to monitor auth state')
-        }
-    },
-)
 
 // Fetch user role by email from internal-agents collection
 export const fetchUserRoleByEmail = createAsyncThunk<AgentData, string, { rejectValue: string }>(
@@ -73,16 +25,89 @@ export const fetchUserRoleByEmail = createAsyncThunk<AgentData, string, { reject
             }
 
             const agentDoc = querySnapshot.docs[0]
-            const agentData = agentDoc.data() as AgentData
+            const rawAgentData = agentDoc.data()
 
-            console.log('✅ Agent role fetched successfully:', agentData.role)
-            return {
-                ...agentData,
+            console.log('✅ Agent role fetched successfully:', rawAgentData.role)
+
+            // Ensure all required properties are present
+            const agentData: AgentData = {
+                email: rawAgentData.email || email,
+                role: rawAgentData.role || 'kam',
+                name: rawAgentData.name || rawAgentData.displayName || email.split('@')[0],
                 id: agentDoc.id,
+                phone: rawAgentData.phone || '',
+                cpId: rawAgentData.cpId || '',
+                kamId: rawAgentData.kamId || agentDoc.id,
+                lastFetch: Math.floor(Date.now() / 1000),
             }
+
+            return agentData
         } catch (error: any) {
             console.error('❌ Error fetching user role:', error)
             return rejectWithValue(error.message || 'Failed to fetch user role')
+        }
+    },
+)
+
+// Initialize authentication listener
+export const initializeAuthListener = createAsyncThunk<AuthStateResponse, void, { rejectValue: string }>(
+    'user/initializeAuthListener',
+    async (_, { dispatch, rejectWithValue }) => {
+        try {
+            return new Promise<AuthStateResponse>((resolve) => {
+                const unsubscribe = onAuthStateChanged(auth, async (user) => {
+                    try {
+                        if (user && user.email) {
+                            console.log('🔍 User authenticated:', user.email)
+
+                            const agentDataResult = await dispatch(fetchUserRoleByEmail(user.email))
+
+                            if (fetchUserRoleByEmail.fulfilled.match(agentDataResult)) {
+                                const agentData = agentDataResult.payload
+
+                                const firebaseUser: FirebaseUser = {
+                                    uid: user.uid,
+                                    email: user.email,
+                                    displayName: user.displayName,
+                                    photoURL: user.photoURL,
+                                }
+
+                                resolve({
+                                    user: firebaseUser,
+                                    agentData,
+                                    lastFetch: Math.floor(Date.now() / 1000),
+                                })
+                            } else {
+                                console.log('❌ Failed to fetch agent data')
+                                resolve({
+                                    user: null,
+                                    agentData: null,
+                                    lastFetch: Math.floor(Date.now() / 1000),
+                                })
+                            }
+                        } else {
+                            console.log('🚪 User logged out')
+                            resolve({
+                                user: null,
+                                agentData: null,
+                                lastFetch: Math.floor(Date.now() / 1000),
+                            })
+                        }
+                    } catch (error: any) {
+                        console.error('❌ Error in auth state change:', error)
+                        resolve({
+                            user: null,
+                            agentData: null,
+                            lastFetch: Math.floor(Date.now() / 1000),
+                        })
+                    }
+                })
+
+                return () => unsubscribe()
+            })
+        } catch (error: any) {
+            console.error('❌ Error initializing auth listener:', error)
+            return rejectWithValue(error.message || 'Failed to initialize auth listener')
         }
     },
 )
@@ -97,25 +122,32 @@ export const getCurrentUser = createAsyncThunk<UserAuthResponse, void, { rejectV
             if (currentUser && currentUser.email) {
                 console.log('👤 Current user found:', currentUser.email)
 
-                // Fetch agent data
-                const agentData = await dispatch(fetchUserRoleByEmail(currentUser.email)).unwrap()
+                const agentDataResult = await dispatch(fetchUserRoleByEmail(currentUser.email))
 
-                const firebaseUser: FirebaseUser = {
-                    uid: currentUser.uid,
-                    email: currentUser.email,
-                    displayName: currentUser.displayName,
-                    photoURL: currentUser.photoURL,
-                }
+                if (fetchUserRoleByEmail.fulfilled.match(agentDataResult)) {
+                    const agentData = agentDataResult.payload
 
-                return {
-                    user: firebaseUser,
-                    agentData,
+                    const firebaseUser: FirebaseUser = {
+                        uid: currentUser.uid,
+                        email: currentUser.email,
+                        displayName: currentUser.displayName,
+                        photoURL: currentUser.photoURL,
+                    }
+
+                    return {
+                        user: firebaseUser,
+                        agentData,
+                        lastFetch: Math.floor(Date.now() / 1000),
+                    }
+                } else {
+                    return rejectWithValue('Failed to fetch agent data')
                 }
             } else {
                 console.log('👤 No current user found')
                 return {
                     user: null,
                     agentData: null,
+                    lastFetch: Math.floor(Date.now() / 1000),
                 }
             }
         } catch (error: any) {
@@ -124,3 +156,6 @@ export const getCurrentUser = createAsyncThunk<UserAuthResponse, void, { rejectV
         }
     },
 )
+
+// Alias for compatibility
+export const monitorAuthState = initializeAuthListener
