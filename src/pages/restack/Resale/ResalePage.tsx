@@ -1,25 +1,52 @@
 'use client'
 
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, Link, useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import { sampleResaleProperties, type RestackResaleProperty } from '../../dummy_data/restack_resale_dummy_data'
+import type { RestackResaleProperty } from '../../../data_types/restack/restack-resale.d'
+import { get99AcresResaleData, getMagicBricksResaleData } from '../../../services/restack/resaleService'
 
 const ResalePage = () => {
+    const location = useLocation()
+    const navigate = useNavigate()
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [paginatedData, setPaginatedData] = useState<RestackResaleProperty[]>([])
     const [filteredData, setFilteredData] = useState<RestackResaleProperty[]>([])
     const [listedByFilter, setListedByFilter] = useState<'All' | 'Owner' | 'Broker'>('All')
-    const [properties] = useState<RestackResaleProperty[]>(sampleResaleProperties)
     const [loading] = useState(false)
-    const navigate = useNavigate()
+
+    const { type } = useParams()
+    const resaleType = type
+    console.log('Resale Type:', resaleType)
 
     // Items per page
     const ITEMS_PER_PAGE = 15
+
+    const [properties, setProperties] = useState<RestackResaleProperty[]>([])
+
+    useEffect(() => {
+        const fetchData = async () => {
+            let data: RestackResaleProperty[] = []
+            switch (resaleType) {
+                case '99acres':
+                    data = await get99AcresResaleData()
+                    break
+                case 'magicbricks':
+                    data = await getMagicBricksResaleData()
+                    break
+                default:
+                    console.error('Invalid resale type:', resaleType)
+                    return
+            }
+            setProperties(data)
+        }
+
+        fetchData()
+    }, [resaleType])
 
     // Filter data based on search and listedBy filter
     useEffect(() => {
@@ -30,17 +57,17 @@ const ResalePage = () => {
             filtered = filtered.filter(
                 (property) =>
                     property.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.projectId.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.assetType.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.propertyId.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.propertyType.toLowerCase().includes(searchValue.toLowerCase()) ||
                     property.status.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.listedBy.toLowerCase().includes(searchValue.toLowerCase()),
+                    property.developer.toLowerCase().includes(searchValue.toLowerCase()),
             )
         }
 
-        // Apply listedBy filter
-        if (listedByFilter !== 'All') {
-            filtered = filtered.filter((property) => property.listedBy === listedByFilter)
-        }
+        // Apply listedBy filter (This filter is not applicable to the new schema)
+        // if (listedByFilter !== 'All') {
+        //     filtered = filtered.filter((property) => property.listedBy === listedByFilter)
+        // }
 
         setFilteredData(filtered)
         setCurrentPage(1) // Reset to first page when filtering
@@ -69,28 +96,24 @@ const ResalePage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm font-medium text-gray-900'>{value}</span>,
         },
         {
-            key: 'projectId',
-            header: 'Project ID',
+            key: 'propertyId',
+            header: 'Property ID',
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
         },
         {
-            key: 'assetType',
-            header: 'Asset Type',
+            key: 'propertyType',
+            header: 'Property Type',
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
-        },
-        {
-            key: 'inventoryDate',
-            header: 'Inventory Date',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value).toLocaleDateString('en-CA')} {/* YYYY-MM-DD format */}
-                </span>
-            ),
         },
         {
             key: 'status',
             header: 'Status',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value.toLowerCase()}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value?.toLowerCase()}</span>,
+        },
+        {
+            key: 'developer',
+            header: 'Developer',
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
         },
         {
             key: 'action',
@@ -98,7 +121,7 @@ const ResalePage = () => {
             render: (_, row) => (
                 <button
                     className='bg-black text-white text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
-                    onClick={() => navigate(`/restack/resale/${row.id}/details`)}
+                    onClick={() => navigate(`/restack/resale/${row.propertyId}/details`)}
                 >
                     View Details
                 </button>
@@ -113,7 +136,7 @@ const ResalePage = () => {
                     {/* Header */}
                     <div className='mb-2'>
                         <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Resale / 99 Acres</h1>
+                            <h1 className='text-xl font-semibold text-gray-900'>Resale /{type}</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
                                     <StateBaseTextField

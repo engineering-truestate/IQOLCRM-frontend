@@ -46,6 +46,7 @@ import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
 import ResaleDetailsPage from './pages/restack/resale/ResalePageDetails'
 import ResalePage from './pages/restack/resale/ResalePage'
+import Resale from './pages/restack/resale/Resale'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -149,13 +150,13 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
     },
     {
-        path: '/restack/resale',
+        path: '/restack/resale/:type',
         element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
     },
-    // {
-    //     path: '/restack/resale/:id/details',
-    //     element: React.createElement(React.Suspense, null, React.createElement(ResalePageDetails, null)),
-    // },
+    {
+        path: '/restack/resale',
+        element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
+    },
     {
         path: '/acn/properties',
         element: React.createElement(
