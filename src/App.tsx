@@ -12,12 +12,15 @@ function App() {
         console.log('Firebase app initialized:', app)
     }, [])
 
+    // console.log(persistor.)
+
     return (
         <Provider store={store}>
             {' '}
             {/* Wrap your app with Provider */}
             <Suspense fallback={<Layout loading={true} />}>
                 <PersistGate loading={null} persistor={persistor}>
+                    {/* <div>lakhan 2</div> */}
                     <BrowserRouter>
                         <Routes>
                             {authRoutes.map((route, index) => (

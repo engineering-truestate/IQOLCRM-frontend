@@ -1,14 +1,14 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Layout from '../../../../layout/Layout'
 import Button from '../../../../components/design-elements/Button'
 import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
 import DateInput from '../../../../components/design-elements/DateInputUnixTimestamps'
 import usePreRera from '../../../../hooks/restack/usePreRera'
-import type { PreReraProperty, TowerDetail } from '../../../../store/reducers/restack/preReraTypes'
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
+import type { PreReraProperty } from '../../../../store/reducers/restack/preReraTypes'
+import { getStorage, ref, getDownloadURL, deleteObject } from 'firebase/storage'
 import { toast } from 'react-toastify'
 import Dropdown from '../../../../components/design-elements/Dropdown'
 
@@ -268,7 +268,7 @@ const PreReraProjectEdit = () => {
                 const storageRef = ref(storage, `prereraImages/${project.projectId}/${fileName}`)
 
                 console.log(`Uploading file: ${file.name}`)
-                const uploadResult = await uploadBytes(storageRef, file)
+                // const uploadResult = await uploadBytes(storageRef, file)
 
                 // Get download URL
                 const downloadURL = await getDownloadURL(storageRef)
@@ -366,7 +366,6 @@ const PreReraProjectEdit = () => {
                             <h1 className='text-xl font-semibold text-gray-900'>
                                 {project.projectName || 'Untitled Project'}
                             </h1>
-                            <span className='text-sm text-gray-500'>Edit</span>
                         </div>
                         <div className='flex items-center gap-3'>
                             <Button

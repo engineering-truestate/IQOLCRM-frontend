@@ -73,20 +73,27 @@ export class PreReraService {
     }
 
     /**
-     * Fetch properties with pagination
+     * Fetch properties with pagination and search
      */
     static async fetchPropertiesBatch(
         batchSize: number,
+        searchTerm: string = '',
         lastDocument?: QueryDocumentSnapshot,
     ): Promise<{ properties: PreReraProperty[]; lastDocument?: QueryDocumentSnapshot; hasMore: boolean }> {
         try {
+            const colRef = collection(db, 'restack_pre_rera_properties')
             const constraints: QueryConstraint[] = [orderBy('createdAt', 'desc'), limit(batchSize)]
+
+            if (searchTerm) {
+                constraints.push(where('projectName', '>=', searchTerm))
+                constraints.push(where('projectName', '<=', searchTerm + '\uf8ff'))
+            }
 
             if (lastDocument) {
                 constraints.push(startAfter(lastDocument))
             }
 
-            const q = query(collection(db, 'restack_pre_rera_properties'), ...constraints)
+            const q = query(colRef, ...constraints)
             const snapshot = await getDocs(q)
 
             const properties = snapshot.docs.map((doc) => {

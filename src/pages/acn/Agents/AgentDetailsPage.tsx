@@ -19,14 +19,61 @@ import AgentInventoryTable from './AgentInventoryTable'
 import AgentRequirementTable from './AgentRequirementTable'
 import AgentEnquiryTable from './AgentEnquiryTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
-import StatusSelectCell from '../../../components/acn/Status'
-import shareic from '/icons/acn/share.svg'
-import editicon from '/icons/acn/write.svg'
+import type { Store } from 'redux'
 
 interface PropertyData {
     inventories: IInventory[]
     requirements: IRequirement[]
     enquiries: any[]
+}
+interface StatusSelectCellProps {
+    value: string
+    row: any
+    statusMap: Record<string, string>
+    setStatusMap: React.Dispatch<React.SetStateAction<Record<string, string>>>
+    options: { label: string; value: string }[]
+    idKey: string
+    getBgColor: (value: string) => string
+}
+
+const StatusSelectCell: React.FC<StatusSelectCellProps> = ({
+    value,
+    row,
+    statusMap,
+    setStatusMap,
+    options,
+    idKey,
+    getBgColor,
+}) => {
+    const [localStatus, setLocalStatus] = useState(statusMap[row[idKey]] ?? value)
+
+    useEffect(() => {
+        setLocalStatus(statusMap[row[idKey]] ?? value)
+    }, [statusMap[row[idKey]], value])
+
+    const bgColor = getBgColor(localStatus)
+
+    return (
+        <select
+            value={localStatus}
+            onChange={(e) => {
+                const newStatus = e.target.value
+                setLocalStatus(newStatus)
+                setStatusMap((prev) => ({
+                    ...prev,
+                    [row[idKey]]: newStatus,
+                }))
+                console.log(`${newStatus} pressed`)
+            }}
+            className={`text-sm text-gray-700 border rounded px-2 py-1 ${bgColor}`}
+        >
+            {options.map((option) => (
+                <option key={option.value} value={option.value}>
+                    {option.label}
+                </option>
+            ))}
+        </select>
+    )
 }
 
 interface AgentsState {
@@ -149,28 +196,6 @@ const AgentDetailsPage = () => {
             { label: 'Row House', value: 'Row House' },
         ]
     }
-    const formatDate = (date: any) => {
-        if (!date) return '-'
-        let dateObj: Date
-
-        if (date?.toDate) {
-            dateObj = date.toDate()
-        } else if (typeof date === 'string') {
-            dateObj = new Date(date)
-        } else if (date instanceof Date) {
-            dateObj = date
-        } else {
-            return '-'
-        }
-
-        return dateObj.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        })
-    }
-    const [selectedProperty1, setSelectedProperty1] = useState<IInventory | null>(null)
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [statusMap, setStatusMap] = useState<Record<string, string>>({})
     // Define columns based on active tab
     const columns = useMemo<TableColumn[]>(() => {
@@ -178,56 +203,29 @@ const AgentDetailsPage = () => {
             case 'Inventory':
                 return [
                     {
-                        key: 'select',
-                        header: '',
-                        render: (_, row) => (
-                            <input
-                                type='checkbox'
-                                className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                                onChange={(e) => {
-                                    console.log(
-                                        `Checkbox for property ID ${row.propertyId || row.id} is now:`,
-                                        e.target.checked,
-                                    )
-                                }}
-                            />
-                        ),
-                    },
-
-                    {
                         key: 'propertyId',
                         header: 'Property ID',
                         render: (value) => (
-                            console.log(value),
-                            (
-                                <span
-                                    onClick={() => navigate(`/acn/properties/${value}/details`)}
-                                    className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
-                                >
-                                    {value}
-                                </span>
-                            )
+                            <span
+                                onClick={() => navigate(`/acn/properties/${value}/details`)}
+                                className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
+                            >
+                                {value}
+                            </span>
                         ),
                     },
                     {
                         key: 'propertyName',
                         header: 'Property Name',
-                        render: (value, row) => (
-                            <span
-                                className='whitespace-nowrap text-sm font-semibold w-auto cursor-pointer hover:text-blue-600'
-                                onClick={() => navigate(`/acn/properties/${row.propertyId || row.id}/details`)}
-                            >
-                                {value || row.area || 'Unknown Property'}
-                            </span>
+                        render: (value) => (
+                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
                         ),
                     },
                     {
                         key: 'assetType',
                         header: 'Asset Type',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
-                                {value || 'N/A'}
-                            </span>
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
                         ),
                     },
                     {
@@ -240,104 +238,37 @@ const AgentDetailsPage = () => {
                         ),
                     },
                     {
-                        key: 'sbua',
-                        header: 'SBUA',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                                {value ? `${value} sq ft` : 'N/A'}
-                            </span>
-                        ),
-                    },
-                    {
-                        key: 'plotSize',
-                        header: 'Plot Size',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                                {value ? `${value} sq ft` : 'N/A'}
-                            </span>
-                        ),
-                    },
-                    {
-                        key: 'facing',
-                        header: 'Facing',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value || 'N/A'}</span>
-                        ),
-                    },
-                    {
                         key: 'status',
                         header: 'Status',
-                        dropdown: {
-                            options: getStatusOptions(),
-                            placeholder: 'Select Status',
-                            onChange: (value, row) => {
-                                console.log(value, row)
-                            },
-                        },
-                    },
-                    {
-                        key: 'status',
-                        header: 'Status',
-                        dropdown: {
-                            options: getStatusOptions().filter(
-                                (option) => option.label !== 'All Status' && option.label !== 'Pending QC',
-                            ),
-                            placeholder: 'Select Status',
-                            onChange: (value, row) => {
-                                console.log(value, row)
-                            },
-                        },
-                    },
-                    {
-                        key: 'enquiries',
-                        header: 'Enquiries',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value || 'N/A'}</span>
-                        ),
-                    },
-                    {
-                        key: 'micromarket',
-                        header: 'Micromarket',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value || 'N/A'}</span>
+                        render: (value, row) => (
+                            <StatusSelectCell
+                                value={value}
+                                row={row}
+                                statusMap={statusMap}
+                                setStatusMap={setStatusMap}
+                                options={getStatusOptions().filter(
+                                    (option) => option.label !== 'All Status' && option.label !== 'Pending QC',
+                                )}
+                                idKey='propertyId'
+                                getBgColor={(status) =>
+                                    status === 'Sold' || status === 'Available'
+                                        ? 'bg-green-100'
+                                        : status === 'De-Listed'
+                                          ? 'bg-red-100'
+                                          : status === 'Hold'
+                                            ? 'bg-gray-300'
+                                            : 'bg-white'
+                                }
+                            />
                         ),
                     },
                     {
                         key: 'dateOfInventoryAdded',
-                        header: 'Last Check',
+                        header: 'Added On',
                         render: (value) => (
                             <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
                                 {formatUnixDate(value)}
                             </span>
-                        ),
-                    },
-                    {
-                        key: 'actions',
-                        header: 'Actions',
-                        fixed: true,
-                        fixedPosition: 'right',
-                        render: (_, row) => (
-                            <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
-                                <button
-                                    className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                                    onClick={() => {
-                                        setSelectedProperty1(row)
-                                        setIsShareModalOpen(true)
-                                    }}
-                                    title='Share'
-                                >
-                                    <img src={shareic} alt='Share Icon' className='w-7 h-7 flex-shrink-0' />
-                                </button>
-                                <button
-                                    className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                                    onClick={() => {
-                                        navigate(`/acn/properties/${row.propertyId || row.id}/edit`)
-                                    }}
-                                    title='Edit'
-                                >
-                                    <img src={editicon} alt='Edit Icon' className='w-7 h-7 flex-shrink-0' />
-                                </button>
-                            </div>
                         ),
                     },
                 ]
@@ -357,7 +288,7 @@ const AgentDetailsPage = () => {
                     },
                     {
                         key: 'propertyName',
-                        header: 'Project Name/Location',
+                        header: 'Property Name',
                         render: (value) => (
                             <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
                         ),
@@ -366,9 +297,7 @@ const AgentDetailsPage = () => {
                         key: 'assetType',
                         header: 'Asset Type',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
-                                {value || 'N/A'}
-                            </span>
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
                         ),
                     },
                     {
@@ -381,44 +310,36 @@ const AgentDetailsPage = () => {
                         ),
                     },
                     {
-                        key: 'requirementStatus',
-                        header: 'Status',
-                        dropdown: {
-                            options: getStatusOptions(),
-                            placeholder: 'Select Status',
-                            onChange: (value, row) => {
-                                console.log(value, row)
-                            },
-                        },
-                    },
-                    {
-                        key: 'internalStatus',
-                        header: 'Int. Status',
-                        dropdown: {
-                            options: getStatusOptions(),
-                            placeholder: 'Select Status',
-                            onChange: (value, row) => {
-                                console.log(value, row)
-                            },
-                        },
-                    },
-                    {
                         key: 'status',
-                        header: 'Int. Status',
-                        dropdown: {
-                            options: getStatusOptions(),
-                            placeholder: 'Select Status',
-                            onChange: (value, row) => {
-                                console.log(value, row)
-                            },
-                        },
+                        header: 'Status',
+                        render: (value, row) => (
+                            <StatusSelectCell
+                                value={value}
+                                row={row}
+                                statusMap={statusMap}
+                                setStatusMap={setStatusMap}
+                                options={[
+                                    { label: 'Open', value: 'Open' },
+                                    { label: 'Close', value: 'Close' },
+                                ]}
+                                idKey='propertyId'
+                                getBgColor={(status) =>
+                                    status === 'Open'
+                                        ? 'bg-green-100'
+                                        : status === 'Close'
+                                          ? 'bg-red-100'
+                                          : 'bg-green-100'
+                                }
+                            />
+                        ),
                     },
-
                     {
-                        key: 'dateOfStatusLastChecked',
-                        header: 'Last Updated',
+                        key: 'added',
+                        header: 'Added On',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatDate(value)}</span>
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {formatUnixDate(value)}
+                            </span>
                         ),
                     },
                 ]

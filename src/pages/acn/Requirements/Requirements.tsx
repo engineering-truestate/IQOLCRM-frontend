@@ -10,6 +10,7 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 // import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
 import resetic from '/icons/acn/rotate-left.svg'
 import leadaddic from '/icons/acn/user-add.svg'
+import { AddRequirementModal } from '../../../components/acn/AddRequirementModal'
 
 import algoliaRequirementsService, {
     type RequirementSearchFilters,
@@ -356,6 +357,10 @@ const RequirementsPage = () => {
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
+                    <AddRequirementModal
+                        isOpen={isAddRequirementModalOpen}
+                        onClose={() => setIsAddRequirementModalOpen(false)}
+                    />
                     <div className='mb-4'>
                         <div className='flex items-center justify-between mb-2'>
                             <h1 className='text-lg font-semibold text-black'>Requirement</h1>
@@ -388,7 +393,10 @@ const RequirementsPage = () => {
                                     bgColor='bg-[#F3F3F3]'
                                     textColor='text-[#3A3A47]'
                                     className='px-4 h-8 font-semibold'
-                                    onClick={() => {}}
+                                    onClick={() => {
+                                        setIsAddRequirementModalOpen(true)
+                                        // console.log(isAddRequirementModalOpen)
+                                    }}
                                 >
                                     Add Requirement
                                 </Button>
