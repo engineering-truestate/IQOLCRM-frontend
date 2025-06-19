@@ -124,7 +124,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({
                     state: 'open',
                     lastModified: Date.now(),
                 }
-                await onUpdateEnquiry(enquiryId, enqData)
+                await onUpdateEnquiry(enqData)
 
                 // Create new enquiry
                 const newNote = formData.note
@@ -173,7 +173,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({
                     leadStatus: 'interested',
                     lastModifie: currentTimestamp,
                 }
-                await onUpdateEnquiry(leadId, leadData)
+                await onUpdateLead(leadData)
 
                 // Update task
                 await onUpdateTask(taskIds, { status: 'complete', completionDate: currentTimestamp })
