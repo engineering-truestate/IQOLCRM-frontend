@@ -515,6 +515,7 @@ const PropertiesPage = () => {
     // Handle property status update
     const handleUpdatePropertyStatus = useCallback(
         async (propertyId: string, newStatus: string) => {
+            console.log('😒 Updating property status:', propertyId, newStatus)
             dispatch(updatePropetiesLocal({ propertyId, updates: { status: newStatus } }))
             // Optimistically update Redux
             dispatch(updatePropertyStatusOptimistic({ propertyId, status: newStatus }))
@@ -552,8 +553,8 @@ const PropertiesPage = () => {
                         textColor: config?.textColor || '#4B5563',
                     }
                 }) as StatusOption[],
-        [activeTab],
-    ) // Depends on activeTab since getStatusOptions changes based on it
+        [],
+    ) // getStatusOptions uses activeTab from closure, so no need to include it as dependency
 
     // Filter Dropdown Components
     const StatusFilter = () => {
@@ -1148,11 +1149,7 @@ const PropertiesPage = () => {
                     options: statusDropdownOptions,
                     placeholder: 'Select Status',
                     onChange: (value, row) => {
-                        {
-                            activeTab === 'Resale'
-                                ? handleUpdatePropertyStatus(row.id, value)
-                                : handleUpdatePropertyStatus(row.propertyId, value)
-                        }
+                        handleUpdatePropertyStatus(row.propertyId, value)
                     },
                 },
             },
