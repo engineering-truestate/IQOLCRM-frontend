@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import StatusBadge from '../../../components/design-elements/StatusBadge'
 import NotesModal from '../../../components/acn/NotesModal'
 import CallResultModal from '../../../components/acn/CallModal'
 import VerificationModal from '../../../components/acn/VerificationModal'
@@ -48,42 +49,6 @@ const sampleMetrics = [
     { label: 'Agents Enquired', value: 125 },
     { label: 'App Installed', value: 125 },
 ]
-
-// Custom status badge component with outline design
-const StatusBadge = ({ status, type }: { status: string; type: 'lead' | 'connect' }) => {
-    const getStatusColors = () => {
-        if (type === 'lead') {
-            switch (status) {
-                case 'Interested':
-                    return 'bg-[#E1F6DF] text-black'
-                case 'Not Interested':
-                    return 'text-black'
-                case 'No Contact Yet':
-                    return 'text-black'
-                default:
-                    return 'border-gray-600 text-black'
-            }
-        } else {
-            // Connect status colors matching the design
-            switch (status) {
-                case 'Connected':
-                    return 'border-[#9DE695]'
-                case 'Not Contact':
-                    return 'border-[#CCCBCB]'
-                default:
-                    return 'border-gray-400 text-gray-600 bg-gray-50'
-            }
-        }
-    }
-
-    return (
-        <span
-            className={`inline-flex items-center rounded-full border px-3 py-2 text-xs font-medium whitespace-nowrap ${getStatusColors()}`}
-        >
-            {status}
-        </span>
-    )
-}
 
 // Status dropdown options with colors
 const agentStatusOptions = [
@@ -534,6 +499,11 @@ const AgentsPage = () => {
             ),
         },
         {
+            key: 'activity',
+            header: 'Agent Activity',
+            render: (value) => <StatusBadge status={value} type='agent' />,
+        },
+        {
             key: 'userType',
             header: 'Plan Details',
             render: (value) => (
@@ -543,22 +513,22 @@ const AgentsPage = () => {
         {
             key: 'noOfinventories',
             header: 'Inventories',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
             key: 'noOfrequirements',
             header: 'Requirements',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
             key: 'noOfEnquiries',
             header: 'Enquiries',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
             key: 'noOfleagalLeads',
             header: 'Legal Leads',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
             key: 'lastSeen',
@@ -593,7 +563,7 @@ const AgentsPage = () => {
             },
         },
         {
-            key: 'contactHistory[0].contactResult',
+            key: 'contactStatus',
             header: 'Last Connected Status',
             render: (value, row) => {
                 const contactHistory = row.contactHistory
@@ -603,7 +573,7 @@ const AgentsPage = () => {
                 } else if (contactHistory && typeof contactHistory === 'object') {
                     contactResult = contactHistory.contactResult
                 }
-                return <span className='whitespace-nowrap text-sm font-normal w-auto'>{contactResult || 'N/A'}</span>
+                return <StatusBadge status={value || 'N/A'} type='connect' />
             },
         },
         {

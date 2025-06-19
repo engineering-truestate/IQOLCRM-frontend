@@ -8,6 +8,7 @@ import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../c
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import StatusBadge from '../../../components/design-elements/StatusBadge'
 import NotesModal from '../../../components/acn/NotesModal'
 import CallResultModal from '../../../components/acn/CallModal'
 import VerificationModal from '../../../components/acn/VerificationModal'
@@ -70,44 +71,6 @@ const ALL_SOURCE_OPTIONS = [
 const selectLeadsState = (state: RootState) => state.leads
 
 const selectFilteredLeads = createSelector([selectLeadsState], (leadsState) => Object.values(leadsState.leads))
-
-// Custom status badge component
-const StatusBadge = ({ status, type }: { status: string; type: 'lead' | 'connect' }) => {
-    const getStatusColors = () => {
-        if (type === 'lead') {
-            switch (status) {
-                case 'interested':
-                    return 'bg-[#E1F6DF] text-black'
-                case 'not interested':
-                    return 'text-black'
-                case 'not contact yet':
-                    return 'text-black'
-                default:
-                    return 'border-gray-600 text-black'
-            }
-        } else {
-            switch (status) {
-                case 'connected':
-                    return 'border-[#9DE695]'
-                case 'not contact':
-                    return 'border-[#CCCBCB]'
-                default:
-                    if (status.startsWith('rnr')) {
-                        return 'border-[#FCCE74]'
-                    }
-                    return 'border-gray-400 text-gray-600 bg-gray-50'
-            }
-        }
-    }
-
-    return (
-        <span
-            className={`inline-flex items-center rounded-full border px-3 py-2 text-xs font-medium whitespace-nowrap ${getStatusColors()}`}
-        >
-            {status}
-        </span>
-    )
-}
 
 // Lead Source component
 const LeadSourceCell = ({ source }: { source: string }) => {
