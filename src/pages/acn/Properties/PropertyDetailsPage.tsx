@@ -575,14 +575,14 @@ const PropertyDetailsPage = () => {
                             <div className='bg-white rounded-lg p-6'>
                                 <h3 className='text-lg font-semibold text-gray-900 mb-4'>Update Inventory Status</h3>
 
-                                <div className='mb-4'>
+                                <div className='flex flex-row justify-between mb-4'>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>Status</label>
                                     <Dropdown
                                         options={getStatusOptions()}
                                         onSelect={handleStatusChange}
                                         defaultValue={property.status}
                                         placeholder='Select Status'
-                                        className='w-full'
+                                        className=''
                                         triggerClassName='w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
                                         optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md'

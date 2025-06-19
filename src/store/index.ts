@@ -10,10 +10,18 @@ import primaryPropertiesReducer from './reducers/restack/primaryProperties'
 import requirementsReducer from './reducers/acn/requirementsReducers'
 import userReducer from './reducers/user/userReducer' // Updated path
 import qcReducer from './reducers/acn/qcReducer' // Updated path
+import postReraReducer from './reducers/restack/postReraReducer'
 import leadsReducer from './reducers/acn/leadsReducers'
 import agentsReducer from './slices/agentsSlice'
 import agentDetailsReducer from './slices/agentDetailsSlice'
 import type { IInventory, IRequirement } from '../data_types/acn/types'
+import taskIdReducer from './reducers/canvas-homes/taskIdReducer'
+
+interface TaskIdState {
+    taskId: string | null
+    enquiryId: string | null
+    leadId: string | null
+}
 
 interface PropertyData {
     inventories: IInventory[]
@@ -31,7 +39,7 @@ interface AgentsState {
 const persistConfig = {
     key: 'root',
     storage,
-    whitelist: ['platform', 'user'], // Added user to persist auth state
+    whitelist: ['primaryProperties', 'user'], // Added user to persist auth state
 }
 
 const rootReducer = combineReducers({
@@ -43,6 +51,7 @@ const rootReducer = combineReducers({
     requirements: requirementsReducer,
     user: userReducer, // This will serve as auth state
     qc: qcReducer,
+    taskId: taskIdReducer,
     leads: leadsReducer,
     agents: agentsReducer,
     agentDetails: agentDetailsReducer,
@@ -50,8 +59,23 @@ const rootReducer = combineReducers({
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)
 
-const store = configureStore({
-    reducer: persistedReducer,
+// Create the store using configureStore from Redux Toolkit
+export const store = configureStore({
+    reducer: {
+        properties: propertiesReducer,
+        platform: persistedReducer,
+        primaryProperties: primaryPropertiesReducer,
+        preLaunch: preLaunchReducer,
+        preRera: preReraReducer,
+        postRera: postReraReducer,
+        requirements: requirementsReducer,
+        user: userReducer,
+        qc: qcReducer,
+        taskId: taskIdReducer,
+        leads: leadsReducer,
+        agents: agentsReducer,
+        agentDetails: agentDetailsReducer,
+    },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: {
@@ -71,8 +95,11 @@ const store = configureStore({
 
 export const persistor = persistStore(store)
 
-// RootState type properly inferred from the store
-export type RootState = ReturnType<typeof store.getState>
+// RootState type inferred from the store
+export type RootState = ReturnType<typeof store.getState> & {
+    agents: AgentsState
+    taskId: TaskIdState
+}
 export type AppDispatch = typeof store.dispatch
 
 export default store

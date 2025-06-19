@@ -14,16 +14,66 @@ import { FlexibleTable, type TableColumn } from '../../../components/design-elem
 import { formatCost } from '../../../components/helper/formatCost'
 import { formatUnixDate } from '../../../components/helper/formatDate'
 import AgentDetailsDropdown from '../../../components/acn/AgentDetailsDropdown'
-
+import React from 'react'
 import AgentInventoryTable from './AgentInventoryTable'
 import AgentRequirementTable from './AgentRequirementTable'
 import AgentEnquiryTable from './AgentEnquiryTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
+import type { Store } from 'redux'
 
 interface PropertyData {
     inventories: IInventory[]
     requirements: IRequirement[]
     enquiries: any[]
+}
+interface StatusSelectCellProps {
+    value: string
+    row: any
+    statusMap: Record<string, string>
+    setStatusMap: React.Dispatch<React.SetStateAction<Record<string, string>>>
+    options: { label: string; value: string }[]
+    idKey: string
+    getBgColor: (value: string) => string
+}
+
+const StatusSelectCell: React.FC<StatusSelectCellProps> = ({
+    value,
+    row,
+    statusMap,
+    setStatusMap,
+    options,
+    idKey,
+    getBgColor,
+}) => {
+    const [localStatus, setLocalStatus] = useState(statusMap[row[idKey]] ?? value)
+
+    useEffect(() => {
+        setLocalStatus(statusMap[row[idKey]] ?? value)
+    }, [statusMap[row[idKey]], value])
+
+    const bgColor = getBgColor(localStatus)
+
+    return (
+        <select
+            value={localStatus}
+            onChange={(e) => {
+                const newStatus = e.target.value
+                setLocalStatus(newStatus)
+                setStatusMap((prev) => ({
+                    ...prev,
+                    [row[idKey]]: newStatus,
+                }))
+                console.log(`${newStatus} pressed`)
+            }}
+            className={`text-sm text-gray-700 border rounded px-2 py-1 ${bgColor}`}
+        >
+            {options.map((option) => (
+                <option key={option.value} value={option.value}>
+                    {option.label}
+                </option>
+            ))}
+        </select>
+    )
 }
 
 interface AgentsState {
@@ -146,7 +196,7 @@ const AgentDetailsPage = () => {
             { label: 'Row House', value: 'Row House' },
         ]
     }
-
+    const [statusMap, setStatusMap] = useState<Record<string, string>>({})
     // Define columns based on active tab
     const columns = useMemo<TableColumn[]>(() => {
         switch (activeTab) {
@@ -190,8 +240,26 @@ const AgentDetailsPage = () => {
                     {
                         key: 'status',
                         header: 'Status',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                        render: (value, row) => (
+                            <StatusSelectCell
+                                value={value}
+                                row={row}
+                                statusMap={statusMap}
+                                setStatusMap={setStatusMap}
+                                options={getStatusOptions().filter(
+                                    (option) => option.label !== 'All Status' && option.label !== 'Pending QC',
+                                )}
+                                idKey='propertyId'
+                                getBgColor={(status) =>
+                                    status === 'Sold' || status === 'Available'
+                                        ? 'bg-green-100'
+                                        : status === 'De-Listed'
+                                          ? 'bg-red-100'
+                                          : status === 'Hold'
+                                            ? 'bg-gray-300'
+                                            : 'bg-white'
+                                }
+                            />
                         ),
                     },
                     {
@@ -242,10 +310,27 @@ const AgentDetailsPage = () => {
                         ),
                     },
                     {
-                        key: 'requirementStatus',
+                        key: 'status',
                         header: 'Status',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                        render: (value, row) => (
+                            <StatusSelectCell
+                                value={value}
+                                row={row}
+                                statusMap={statusMap}
+                                setStatusMap={setStatusMap}
+                                options={[
+                                    { label: 'Open', value: 'Open' },
+                                    { label: 'Close', value: 'Close' },
+                                ]}
+                                idKey='propertyId'
+                                getBgColor={(status) =>
+                                    status === 'Open'
+                                        ? 'bg-green-100'
+                                        : status === 'Close'
+                                          ? 'bg-red-100'
+                                          : 'bg-green-100'
+                                }
+                            />
                         ),
                     },
                     {

@@ -8,6 +8,7 @@ import {
     updateProperty,
     updatePropertyStatus,
 } from '../../../services/acn/properties/propertiesService'
+import type { ILead } from '../../../services/acn/leads/algoliaLeadsService'
 
 const initialState: PropertiesState = {
     // Original properties state
@@ -103,6 +104,21 @@ const propertiesSlice = createSlice({
             }>,
         ) => {
             state.facetValues[action.payload.facetName] = action.payload.values
+        },
+
+        updatePropetiesLocal: (state, action: PayloadAction<{ propertyId: string; updates: Partial<IInventory> }>) => {
+            const { propertyId, updates } = action.payload
+            if (state.searchResults.find((property) => property.propertyId === propertyId)) {
+                state.searchResults = state.searchResults.map((property) =>
+                    property.propertyId === propertyId ? { ...property, ...updates } : property,
+                )
+            }
+        },
+        updatePropertyStatusOptimistic: (state, action: PayloadAction<{ propertyId: string; status: string }>) => {
+            const { propertyId, status } = action.payload
+            state.searchResults = state.searchResults.map((property) =>
+                property.propertyId === propertyId ? { ...property, status, lastModified: Date.now() } : property,
+            )
         },
     },
     extraReducers: (builder) => {
@@ -257,6 +273,8 @@ export const {
     setSearchResults,
     setSearching,
     setFacetValues,
+    updatePropetiesLocal,
+    updatePropertyStatusOptimistic,
 } = propertiesSlice.actions
 
 export default propertiesSlice.reducer

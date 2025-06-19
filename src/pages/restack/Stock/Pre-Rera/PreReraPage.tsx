@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
@@ -80,7 +80,7 @@ const PreReraPage = () => {
         },
     ]
 
-    const [showModal, setShowModal] = useState(false)
+    const [, setShowModal] = useState(false)
 
     const handleAddProject = () => {
         setShowModal(true)
@@ -118,14 +118,14 @@ const PreReraPage = () => {
                                         className='h-8'
                                     />
                                 </div>
-                                <Button
+                                {/* <Button
                                     bgColor='bg-gray-200'
                                     textColor='text-gray-600'
                                     className='px-6 h-8 font-medium transition-colors'
                                     onClick={handleAddProject}
                                 >
                                     Add
-                                </Button>
+                                </Button> */}
                             </div>
                         </div>
                     </div>
@@ -266,7 +266,7 @@ const PreReraPage = () => {
                                     ? 'Try adjusting your search criteria.'
                                     : 'Get started by adding a new stock project.'}
                             </p>
-                            {!searchValue && (
+                            {/* {!searchValue && (
                                 <div className='mt-6'>
                                     <Button
                                         bgColor='bg-blue-600'
@@ -277,7 +277,7 @@ const PreReraPage = () => {
                                         Add Stock Project
                                     </Button>
                                 </div>
-                            )}
+                            )} */}
                         </div>
                     )}
                 </div>
