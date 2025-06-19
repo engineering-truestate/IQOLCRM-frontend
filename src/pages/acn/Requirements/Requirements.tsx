@@ -273,43 +273,23 @@ const RequirementsPage = () => {
         {
             key: 'requirementStatus',
             header: 'Status',
-            render: (_, row) => {
-                const currentOption = requirementStatusOptions.find((option) => option.value === row.requirementStatus)
-                return (
-                    <Dropdown
-                        options={requirementStatusOptions}
-                        placeholder={toCapitalizedWords(row.requirementStatus)}
-                        onSelect={(value) => updateRowData(row.requirementId, 'requirementStatus', value)}
-                        className='relative inline-block'
-                        triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${currentOption ? `bg-[${currentOption.color}] text-[${currentOption.textColor}]` : 'bg-gray-100 text-gray-700'}`}
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                    />
-                )
+            dropdown: {
+                options: requirementStatusOptions,
+                placeholder: 'Select Status',
+                onChange: (value, row) => {
+                    updateRowData(row.requirementId, 'requirementStatus', value)
+                },
             },
         },
         {
             key: 'internalStatus',
             header: 'Int. Status',
-            render: (_, row) => {
-                const currentOption = internalStatusDropdownOptions.find(
-                    (option) => option.value === row.internalStatus,
-                )
-                return (
-                    <Dropdown
-                        options={internalStatusDropdownOptions}
-                        placeholder={toCapitalizedWords(row.internalStatus)}
-                        onSelect={(value) => updateRowData(row.requirementId, 'internalStatus', value)}
-                        className='relative inline-block'
-                        triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${
-                            currentOption
-                                ? `bg-[${currentOption.color}] text-[${currentOption.textColor}]`
-                                : 'bg-gray-100 text-gray-700'
-                        }`}
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                    />
-                )
+            dropdown: {
+                options: internalStatusDropdownOptions,
+                placeholder: 'Select Status',
+                onChange: (value, row) => {
+                    updateRowData(row.requirementId, 'internalStatus', value)
+                },
             },
         },
         {

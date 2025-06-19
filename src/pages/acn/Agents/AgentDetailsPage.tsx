@@ -26,6 +26,8 @@ import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import { updatePropertyStatus } from '../../../services/acn/properties/propertiesService'
 import { toast } from 'react-toastify'
 import { updateRequirementStatus } from '../../../services/acn/requirements/requirementsService'
+import { formatUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
 
 interface PropertyData {
     inventories: IInventory[]
@@ -64,6 +66,9 @@ const AgentDetailsPage = () => {
     const { loading: agentDetailsLoading } = useSelector((state: RootState) => state.agentDetails)
     const [agentData, setAgentData] = useState<any>(null)
     const [agentLoading, setAgentLoading] = useState(false)
+    const [statusMap, setStatusMap] = useState<Record<string, string>>({})
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+    const [selectedProperty, setSelectedProperty] = useState<any>(null)
 
     // Get current property data based on active tab
     const currentPropertyData = activePropertyTab === 'Resale' ? resale : rental
@@ -263,8 +268,6 @@ const AgentDetailsPage = () => {
         }
     }
 
-    const [statusMap, setStatusMap] = useState<Record<string, string>>({})
-
     // Define columns based on active tab
     const columns = useMemo<TableColumn[]>(() => {
         switch (activeTab) {
@@ -326,7 +329,7 @@ const AgentDetailsPage = () => {
                         header: 'Plot Size',
                         render: (value) => (
                             <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                                {value && value !== '–' ? `${value}` : 'N/A'}
+                                {value && value !== '–' ? `${value} sqft` : '-'}
                             </span>
                         ),
                     },
@@ -360,7 +363,7 @@ const AgentDetailsPage = () => {
                         header: 'Last Check',
                         render: (value) => (
                             <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                                {value ? new Date(value).toLocaleDateString('en-IN') : 'N/A'}
+                                {value ? formatUnixDate(value) : 'N/A'}
                             </span>
                         ),
                     },
@@ -368,7 +371,9 @@ const AgentDetailsPage = () => {
                         key: 'cpCode',
                         header: 'Agent',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{agentData.name}</span>
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                                {agentData?.name || 'N/A'}
+                            </span>
                         ),
                     },
                     {
@@ -395,6 +400,20 @@ const AgentDetailsPage = () => {
                         fixedPosition: 'right',
                         render: (_, row) => (
                             <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
+                                <button
+                                    className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
+                                    onClick={() => {
+                                        setSelectedProperty(row)
+                                        setIsShareModalOpen(true)
+                                    }}
+                                    title='Share'
+                                >
+                                    <img
+                                        src='/icons/acn/share.svg'
+                                        alt='Share Icon'
+                                        className='w-7 h-7 flex-shrink-0'
+                                    />
+                                </button>
                                 <button
                                     className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
                                     onClick={() => navigate(`/acn/properties/${row.propertyId || row.id}/edit`)}
@@ -492,14 +511,18 @@ const AgentDetailsPage = () => {
                         key: 'agentCpid',
                         header: 'Agent Name',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
+                            <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                                {agentData.name || 'N/A'}
+                            </span>
                         ),
                     },
                     {
                         key: 'agentNumber',
                         header: 'Agent Number',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                {agentData.phoneNumber || 'N/A'}
+                            </span>
                         ),
                     },
                     {
@@ -694,125 +717,129 @@ const AgentDetailsPage = () => {
     return (
         <Layout loading={loading || agentDetailsLoading || agentLoading}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 px-6 bg-white min-h-screen'>
+                <div className='py-2 bg-white min-h-screen'>
                     {/* Header */}
-                    <div className='mb-4'>
-                        <div className='flex items-center justify-between mb-2'>
-                            {<Breadcrumb link='/acn/agents' parent='Agents' child={agentId || 'Details'} />}
-                            <div className='flex items-center gap-4'>
-                                <div className='w-54'>
-                                    <StateBaseTextFieldTest
-                                        leftIcon={<img src={searchNormal} alt='Search Icon' className='w-4 h-4' />}
-                                        placeholder='Search'
-                                        value={searchValue}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                            setSearchValue(e.target.value)
+                    <div className='px-6'>
+                        <div className='mb-4 '>
+                            <div className='flex items-center justify-between mb-2'>
+                                {<Breadcrumb link='/acn/agents' parent='Agents' child={agentId || 'Details'} />}
+                                <div className='flex items-center gap-4'>
+                                    <div className='w-54'>
+                                        <StateBaseTextFieldTest
+                                            leftIcon={<img src={searchNormal} alt='Search Icon' className='w-4 h-4' />}
+                                            placeholder='Search'
+                                            value={searchValue}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                                setSearchValue(e.target.value)
+                                            }
+                                            className='h-8'
+                                        />
+                                    </div>
+                                    <Button
+                                        leftIcon={
+                                            <img src={addinventoryic} alt='Add Inventory Icon' className='w-5 h-5' />
                                         }
-                                        className='h-8'
+                                        bgColor='bg-[#2D3748]'
+                                        textColor='text-white'
+                                        className='px-4 h-8 font-semibold'
+                                        onClick={() => navigate('/acn/properties/addinv')}
+                                    >
+                                        Add Inventory
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Error message */}
+                        {error && <div className='mb-4 p-4 bg-red-50 text-red-700 rounded-md'>{error}</div>}
+
+                        {/* tabs */}
+                        <div className='flex items-center justify-between'>
+                            <div className='flex flex-col gap-[10px]'>
+                                <div className='flex items-center gap-4 pb-1  w-full'>
+                                    <div className='flex'>
+                                        <div
+                                            onClick={() => handleTabClick('Inventory')}
+                                            className={`cursor-pointer px-2 ${activeTab === 'Inventory' ? 'border-b-2 border-black' : ''}`}
+                                        >
+                                            Inventory ({getTabCount('Inventory')})
+                                        </div>
+                                        <div
+                                            onClick={() => handleTabClick('Requirement')}
+                                            className={`cursor-pointer px-2 ${activeTab === 'Requirement' ? 'border-b-2 border-black' : ''}`}
+                                        >
+                                            Requirement ({getTabCount('Requirement')})
+                                        </div>
+                                        <div
+                                            onClick={() => handleTabClick('Enquiry')}
+                                            className={`cursor-pointer px-2 ${activeTab === 'Enquiry' ? 'border-b-2 border-black' : ''}`}
+                                        >
+                                            Enquiry ({getTabCount('Enquiry')})
+                                        </div>
+                                        <div
+                                            onClick={() => handleTabClick('QC')}
+                                            className={`cursor-pointer px-2 ${activeTab === 'QC' ? 'border-b-2 border-black' : ''}`}
+                                        >
+                                            QC ({getTabCount('QC')})
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className='flex items-center bg-gray-100 rounded-md py-1 h-7 w-fit'>
+                                            <button
+                                                onClick={() => handleTabClick('Resale')}
+                                                className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                                                    activePropertyTab === 'Resale'
+                                                        ? 'bg-white text-black shadow-sm'
+                                                        : 'text-gray-600 shadow-2xl hover:text-black'
+                                                }`}
+                                            >
+                                                Resale
+                                            </button>
+                                            <button
+                                                onClick={() => handleTabClick('Rental')}
+                                                className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                                                    activePropertyTab === 'Rental'
+                                                        ? 'bg-white text-black shadow-sm'
+                                                        : 'text-gray-600 shadow-2xl hover:text-black'
+                                                }`}
+                                            >
+                                                Rental
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className='flex items-center gap-[10px]'>
+                                    <Dropdown
+                                        className='h-8 font-semibold'
+                                        options={getStatusOptions()}
+                                        onSelect={(value) => setSelectedStatus(value)}
+                                        defaultValue={selectedStatus}
+                                        placeholder='Inventory Status'
+                                        triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                        menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                        optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                    />
+                                    <Dropdown
+                                        className='h-8 font-semibold'
+                                        options={getPropertyTypeOptions()}
+                                        onSelect={(value) => setSelectedPropertyType(value)}
+                                        defaultValue={selectedPropertyType}
+                                        placeholder='Property Type'
+                                        triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                        menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                        optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                     />
                                 </div>
-                                <Button
-                                    leftIcon={<img src={addinventoryic} alt='Add Inventory Icon' className='w-5 h-5' />}
-                                    bgColor='bg-[#2D3748]'
-                                    textColor='text-white'
-                                    className='px-4 h-8 font-semibold'
-                                    onClick={() => navigate('/acn/properties/addinv')}
-                                >
-                                    Add Inventory
-                                </Button>
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Error message */}
-                    {error && <div className='mb-4 p-4 bg-red-50 text-red-700 rounded-md'>{error}</div>}
-
-                    {/* tabs */}
-                    <div className='flex items-center justify-between'>
-                        <div className='flex flex-col gap-[10px]'>
-                            <div className='flex items-center space-x-4'>
-                                <div className='flex  border-b-1 border-gray-300 w-[100vh]'>
-                                    <div
-                                        onClick={() => handleTabClick('Inventory')}
-                                        className={`cursor-pointer px-2 ${activeTab === 'Inventory' ? 'border-b-2 border-black' : ''}`}
-                                    >
-                                        Inventory ({getTabCount('Inventory')})
-                                    </div>
-                                    <div
-                                        onClick={() => handleTabClick('Requirement')}
-                                        className={`cursor-pointer px-2 ${activeTab === 'Requirement' ? 'border-b-2 border-black' : ''}`}
-                                    >
-                                        Requirement ({getTabCount('Requirement')})
-                                    </div>
-                                    <div
-                                        onClick={() => handleTabClick('Enquiry')}
-                                        className={`cursor-pointer px-2 ${activeTab === 'Enquiry' ? 'border-b-2 border-black' : ''}`}
-                                    >
-                                        Enquiry ({getTabCount('Enquiry')})
-                                    </div>
-                                    <div
-                                        onClick={() => handleTabClick('QC')}
-                                        className={`cursor-pointer px-2 ${activeTab === 'QC' ? 'border-b-2 border-black' : ''}`}
-                                    >
-                                        QC ({getTabCount('QC')})
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className='flex items-center bg-gray-100 rounded-md p-1 h-8 w-fit'>
-                                        <button
-                                            onClick={() => handleTabClick('Resale')}
-                                            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                                                activePropertyTab === 'Resale'
-                                                    ? 'bg-white text-black shadow-sm'
-                                                    : 'text-gray-600 hover:text-black'
-                                            }`}
-                                        >
-                                            Resale
-                                        </button>
-                                        <button
-                                            onClick={() => handleTabClick('Rental')}
-                                            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                                                activePropertyTab === 'Rental'
-                                                    ? 'bg-white text-black shadow-sm'
-                                                    : 'text-gray-600 hover:text-black'
-                                            }`}
-                                        >
-                                            Rental
-                                        </button>
-                                    </div>
-                                </div>
+                            {/* agent details dropdown */}
+                            <div className='absolute top-[39px] right-0 border-1 border-[#D3D4DD] max-h-[calc(100vh-39px)] scrollbar-hide overflow-y-auto transition-all duration-200 ease-in-out z-40 w-[500px] bg-white '>
+                                <AgentDetailsDropdown label='Agent Field' agentDetails={agentData} />
                             </div>
-                            <div className='flex items-center gap-[10px]'>
-                                <Dropdown
-                                    className='h-8 font-semibold'
-                                    options={getStatusOptions()}
-                                    onSelect={(value) => setSelectedStatus(value)}
-                                    defaultValue={selectedStatus}
-                                    placeholder='Inventory Status'
-                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                    menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
-                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
-                                />
-                                <Dropdown
-                                    className='h-8 font-semibold'
-                                    options={getPropertyTypeOptions()}
-                                    onSelect={(value) => setSelectedPropertyType(value)}
-                                    defaultValue={selectedPropertyType}
-                                    placeholder='Property Type'
-                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                    menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
-                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
-                                />
-                            </div>
-                        </div>
-                        {/* agent details dropdown */}
-                        <div className='absolute top-[39px] right-0 border-1 border-[#D3D4DD] max-h-[calc(100vh-39px)] scrollbar-hide overflow-y-auto transition-all duration-200 ease-in-out z-[100] w-[500px] bg-white '>
-                            <AgentDetailsDropdown label='Agent Field' agentDetails={agentData} />
                         </div>
                     </div>
 
                     {/* Table */}
-                    <div className='mt-[19px]'>
+                    <div className='mt-[19px] pl-6'>
                         <FlexibleTable
                             columns={columns}
                             data={filteredData}
@@ -830,6 +857,13 @@ const AgentDetailsPage = () => {
                             stickyHeader={true}
                         />
                     </div>
+
+                    {/* Share Modal */}
+                    <ShareInventoryModal
+                        isOpen={isShareModalOpen}
+                        onClose={() => setIsShareModalOpen(false)}
+                        property={selectedProperty}
+                    />
                 </div>
             </div>
         </Layout>
