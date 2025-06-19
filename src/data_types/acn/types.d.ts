@@ -77,7 +77,7 @@ type EnquiryState = {
 
 // ==================== INVENTORY TYPES ====================
 
-interface IInventory {
+export interface IInventory {
     id: string
     propertyId: string
     cpId: string
@@ -127,9 +127,39 @@ type InventoryState = {
 
 // ==================== QC INVENTORY TYPES ====================
 
+// Add missing supporting interfaces
+interface GeoLocation {
+    lat: number
+    lng: number
+}
+
+interface PriceHistoryItem {
+    price: number
+    timestamp: number
+}
+
+interface QCHistoryItem {
+    timestamp: number
+    qcStatus: 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
+    userName: string
+    userRole: 'kam' | 'data' | 'kamModerator'
+    userEmail?: string
+    userPhone?: string
+    kamId: string
+    cpId: string
+    action: string
+    details: string
+    performedBy: string
+    date: number
+}
+
+interface HighlightResult {
+    [key: string]: any
+}
+
 // Add ReviewDetails interface for review objects
 interface ReviewDetails {
-    status: string
+    status: 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
     reviewDate: number
     reviewedBy: string
     comments: string
@@ -142,6 +172,24 @@ interface QCReview {
     originalPropertyId: string
     kamReview: ReviewDetails
     dataReview: ReviewDetails
+}
+
+// Add Notes interface for the notes system
+interface QCNote {
+    kamId: string
+    kamName: string
+    details: string
+    timestamp: number
+}
+
+// Add Agent Data interface for role-based operations
+interface AgentData {
+    role: 'kam' | 'data' | 'kamModerator'
+    email: string
+    phone: string
+    name: string
+    kamId?: string
+    id: string
 }
 
 // Base QC Inventory type with required fields
@@ -183,7 +231,7 @@ interface BaseQCInventory {
     askPricePerSqft: number
     priceHistory: PriceHistoryItem[]
     rentalIncome: number
-    status: 'available' | 'delisted' | 'sold' | 'hold'
+    status: 'available' | 'delisted' | 'sold' | 'hold' | 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
     currentStatus: 'ready to move' | 'under construction' | 'new launch'
     exclusive: boolean
     tenanted: boolean
@@ -193,12 +241,21 @@ interface BaseQCInventory {
     ocReceived: boolean
     bdaApproved: boolean
     biappaApproved: boolean
-    stage: 'kam' | 'dataTeam' | 'live'
-    qcStatus: 'approved' | 'pending' | 'reject' | 'duplicate' | 'primary'
+
+    // Core workflow fields based on your business logic
+    stage: 'kam' | 'data' | 'live' | 'notApproved'
+    qcStatus: 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
     qcReview: QCReview
-    kamStatus: 'approved' | 'pending' | 'rejected'
+
+    // KAM workflow fields
+    kamStatus: 'approved' | 'pending' | 'rejected' | 'duplicate'
     kamName: string
     kamId: string
+
+    // Data team workflow fields
+    dataStatus?: 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
+
+    // Additional fields
     handoverDate: number
     photo: string[]
     video: string[]
@@ -210,33 +267,112 @@ interface BaseQCInventory {
     ageOfInventory: number
     ageOfStatus: number
     qcHistory: QCHistoryItem[]
+    notes: QCNote[]
     extraDetails: string
     _highlightResult?: HighlightResult
+
+    // Financial fields
+    price: number
+    pricePerSqft: number
+
+    // Location fields
+    city: string
+    state: string
 }
 
 // QC Inventory type for API responses
 type IQCInventory = BaseQCInventory
 
-// Type for partial updates
+// Type for partial updates - uses TypeScript's Partial utility type
 type QCInventoryUpdate = Partial<BaseQCInventory>
 
-// Update QCInventoryState type
+// Update QCInventoryState type for Redux state management
 type QCInventoryState = {
     qcInventories: BaseQCInventory[]
     currentQCInventory: BaseQCInventory | null
+    selectedInventory?: BaseQCInventory | null
     loading: boolean
     error: string | null
     lastFetch: Date | null
+    updateLoading: boolean
+    noteLoading: boolean
 }
 
-// Add a type for the action payload
+// Add a type for the action payload in Redux actions
 type UpdateQCStatusPayload = {
     propertyId: string
     updates: QCInventoryUpdate
+    propertyCreated?: boolean
 }
 
-// Add a type for the thunk response
+// Add a type for the thunk response from API calls
 type QCInventoryResponse = BaseQCInventory
+
+// Types for thunk parameters
+type UpdateQCStatusParams = {
+    property: BaseQCInventory
+    status: string
+    agentData: AgentData
+    activeTab: string
+    reviewedBy: string
+}
+
+type UpdateKAMStatusParams = {
+    propertyId: string
+    newStatus: string
+    kamId: string
+    kamName: string
+}
+
+type UpdateDataTeamStatusParams = {
+    propertyId: string
+    newStatus: string
+    kamId: string
+    kamName: string
+}
+
+type AddNoteParams = {
+    propertyId: string
+    details: string
+    kamId: string
+    kamName: string
+}
+
+// Response types for thunk actions
+type UpdateStatusResponse = {
+    propertyId: string
+    updates: Partial<BaseQCInventory>
+    propertyCreated: boolean
+}
+
+type AddNoteResponse = {
+    propertyId: string
+    note: QCNote
+}
+
+// Export all types for use in other files
+export type {
+    BaseQCInventory,
+    IQCInventory,
+    QCInventoryUpdate,
+    QCInventoryState,
+    UpdateQCStatusPayload,
+    QCInventoryResponse,
+    QCHistoryItem,
+    QCNote,
+    QCReview,
+    ReviewDetails,
+    AgentData,
+    GeoLocation,
+    PriceHistoryItem,
+    HighlightResult,
+    UpdateQCStatusParams,
+    UpdateKAMStatusParams,
+    UpdateDataTeamStatusParams,
+    AddNoteParams,
+    UpdateStatusResponse,
+    AddNoteResponse,
+}
 
 // ==================== RENTAL INVENTORY TYPES ====================
 
@@ -305,7 +441,7 @@ interface SizeRange {
     to: number
 }
 
-interface IRequirement {
+export interface IRequirement {
     requirementId: string
     agentNumber: string
     agentName: string
@@ -565,9 +701,11 @@ export interface FirebaseUser {
 export interface UserAuthResponse {
     user: FirebaseUser | null
     agentData: AgentData | null
+    lastFetch: number
 }
 
 export interface AuthStateResponse {
     user: FirebaseUser | null
     agentData: AgentData | null
+    lastFetch: number
 }
