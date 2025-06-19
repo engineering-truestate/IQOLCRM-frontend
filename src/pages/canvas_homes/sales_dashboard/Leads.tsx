@@ -76,7 +76,7 @@ const Leads = () => {
     // Create filters object - Fixed to use actual values from dropdowns
     const createFilters = useCallback((): LeadSearchFilters => {
         const filters: LeadSearchFilters = {
-            leadState: activeStatusCard !== 'All' ? [activeStatusCard.toLowerCase()] : undefined,
+            state: activeStatusCard !== 'All' ? [activeStatusCard.toLowerCase()] : undefined,
             propertyName: selectedProperty ? [selectedProperty] : undefined,
             agentName: selectedAgent ? [selectedAgent] : undefined,
             source: selectedSource ? [selectedSource] : undefined,
@@ -179,7 +179,7 @@ const Leads = () => {
 
     // Calculate status counts from facets - Fixed case sensitivity
     const statusCounts = useMemo(() => {
-        const stateFacets = facets.leadState || {}
+        const stateFacets = facets.state || {}
         const totalHits = allLeadsData.length
 
         console.log('Status facets:', stateFacets) // Debug log
@@ -306,7 +306,7 @@ const Leads = () => {
             key: 'stage',
             header: 'Lead Stage',
             render: (value, row) => (
-                <span className='text-sm text-gray-900'>{capitalizeFirst(value || row.leadStage || '-')}</span>
+                <span className='text-sm text-gray-900'>{capitalizeFirst(value || row.stage || '-')}</span>
             ),
         },
         {
@@ -329,12 +329,12 @@ const Leads = () => {
             header: 'ASLC',
             render: (value, row) => {
                 const today = Date.now()
-                const dateToUse = row.leadState === 'fresh' ? row.added : row.scheduledDate
+                const dateToUse = row.state === 'fresh' ? row.added : row.scheduledDate
                 const daysDifference = Math.floor((today - dateToUse) / (1000 * 60 * 60 * 24))
 
                 return (
                     <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {daysDifference || 0} days
+                        {daysDifference + 1 || 0} days
                     </span>
                 )
             },
@@ -343,7 +343,7 @@ const Leads = () => {
             key: 'taskType',
             header: 'Schedule Task',
             render: (value, row) => {
-                const taskType = capitalizeFirst(value || row.scheduleTask?.type || '-')
+                const taskType = capitalizeFirst(value || row?.taskType || '-')
                 const date = row.scheduledDate
                     ? new Date(row.scheduledDate).toLocaleDateString()
                     : row.scheduleTask?.date

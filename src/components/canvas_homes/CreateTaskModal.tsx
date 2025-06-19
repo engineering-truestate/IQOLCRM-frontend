@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import Dropdown from '../../components/design-elements/Dropdown'
+import { leadService } from '../../services/canvas_homes'
 
 interface CreateTaskModalProps {
     isOpen: boolean
@@ -25,6 +26,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     agentId = 'system',
     agentName = 'System',
     leadStatus = 'interested',
+    leadId = '',
     propertyName,
     leadAddDate,
     name,
@@ -101,6 +103,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             }
 
             console.log('Creating task:', taskData)
+            await leadService.update(leadId, {
+                taskType: formData.task,
+                lastModified: Date.now(),
+                scheduledDate: scheduledDate.getTime(),
+            })
             await onTaskCreated(taskData)
 
             alert('Task created successfully!')
