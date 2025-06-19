@@ -3,7 +3,9 @@
 import React from 'react'
 import { useNavigate } from 'react-router'
 import { useDispatch } from 'react-redux'
+import type { AppDispatch } from '../../../store'
 import { setSelectedAgent } from '../../../store/slices/agentDetailsSlice'
+import { updateAgentStatusThunk, updateAgentPayStatusThunk } from '../../../services/acn/agents/agentThunkService'
 
 import { useState, useEffect } from 'react'
 import Layout from '../../../layout/Layout'
@@ -314,7 +316,7 @@ const useAgentFilters = () => {
 const ITEMS_PER_PAGE = 50
 
 const AgentsPage = () => {
-    const dispatch = useDispatch()
+    const dispatch = useDispatch<AppDispatch>()
     const navigate = useNavigate()
     const [searchValue, setSearchValue] = useState('')
     const {
@@ -486,7 +488,12 @@ const AgentsPage = () => {
                 prevData.map((agent) => (agent.objectID === agentId ? { ...agent, [field]: value } : agent)),
             )
 
-            // Update in Algolia
+            // Update in Firebase using thunks
+            if (field === 'agentStatus') {
+                await dispatch(updateAgentStatusThunk({ cpId: agentId, agentStatus: value })).unwrap()
+            } else if (field === 'payStatus') {
+                await dispatch(updateAgentPayStatusThunk({ cpId: agentId, payStatus: value })).unwrap()
+            }
 
             console.log('✅ Agent status updated successfully')
         } catch (error) {

@@ -195,3 +195,61 @@ export const updateAgentKAM = createAsyncThunk(
         }
     },
 )
+
+export const updateAgentStatusThunk = createAsyncThunk(
+    'agents/updateAgentStatusThunk',
+    async ({
+        cpId,
+        agentStatus,
+    }: {
+        cpId: string
+        agentStatus: string
+    }): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const agentRef = collection(db, 'acnAgents')
+            const agentQuery = query(agentRef, where('cpId', '==', cpId))
+            const agentSnapshot = await getDocs(agentQuery)
+
+            if (agentSnapshot.empty) {
+                throw new Error('Agent not found')
+            }
+
+            const agentDoc = agentSnapshot.docs[0]
+            await updateDoc(doc(db, 'acnAgents', agentDoc.id), { agentStatus })
+
+            return { success: true }
+        } catch (error) {
+            console.error('Error updating agent status:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to update agent status',
+            }
+        }
+    },
+)
+
+export const updateAgentPayStatusThunk = createAsyncThunk(
+    'agents/updateAgentPayStatusThunk',
+    async ({ cpId, payStatus }: { cpId: string; payStatus: string }): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const agentRef = collection(db, 'acnAgents')
+            const agentQuery = query(agentRef, where('cpId', '==', cpId))
+            const agentSnapshot = await getDocs(agentQuery)
+
+            if (agentSnapshot.empty) {
+                throw new Error('Agent not found')
+            }
+
+            const agentDoc = agentSnapshot.docs[0]
+            await updateDoc(doc(db, 'acnAgents', agentDoc.id), { payStatus })
+
+            return { success: true }
+        } catch (error) {
+            console.error('Error updating agent pay status:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to update agent pay status',
+            }
+        }
+    },
+)
