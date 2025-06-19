@@ -54,7 +54,7 @@ const Tasks: React.FC<TasksProps> = ({
                 type: firebaseTask.type,
                 title: getTaskTitle(firebaseTask.type),
                 date: formatDateTime(firebaseTask.added),
-                scheduledInfo: getScheduledInfo(firebaseTask),
+                scheduledInfo: firebaseTask?.eventName ? firebaseTask.eventName : getScheduledInfo(firebaseTask),
                 scheduledDate: formatDateTime(firebaseTask.scheduledDate),
                 status: firebaseTask.status,
                 firebaseTask: firebaseTask,

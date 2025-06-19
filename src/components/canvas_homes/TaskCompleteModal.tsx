@@ -83,13 +83,13 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
             if (enquiryId && leadId && taskId) {
                 // Update Enquiry
                 const enqData = {
-                    state,
-                    stage,
-                    leadStatus,
+                    state: state,
+                    stage: stage,
+                    leadStatus: leadStatus,
                     tag: formData.tag.toLowerCase(),
                     lastModified: currentTimestamp,
                 }
-                await onUpdateEnquiry(enquiryId, enqData)
+                await onUpdateEnquiry(enqData)
 
                 // Add note if provided
                 if (formData.note) {
@@ -100,18 +100,18 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                         agentId,
                         taskType,
                     }
-                    await onAddNote(enquiryId, newNote)
+                    await onAddNote(newNote)
                 }
 
                 // Update Lead
                 const leadData = {
-                    state,
-                    stage,
-                    leadStatus,
+                    state: state,
+                    stage: stage,
+                    leadStatus: leadStatus,
                     tag: formData.tag.toLowerCase(),
                     lastModified: currentTimestamp,
                 }
-                await onUpdateLead(leadId, leadData)
+                await onUpdateLead(leadData)
 
                 // Update Task
                 await onUpdateTask(taskId, {
