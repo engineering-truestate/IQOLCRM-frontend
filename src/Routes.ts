@@ -5,11 +5,7 @@ import type { RouteObject } from 'react-router-dom'
 import React from 'react'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
-import Dashboard from './pages/canvas_homes/Dashboard'
-import Marketing from './pages/canvas_homes/marketing_dashboard/Marketing'
-import MarketingDetails from './pages/canvas_homes/marketing_dashboard/MarketingDetails'
-import Sales from './pages/canvas_homes/sales_dashboard/Sales'
-import LeadDetails from './pages/canvas_homes/sales_dashboard/LeadDetails'
+import Dashboard from './pages/canvas-homes/Dashboard'
 import LeadsPage from './pages/acn/Leads/Leads'
 import RequirementsPage from './pages/acn/Requirements/Requirements'
 import RequirementDetailsPage from './pages/acn/Requirements/RequirementDetails'
@@ -38,14 +34,16 @@ import PreReraDetailsPage from './pages/restack/Stock/Pre-Rera/PreReraDetailsPag
 import PreReraEditPage from './pages/restack/Stock/Pre-Rera/PreReraEditPage'
 import ErrorPage from './404'
 import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
-import PrimaryPage from './pages/restack/Primary/Primary'
+import ResalePage from './pages/restack/Resale/ResalePage'
+import ResalePageDetails from './pages/restack/Resale/ResalePageDetails'
+
 import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 import ComplaintsPage from './pages/restack/Primary/ComplaintsPage'
 import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
-import Resale from './pages/restack/resale/Resale'
+import PrimaryPage from './pages/restack/Primary/Primary'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -70,14 +68,6 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/canvas-homes/dashboard',
         element: React.createElement(React.Suspense, null, React.createElement(Dashboard, null)),
-    },
-    {
-        path: '/canvas-homes/sales/',
-        element: React.createElement(React.Suspense, null, React.createElement(Sales, null)),
-    },
-    {
-        path: '/canvas-homes/sales/leaddetails/:leadId',
-        element: React.createElement(React.Suspense, null, React.createElement(LeadDetails, null)),
     },
     {
         path: '/acn/leads',
@@ -120,6 +110,10 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryPage, null)),
     },
     {
+        path: '/restack/resale/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(ResalePageDetails, null)),
+    },
+    {
         path: '/restack/primary/:id',
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
     },
@@ -132,8 +126,8 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PostReraPage, null)),
     },
     {
-        path: '/restack/stock/pre-rera',
-        element: React.createElement(React.Suspense, null, React.createElement(PreReraPage, null)),
+        path: '/restack/stock/pre-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
     },
     {
         path: '/restack/stock/post-rera/:id/details',
@@ -144,12 +138,20 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
     },
     {
-        path: '/restack/stock/pre-rera/:id/details',
-        element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
-    },
-    {
         path: '/restack/stock/pre-rera/:id/edit',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
+    },
+    {
+        path: '/restack/resale',
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
+        ),
+    },
+    {
+        path: '/restack/resale/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(ResalePageDetails, null)),
     },
     {
         path: '/acn/properties',
@@ -180,8 +182,12 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(ComplaintsPage, null)),
     },
     {
-        path: '/restack/primary/:id/documents',
-        element: React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
+        path: '/acn/qc/dashboard',
+        element: React.createElement(React.Suspense, null, React.createElement(QCDashboardPage, null)),
+    },
+    {
+        path: '/acn/qc/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(QCPropertyDetailsPage, null)),
     },
     {
         path: '/restack/primary/:id/complaints',
@@ -199,10 +205,6 @@ export const protectedRoutes: RouteObject[] = [
         path: '/restack/rental',
         element: React.createElement(React.Suspense, null, React.createElement(RentalPage, null)),
     },
-    //  {
-    //     path: '/restack/resale',
-    //     element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
-    // },
 ]
 
 export const unprotectedRoutes: RouteObject[] = []
