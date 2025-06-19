@@ -126,6 +126,11 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PostReraPage, null)),
     },
     {
+        path: '/restack/stock/pre-rera',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraPage, null)),
+    },
+
+    {
         path: '/restack/stock/pre-rera/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
     },
@@ -143,11 +148,7 @@ export const protectedRoutes: RouteObject[] = [
     },
     {
         path: '/restack/resale',
-        element: React.createElement(
-            ProtectedRoute,
-            null,
-            React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
-        ),
+        element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
     },
     {
         path: '/restack/resale/:id/details',

@@ -9,23 +9,18 @@ import { FlexibleTable, type TableColumn } from '../../../components/design-elem
 import Layout from '../../../layout/Layout'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
-import Button from '../../../components/design-elements/Button'
-import resetic from '/icons/acn/rotate-left.svg'
 
 const RentalPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
-    const [selectedListedBy, setSelectedListedBy] = useState('all')
-    const [selectedStatus, setSelectedStatus] = useState('all')
-    const [selectedAssetType, setSelectedAssetType] = useState('all')
+    const [selectedListedBy, setSelectedListedBy] = useState<'All' | 'Owner' | 'Broker'>('All')
     const navigate = useNavigate()
     const dispatch = useDispatch<any>()
 
     const properties: RentalProperty[] = rentalPropertiesDummyData
     const loading = false
-    const error = null
 
-    const ITEMS_PER_PAGE = 20
+    const ITEMS_PER_PAGE = 15
 
     const [filteredProperties, setFilteredProperties] = useState<RentalProperty[]>([])
     const [paginatedProperties, setPaginatedProperties] = useState<RentalProperty[]>([])
@@ -35,23 +30,28 @@ const RentalPage = () => {
     }, [dispatch])
 
     useEffect(() => {
-        const filtered = properties.filter((project) => {
-            const matchesSearch =
-                project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
-                project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
-                project.propertyType.toLowerCase().includes(searchValue.toLowerCase())
+        let filtered = properties
 
-            const matchesStatus = selectedStatus === 'all' || project.listingStatus === selectedStatus
-            const matchesAssetType =
-                selectedAssetType === 'all' || project.propertyType.toLowerCase() === selectedAssetType.toLowerCase()
-            const matchesListedBy = selectedListedBy === 'all' || project.listedBy === selectedListedBy
+        // Apply search filter
+        if (searchValue.trim() !== '') {
+            filtered = filtered.filter(
+                (property) =>
+                    property.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.propertyId.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.propertyType.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.listingStatus?.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.listedBy.toLowerCase().includes(searchValue.toLowerCase()),
+            )
+        }
 
-            return matchesSearch && matchesStatus && matchesAssetType && matchesListedBy
-        })
+        // Apply listedBy filter
+        if (selectedListedBy !== 'All') {
+            filtered = filtered.filter((property) => property.listedBy === selectedListedBy)
+        }
 
         setFilteredProperties(filtered)
         setCurrentPage(1)
-    }, [searchValue, properties, selectedStatus, selectedAssetType, selectedListedBy])
+    }, [searchValue, properties, selectedListedBy])
 
     useEffect(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
@@ -62,33 +62,28 @@ const RentalPage = () => {
 
     const totalPages = Math.ceil(filteredProperties.length / ITEMS_PER_PAGE)
 
-    const uniqueListedBy = ['all', ...Array.from(new Set(properties.map((p) => p.listedBy)))]
-    // Get unique values for filters
-    const uniqueStatuses = ['all', ...Array.from(new Set(properties.map((p) => p.listingStatus || 'apartment')))]
-    const uniqueAssetTypes = ['all', ...Array.from(new Set(properties.map((p) => p.propertyType)))]
+    // Handle filter button clicks
+    const handleFilterClick = (filterType: 'All' | 'Owner' | 'Broker') => {
+        setSelectedListedBy(filterType)
+    }
 
     const columns: TableColumn[] = [
         {
             key: 'projectName',
             header: 'Project Name',
             render: (value: string, row: RentalProperty) => (
-                <span
-                    className='whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600'
-                    onClick={() => navigate(`/restack/rental/${row.propertyId}/details`)}
-                >
-                    {value}
-                </span>
+                <span className='whitespace-nowrap text-sm font-medium text-gray-900'>{value}</span>
             ),
         },
         {
             key: 'propertyId',
             header: 'Project ID',
-            render: (value: string) => <span className='whitespace-nowrap text-sm text-blue-600'>{value}</span>,
+            render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
         },
         {
             key: 'propertyType',
             header: 'Asset Type',
-            render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
+            render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
         },
         {
             key: 'postedOn',
@@ -101,23 +96,16 @@ const RentalPage = () => {
             key: 'listingStatus',
             header: 'Status',
             render: (value: string) => (
-                <span className='whitespace-nowrap text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded'>
-                    {value || 'apartment'}
-                </span>
+                <span className='whitespace-nowrap text-sm text-gray-800'>{(value || 'apartment').toLowerCase()}</span>
             ),
         },
-        // {
-        //     key: 'listedBy',
-        //     header: 'Listed By',
-        //     render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        // },
         {
             key: 'actions',
             header: 'View Details',
             render: (value: any, row: RentalProperty) => (
                 <button
                     onClick={() => navigate(`/restack/rental/${row.propertyId}/details`)}
-                    className='bg-black text-white px-3 py-1 rounded text-xs font-medium hover:bg-gray-800 transition-colors'
+                    className='bg-black text-white text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
                 >
                     View Details
                 </button>
@@ -128,13 +116,13 @@ const RentalPage = () => {
     return (
         <Layout loading={loading}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-6 px-6 bg-gray-50 min-h-screen'>
+                <div className='py-4 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
-                    <div className='mb-6'>
-                        <div className='flex gap-6 mb-4'>
-                            {/* Search Bar */}
-                            <div className='flex mb-4  w-1/2'>
-                                <div className='w-full'>
+                    <div className='mb-2'>
+                        <div className='flex items-center justify-between mb-4'>
+                            <h1 className='text-xl font-semibold text-gray-900'>Rental / 99 Acres</h1>
+                            <div className='flex items-center gap-4'>
+                                <div className='w-80'>
                                     <StateBaseTextField
                                         leftIcon={
                                             <svg
@@ -154,52 +142,49 @@ const RentalPage = () => {
                                         placeholder='Search here'
                                         value={searchValue}
                                         onChange={(e: any) => setSearchValue(e.target.value)}
-                                        className='h-10 w-full'
+                                        className='h-8'
                                     />
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Filter Tabs */}
-
-                            <Button
-                                className='h-10'
-                                onClick={() => setSelectedListedBy('Owner')}
-                                textColor='text-[#0A0B0A]'
-                                bgColor='bg-[#F3F3F3]'
-                                borderColor='[#0A0B0A]'
+                        {/* Filter Buttons */}
+                        <div className='flex items-center gap-3 mb-4'>
+                            <button
+                                onClick={() => handleFilterClick('Owner')}
+                                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                                    selectedListedBy === 'Owner'
+                                        ? 'bg-gray-800 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
                             >
                                 Listed by Owner
-                            </Button>
-                            <Button
-                                className='h-10'
-                                textColor='text-[#0A0B0A]'
-                                bgColor='bg-[#F3F3F3]'
-                                borderColor='[#0A0B0A]'
-                                onClick={() => setSelectedListedBy('Broker')}
+                            </button>
+                            <button
+                                onClick={() => handleFilterClick('Broker')}
+                                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                                    selectedListedBy === 'Broker'
+                                        ? 'bg-gray-800 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
                             >
                                 Listed by Broker
-                            </Button>
-
-                            {selectedListedBy != 'all' && (
+                            </button>
+                            {(selectedListedBy === 'Owner' || selectedListedBy === 'Broker') && (
                                 <button
-                                    className='p-1 text-[#0A0B0A] h-10 cursor-pointer bg-[#F3F3F3] rounded-[8px] border border-[#0A0B0A]'
-                                    onClick={() => {
-                                        setSelectedListedBy('all')
-                                        setSelectedStatus('all')
-                                        setSelectedAssetType('all')
-                                        setSearchValue('')
-                                    }}
-                                    title='Reset Filters'
+                                    onClick={() => handleFilterClick('All')}
+                                    className='px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors'
                                 >
-                                    <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
+                                    Clear Filter
                                 </button>
                             )}
                         </div>
                     </div>
+                    <hr className='border-gray-200 mb-4 w-full' />
 
-                    {/* Table Card */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                        <div className='max-h-[70vh] overflow-y-auto'>
+                    {/* Table with vertical scrolling */}
+                    <div className='bg-white rounded-lg overflow-hidden'>
+                        <div className='h-[80vh] overflow-y-auto'>
                             <FlexibleTable
                                 data={paginatedProperties}
                                 columns={columns}
@@ -211,7 +196,7 @@ const RentalPage = () => {
                                     cells: false,
                                     outer: false,
                                 }}
-                                maxHeight='70vh'
+                                maxHeight='80vh'
                                 className='rounded-lg'
                                 stickyHeader={true}
                             />
@@ -219,13 +204,14 @@ const RentalPage = () => {
 
                         {/* Pagination */}
                         {totalPages > 1 && (
-                            <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200 bg-gray-50'>
+                            <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
                                 <div className='text-sm text-gray-500 font-medium'>
                                     Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
                                     {Math.min(currentPage * ITEMS_PER_PAGE, filteredProperties.length)} of{' '}
-                                    {filteredProperties.length} projects
-                                    {searchValue && ` (filtered from ${properties.length} total projects)`}
+                                    {filteredProperties.length} properties
+                                    {searchValue && ` (filtered from ${properties.length} total properties)`}
                                 </div>
+
                                 <div className='flex items-center gap-2'>
                                     <button
                                         onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -309,6 +295,27 @@ const RentalPage = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* Empty state */}
+                    {!loading && filteredProperties.length === 0 && (
+                        <div className='text-center py-12'>
+                            <svg
+                                className='mx-auto h-12 w-12 text-gray-400'
+                                fill='none'
+                                viewBox='0 0 24 24'
+                                stroke='currentColor'
+                            >
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
+                                />
+                            </svg>
+                            <h3 className='mt-2 text-sm font-medium text-gray-900'>No properties found</h3>
+                            <p className='mt-1 text-sm text-gray-500'>Try adjusting your search or filter criteria.</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </Layout>

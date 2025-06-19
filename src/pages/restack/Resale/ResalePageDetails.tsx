@@ -6,7 +6,7 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 import Dropdown from '../../../components/design-elements/Dropdown'
 import NumberInput from '../../../components/design-elements/StateBaseNumberField'
 import DateInput from '../../../components/design-elements/DateInputUnixTimestamps'
-import { formatUnixDate } from '../../../components/helper/getUnixDateTime' // Used for formatting dates
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 
 // Import the dummy data and types
 import {
@@ -75,46 +75,93 @@ const facingOptions = [
 // Image Gallery Component
 const ImageGallery = ({ images }: { images: PropertyImages[] }) => {
     const [selectedImage, setSelectedImage] = useState(0)
+    const [imageError, setImageError] = useState<{ [key: string]: boolean }>({})
+
+    const handleImageError = (imageId: string) => {
+        setImageError((prev) => ({ ...prev, [imageId]: true }))
+    }
+
+    const handleImageLoad = (imageId: string) => {
+        setImageError((prev) => ({ ...prev, [imageId]: false }))
+    }
+
+    if (!images || images.length === 0) {
+        return (
+            <div className='mb-6'>
+                <div className='w-full h-96 bg-gray-200 rounded flex items-center justify-center'>
+                    <span className='text-gray-500'>No images available</span>
+                </div>
+            </div>
+        )
+    }
+
+    const currentImage = images[selectedImage] || images[0]
 
     return (
         <div className='mb-6'>
-            {/* Main Image Display */}
-            <div className='mb-4'>
-                <img
-                    src={images[selectedImage]?.url || '/api/placeholder/800/400'}
-                    alt={images[selectedImage]?.alt || 'Property image'}
-                    className='w-full h-80 object-cover rounded-lg'
-                />
-            </div>
-
-            {/* Thumbnail Grid */}
-            <div className='grid grid-cols-6 gap-2'>
+            {/* Thumbnail Grid - Show all images in two rows */}
+            <div className='grid grid-cols-5 gap-3 mb-4'>
+                {/* First row - show first 5 images */}
                 {images.slice(0, 5).map((image, index) => (
                     <div
                         key={image.id}
-                        className={`cursor-pointer rounded overflow-hidden border-2 ${
+                        className={`cursor-pointer rounded overflow-hidden border-2 aspect-[4/3] ${
                             selectedImage === index ? 'border-blue-500' : 'border-gray-200'
                         }`}
                         onClick={() => setSelectedImage(index)}
                     >
-                        <img src={image.url} alt={image.alt} className='w-full h-16 object-cover' />
+                        <img
+                            src={image.url}
+                            alt={image.alt}
+                            className='w-full h-full object-cover'
+                            onError={() => handleImageError(image.id)}
+                        />
                     </div>
                 ))}
-                {images.length > 5 && (
-                    <div className='relative cursor-pointer rounded overflow-hidden border-2 border-gray-200'>
-                        <img src={images[5].url} alt={images[5].alt} className='w-full h-16 object-cover' />
-                        <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
-                            <span className='text-white text-xs font-medium'>+{images.length - 5}</span>
+            </div>
+
+            {/* Second row if more than 5 images */}
+            {images.length > 5 && (
+                <div className='grid grid-cols-5 gap-3 mb-4'>
+                    {images.slice(5, 9).map((image, index) => (
+                        <div
+                            key={image.id}
+                            className={`cursor-pointer rounded overflow-hidden border-2 aspect-[4/3] ${
+                                selectedImage === index + 5 ? 'border-blue-500' : 'border-gray-200'
+                            }`}
+                            onClick={() => setSelectedImage(index + 5)}
+                        >
+                            <img
+                                src={image.url}
+                                alt={image.alt}
+                                className='w-full h-full object-cover'
+                                onError={() => handleImageError(image.id)}
+                            />
+                        </div>
+                    ))}
+                    {/* Show +X more overlay if there are more than 9 images */}
+                    {images.length > 9 && (
+                        <div className='relative cursor-pointer rounded overflow-hidden border-2 border-gray-200 aspect-[4/3]'>
+                            <img
+                                src={images[9].url}
+                                alt={images[9].alt}
+                                className='w-full h-full object-cover'
+                                onError={() => handleImageError(images[9].id)}
+                            />
+                            <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
+                                <span className='text-white text-sm font-medium'>+{images.length - 9}</span>
+                            </div>
+                        </div>
+                    )}
+                    {/* Add Image Button */}
+                    <div className='flex items-center justify-center border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-gray-400 aspect-[4/3]'>
+                        <div className='text-center'>
+                            <div className='text-gray-400 text-sm mb-1'>✏️</div>
+                            <div className='text-gray-400 text-xs'>Add Image</div>
                         </div>
                     </div>
-                )}
-                {/* Add Image Button */}
-                <div className='flex items-center justify-center border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-gray-400'>
-                    <div className='text-center p-2'>
-                        <div className='text-gray-400 text-xs'>Add Image</div>
-                    </div>
                 </div>
-            </div>
+            )}
         </div>
     )
 }
@@ -125,16 +172,18 @@ const ResaleDetailsPage = () => {
 
     const [propertyDetails, setPropertyDetails] = useState<PropertyDetails | null>(null)
     const [originalDetails, setOriginalDetails] = useState<PropertyDetails | null>(null)
-    const [isEditing, setIsEditing] = useState(false)
+    const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(false)
+    const [isEditingLocation, setIsEditingLocation] = useState(false)
+    const [isEditingInventory, setIsEditingInventory] = useState(false)
+    const [isEditingAmenities, setIsEditingAmenities] = useState(false)
     const [loading, setLoading] = useState(true)
 
     // Load property data based on id
     useEffect(() => {
         if (id) {
             setLoading(true)
-            // Simulate fetching data from an API or using the getPropertyById function
             try {
-                const property = getPropertyById(id) || propertyDetailsData // Simulate API response
+                const property = getPropertyById(id) || propertyDetailsData
                 if (!property) {
                     throw new Error('Property not found')
                 }
@@ -149,193 +198,197 @@ const ResaleDetailsPage = () => {
     }, [id])
 
     // Handle field updates with types
-    const updateField = (section: PropertySection, field: FieldName, value: string | number | null) => {
+    const updateField = (field: string, value: string | number | null) => {
         setPropertyDetails((prev) => {
             if (!prev) return null
+            const keys = field.split('.')
             const updatedDetails = { ...prev }
-            if (section === 'basicInfo') {
-                updatedDetails.basicInfo = {
-                    ...updatedDetails.basicInfo,
-                    [field]: value,
-                }
-            } else if (section === 'location') {
-                updatedDetails.location = {
-                    ...updatedDetails.location,
-                    [field]: value,
-                }
-            } else if (section === 'amenitiesAndFeatures') {
-                updatedDetails.amenitiesAndFeatures = {
-                    ...updatedDetails.amenitiesAndFeatures,
-                    [field]: value,
+
+            if (keys.length === 2) {
+                const [section, key] = keys
+                if (section === 'basicInfo') {
+                    updatedDetails.basicInfo = {
+                        ...updatedDetails.basicInfo,
+                        [key]: value,
+                    }
+                } else if (section === 'location') {
+                    updatedDetails.location = {
+                        ...updatedDetails.location,
+                        [key]: value,
+                    }
+                } else if (section === 'amenitiesAndFeatures') {
+                    updatedDetails.amenitiesAndFeatures = {
+                        ...updatedDetails.amenitiesAndFeatures,
+                        [key]: value,
+                    }
                 }
             }
             return updatedDetails
         })
     }
 
-    const updateBasicField = (field: keyof PropertyDetails['basicInfo'], value: string | number | null) => {
-        updateField('basicInfo', field, value)
+    // Generic handle edit for sections
+    const handleEditSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+        setter(true)
     }
 
-    const updateLocationField = (field: keyof PropertyDetails['location'], value: string | number | null) => {
-        updateField('location', field, value)
-    }
-
-    // Handle edit mode toggle
-    const handleEdit = () => {
-        setIsEditing(true)
-    }
-
-    // Handle cancel edit
-    const handleCancel = () => {
-        setPropertyDetails(originalDetails)
-        setIsEditing(false)
-    }
-
-    // Handle save changes
-    const handleSave = async () => {
-        if (propertyDetails && id) {
-            try {
-                // Here you would typically make an API call to save the changes
-                console.log('Saving property details:', propertyDetails)
-                setOriginalDetails(propertyDetails)
-                setIsEditing(false)
-                console.log('Property details saved successfully')
-            } catch (error) {
-                console.error('Error saving property details:', error)
-            }
-        }
-    }
-
-    // Render field based on edit mode
-    const renderField = <T extends PropertySection>(
-        label: string,
-        value: string | number | null,
-        updateFunction: (field: keyof PropertyDetails[T], value: string | number | null) => void,
-        fieldKey: keyof PropertyDetails[T],
-        options?: { label: string; value: string }[],
-        fieldType: 'text' | 'date' | 'number' = 'text',
+    // Generic handle cancel for sections
+    const handleCancelSection = (
+        setter: React.Dispatch<React.SetStateAction<boolean>>,
+        originalData: PropertyDetails | null,
     ) => {
-        if (isEditing) {
-            if (options) {
-                return (
-                    <div>
-                        <label className='text-sm text-black block mb-1'>{label}</label>
-                        <Dropdown
-                            options={options}
-                            onSelect={(selectedValue) => updateFunction(fieldKey, selectedValue)}
-                            defaultValue={value as string}
-                            placeholder={`Select ${label}`}
-                            className='relative w-full'
-                            triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
-                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                            optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                        />
-                    </div>
-                )
-            } else if (fieldType === 'number') {
-                return (
-                    <NumberInput
-                        label={label}
-                        placeholder={`Enter ${label.toLowerCase()}`}
-                        value={value as number}
-                        onChange={(numValue) => updateFunction(fieldKey, numValue ?? 0)}
-                        numberType='decimal'
-                        min={0}
-                        fullWidth
-                    />
-                )
-            } else {
-                return (
-                    <div className='error'>
-                        <label className='text-sm text-black block mb-1'>{label}</label>
-                        <StateBaseTextField
-                            value={value?.toString() ?? ''}
-                            onChange={(e) => updateFunction(fieldKey, e.target.value)}
-                            className='w-full text-sm'
-                        />
-                    </div>
-                )
-            }
-        } else {
+        setter(false)
+        setPropertyDetails(originalData)
+    }
+
+    // Generic handle save for sections
+    const handleSaveSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+        setter(false)
+        setOriginalDetails(propertyDetails)
+        // Here you would typically make an API call to save the changes
+        console.log('Saving property details:', propertyDetails)
+    }
+
+    // Helper for rendering info rows (same as primary details)
+    const renderInfoRow = (
+        label1: string,
+        value1: string | undefined,
+        label2: string,
+        value2: string | undefined,
+        fieldKey1?: string,
+        fieldKey2?: string,
+        options1?: { label: string; value: string }[],
+        options2?: { label: string; value: string }[],
+        type1: 'text' | 'date' | 'link' | 'number' = 'text',
+        type2: 'text' | 'date' | 'link' | 'number' = 'text',
+        onClick1?: () => void,
+        onClick2?: () => void,
+        classNameOverride?: string,
+        isSectionEditable: boolean = false,
+    ) => {
+        const renderField = (
+            label: string,
+            value: string | undefined,
+            fieldKey: string | undefined,
+            options?: { label: string; value: string }[],
+            type: 'text' | 'date' | 'link' | 'number' = 'text',
+            onClick?: () => void,
+        ) => {
+            const displayValue = value || ''
             return (
-                <div>
-                    <label className='text-sm text-gray-600 block mb-1'>{label}</label>
-                    <div className='text-sm text-black font-medium'>{value?.toString() ?? ''}</div>
+                <div
+                    className={`flex flex-col gap-1 border-t border-solid border-t-[#d4dbe2] py-4 ${classNameOverride?.includes('pr-') ? '' : 'pr-2'}`}
+                >
+                    <p className='text-[#5c738a] text-sm font-normal leading-normal'>{label}</p>
+                    {isSectionEditable && fieldKey ? (
+                        options ? (
+                            <Dropdown
+                                options={options}
+                                defaultValue={value || ''}
+                                onSelect={(optionValue: string) => updateField(fieldKey, optionValue)}
+                                className='w-full'
+                                optionClassName='text-base'
+                            />
+                        ) : type === 'date' ? (
+                            <StateBaseTextField
+                                type='date'
+                                value={value || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                    updateField(fieldKey, e.target.value)
+                                }
+                                className='h-9 text-base'
+                            />
+                        ) : type === 'number' ? (
+                            <StateBaseTextField
+                                type='number'
+                                value={value || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                    updateField(fieldKey, e.target.value)
+                                }
+                                className='h-9 text-base'
+                            />
+                        ) : (
+                            <StateBaseTextField
+                                value={value || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                    updateField(fieldKey, e.target.value)
+                                }
+                                className='h-9 text-base'
+                            />
+                        )
+                    ) : type === 'link' &&
+                      value &&
+                      onClick &&
+                      (value.startsWith('http') ||
+                          (value.startsWith('/') && !onClick.toString().includes('navigate'))) ? (
+                        <a
+                            href={value}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-blue-600 underline text-sm font-medium leading-normal'
+                            onClick={onClick}
+                        >
+                            {displayValue}
+                        </a>
+                    ) : type === 'link' && onClick ? (
+                        <button
+                            onClick={onClick}
+                            className='text-blue-600 underline text-sm font-medium leading-normal text-left cursor-pointer'
+                        >
+                            {displayValue}
+                        </button>
+                    ) : (
+                        <p className='text-[#101418] text-sm font-normal leading-normal'>{displayValue}</p>
+                    )}
                 </div>
             )
         }
+
+        return (
+            <>
+                <div
+                    className={`${classNameOverride && classNameOverride.includes('col-span-2') ? classNameOverride : ''}`}
+                >
+                    {renderField(label1, value1, fieldKey1, options1, type1, onClick1)}
+                </div>
+                {!classNameOverride?.includes('col-span-2') && (
+                    <div className={'pl-2'}>{renderField(label2, value2, fieldKey2, options2, type2, onClick2)}</div>
+                )}
+            </>
+        )
     }
 
     if (loading || !propertyDetails) {
-        return (
-            <Layout loading={true}>
-                <div className='py-2 px-6 bg-white min-h-screen'>
-                    <div className='flex items-center justify-center h-64'>
-                        <div className='text-gray-500'>Loading property details...</div>
-                    </div>
-                </div>
-            </Layout>
-        )
+        return <Layout loading={true}>Loading property details...</Layout>
     }
 
     return (
         <Layout loading={false}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-4 px-6 bg-white min-h-screen'>
+                <div className='py-4 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
-                    <div className='mb-6'>
+                    <div className='mb-2'>
                         <div className='flex items-center justify-between mb-4'>
-                            <div>
-                                <div className='flex items-center gap-2 mb-2'>
-                                    <span className='bg-green-100 text-green-800 text-xs px-2 py-1 rounded'>
-                                        {propertyDetails.status}
-                                    </span>
-                                    <span className='text-lg font-semibold text-black'>
-                                        {propertyDetails.basicInfo.price}
-                                    </span>
-                                </div>
-                                <h1 className='text-xl font-semibold text-black'>{propertyDetails.title}</h1>
-                                <div className='text-sm text-gray-500 mt-1'>
-                                    <button onClick={() => navigate('/restack/resale')} className='hover:text-gray-700'>
-                                        Resale
-                                    </button>
-                                    <span className='mx-2'>/</span>
-                                    <span className='text-black font-medium'>{propertyDetails.id}</span>
-                                </div>
-                            </div>
-                            <div className='flex gap-2'>
-                                {isEditing ? (
-                                    <>
-                                        <Button
-                                            bgColor='bg-gray-200'
-                                            textColor='text-gray-700'
-                                            className='px-4 h-8 font-semibold'
-                                            onClick={handleCancel}
-                                        >
-                                            ✕ Cancel
-                                        </Button>
-                                        <Button
-                                            bgColor='bg-gray-600'
-                                            textColor='text-white'
-                                            className='px-4 h-8 font-semibold'
-                                            onClick={handleSave}
-                                        >
-                                            ✓ Save
-                                        </Button>
-                                    </>
-                                ) : (
-                                    <Button
-                                        leftIcon={<img src={editic} alt='Edit' className='w-4 h-4' />}
-                                        bgColor='bg-[#F3F3F3]'
-                                        textColor='text-[#3A3A47]'
-                                        className='px-4 h-8 font-semibold'
-                                        onClick={handleEdit}
-                                    >
-                                        Edit Property
-                                    </Button>
-                                )}
-                            </div>
+                            <h1 className='text-xl font-semibold text-gray-900'>Property Details</h1>
+                        </div>
+                    </div>
+                    <hr className='border-gray-200 mb-4 w-full' />
+
+                    {/* Property Status and Price Header */}
+                    <div className='mb-6 p-4 bg-gray-50 rounded-lg'>
+                        <div className='flex items-center gap-2 mb-2'>
+                            <span className='bg-green-100 text-green-800 text-xs px-2 py-1 rounded'>
+                                {propertyDetails.status}
+                            </span>
+                            <span className='text-lg font-semibold text-black'>{propertyDetails.basicInfo.price}</span>
+                        </div>
+                        <h2 className='text-xl font-semibold text-black'>{propertyDetails.title}</h2>
+                        <div className='text-sm text-gray-500 mt-1'>
+                            <button onClick={() => navigate('/restack/resale')} className='hover:text-gray-700'>
+                                Resale
+                            </button>
+                            <span className='mx-2'>/</span>
+                            <span className='text-black font-medium'>{propertyDetails.id}</span>
                         </div>
                     </div>
 
@@ -343,281 +396,413 @@ const ResaleDetailsPage = () => {
                     <ImageGallery images={propertyDetails.images} />
 
                     {/* Property Overview */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Property Overview</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField<'basicInfo'>(
-                                    'Project Name',
-                                    propertyDetails.basicInfo.projectName,
-                                    updateBasicField,
-                                    'projectName',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Property Type',
-                                    propertyDetails.basicInfo.propertyType,
-                                    updateBasicField,
-                                    'propertyType',
-                                    propertyTypes,
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Sub Type',
-                                    propertyDetails.basicInfo.subType,
-                                    updateBasicField,
-                                    'subType',
-                                    subTypes,
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Configuration',
-                                    propertyDetails.basicInfo.configuration,
-                                    updateBasicField,
-                                    'configuration',
-                                    configurations,
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Price',
-                                    propertyDetails.basicInfo.price,
-                                    updateBasicField,
-                                    'price',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Price per sq ft',
-                                    propertyDetails.basicInfo.pricePerSqFt,
-                                    updateBasicField,
-                                    'pricePerSqFt',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'RERA ID',
-                                    propertyDetails.basicInfo.reraId,
-                                    updateBasicField,
-                                    'reraId',
-                                )}
-                            </div>
-                            <div className='space-y-4'>
-                                {renderField<'basicInfo'>(
-                                    'Project Size',
-                                    propertyDetails.basicInfo.projectSize,
-                                    updateBasicField,
-                                    'projectSize',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Super Built-up Area',
-                                    propertyDetails.basicInfo.superBuiltUpArea,
-                                    updateBasicField,
-                                    'superBuiltUpArea',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Carpet Area',
-                                    propertyDetails.basicInfo.carpetArea,
-                                    updateBasicField,
-                                    'carpetArea',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Total Units',
-                                    propertyDetails.basicInfo.totalUnits,
-                                    updateBasicField,
-                                    'totalUnits',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Developer',
-                                    propertyDetails.basicInfo.developer,
-                                    updateBasicField,
-                                    'developer',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Possession',
-                                    propertyDetails.basicInfo.possession,
-                                    updateBasicField,
-                                    'possession',
-                                    statusOptions,
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Age of Property',
-                                    propertyDetails.basicInfo.ageOfProperty,
-                                    updateBasicField,
-                                    'ageOfProperty',
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Location and Timeline */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Location and Timeline</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField<'location'>(
-                                    'Project Address',
-                                    propertyDetails.location.projectAddress,
-                                    updateLocationField,
-                                    'projectAddress',
-                                )}
-                                {renderField<'location'>(
-                                    'Area',
-                                    propertyDetails.location.area,
-                                    updateLocationField,
-                                    'area',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Age of Property',
-                                    propertyDetails.basicInfo.ageOfProperty,
-                                    updateBasicField,
-                                    'ageOfProperty',
-                                )}
-                                {renderField<'location'>(
-                                    'Address',
-                                    propertyDetails.location.projectAddress,
-                                    updateLocationField,
-                                    'projectAddress',
-                                )}
-                                {renderField<'location'>(
-                                    'Launch Date',
-                                    propertyDetails.location.launchDate,
-                                    updateLocationField,
-                                    'launchDate',
-                                )}
-                            </div>
-                            <div className='space-y-4'>
-                                {renderField<'location'>(
-                                    'Micromarket',
-                                    propertyDetails.location.micromarket,
-                                    updateLocationField,
-                                    'micromarket',
-                                )}
-                                {renderField<'location'>(
-                                    'Coordinates',
-                                    `${propertyDetails.location.coordinates.latitude}, ${propertyDetails.location.coordinates.longitude}`,
-                                    updateLocationField,
-                                    'coordinates',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Possession',
-                                    propertyDetails.basicInfo.possession,
-                                    updateBasicField,
-                                    'possession',
-                                )}
-                                {renderField<'location'>(
-                                    'Map Link',
-                                    propertyDetails.location.mapLink,
-                                    updateLocationField,
-                                    'mapLink',
-                                )}
-                                {renderField<'location'>(
-                                    'Handover Date',
-                                    propertyDetails.location.handoverDate,
-                                    updateLocationField,
-                                    'handoverDate',
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Inventory Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Inventory Details</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField<'basicInfo'>(
-                                    'Availability',
-                                    propertyDetails.basicInfo.availability,
-                                    updateBasicField,
-                                    'availability',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Overlooking',
-                                    propertyDetails.basicInfo.ageOfProperty,
-                                    updateBasicField,
-                                    'ageOfProperty',
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Floor Number',
-                                    propertyDetails.basicInfo.floorNumber,
-                                    updateBasicField,
-                                    'floorNumber',
-                                )}
-                            </div>
-                            <div className='space-y-4'>
-                                {renderField<'basicInfo'>(
-                                    'Facing',
-                                    propertyDetails.basicInfo.facing,
-                                    updateBasicField,
-                                    'facing',
-                                    facingOptions,
-                                )}
-                                {renderField<'basicInfo'>(
-                                    'Furnishing',
-                                    propertyDetails.basicInfo.furnishing,
-                                    updateBasicField,
-                                    'furnishing',
-                                    furnishingOptions,
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Amenities */}
-                    <div className='mb-8'>
-                        <div className='flex items-center justify-between mb-4'>
-                            <h2 className='text-lg font-semibold text-black'>Amenities</h2>
-                            {isEditing && (
-                                <Button bgColor='bg-blue-50' textColor='text-blue-600' className='px-4 h-8 text-sm'>
+                    <div className='flex items-center justify-between px-4 pb-3 pt-5'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Property Overview</h2>
+                        <div className='flex items-center gap-2'>
+                            {isEditingBasicInfo ? (
+                                <>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
+                                        onClick={() => handleCancelSection(setIsEditingBasicInfo, originalDetails)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
+                                        onClick={() => handleSaveSection(setIsEditingBasicInfo)}
+                                    >
+                                        Save
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                    onClick={() => handleEditSection(setIsEditingBasicInfo)}
+                                >
+                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
                                     Edit
                                 </Button>
                             )}
                         </div>
-                        <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
-                            {propertyDetails.amenitiesAndFeatures.amenities.slice(0, 12).map((amenity, index) => (
-                                <div key={index} className='bg-gray-50 px-3 py-2 rounded text-sm text-gray-700'>
-                                    {amenity}
+                    </div>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Project Name',
+                            propertyDetails.basicInfo.projectName,
+                            'Property Type',
+                            propertyDetails.basicInfo.propertyType,
+                            'basicInfo.projectName',
+                            'basicInfo.propertyType',
+                            undefined,
+                            propertyTypes,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingBasicInfo,
+                        )}
+                        {renderInfoRow(
+                            'Sub Type',
+                            propertyDetails.basicInfo.subType,
+                            'Configuration',
+                            propertyDetails.basicInfo.configuration,
+                            'basicInfo.subType',
+                            'basicInfo.configuration',
+                            subTypes,
+                            configurations,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingBasicInfo,
+                        )}
+                        {renderInfoRow(
+                            'Price',
+                            propertyDetails.basicInfo.price,
+                            'Price per sq ft',
+                            propertyDetails.basicInfo.pricePerSqFt,
+                            'basicInfo.price',
+                            'basicInfo.pricePerSqFt',
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingBasicInfo,
+                        )}
+                        {renderInfoRow(
+                            'RERA ID',
+                            propertyDetails.basicInfo.reraId,
+                            'Project Size',
+                            propertyDetails.basicInfo.projectSize,
+                            'basicInfo.reraId',
+                            'basicInfo.projectSize',
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingBasicInfo,
+                        )}
+                        {renderInfoRow(
+                            'Super Built-up Area',
+                            propertyDetails.basicInfo.superBuiltUpArea,
+                            'Carpet Area',
+                            propertyDetails.basicInfo.carpetArea,
+                            'basicInfo.superBuiltUpArea',
+                            'basicInfo.carpetArea',
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingBasicInfo,
+                        )}
+                        {renderInfoRow(
+                            'Total Units',
+                            propertyDetails.basicInfo.totalUnits,
+                            'Developer',
+                            propertyDetails.basicInfo.developer,
+                            'basicInfo.totalUnits',
+                            'basicInfo.developer',
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingBasicInfo,
+                        )}
+                        {renderInfoRow(
+                            'Possession',
+                            propertyDetails.basicInfo.possession,
+                            'Age of Property',
+                            propertyDetails.basicInfo.ageOfProperty,
+                            'basicInfo.possession',
+                            'basicInfo.ageOfProperty',
+                            statusOptions,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingBasicInfo,
+                        )}
+                    </div>
+
+                    {/* Location and Timeline */}
+                    <div className='flex items-center justify-between px-4 pb-3 pt-5'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Location and Timeline</h2>
+                        <div className='flex items-center gap-2'>
+                            {isEditingLocation ? (
+                                <>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
+                                        onClick={() => handleCancelSection(setIsEditingLocation, originalDetails)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
+                                        onClick={() => handleSaveSection(setIsEditingLocation)}
+                                    >
+                                        Save
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                    onClick={() => handleEditSection(setIsEditingLocation)}
+                                >
+                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
+                                    Edit
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Project Address',
+                            propertyDetails.location.projectAddress,
+                            'Area',
+                            propertyDetails.location.area,
+                            'location.projectAddress',
+                            'location.area',
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingLocation,
+                        )}
+                        {renderInfoRow(
+                            'Micromarket',
+                            propertyDetails.location.micromarket,
+                            'Launch Date',
+                            propertyDetails.location.launchDate,
+                            'location.micromarket',
+                            'location.launchDate',
+                            undefined,
+                            undefined,
+                            'text',
+                            'date',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingLocation,
+                        )}
+                        {renderInfoRow(
+                            'Handover Date',
+                            propertyDetails.location.handoverDate,
+                            'Map Link',
+                            'View on Map',
+                            'location.handoverDate',
+                            undefined,
+                            undefined,
+                            undefined,
+                            'date',
+                            'link',
+                            undefined,
+                            () => window.open(propertyDetails.location.mapLink, '_blank'),
+                            undefined,
+                            isEditingLocation,
+                        )}
+                        {renderInfoRow(
+                            'Coordinates',
+                            `${propertyDetails.location.coordinates.latitude}, ${propertyDetails.location.coordinates.longitude}`,
+                            '',
+                            '',
+                            'location.coordinates',
+                            undefined,
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            'col-span-2 pr-[50%]',
+                            isEditingLocation,
+                        )}
+                    </div>
+
+                    {/* Inventory Details */}
+                    <div className='flex items-center justify-between px-4 pb-3 pt-5'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Inventory Details</h2>
+                        <div className='flex items-center gap-2'>
+                            {isEditingInventory ? (
+                                <>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
+                                        onClick={() => handleCancelSection(setIsEditingInventory, originalDetails)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
+                                        onClick={() => handleSaveSection(setIsEditingInventory)}
+                                    >
+                                        Save
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                    onClick={() => handleEditSection(setIsEditingInventory)}
+                                >
+                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
+                                    Edit
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Availability',
+                            propertyDetails.basicInfo.availability,
+                            'Floor Number',
+                            propertyDetails.basicInfo.floorNumber,
+                            'basicInfo.availability',
+                            'basicInfo.floorNumber',
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingInventory,
+                        )}
+                        {renderInfoRow(
+                            'Facing',
+                            propertyDetails.basicInfo.facing,
+                            'Furnishing',
+                            propertyDetails.basicInfo.furnishing,
+                            'basicInfo.facing',
+                            'basicInfo.furnishing',
+                            facingOptions,
+                            furnishingOptions,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
+                            isEditingInventory,
+                        )}
+                    </div>
+
+                    {/* Amenities */}
+                    <div className='flex items-center justify-between px-4 pb-3 pt-5'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Amenities</h2>
+                        <div className='flex items-center gap-2'>
+                            {isEditingAmenities ? (
+                                <>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
+                                        onClick={() => handleCancelSection(setIsEditingAmenities, originalDetails)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
+                                        onClick={() => handleSaveSection(setIsEditingAmenities)}
+                                    >
+                                        Save
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                    onClick={() => handleEditSection(setIsEditingAmenities)}
+                                >
+                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
+                                    Edit
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                    {isEditingAmenities ? (
+                        <div className='flex flex-wrap gap-3 p-3 pr-4'>
+                            <textarea
+                                value={propertyDetails?.amenitiesAndFeatures?.amenities?.join(', ')}
+                                onChange={(e) =>
+                                    setPropertyDetails((prev) =>
+                                        prev
+                                            ? {
+                                                  ...prev,
+                                                  amenitiesAndFeatures: {
+                                                      ...prev.amenitiesAndFeatures,
+                                                      amenities: e.target.value.split(',').map((s) => s.trim()),
+                                                  },
+                                              }
+                                            : null,
+                                    )
+                                }
+                                className='w-full h-auto text-base border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                placeholder='Enter amenities separated by commas'
+                                rows={3}
+                            />
+                        </div>
+                    ) : (
+                        <div className='flex flex-wrap gap-3 p-3 pr-4'>
+                            {propertyDetails?.amenitiesAndFeatures?.amenities?.map((amenity: string, index: number) => (
+                                <div
+                                    key={index}
+                                    className='flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#e9edf1] pl-4 pr-4'
+                                >
+                                    <p className='text-[#101419] text-sm font-medium leading-normal'>{amenity}</p>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    )}
 
                     {/* About Project */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>About Project</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                <div>
-                                    <label className='text-sm text-gray-600 block mb-1'>Configuration</label>
-                                    <div className='text-sm text-black font-medium'>3BHK Flat</div>
-                                </div>
-                            </div>
-                            <div className='space-y-4'>
-                                <div>
-                                    <label className='text-sm text-gray-600 block mb-1'>Towers and Units</label>
-                                    <div className='text-sm text-black font-medium'>
-                                        {propertyDetails.projectOverview.totalTowers},{' '}
-                                        {propertyDetails.basicInfo.totalUnits} units
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className='mt-4'>
-                            <p className='text-sm text-gray-700 leading-relaxed'>{propertyDetails.description}</p>
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>About Project</h2>
+                    <div className='p-4 grid grid-cols-2'>
+                        {renderInfoRow(
+                            'Configuration',
+                            '3BHK Flat',
+                            'Towers and Units',
+                            `${propertyDetails.projectOverview.totalTowers}, ${propertyDetails.basicInfo.totalUnits} units`,
+                        )}
+                    </div>
+                    <div className='p-4'>
+                        <div className='border-t border-solid border-t-[#d4dbe2] py-4'>
+                            <p className='text-[#5c738a] text-sm font-normal leading-normal mb-2'>Description</p>
+                            <p className='text-[#101418] text-sm font-normal leading-normal'>
+                                {propertyDetails.description}
+                            </p>
                         </div>
                     </div>
 
                     {/* Extra Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Extra Details</h2>
-                        <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Property Features</h2>
+                    <div className='p-4'>
+                        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-solid border-t-[#d4dbe2] py-4'>
                             <div className='text-center'>
-                                <div className='text-lg font-semibold text-black'>3</div>
-                                <div className='text-sm text-gray-600'>Beds</div>
+                                <div className='text-lg font-semibold text-[#101418]'>3</div>
+                                <div className='text-sm text-[#5c738a]'>Baths</div>
                             </div>
                             <div className='text-center'>
-                                <div className='text-lg font-semibold text-black'>3</div>
-                                <div className='text-sm text-gray-600'>Baths</div>
+                                <div className='text-lg font-semibold text-[#101418]'>2</div>
+                                <div className='text-sm text-[#5c738a]'>Balconies</div>
                             </div>
                             <div className='text-center'>
-                                <div className='text-lg font-semibold text-black'>2</div>
-                                <div className='text-sm text-gray-600'>Balconies</div>
-                            </div>
-                            <div className='text-center'>
-                                <div className='text-lg font-semibold text-black'>Semi-Furnished</div>
-                                <div className='text-sm text-gray-600'>Furnishing</div>
+                                <div className='text-lg font-semibold text-[#101418]'>
+                                    {propertyDetails.basicInfo.furnishing}
+                                </div>
+                                <div className='text-sm text-[#5c738a]'>Furnishing</div>
                             </div>
                         </div>
                     </div>

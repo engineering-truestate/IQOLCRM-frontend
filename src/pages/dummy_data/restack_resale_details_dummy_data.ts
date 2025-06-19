@@ -101,6 +101,12 @@ export interface DeveloperInfo {
     description: string
 }
 
+// Price History Interface
+export interface PriceHistory {
+    date: string
+    totalPrice: string
+}
+
 export interface PropertyDetails {
     id: string
     title: string
@@ -143,68 +149,69 @@ export interface PropertyDetails {
         resaleValue: string
         mortgageApproval: string[]
     }
+    priceHistory: PriceHistory[]
 }
 
-// Sample property images
+// Updated sample property images with real URLs
 export const samplePropertyImages: PropertyImages[] = [
     {
         id: 'img-001',
-        url: '/api/placeholder/800/600',
+        url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop&crop=center',
         alt: 'Property main view',
         type: 'main',
     },
     {
         id: 'img-002',
-        url: '/api/placeholder/800/600',
+        url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop&crop=center',
         alt: 'Property exterior',
         type: 'exterior',
     },
     {
         id: 'img-003',
-        url: '/api/placeholder/800/600',
+        url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=600&fit=crop&crop=center',
         alt: 'Property interior living room',
         type: 'interior',
     },
     {
         id: 'img-004',
-        url: '/api/placeholder/800/600',
+        url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop&crop=center',
         alt: 'Property interior bedroom',
         type: 'interior',
     },
     {
         id: 'img-005',
-        url: '/api/placeholder/800/600',
+        url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop&crop=center',
         alt: 'Swimming pool amenity',
         type: 'amenity',
     },
     {
         id: 'img-006',
-        url: '/api/placeholder/800/600',
+        url: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop&crop=center',
         alt: 'Clubhouse amenity',
         type: 'amenity',
     },
     {
         id: 'img-007',
-        url: '/api/placeholder/600/800',
-        alt: '2 BHK floor plan',
-        type: 'floor_plan',
+        url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop&crop=center',
+        alt: 'Garden area',
+        type: 'amenity',
     },
     {
         id: 'img-008',
-        url: '/api/placeholder/600/800',
-        alt: '3 BHK floor plan',
-        type: 'floor_plan',
+        url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop&crop=center',
+        alt: 'Gym amenity',
+        type: 'amenity',
     },
 ]
 
-// Sample floor plans
+// Updated sample floor plans with real URLs
 export const sampleFloorPlans: FloorPlanDetails[] = [
     {
         id: 'fp-001',
         unitType: '1 BHK',
         carpetArea: '450 sq ft',
         superBuiltUpArea: '600 sq ft',
-        imageUrl: '/api/placeholder/400/600',
+        imageUrl: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&h=600&fit=crop&crop=center',
         price: '₹45,00,000',
         pricePerSqft: '₹7,500',
     },
@@ -213,7 +220,7 @@ export const sampleFloorPlans: FloorPlanDetails[] = [
         unitType: '2 BHK',
         carpetArea: '675 sq ft',
         superBuiltUpArea: '900 sq ft',
-        imageUrl: '/api/placeholder/400/600',
+        imageUrl: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&h=600&fit=crop&crop=center',
         price: '₹72,00,000',
         pricePerSqft: '₹8,000',
     },
@@ -222,7 +229,7 @@ export const sampleFloorPlans: FloorPlanDetails[] = [
         unitType: '3 BHK',
         carpetArea: '1050 sq ft',
         superBuiltUpArea: '1400 sq ft',
-        imageUrl: '/api/placeholder/400/600',
+        imageUrl: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=400&h=600&fit=crop&crop=center',
         price: '₹1,12,00,000',
         pricePerSqft: '₹8,000',
     },
@@ -231,9 +238,25 @@ export const sampleFloorPlans: FloorPlanDetails[] = [
         unitType: '3 BHK Premium',
         carpetArea: '1200 sq ft',
         superBuiltUpArea: '1600 sq ft',
-        imageUrl: '/api/placeholder/400/600',
+        imageUrl: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&h=600&fit=crop&crop=center',
         price: '₹1,44,00,000',
         pricePerSqft: '₹9,000',
+    },
+]
+
+// Price History Data
+export const samplePriceHistory: PriceHistory[] = [
+    {
+        date: '12 January 2025',
+        totalPrice: '1.2 Cr',
+    },
+    {
+        date: '14 February 2025',
+        totalPrice: '1.2 Cr',
+    },
+    {
+        date: '11 March 2025',
+        totalPrice: '1.2 Cr',
     },
 ]
 
@@ -426,9 +449,10 @@ export const propertyDetailsData: PropertyDetails = {
         resaleValue: 'High liquidity market',
         mortgageApproval: ['SBI', 'HDFC', 'ICICI', 'Axis Bank', 'LIC Housing Finance'],
     },
+    priceHistory: samplePriceHistory,
 }
 
-// Additional properties for list view
+// Additional properties for list view with updated images
 export const allPropertiesData: PropertyDetails[] = [
     propertyDetailsData,
     {
@@ -436,8 +460,28 @@ export const allPropertiesData: PropertyDetails[] = [
         id: 'PR7891',
         title: 'Prestige Green Valley - Luxury Villas',
         description:
-            'Experience luxury     living at Prestige Green Valley, featuring premium villas with private gardens and world-class amenities in a gated community.',
+            'Experience luxury living at Prestige Green Valley, featuring premium villas with private gardens and world-class amenities in a gated community.',
         status: 'Under Construction',
+        images: [
+            {
+                id: 'img-villa-001',
+                url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop&crop=center',
+                alt: 'Villa main view',
+                type: 'main',
+            },
+            {
+                id: 'img-villa-002',
+                url: 'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800&h=600&fit=crop&crop=center',
+                alt: 'Villa exterior garden',
+                type: 'exterior',
+            },
+            {
+                id: 'img-villa-003',
+                url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop&crop=center',
+                alt: 'Villa interior living room',
+                type: 'interior',
+            },
+        ],
         basicInfo: {
             ...propertyDetailsData.basicInfo,
             projectName: 'Prestige Green Valley',
@@ -456,6 +500,20 @@ export const allPropertiesData: PropertyDetails[] = [
             micromarket: 'Whitefield',
             area: 'East Bangalore',
         },
+        priceHistory: [
+            {
+                date: '15 January 2025',
+                totalPrice: '2.6 Cr',
+            },
+            {
+                date: '20 February 2025',
+                totalPrice: '2.7 Cr',
+            },
+            {
+                date: '10 March 2025',
+                totalPrice: '2.8 Cr',
+            },
+        ],
     },
     {
         ...propertyDetailsData,
@@ -464,6 +522,26 @@ export const allPropertiesData: PropertyDetails[] = [
         description:
             'Modern apartments strategically located in the IT corridor with excellent connectivity and contemporary amenities for young professionals.',
         status: 'Ready to Move',
+        images: [
+            {
+                id: 'img-brigade-001',
+                url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop&crop=center',
+                alt: 'Brigade building main view',
+                type: 'main',
+            },
+            {
+                id: 'img-brigade-002',
+                url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop&crop=center',
+                alt: 'Brigade building exterior',
+                type: 'exterior',
+            },
+            {
+                id: 'img-brigade-003',
+                url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=600&fit=crop&crop=center',
+                alt: 'Brigade apartment interior',
+                type: 'interior',
+            },
+        ],
         basicInfo: {
             ...propertyDetailsData.basicInfo,
             projectName: 'Brigade Tech Park Residences',
@@ -482,32 +560,20 @@ export const allPropertiesData: PropertyDetails[] = [
             micromarket: 'Electronic City',
             area: 'South Bangalore',
         },
-    },
-    {
-        ...propertyDetailsData,
-        id: 'PR7893',
-        title: 'Godrej Platinum Towers - Premium High-rise',
-        description:
-            'Iconic high-rise towers offering panoramic city views with premium finishes and smart home features in the heart of the business district.',
-        status: 'Under Construction',
-        basicInfo: {
-            ...propertyDetailsData.basicInfo,
-            projectName: 'Godrej Platinum Towers',
-            configuration: '3 BHK',
-            price: '₹1.95 Cr',
-            pricePerSqFt: '₹7,200',
-            superBuiltUpArea: '2,700 sq ft',
-            carpetArea: '2,000 sq ft',
-            possession: 'Jun 2026',
-            ageOfProperty: 'New Launch',
-            floorNumber: '32nd Floor',
-        },
-        location: {
-            ...propertyDetailsData.location,
-            projectAddress: 'UB City Mall Area, Bangalore',
-            micromarket: 'UB City',
-            area: 'Central Bangalore',
-        },
+        priceHistory: [
+            {
+                date: '05 January 2025',
+                totalPrice: '80 Lac',
+            },
+            {
+                date: '18 February 2025',
+                totalPrice: '82 Lac',
+            },
+            {
+                date: '08 March 2025',
+                totalPrice: '85 Lac',
+            },
+        ],
     },
 ]
 
