@@ -49,7 +49,6 @@ export interface IInventory {
     lastCheck?: number // Unix timestamp in milliseconds
     propertyName?: string
 
-
     // Extended optional properties for different asset types
     communityType?: string
     unitNo?: string
@@ -99,6 +98,7 @@ export interface IInventory {
     priority?: number
     marketingNotes?: string
 
+    // Notes functionality
     notes?: Array<{
         id: string
         email: string
@@ -106,7 +106,6 @@ export interface IInventory {
         content: string
         timestamp: number
     }>
-
 }
 
 // === Requirement shape ===
