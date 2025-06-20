@@ -123,7 +123,7 @@ const userSlice = createSlice({
             })
             .addCase(fetchUserRoleByEmail.fulfilled, (state, action) => {
                 state.loading = false
-                state.agentData = { ...action.payload, role: toValidRole(action.payload.role) }
+                state.agentData = action.payload as AgentData
                 state.userRole = action.payload.role
                 state.lastFetch = new Date()
                 state.error = null
