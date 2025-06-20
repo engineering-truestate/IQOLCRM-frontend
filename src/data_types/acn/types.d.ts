@@ -174,6 +174,55 @@ interface QCReview {
     dataReview: ReviewDetails
 }
 
+// Available fields for rejection reasons - formatted for your MultiSelectDropdown
+export const AVAILABLE_PROPERTY_FIELDS = [
+    { label: 'Property Name', value: 'propertyName' },
+    { label: 'Address', value: 'address' },
+    { label: 'Area', value: 'area' },
+    { label: 'Micromarket', value: 'micromarket' },
+    { label: 'Map Location', value: 'mapLocation' },
+    { label: 'Asset Type', value: 'assetType' },
+    { label: 'Unit Type', value: 'unitType' },
+    { label: 'Sub Type', value: 'subType' },
+    { label: 'Community Type', value: 'communityType' },
+    { label: 'SBUA (Super Built-up Area)', value: 'sbua' },
+    { label: 'Carpet Area', value: 'carpet' },
+    { label: 'Plot Size', value: 'plotSize' },
+    { label: 'UDS (Undivided Share)', value: 'uds' },
+    { label: 'Structure', value: 'structure' },
+    { label: 'Building Age', value: 'buildingAge' },
+    { label: 'Floor Number', value: 'floorNo' },
+    { label: 'Exact Floor', value: 'exactFloor' },
+    { label: 'Facing Direction', value: 'facing' },
+    { label: 'Plot Facing', value: 'plotFacing' },
+    { label: 'Balcony Facing', value: 'balconyFacing' },
+    { label: 'Number of Balconies', value: 'noOfBalconies' },
+    { label: 'Number of Bathrooms', value: 'noOfBathrooms' },
+    { label: 'Car Parking', value: 'carPark' },
+    { label: 'Corner Unit', value: 'cornerUnit' },
+    { label: 'Extra Rooms', value: 'extraRoom' },
+    { label: 'Furnishing Status', value: 'furnishing' },
+    { label: 'Total Ask Price', value: 'totalAskPrice' },
+    { label: 'Ask Price Per Sqft', value: 'askPricePerSqft' },
+    { label: 'Price History', value: 'priceHistory' },
+    { label: 'Rental Income', value: 'rentalIncome' },
+    { label: 'Current Status', value: 'currentStatus' },
+    { label: 'Exclusive Listing', value: 'exclusive' },
+    { label: 'Tenanted Status', value: 'tenanted' },
+    { label: 'E-Khata', value: 'eKhata' },
+    { label: 'Building Khata', value: 'buildingKhata' },
+    { label: 'Land Khata', value: 'landKhata' },
+    { label: 'OC Received', value: 'ocReceived' },
+    { label: 'BDA Approved', value: 'bdaApproved' },
+    { label: 'BIAPPA Approved', value: 'biappaApproved' },
+    { label: 'Handover Date', value: 'handoverDate' },
+    { label: 'Photos', value: 'photo' },
+    { label: 'Videos', value: 'video' },
+    { label: 'Documents', value: 'document' },
+    { label: 'Drive Link', value: 'driveLink' },
+    { label: 'Extra Details', value: 'extraDetails' },
+]
+
 // Add Notes interface for the notes system
 interface QCNote {
     kamId: string
@@ -278,6 +327,43 @@ interface BaseQCInventory {
     // Location fields
     city: string
     state: string
+
+    // Missing fields from IInventory - added with optional (?)
+    id?: string
+    cpCode?: string
+    nameOfTheProperty?: string
+    builder_name?: string | null
+    objectID?: string
+    enquiries?: number
+    lastCheck?: number
+    propertyName?: string
+
+    // Plot-specific fields
+    oddSized?: boolean
+    plotLength?: number | string
+    plotBreadth?: number | string
+
+    // Additional metadata fields
+    propertyAge?: number
+    lastRenovated?: number
+    amenities?: string[]
+    nearbyLandmarks?: string[]
+    transportConnectivity?: string[]
+
+    // Pricing details
+    maintenanceCharges?: number
+    securityDeposit?: number
+    brokerage?: number
+
+    // Legal and compliance
+    approvalStatus?: string
+    legalClearance?: boolean
+    encumbrance?: boolean
+
+    // Marketing
+    featured?: boolean
+    priority?: number
+    marketingNotes?: string
 }
 
 // QC Inventory type for API responses
@@ -315,6 +401,7 @@ type UpdateQCStatusParams = {
     agentData: AgentData
     activeTab: string
     reviewedBy: string
+    comments: string
 }
 
 type UpdateKAMStatusParams = {
