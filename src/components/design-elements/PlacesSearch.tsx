@@ -120,19 +120,50 @@ const PlacesSearch: React.FC<PlacesSearchProps> = ({
             return
         }
 
-        loadGoogleMapsScript()
-            .then(() => {
-                if (window.google) {
-                    autocompleteService.current = new window.google.maps.places.AutocompleteService()
-                    placesService.current = new window.google.maps.places.PlacesService(document.createElement('div'))
-                }
-            })
-            .catch(() =>
-                setApiError(
-                    'Failed to load Google Maps script. Check the browser console and Network tab for more details.',
-                ),
-            )
+        // Add a small delay to ensure DOM is ready
+        const initializeGoogleMaps = () => {
+            loadGoogleMapsScript()
+                .then(() => {
+                    // Add a small delay to ensure Google Maps is fully initialized
+                    setTimeout(() => {
+                        if (window.google && window.google.maps && window.google.maps.places) {
+                            autocompleteService.current = new window.google.maps.places.AutocompleteService()
+                            placesService.current = new window.google.maps.places.PlacesService(
+                                document.createElement('div'),
+                            )
+                            console.log('✅ Google Maps services initialized')
+                        } else {
+                            setApiError('Google Maps Places API not available')
+                        }
+                    }, 100)
+                })
+                .catch((error) => {
+                    console.error('Google Maps loading error:', error)
+                    setApiError(
+                        'Failed to load Google Maps script. Check the browser console and Network tab for more details.',
+                    )
+                })
+        }
+
+        // Initialize immediately if DOM is ready, otherwise wait
+        if (document.readyState === 'complete') {
+            initializeGoogleMaps()
+        } else {
+            window.addEventListener('load', initializeGoogleMaps)
+            return () => window.removeEventListener('load', initializeGoogleMaps)
+        }
     }, [])
+
+    useEffect(() => {
+        if (selectedPlace && selectedPlace.name && !userInitiatedSearch) {
+            console.log('🔄 PlacesSearch syncing with selectedPlace prop:', selectedPlace.name)
+            setSearchQuery(selectedPlace.name)
+            setBlurredAndNotSelected(false)
+        } else if (!selectedPlace && !userInitiatedSearch) {
+            console.log('🔄 PlacesSearch clearing query - no selectedPlace')
+            setSearchQuery('')
+        }
+    }, [selectedPlace, userInitiatedSearch])
 
     const searchLocations = useCallback((query: string) => {
         if (!query.trim() || !autocompleteService.current) {

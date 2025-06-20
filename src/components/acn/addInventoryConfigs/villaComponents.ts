@@ -9,12 +9,7 @@ export const villaComponents = [
         ],
         colspan: 2,
     },
-    {
-        label: 'Property Name',
-        type: 'textInput',
-        field: 'propertyName',
-        colspan: 2,
-    },
+
     {
         label: 'Villa No.',
         type: 'textInput',
