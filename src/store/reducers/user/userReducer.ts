@@ -27,7 +27,7 @@ interface UserState {
     loading: boolean
     error: string | null
     authInitialized: boolean
-    lastFetch: Date | null
+    lastFetch: number | null
 }
 
 const initialState: UserState = {
@@ -82,7 +82,7 @@ const userSlice = createSlice({
                     : null
                 state.userRole = action.payload.agentData?.role || null
                 state.authInitialized = true
-                state.lastFetch = new Date()
+                state.lastFetch = Date.now()
                 state.error = null
             })
             .addCase(initializeAuthListener.rejected, (state, action) => {
@@ -107,7 +107,7 @@ const userSlice = createSlice({
                     : null
                 state.userRole = action.payload.agentData?.role || null
                 state.authInitialized = true
-                state.lastFetch = new Date()
+                state.lastFetch = Date.now()
                 state.error = null
             })
             .addCase(getCurrentUser.rejected, (state, action) => {
@@ -125,7 +125,7 @@ const userSlice = createSlice({
                 state.loading = false
                 state.agentData = action.payload as AgentData
                 state.userRole = action.payload.role
-                state.lastFetch = new Date()
+                state.lastFetch = Date.now()
                 state.error = null
             })
             .addCase(fetchUserRoleByEmail.rejected, (state, action) => {

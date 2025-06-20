@@ -22,6 +22,14 @@ import FormFieldRenderer, {
 import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import type { IQCInventory } from '../../../data_types/acn/types'
 
+// Import icons
+import apartmentIcon from '/icons/acn/ListingFlow/Apartments.svg'
+import villaIcon from '/icons/acn/ListingFlow/Villas.svg'
+import plotIcon from '/icons/acn/ListingFlow/Plots.svg'
+import villamentIcon from '/icons/acn/ListingFlow/Villaments.svg'
+import rowhouseIcon from '/icons/acn/ListingFlow/RowHouses.svg'
+import independentIcon from '/icons/acn/ListingFlow/IndependentBuildings.svg'
+
 // Map old PropertyType to new AssetType
 type PropertyType = 'apartments' | 'villa' | 'plot' | 'rowhouse' | 'villament' | 'independent'
 type AssetType = keyof typeof assetConfigurations
@@ -47,19 +55,19 @@ const assetTypeToPropertyType: Record<AssetType, PropertyType> = {
 
 // Asset type options
 const assetTypes: { label: string; value: PropertyType; icon: string }[] = [
-    { label: 'flats/apartments', value: 'apartments', icon: '🏢' },
-    { label: 'Villa', value: 'villa', icon: '🏡' },
-    { label: 'Plot', value: 'plot', icon: '🏞️' },
-    { label: 'Row House', value: 'rowhouse', icon: '🏘️' },
-    { label: 'Villament', value: 'villament', icon: '🏠' },
-    { label: 'Independent Building', value: 'independent', icon: '🏛️' },
+    { label: 'flats/ apartments', value: 'apartments', icon: apartmentIcon },
+    { label: 'Villa', value: 'villa', icon: villaIcon },
+    { label: 'Plot', value: 'plot', icon: plotIcon },
+    { label: 'Row House', value: 'rowhouse', icon: rowhouseIcon },
+    { label: 'Villament', value: 'villament', icon: villamentIcon },
+    { label: 'Independent Building', value: 'independent', icon: independentIcon },
 ]
 
 // Helper function to map property data to form fields
 const mapPropertyToFormData = (property: IInventory): Record<string, any> => {
     return {
-        communityType: property.communityType || 'gated',
         propertyName: property.propertyName || property.area,
+        communityType: property.communityType || 'gated',
         subType: property.subType || 'Simplex',
         sbua: property.sbua?.toString() || '',
         carpet: property.carpet?.toString() || '',
@@ -540,7 +548,7 @@ const AddEditInventoryPage = () => {
                                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                                 } ${isPropertyEdit || isQCEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                <div className='text-2xl'>{type.icon}</div>
+                                <img src={type.icon} alt={type.label} className='text-2xl' />
                                 <div className='text-sm font-medium'>{type.label}</div>
                             </button>
                         ))}

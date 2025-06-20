@@ -5,6 +5,8 @@ import { db } from '../../../firebase' // Adjust path to your Firebase config
 import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import type { INote } from '../../../data_types/acn/types'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../../store'
 
 export const createRequirement = createAsyncThunk(
     'requirements/create',
@@ -181,19 +183,23 @@ export const updateRequirementStatus = createAsyncThunk(
             id,
             status,
             type,
-            propertyType,
         }: {
             id: string
             status: string
             type: 'requirement' | 'internal'
-            propertyType: 'Resale' | 'Rental'
         },
         { rejectWithValue },
     ) => {
         try {
-            console.log('📝 Updating requirement status:', id, status, type, propertyType)
+            console.log('📝 Updating requirement status:', id, status, type)
 
-            const collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
+            let collectionName = 'acnRequirements' // default
+            // Use propertyId prefix: RQA for acnRequirements, RNT for acnRentalRequirements
+            if (id.startsWith('RNT')) {
+                collectionName = 'acnRentalRequirements'
+            } else if (id.startsWith('RQA')) {
+                collectionName = 'acnRequirements'
+            }
             const docRef = doc(db, collectionName, id)
             const updateField = type === 'requirement' ? 'requirementStatus' : 'internalStatus'
 
@@ -232,26 +238,22 @@ export const addNoteToRequirement = createAsyncThunk(
         {
             requirementId,
             note,
-            propertyType,
         }: {
             requirementId: string
             note: Omit<INote, 'id' | 'timestamp'>
-            propertyType?: 'Resale' | 'Rental'
         },
         { rejectWithValue },
     ) => {
         try {
-            console.log('📝 Adding note to requirement:', requirementId, note, propertyType)
+            console.log('📝 Adding note to requirement:', requirementId, note)
 
             // If propertyType is provided, use it; otherwise try to determine from the requirement ID
             let collectionName = 'acnRequirements' // default
-            if (propertyType) {
-                collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
-            } else {
-                // Try to determine from requirement ID pattern (RNT prefix for rental)
-                if (requirementId.startsWith('RNT')) {
-                    collectionName = 'acnRentalRequirements'
-                }
+            // Use propertyId prefix: RQA for acnRequirements, RNT for acnRentalRequirements
+            if (requirementId.startsWith('RNT')) {
+                collectionName = 'acnRentalRequirements'
+            } else if (requirementId.startsWith('RQA')) {
+                collectionName = 'acnRequirements'
             }
 
             const docRef = doc(db, collectionName, requirementId)
@@ -297,9 +299,11 @@ export const removeNoteFromRequirement = createAsyncThunk(
             if (propertyType) {
                 collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
             } else {
-                // Try to determine from requirement ID pattern (RNT prefix for rental)
+                // Use propertyId prefix: RQA for acnRequirements, RNT for acnRentalRequirements
                 if (requirementId.startsWith('RNT')) {
                     collectionName = 'acnRentalRequirements'
+                } else if (requirementId.startsWith('RQA')) {
+                    collectionName = 'acnRequirements'
                 }
             }
 
