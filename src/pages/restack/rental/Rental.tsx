@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
-import { get99AcresResaleData, getMagicBricksResaleData } from '../../../services/restack/resaleService'
-import type { RestackResaleProperty } from '../../../data_types/restack/restack-resale.d'
+
 import { FlexibleTable } from '../../../components/design-elements/FlexibleTable'
+import { get99AcresRentalData, getMagicBricksRentalData } from '../../../services/restack/rentalService'
+import type { RestackRentalProperty } from '../../../data_types/restack/restack-rental'
 
 interface OverviewData {
     totalProperties: number
@@ -11,22 +12,22 @@ interface OverviewData {
     soldOutUnits: number
 }
 
-const Resale: React.FC = () => {
+const Rental: React.FC = () => {
     const navigate = useNavigate()
     const [overviewData, setOverviewData] = useState<{ [key: string]: OverviewData }>({})
 
     useEffect(() => {
         const fetchOverviewData = async () => {
-            const acresData = await get99AcresResaleData()
-            const magicBricksData = await getMagicBricksResaleData()
+            const acresData = await get99AcresRentalData()
+            const magicBricksData = await getMagicBricksRentalData()
 
-            const calculateOverview = (data: RestackResaleProperty[]): OverviewData => {
+            const calculateOverview = (data: RestackRentalProperty[]): OverviewData => {
                 const totalProperties = data.length
                 let availableUnits = 0
                 let soldOutUnits = 0
 
                 data.forEach((item: any) => {
-                    availableUnits += item.inventoryDetails?.availability === 'Yes' ? 1 : 0
+                    availableUnits += item.inventoryDetails?.listingStatus === 'available' ? 1 : 0
                     soldOutUnits += item.inventoryDetails?.soldOutUnits || 0 // Assuming there's a soldOutUnits property
                 })
 
@@ -47,7 +48,7 @@ const Resale: React.FC = () => {
     }, [])
 
     const handleResaleTypeSelect = (type: string) => {
-        navigate(`/restack/resale/${type}`)
+        navigate(`/restack/rental/${type}`)
     }
 
     return (
@@ -161,4 +162,4 @@ const Resale: React.FC = () => {
     )
 }
 
-export default Resale
+export default Rental

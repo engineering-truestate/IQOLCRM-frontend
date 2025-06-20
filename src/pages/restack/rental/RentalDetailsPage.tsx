@@ -13,6 +13,13 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 import Layout from '../../../layout/Layout'
 import Button from '../../../components/design-elements/Button'
+import type { RestackRentalProperty } from '../../../data_types/restack/restack-rental.d'
+import {
+    get99AcresRentalDataById,
+    getMagicBricksRentalDataById,
+    update99AcresRentalDataById,
+    updateMagicBricksRentalDataById,
+} from '../../../services/restack/rentalService'
 
 const configurationOptions = [
     { label: '1BHK', value: '1BHK' },
@@ -53,125 +60,73 @@ const listingStatusOptions = [
     { label: 'Rented', value: 'rented' },
 ]
 
-interface RentalProperty {
-    id: string
-    projectName: string
-    configuration: string
-    propertyType: string
-    builtUpArea: number
-    carpetArea: number
-    micromarket: string
-    address: string
-    price: number
-    furnishingStatus: string
-    ageOfProperty: string
-    postedOn: number
-    postedBy: string
-    propertyId: string
-    url: string
-    description: string
-    amenities: string[]
-    images: string[]
-    contactDetails: {
-        name: string
-        phone: string
-        email: string
-    }
-    listingStatus: string
-    deposit: number
-    maintenance: number
-    availableFrom: number
-    preferredTenant: string
-    parkingAvailable: boolean
-    petsAllowed: boolean
-}
-
-// Dummy data for the rental property
-const dummyRentalData: RentalProperty = {
-    id: 'R87890',
-    projectName: 'Sobha Indraprastha',
-    configuration: '4BHK Flat',
-    propertyType: 'Apartment',
-    builtUpArea: 3500,
-    carpetArea: 2800,
-    micromarket: 'Rajajinagar',
-    address: '2400 Rajajinagar, Bangalore',
-    price: 85000,
-    furnishingStatus: 'Furnished',
-    ageOfProperty: '5-10 years',
-    postedOn: 1709251200, // March 1, 2024
-    postedBy: 'Owner',
-    propertyId: 'Sobha',
-    url: 'Link',
-    description:
-        'Sobha Indraprastha is not adobha is a residential project located in the heart of the city, offering a blend of modern living and serene siloom looks surroundings. The project features spacious apartments with contemporary designs and top-notch amenities, ensuring awininioshop atood comfortable and luxurious lifestyle for its residents.',
-    amenities: [
-        'Swimming Pool',
-        'Gym',
-        'Playground',
-        'Clubhouse',
-        'Security',
-        'Parking',
-        'Garden',
-        'Elevator',
-        'Power Backup',
-        'CCTV Surveillance',
-    ],
-    images: ['image1.jpg', 'image2.jpg', 'image3.jpg'],
-    contactDetails: {
-        name: 'John Doe',
-        phone: '+91 9876543210',
-        email: 'john.doe@example.com',
-    },
-    listingStatus: 'active',
-    deposit: 170000,
-    maintenance: 5000,
-    availableFrom: 1719792000, // July 1, 2024
-    preferredTenant: 'Family',
-    parkingAvailable: true,
-    petsAllowed: false,
-}
+const tenantTypeOptions = [
+    { label: 'Family', value: 'Family' },
+    { label: 'Bachelor', value: 'Bachelor' },
+    { label: 'Company', value: 'Company' },
+    { label: 'Any', value: 'Any' },
+]
 
 const RentalDetailsPage = () => {
     const navigate = useNavigate()
-    const { id } = useParams()
+    const { type, id } = useParams()
     const dispatch = useDispatch<AppDispatch>()
-
-    const [propertyDetails, setPropertyDetails] = useState<RentalProperty | null>(null)
-    const [originalDetails, setOriginalDetails] = useState<RentalProperty | null>(null)
+    const [propertyDetails, setPropertyDetails] = useState<RestackRentalProperty | null>(null)
+    const [originalDetails, setOriginalDetails] = useState<RestackRentalProperty | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        // Simulate API call with dummy data
-        setLoading(true)
-        setTimeout(() => {
-            setPropertyDetails(dummyRentalData)
-            setOriginalDetails(dummyRentalData)
-            setLoading(false)
-        }, 500)
-    }, [id])
+        const fetchPropertyDetails = async () => {
+            setLoading(true)
+            try {
+                if (id) {
+                    let property = await get99AcresRentalDataById(id)
+                    switch (type) {
+                        case '99acres':
+                            property = await get99AcresRentalDataById(id)
+                            break
+                        case 'magicbricks':
+                            property = await getMagicBricksRentalDataById(id)
+                            break
+                        default:
+                            break
+                    }
 
-    const updateField = (field: string, value: string | number | boolean | null) => {
-        if (propertyDetails) {
-            setPropertyDetails((prev) => (prev ? { ...prev, [field]: value } : null))
+                    setPropertyDetails(property || null)
+                    setOriginalDetails(property || null)
+                }
+            } catch (error) {
+                console.error('Failed to fetch property details:', error)
+            } finally {
+                setLoading(false)
+            }
         }
-    }
 
-    const updateContactField = (field: string, value: string) => {
-        if (propertyDetails) {
-            setPropertyDetails((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          contactDetails: {
-                              ...prev.contactDetails,
-                              [field]: value,
-                          },
-                      }
-                    : null,
-            )
-        }
+        fetchPropertyDetails()
+    }, [id, type])
+
+    const updateField = (field: string, value: string | number | null) => {
+        setPropertyDetails((prev) => {
+            if (!prev) return null
+            // const keys = field.split('.')
+            const updatedDetails = { ...prev, [field]: value }
+
+            // if (keys.length === 1) {
+            //     ;(updatedDetails as any)[keys[0]] = value
+            // } else if (keys.length === 2) {
+            //     const [section, key] = keys
+            //     if ((updatedDetails as any)[section]) {
+            //         ;(updatedDetails as any)[section] = {
+            //             ...(updatedDetails as any)[section],
+            //             [key]: value,
+            //         }
+            //     } else {
+            //         (updatedDetails as any)[key] = value;
+            //     }
+            // }
+            return updatedDetails
+        })
     }
 
     const handleEdit = () => {
@@ -187,10 +142,22 @@ const RentalDetailsPage = () => {
         if (propertyDetails && id) {
             try {
                 setLoading(true)
-                // Simulate API call
-                await new Promise((resolve) => setTimeout(resolve, 1000))
 
                 setOriginalDetails(propertyDetails)
+
+                if (id) {
+                    switch (type) {
+                        case '99acres':
+                            await update99AcresRentalDataById(id, originalDetails || propertyDetails)
+                            break
+                        case 'magicbricks':
+                            await updateMagicBricksRentalDataById(id, originalDetails || propertyDetails)
+                            break
+                        default:
+                            break
+                    }
+                }
+
                 setIsEditing(false)
                 toast.success('Property details saved successfully')
             } catch (error) {
@@ -201,153 +168,94 @@ const RentalDetailsPage = () => {
         }
     }
 
-    const handleAddAmenity = (amenity: string) => {
-        if (propertyDetails && amenity.trim()) {
-            const currentAmenities = propertyDetails.amenities || []
-            if (!currentAmenities.includes(amenity.trim())) {
-                setPropertyDetails((prev) =>
-                    prev
-                        ? {
-                              ...prev,
-                              amenities: [...currentAmenities, amenity.trim()],
-                          }
-                        : null,
-                )
-            }
+    const formatValue = (value: string | number | boolean | undefined, type: string) => {
+        if (value === undefined || value === null || value === '') return ''
+        if (type === 'date' && typeof value === 'number') {
+            return formatUnixDate(value) || ''
+        } else if (type === 'boolean') {
+            return value ? 'Yes' : 'No'
+        } else if (type === 'number' && typeof value === 'number') {
+            return value.toLocaleString()
         }
-    }
-
-    const handleRemoveAmenity = (amenityToRemove: string) => {
-        setPropertyDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      amenities: (prev.amenities || []).filter((amenity) => amenity !== amenityToRemove),
-                  }
-                : null,
-        )
+        return value.toString()
     }
 
     const renderField = (
         label: string,
-        value: string | number | boolean | null,
-        fieldKey: string,
+        value: string | number | boolean | undefined,
+        field?: string,
         options?: { label: string; value: string }[],
-        fieldType: 'text' | 'date' | 'number' | 'boolean' = 'text',
+        type: 'text' | 'date' | 'number' | 'boolean' = 'text',
     ) => {
-        if (isEditing) {
+        if (isEditing && field) {
             if (options) {
                 return (
-                    <div>
-                        <label className='text-sm text-black block mb-1'>{label}</label>
+                    <div className='mb-6'>
+                        <p className='text-sm text-black mb-2'>{label}</p>
                         <Dropdown
                             options={options}
-                            onSelect={(selectedValue: string) => updateField(fieldKey, selectedValue)}
-                            defaultValue={value as string}
-                            placeholder={`Select ${label}`}
-                            className='relative w-full'
-                            triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
-                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                            optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                            defaultValue={value?.toString() || ''}
+                            onSelect={(selectedValue: string) => updateField(field, selectedValue)}
                         />
                     </div>
                 )
-            } else if (fieldType === 'date') {
+            } else if (type === 'date') {
                 return (
-                    <DateInput
-                        label={label}
-                        placeholder='Select date'
-                        value={value as number | null}
-                        onChange={(timestamp: number | null) => {
-                            if (timestamp !== null) {
-                                updateField(fieldKey, timestamp)
+                    <div className='mb-6'>
+                        <DateInput
+                            label={label}
+                            placeholder='Select date'
+                            value={value as number | null}
+                            onChange={(timestamp: number | null) => {
+                                if (timestamp !== null) {
+                                    updateField(field, timestamp)
+                                }
+                            }}
+                            // minDate={new Date().toISOString().split('T')[0]}
+                            fullWidth
+                        />
+                    </div>
+                )
+            } else if (type === 'number') {
+                return (
+                    <div className='mb-6'>
+                        <p className='text-sm text-black mb-2'>{label}</p>
+                        <StateBaseTextField
+                            type='number'
+                            value={value?.toString() || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                updateField(field, parseFloat(e.target.value) || 0)
                             }
-                        }}
-                        minDate={new Date().toISOString().split('T')[0]}
-                        fullWidth
-                    />
-                )
-            } else if (fieldType === 'number') {
-                return (
-                    <NumberInput
-                        label={label}
-                        placeholder={`Enter ${label.toLowerCase()}`}
-                        value={value as number}
-                        onChange={(numValue: number | null) => {
-                            updateField(fieldKey, numValue ?? 0)
-                        }}
-                        numberType='decimal'
-                        min={0}
-                        fullWidth
-                    />
-                )
-            } else if (fieldType === 'boolean') {
-                return (
-                    <div>
-                        <label className='text-sm text-black block mb-1'>{label}</label>
-                        <div className='flex items-center space-x-4'>
-                            <label className='flex items-center'>
-                                <input
-                                    type='radio'
-                                    name={fieldKey}
-                                    checked={value === true}
-                                    onChange={() => updateField(fieldKey, true)}
-                                    className='mr-2'
-                                />
-                                Yes
-                            </label>
-                            <label className='flex items-center'>
-                                <input
-                                    type='radio'
-                                    name={fieldKey}
-                                    checked={value === false}
-                                    onChange={() => updateField(fieldKey, false)}
-                                    className='mr-2'
-                                />
-                                No
-                            </label>
-                        </div>
+                            className='w-full text-sm'
+                        />
                     </div>
                 )
             } else {
                 return (
-                    <div>
-                        <label className='text-sm text-black block mb-1'>{label}</label>
+                    <div className='mb-6'>
+                        <p className='text-sm text-black mb-2'>{label}</p>
                         <StateBaseTextField
-                            value={value?.toString() ?? ''}
-                            onChange={(e: any) => updateField(fieldKey, e.target.value)}
+                            type='text'
+                            placeholder={`Enter ${label.toLowerCase()}`}
+                            value={value?.toString() || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateField(field, e.target.value)}
                             className='w-full text-sm'
                         />
                     </div>
                 )
             }
         } else {
-            let displayValue = value?.toString() ?? ''
-            if (fieldType === 'date' && typeof value === 'number') {
-                displayValue = formatUnixDate(value) ?? ''
-            } else if (fieldType === 'boolean') {
-                displayValue = value ? 'Yes' : 'No'
-            }
-
             return (
-                <div className='border-b border-[#D4DBE2] pb-2 mb-4 flex justify-between'>
-                    <label className='text-sm text-gray-600 block mb-1'>{label}</label>
-                    <div className='text-sm text-black font-medium'>{displayValue}</div>
+                <div className='mb-6'>
+                    <p className='text-sm text-gray-600 mb-1'>{label}</p>
+                    <p className='text-sm text-black font-medium'>{formatValue(value, type)}</p>
                 </div>
             )
         }
     }
 
     if (!propertyDetails) {
-        return (
-            <Layout loading={true}>
-                <div className='py-2 px-6 bg-white min-h-screen'>
-                    <div className='flex items-center justify-center h-64'>
-                        <div className='text-gray-500'>Loading property details...</div>
-                    </div>
-                </div>
-            </Layout>
-        )
+        return <Layout loading={true}>Loading property details...</Layout>
     }
 
     return (
@@ -358,20 +266,18 @@ const RentalDetailsPage = () => {
                     <div className='mb-6'>
                         <div className='flex items-center justify-between mb-4'>
                             <div>
-                                <h1 className='text-xl font-semibold text-black uppercase'>
-                                    {propertyDetails?.projectName}
-                                </h1>
-                                <div className='text-sm text-gray-500 mt-1'>
+                                <div className='text-sm text-gray-500 mb-1'>
                                     <button onClick={() => navigate('/restack/rental')} className='hover:text-gray-700'>
                                         Rental
                                     </button>
                                     <span className='mx-2'>/</span>
-                                    <span className='text-black font-medium'>{propertyDetails?.propertyId}</span>
+                                    <span className='text-black font-medium'>{propertyDetails.propertyId}</span>
                                 </div>
+                                <h1 className='text-xl font-semibold text-black'>{propertyDetails.configuration}</h1>
                             </div>
                             <div className='flex gap-2'>
-                                <div className='px-3 py-1 border-[#0069D0] border-[1px] text-black rounded-[20px] text-sm font-medium'>
-                                    Listed by {propertyDetails?.postedBy}
+                                <div className='px-3 py-1 border border-blue-600 text-black rounded-full text-sm font-medium'>
+                                    Listed by {propertyDetails.postedBy}
                                 </div>
                                 {isEditing ? (
                                     <>
@@ -381,7 +287,7 @@ const RentalDetailsPage = () => {
                                             className='px-4 h-8 font-semibold'
                                             onClick={handleCancel}
                                         >
-                                            ✕ Cancel
+                                            Cancel
                                         </Button>
                                         <Button
                                             bgColor='bg-gray-600'
@@ -389,340 +295,147 @@ const RentalDetailsPage = () => {
                                             className='px-4 h-8 font-semibold'
                                             onClick={handleSave}
                                         >
-                                            ✓ Save
+                                            Save
                                         </Button>
                                     </>
                                 ) : (
-                                    <>
-                                        <Button
-                                            leftIcon={<img src={editic} alt='Edit' className='w-4 h-4' />}
-                                            bgColor='bg-[#F3F3F3]'
-                                            textColor='text-[#3A3A47]'
-                                            className='px-4 h-8 font-semibold'
-                                            onClick={handleEdit}
-                                        >
-                                            Edit Property
-                                        </Button>
-                                        <Button
-                                            leftIcon={<img src={editic} alt='Update Status' className='w-4 h-4' />}
-                                            bgColor='bg-[#F3F3F3]'
-                                            textColor='text-[#3A3A47]'
-                                            className='px-4 h-8 font-semibold'
-                                        >
-                                            Update Status
-                                        </Button>
-                                    </>
+                                    <Button
+                                        leftIcon={<img src={editic} alt='Edit' className='w-4 h-4' />}
+                                        bgColor='bg-gray-100'
+                                        textColor='text-gray-700'
+                                        className='px-4 h-8 font-semibold hover:bg-gray-200'
+                                        onClick={handleEdit}
+                                    >
+                                        Edit Property
+                                    </Button>
                                 )}
                             </div>
                         </div>
 
                         {/* Price Banner */}
-                        <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
-                            <div className='flex items-center justify-between'>
-                                <div>
-                                    <div className='text-2xl font-bold text-blue-900'>
-                                        ₹{propertyDetails?.price?.toLocaleString()}/month
-                                    </div>
-                                    <div className='text-sm text-blue-700'>
-                                        Deposit: ₹{propertyDetails?.deposit?.toLocaleString()} | Maintenance: ₹
-                                        {propertyDetails?.maintenance?.toLocaleString()}/month
-                                    </div>
-                                </div>
-                                <div className='text-right'>
-                                    <div className='text-lg font-semibold text-gray-900'>
-                                        {propertyDetails?.configuration}
-                                    </div>
-                                    <div className='text-sm text-gray-600'>{propertyDetails?.builtUpArea} sq ft</div>
-                                </div>
+                        <div className='text-right mb-6'>
+                            <div className='text-2xl font-bold text-black'>
+                                ₹ {propertyDetails.price.toFixed(2)} Cr.
                             </div>
+                        </div>
+
+                        {/* Project Description */}
+                        <div className='mb-6'>
+                            <p className='text-sm text-gray-700 leading-relaxed'>
+                                {propertyDetails.description || 'No description available for this property.'}
+                            </p>
                         </div>
                     </div>
 
-                    {/* Property Overview */}
+                    {/* Property Details Grid */}
                     <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Property Overview</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField('Project Name', propertyDetails?.projectName, 'projectName')}
+                        <div className='grid grid-cols-2 gap-8 mb-4'>
+                            {renderField(
+                                'Project Name',
+                                propertyDetails.propertyName,
+                                'propertyName',
+                                undefined,
+                                'text',
+                            )}
+                            <div>
                                 {renderField(
                                     'Configuration',
-                                    propertyDetails?.configuration,
+                                    `${propertyDetails.configuration}`,
                                     'configuration',
                                     configurationOptions,
+                                    'text',
                                 )}
+                            </div>
+
+                            <div>
                                 {renderField(
-                                    'Property Type',
-                                    propertyDetails?.propertyType,
-                                    'propertyType',
-                                    propertyTypes,
-                                )}
-                                {renderField(
-                                    'Built-up Area',
-                                    propertyDetails?.builtUpArea,
-                                    'builtUpArea',
+                                    'Super Built-up Area',
+                                    propertyDetails.superBuiltUpArea,
+                                    'superBuiltUpArea',
                                     undefined,
                                     'number',
                                 )}
                             </div>
-                            <div className='space-y-4'>
+                            <div>
                                 {renderField(
                                     'Carpet Area',
-                                    propertyDetails?.carpetArea,
+                                    propertyDetails.carpetArea,
                                     'carpetArea',
                                     undefined,
                                     'number',
                                 )}
-                                {renderField('Micromarket', propertyDetails?.micromarket, 'micromarket')}
-                                {renderField('Address', propertyDetails?.address, 'address')}
+                            </div>
+
+                            <div>
+                                {renderField('Built-up', propertyDetails.builtup, 'builtup', undefined, 'number')}
+                            </div>
+                            <div>{renderField('Price (Cr.)', propertyDetails.price, 'price', undefined, 'number')}</div>
+
+                            <div>
                                 {renderField(
-                                    'Furnishing Status',
-                                    propertyDetails?.furnishingStatus,
-                                    'furnishingStatus',
+                                    'Micromarket',
+                                    propertyDetails.micromarket,
+                                    'micromarket',
+                                    undefined,
+                                    'text',
+                                )}
+                            </div>
+                            <div>{renderField('Address', propertyDetails.address, 'address', undefined, 'text')}</div>
+
+                            <div>
+                                {renderField(
+                                    'Furnish Status',
+                                    propertyDetails.furnishStatus,
+                                    'furnishStatus',
                                     furnishingOptions,
+                                    'text',
                                 )}
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Rental Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Rental Details</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                {renderField('Monthly Rent', propertyDetails?.price, 'price', undefined, 'number')}
-                                {renderField(
-                                    'Security Deposit',
-                                    propertyDetails?.deposit,
-                                    'deposit',
-                                    undefined,
-                                    'number',
-                                )}
-                                {renderField(
-                                    'Available From',
-                                    propertyDetails?.availableFrom,
-                                    'availableFrom',
-                                    undefined,
-                                    'date',
-                                )}
-                            </div>
-                            <div className='space-y-4'>
-                                {renderField(
-                                    'Maintenance',
-                                    propertyDetails?.maintenance,
-                                    'maintenance',
-                                    undefined,
-                                    'number',
-                                )}
-                                {renderField('Preferred Tenant', propertyDetails?.preferredTenant, 'preferredTenant')}
-                                {renderField(
-                                    'Parking Available',
-                                    propertyDetails?.parkingAvailable,
-                                    'parkingAvailable',
-                                    undefined,
-                                    'boolean',
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Property Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Property Details</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
+                            <div>
                                 {renderField(
                                     'Age of Property',
-                                    propertyDetails?.ageOfProperty,
+                                    propertyDetails.ageOfProperty,
                                     'ageOfProperty',
-                                    ageOfPropertyOptions,
-                                )}
-                                {renderField('Posted On', propertyDetails?.postedOn, 'postedOn', undefined, 'date')}
-                            </div>
-                            <div className='space-y-4'>
-                                {renderField('Posted By', propertyDetails?.postedBy, 'postedBy')}
-                                {renderField(
-                                    'Pets Allowed',
-                                    propertyDetails?.petsAllowed,
-                                    'petsAllowed',
                                     undefined,
-                                    'boolean',
+                                    'number',
                                 )}
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Contact Details */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Contact Details</h2>
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                            <div className='space-y-4'>
-                                <div>
-                                    <label className='text-sm text-gray-600 block mb-1'>Contact Name</label>
-                                    {isEditing ? (
-                                        <StateBaseTextField
-                                            value={propertyDetails?.contactDetails?.name || ''}
-                                            onChange={(e: any) => updateContactField('name', e.target.value)}
-                                            className='w-full text-sm'
-                                        />
-                                    ) : (
-                                        <div className='text-sm text-black font-medium border-b border-[#D4DBE2] pb-2'>
-                                            {propertyDetails?.contactDetails?.name}
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className='text-sm text-gray-600 block mb-1'>Phone</label>
-                                    {isEditing ? (
-                                        <StateBaseTextField
-                                            value={propertyDetails?.contactDetails?.phone || ''}
-                                            onChange={(e: any) => updateContactField('phone', e.target.value)}
-                                            className='w-full text-sm'
-                                        />
-                                    ) : (
-                                        <div className='text-sm text-black font-medium border-b border-[#D4DBE2] pb-2'>
-                                            {propertyDetails?.contactDetails?.phone}
-                                        </div>
-                                    )}
-                                </div>
+                            <div>
+                                {renderField('Posted on', propertyDetails.postedOn, 'postedOn', undefined, 'date')}
                             </div>
-                            <div className='space-y-4'>
-                                <div>
-                                    <label className='text-sm text-gray-600 block mb-1'>Email</label>
-                                    {isEditing ? (
-                                        <StateBaseTextField
-                                            value={propertyDetails?.contactDetails?.email || ''}
-                                            onChange={(e: any) => updateContactField('email', e.target.value)}
-                                            className='w-full text-sm'
-                                        />
-                                    ) : (
-                                        <div className='text-sm text-black font-medium border-b border-[#D4DBE2] pb-2'>
-                                            {propertyDetails?.contactDetails?.email}
-                                        </div>
-                                    )}
-                                </div>
+                            <div>
+                                {renderField('Posted by', propertyDetails.postedBy, 'postedBy', undefined, 'text')}
+                            </div>
+
+                            <div>
                                 {renderField(
-                                    'Listing Status',
-                                    propertyDetails?.listingStatus,
-                                    'listingStatus',
-                                    listingStatusOptions,
+                                    'Property ID',
+                                    propertyDetails.propertyId,
+                                    'propertyId',
+                                    undefined,
+                                    'text',
                                 )}
                             </div>
+                            <div>{renderField('URL', propertyDetails.url, 'url', undefined, 'text')}</div>
                         </div>
                     </div>
-
                     {/* About Project */}
                     <div className='mb-8'>
                         <h2 className='text-lg font-semibold text-black mb-4'>About Project</h2>
                         <div>
                             {isEditing ? (
-                                <div>
-                                    <label className='text-sm text-black block mb-1'>Description</label>
-                                    <textarea
-                                        value={propertyDetails?.description || ''}
-                                        onChange={(e) => updateField('description', e.target.value)}
-                                        className='w-full text-sm border border-gray-300 rounded-md p-3 h-32 resize-none'
-                                        placeholder='Enter property description'
-                                    />
-                                </div>
+                                <textarea
+                                    value={propertyDetails.aboutProject || ''}
+                                    onChange={(e) => updateField('description', e.target.value)}
+                                    className='w-full text-sm border border-gray-300 rounded-md p-3 h-32 resize-none'
+                                    placeholder='Enter property description'
+                                />
                             ) : (
-                                <p className='text-sm text-gray-700 leading-relaxed'>{propertyDetails?.description}</p>
+                                <p className='text-sm text-gray-700 leading-relaxed'>
+                                    {propertyDetails.aboutProject || ''}
+                                </p>
                             )}
-                        </div>
-                    </div>
-
-                    {/* Amenities */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Amenities</h2>
-
-                        {isEditing && (
-                            <div className='mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg'>
-                                <div className='flex gap-2'>
-                                    <StateBaseTextField
-                                        placeholder='Add new amenity'
-                                        className='flex-1 text-sm'
-                                        onKeyPress={(e: any) => {
-                                            if (e.key === 'Enter') {
-                                                handleAddAmenity(e.target.value)
-                                                e.target.value = ''
-                                            }
-                                        }}
-                                    />
-                                    <Button
-                                        bgColor='bg-blue-600'
-                                        textColor='text-white'
-                                        className='px-3 py-2 h-10 text-sm'
-                                        // onClick={(e: any) => {
-                                        //     const input = e.target.parentElement.querySelector('input')
-                                        //     if (input) {
-                                        //         handleAddAmenity(input.value)
-                                        //         input.value = ''
-                                        //     }
-                                        // }}
-                                    >
-                                        Add
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className='flex flex-wrap gap-2'>
-                            {propertyDetails?.amenities?.map((amenity, index) => (
-                                <div
-                                    key={index}
-                                    className='flex items-center gap-2 text-sm text-[#101419] px-3 py-1 rounded-2xl bg-[#E9EDF1]'
-                                >
-                                    <span>{amenity}</span>
-                                    {isEditing && (
-                                        <button
-                                            onClick={() => handleRemoveAmenity(amenity)}
-                                            className='text-red-500 hover:text-red-700 ml-1'
-                                        >
-                                            ✕
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                            {(!propertyDetails?.amenities || propertyDetails.amenities.length === 0) && (
-                                <div className='text-gray-500 text-sm'>No amenities listed</div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Images */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Images</h2>
-                        <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-                            {propertyDetails?.images?.map((image, index) => (
-                                <div
-                                    key={index}
-                                    className='aspect-square bg-gray-200 rounded-lg flex items-center justify-center'
-                                >
-                                    <span className='text-gray-500 text-sm'>Image {index + 1}</span>
-                                </div>
-                            ))}
-                            {isEditing && (
-                                <div className='aspect-square border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400'>
-                                    <span className='text-gray-500 text-sm'>+ Add Image</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Property Links */}
-                    <div className='mb-8'>
-                        <h2 className='text-lg font-semibold text-black mb-4'>Links</h2>
-                        <div className='space-y-2'>
-                            {renderField('Property URL', propertyDetails?.url, 'url')}
-                            <div className='text-sm'>
-                                <a
-                                    href={propertyDetails?.url}
-                                    target='_blank'
-                                    rel='noopener noreferrer'
-                                    className='text-blue-600 hover:text-blue-800 underline'
-                                >
-                                    View Property Listing
-                                </a>
-                            </div>
                         </div>
                     </div>
                 </div>

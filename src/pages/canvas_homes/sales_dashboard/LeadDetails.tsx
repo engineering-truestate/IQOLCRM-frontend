@@ -33,10 +33,7 @@ interface LeadDetailProps {
 const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose }) => {
     const navigate = useNavigate()
     const dispatch = useDispatch<AppDispatch>()
-    const { leadId: urlLeadId } = useParams<{ leadId: string }>()
-
-    // Use prop leadId first, then URL param
-    const actualLeadId = propLeadId || urlLeadId
+    const { leadId } = useParams<{ leadId: string }>()
 
     const {
         leadData,
@@ -56,7 +53,8 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         createNewTask,
         updateEnquiry,
         updateLead,
-    } = useLeadDetails(actualLeadId || '') // Provide empty string as fallback
+        updateTask,
+    } = useLeadDetails(leadId || '') // Provide empty string as fallback
 
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false)
     const [isAddDetailsModalOpen, setIsAddDetailsModalOpen] = useState(false)
@@ -65,7 +63,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     const [isChangeAgentModalOpen, setIsChangeAgentModalOpen] = useState(false)
 
     // Early return AFTER hooks are called
-    if (!actualLeadId) {
+    if (!leadId) {
         return (
             <Layout loading={false}>
                 <div className='flex items-center justify-center h-screen'>
@@ -100,7 +98,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         setIsAddDetailsModalOpen(true)
     }
     const handleDetailsAdded = () => {
-        console.log('Details added - refreshing lead data...')
         refreshData()
         setIsAddDetailsModalOpen(false)
     }
@@ -159,14 +156,15 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                         onUpdateEnquiry={updateEnquiry}
                         onUpdateLead={updateLead}
                         onAddNote={addNote}
-                        agentId={currentEnquiry?.agentId}
-                        agentName={currentEnquiry?.agentHistory?.[0]?.agentName || 'System'}
+                        onUpdateTask={updateTask}
+                        agentId={currentEnquiry?.agentId || ''}
+                        agentName={currentEnquiry?.agentHistory?.[0]?.agentName || ''}
                     />
                 )
             case 'Documents':
                 return (
                     <Documents
-                        leadId={actualLeadId}
+                        leadId={leadId}
                         enquiryId={selectedEnquiryId}
                         documents={currentEnquiry?.documents || []}
                         onDocumentsUpdate={refreshData}
@@ -177,7 +175,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
             case 'Requirements':
                 return (
                     <Requirements
-                        leadId={actualLeadId}
+                        leadId={leadId}
                         enquiryId={selectedEnquiryId}
                         requirements={currentEnquiry?.requirements || []}
                         onRequirementsUpdate={refreshData}
@@ -203,7 +201,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                     <div className='text-center'>
                         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4'></div>
                         <p className='text-gray-600'>Loading lead details...</p>
-                        <p className='text-sm text-gray-500 mt-2'>Lead ID: {actualLeadId}</p>
+                        <p className='text-sm text-gray-500 mt-2'>Lead ID: {leadId}</p>
                     </div>
                 </div>
             </Layout>
@@ -217,7 +215,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 <div className='flex items-center justify-center h-screen'>
                     <div className='text-center'>
                         <p className='text-red-600 mb-4'>{errors.lead}</p>
-                        <p className='text-sm text-gray-500 mb-4'>Lead ID: {actualLeadId}</p>
+                        <p className='text-sm text-gray-500 mb-4'>Lead ID: {leadId}</p>
                         <div className='space-x-2'>
                             <button
                                 onClick={refreshData}
@@ -245,7 +243,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 <div className='flex items-center justify-center h-screen'>
                     <div className='text-center'>
                         <p className='text-gray-600 mb-4'>Lead not found</p>
-                        <p className='text-sm text-gray-500 mb-4'>Lead ID: {actualLeadId}</p>
+                        <p className='text-sm text-gray-500 mb-4'>Lead ID: {leadId}</p>
                         <button
                             onClick={handleClose}
                             className='bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700'
@@ -496,7 +494,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                             Status
                                                         </span>
                                                         <span className='text-[13px] w-[40%] text-gray-900'>
-                                                            {formatValue(currentEnquiry.status)}
+                                                            {formatValue(currentEnquiry.leadStatus)}
                                                         </span>
                                                     </div>
 
@@ -633,7 +631,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 onTaskCreated={createNewTask}
                 agentId={currentEnquiry?.agentId}
                 agentName={leadData?.agentName}
-                leadId={actualLeadId}
+                leadId={leadId}
                 leadStatus={leadData?.leadStatus}
                 stage={currentEnquiry?.stage}
                 tag={currentEnquiry?.tag}
@@ -645,7 +643,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 isOpen={isAddDetailsModalOpen}
                 onClose={() => setIsAddDetailsModalOpen(false)}
                 onDetailsAdded={handleDetailsAdded}
-                leadId={actualLeadId}
+                leadId={leadId}
                 userId={leadData?.userId}
                 currentPhoneNumber={leadData?.phoneNumber}
                 currentLabel={leadData?.label}
@@ -655,20 +653,20 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 isOpen={isChangeAgentModalOpen}
                 onClose={() => setIsChangeAgentModalOpen(false)}
                 onDetailsAdded={handleDetailsAdded}
-                leadId={actualLeadId}
+                leadId={leadId}
                 enquiryId={selectedEnquiryId}
             />
             <AddEnquiryModal
                 isOpen={isAddEnquiryModalOpen}
                 onClose={() => setIsAddEnquiryModalOpen(false)}
                 onEnquiryAdded={refreshData}
-                leadId={actualLeadId}
+                leadId={leadId}
                 stage={leadData?.stage}
             />
             <CloseLeadSideModal
                 isOpen={isCloseLeadSideModalOpen}
                 onClose={() => setIsCloseLeadSideModalOpen(false)}
-                leadId={actualLeadId}
+                leadId={leadId}
                 enquiryId={selectedEnquiryId}
                 onLeadClosed={refreshData}
             />

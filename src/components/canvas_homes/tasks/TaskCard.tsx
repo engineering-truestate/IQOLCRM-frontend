@@ -1,11 +1,11 @@
 import React from 'react'
 import Dropdown from './Dropdown'
-import type { Task } from '../../../services/canvas_homes/types' // Assuming you have a type for Task
 import { useDispatch } from 'react-redux'
 import { setEnquiryId, setTaskId } from '../../../store/reducers/canvas-homes/taskIdReducer'
 import type { AppDispatch } from '../../../store'
+import { formatUnixDateTime } from '../../helper/getUnixDateTime'
 interface TaskCardProps {
-    task: Task // Assuming Task is the type of your task object from Firebase
+    task: any
     index: number
     isExpanded: boolean
     onToggleExpansion: (taskId: string) => void
@@ -35,6 +35,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         }
     }
 
+    console.log('TaskCard task:', task)
     // Handle the status change and update the task status in the parent component
     const handleStatusChange = (selectedStatus: string) => {
         // Only update status if it's different from the current one
@@ -81,7 +82,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <div>
                     <div className='font-medium text-sm text-gray-900 mb-1'>{task.scheduledInfo || 'No Info'}</div>{' '}
                     {/* Ensure scheduledInfo exists */}
-                    <div className='text-xs text-gray-500'>{task.scheduledDate || 'Not Scheduled'}</div>{' '}
+                    <div className='text-xs text-gray-500'>
+                        {formatUnixDateTime(task.firebaseTask.scheduledDate) || 'Not Scheduled'}
+                    </div>{' '}
                     {/* Ensure scheduledDate exists */}
                 </div>
             </div>

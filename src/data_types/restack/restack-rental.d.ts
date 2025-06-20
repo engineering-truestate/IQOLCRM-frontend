@@ -1,33 +1,18 @@
-export interface RentalProperty {
-    id: string
-    projectName: string
+export interface RestackRentalProperty {
+    propertyId: string
+    propertyName: string
+    description: string
     configuration: string
-    propertyType: string
-    builtUpArea: number
+    superBuiltUpArea: number
     carpetArea: number
+    builtup: number
+    price: number
     micromarket: string
     address: string
-    price: number
-    furnishingStatus: string
-    ageOfProperty: string
-    postedOn: number
+    furnishStatus: string
+    ageOfProperty: number
+    postedOn: string
     postedBy: string
-    propertyId: string
     url: string
-    description: string
-    amenities: string[]
-    images: string[]
-    contactDetails: {
-        name: string
-        phone: string
-        email: string
-    }
-    listingStatus: string
-    deposit: number
-    maintenance: number
-    availableFrom: number
-    preferredTenant: string
-    parkingAvailable: boolean
-    petsAllowed: boolean
-    listedBy: string
+    aboutProject: string
 }
