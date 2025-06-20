@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import { SelectionGroup } from '../../../components/design-elements/SelectionButtonsGroup'
+import PlacesSearch from '../../../components/design-elements/PlacesSearch'
 
 // Import your existing component configurations
 import { appartmentComponents } from '../../../components/acn/addInventoryConfigs/apartmentComponents'
@@ -12,6 +13,14 @@ import { plotComponents } from '../../../components/acn/addInventoryConfigs/plot
 import { villamentComponents } from '../../../components/acn/addInventoryConfigs/villamentComponents'
 import { rowhouseComponents } from '../../../components/acn/addInventoryConfigs/rowhouseComponents'
 import { independentComponents } from '../../../components/acn/addInventoryConfigs/independentComponents'
+
+// Import icons
+import apartmentIcon from '/icons/acn/ListingFlow/Apartments.svg'
+import villaIcon from '/icons/acn/ListingFlow/Villas.svg'
+import plotIcon from '/icons/acn/ListingFlow/Plots.svg'
+import villamentIcon from '/icons/acn/ListingFlow/Villaments.svg'
+import rowhouseIcon from '/icons/acn/ListingFlow/RowHouses.svg'
+import independentIcon from '/icons/acn/ListingFlow/IndependentBuildings.svg'
 
 // Types
 export interface PropertyData {
@@ -111,6 +120,32 @@ const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({ field, value, onC
     const isCompulsoryField = assetType ? getCompulsoryFields(assetType).includes(fieldKey) : false
 
     const renderField = () => {
+        // Custom: Use PlacesSearch for propertyName
+        if (field.field === 'propertyName') {
+            return (
+                <PlacesSearch
+                    selectedPlace={value && value.lat && value.lng ? value : null}
+                    setSelectedPlace={(place) => {
+                        if (place) {
+                            // Pass a composite object to parent: { name, address, lat, lng, mapLocation }
+                            onChange({
+                                name: place.name,
+                                address: place.address,
+                                lat: place.lat,
+                                lng: place.lng,
+                                mapLocation: place.mapLocation,
+                            })
+                        } else {
+                            onChange('')
+                        }
+                    }}
+                    placeholder={field.placeholder || 'Search property name...'}
+                    label={field.label || 'Property Name'}
+                    required={field.required}
+                    error={error}
+                />
+            )
+        }
         switch (field.type) {
             case 'text':
             case 'number':

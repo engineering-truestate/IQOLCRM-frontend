@@ -443,12 +443,12 @@ const PropertyDetailsPage = () => {
                                         </div>
                                         <div className='flex items-center gap-3'>
                                             <div className='w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
-                                                {property.cpCode ? property.cpCode.substring(0, 2).toUpperCase() : 'AG'}
+                                                {property.cpId ? property.cpId.substring(0, 2).toUpperCase() : 'AG'}
                                             </div>
                                             <div>
                                                 <div className='font-medium text-gray-900'>Agent</div>
                                                 <div className='text-sm text-gray-600'>
-                                                    {property.cpCode || property.cpId} | Contact
+                                                    {property.cpId || property.cpId} | Contact
                                                 </div>
                                             </div>
                                         </div>

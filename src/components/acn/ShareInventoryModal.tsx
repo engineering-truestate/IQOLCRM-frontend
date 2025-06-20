@@ -36,7 +36,7 @@ Plot Size: ${property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
 Facing: ${property.facing || 'N/A'}
 Total Ask Price: ${formatCurrency(property.totalAskPrice)}
 Status: ${property.status || 'Unknown'}
-Agent: ${property.cpCode || 'N/A'}
+Agent: ${property.cpId || 'N/A'}
 
 Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`}
         `.trim()
@@ -65,7 +65,7 @@ Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || pr
  *Facing:* ${property.facing || 'N/A'}
  *Total Ask Price:* ${formatCurrency(property.totalAskPrice)}
  *Status:* ${property.status || 'Unknown'}
- *Agent:* ${property.cpCode || 'N/A'}
+ *Agent:* ${property.cpId || 'N/A'}
 
  *Link:* ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`}
         `.trim()

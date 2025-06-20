@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import searchIcon from '/icons/acn/search-normal.svg'
 
 interface PlacePrediction {
     place_id: string
@@ -252,18 +253,11 @@ const PlacesSearch: React.FC<PlacesSearchProps> = ({
             </label>
             <div className='relative'>
                 <div
-                    className={`flex items-center border-2 rounded px-3 py-2 bg-gray-50 ${
-                        hasError ? 'border-red-500' : 'border-red-500'
+                    className={`flex items-center border-2 rounded-[5px] px-3 py-2 bg-[#FAFAFA] ${
+                        hasError ? 'border-red-500' : 'border-[#E3E3E3]'
                     } focus-within:border-blue-500 transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                    <svg className='w-4 h-4 text-gray-500 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                            strokeWidth={2}
-                            d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
-                        />
-                    </svg>
+                    <img src={searchIcon} alt='search' className='w-4 h-4 mr-2' />
                     <input
                         type='text'
                         className='flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-500 focus:outline-none disabled:cursor-not-allowed'
