@@ -36,7 +36,7 @@ Plot Size: ${property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
 Facing: ${property.facing || 'N/A'}
 Total Ask Price: ${formatCurrency(property.totalAskPrice)}
 Status: ${property.status || 'Unknown'}
-Agent: ${property.cpCode || 'N/A'}
+Agent: ${property.cpId || 'N/A'}
 
 Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`}
         `.trim()
@@ -65,7 +65,7 @@ Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || pr
  *Facing:* ${property.facing || 'N/A'}
  *Total Ask Price:* ${formatCurrency(property.totalAskPrice)}
  *Status:* ${property.status || 'Unknown'}
- *Agent:* ${property.cpCode || 'N/A'}
+ *Agent:* ${property.cpId || 'N/A'}
 
  *Link:* ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`}
         `.trim()
@@ -101,10 +101,7 @@ Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || pr
 
     return (
         <>
-            <div
-                className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
-                onClick={onClose}
-            >
+            <div className='fixed inset-0 bg-black/75 flex items-center justify-center z-50' onClick={onClose}>
                 <div className='flex flex-col gap-0 bg-white rounded-xl w-72 h-80 bg-baseWhite'>
                     {/* Header */}
                     <div className='flex items-center justify-between px-4 py-2'>

@@ -1,14 +1,23 @@
 import React, { useState } from 'react'
+import PlacesSearch from '../design-elements/PlacesSearch'
 
 interface AddRequirementModalProps {
     isOpen: boolean
     onClose: () => void
 }
 
+interface Places {
+    name: string
+    lat: number
+    lng: number
+    address: string
+    mapLocation: string
+}
+
 export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen, onClose }) => {
     const [errorMessage, setErrorMessage] = useState('')
 
-    const [projectName, setProjectName] = useState('')
+    const [selectedPlace, setSelectedPlace] = useState<Places | null>(null)
     const [assetType, setAssetType] = useState('')
     const [superBuiltUpArea, setSuperBuiltUpArea] = useState('')
     const [plotArea, setPlotArea] = useState('')
@@ -31,7 +40,7 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
         setErrorMessage('')
 
         if (
-            !projectName.trim() ||
+            !selectedPlace ||
             !assetType ||
             !superBuiltUpArea ||
             !plotArea ||
@@ -52,7 +61,13 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
         }
 
         const formData = {
-            projectName,
+            projectName: selectedPlace.name,
+            projectLocation: selectedPlace.address,
+            projectCoordinates: {
+                lat: selectedPlace.lat,
+                lng: selectedPlace.lng,
+            },
+            projectMapUrl: selectedPlace.mapLocation,
             assetType,
             superBuiltUpArea,
             plotArea,
@@ -92,18 +107,13 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
 
                 {/* Scrollable Content */}
                 <div className='overflow-y-auto p-4 flex-1 space-y-4'>
-                    <div>
-                        <label className='block text-sm  py-2'>
-                            Project Name/Location <span className='text-red-500'>*</span>
-                        </label>
-                        <input
-                            type='text'
-                            value={projectName}
-                            onChange={(e) => setProjectName(e.target.value)}
-                            placeholder='Project Name/Location'
-                            className='mt-1 w-full p-1 border-2 border-gray-300 rounded-sx rounded text-[14px]'
-                        />
-                    </div>
+                    <PlacesSearch
+                        selectedPlace={selectedPlace}
+                        setSelectedPlace={setSelectedPlace}
+                        placeholder='Search for project name or location...'
+                        label='Project Name/Location'
+                        required={true}
+                    />
 
                     <div>
                         <label className='block text-sm py-2'>
@@ -282,7 +292,7 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                     <div className='flex justify-end gap-3'>
                         <button
                             onClick={() => {
-                                setProjectName('')
+                                setSelectedPlace(null)
                                 setAssetType('')
                                 setSuperBuiltUpArea('')
                                 setPlotArea('')

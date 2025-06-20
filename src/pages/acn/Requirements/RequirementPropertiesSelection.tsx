@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import CustomPagination from '../../../components/design-elements/CustomPagination'
 
 // import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
 import resetic from '/icons/acn/rotate-left.svg'
@@ -995,72 +996,12 @@ const PropertiesSelectionPage = () => {
                                 {Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalItems)} of {totalItems} properties
                             </div>
 
-                            <div className='flex items-center gap-2'>
-                                <button
-                                    onClick={() => handlePageChange(Math.max(currentPage - 1, 0))}
-                                    disabled={currentPage === 0}
-                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                        currentPage === 0
-                                            ? 'text-gray-400 cursor-not-allowed'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M15 19l-7-7 7-7'
-                                        />
-                                    </svg>
-                                </button>
-
-                                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                                    let page
-                                    if (totalPages <= 7) {
-                                        page = i
-                                    } else if (currentPage < 3) {
-                                        page = i
-                                    } else if (currentPage > totalPages - 4) {
-                                        page = totalPages - 7 + i
-                                    } else {
-                                        page = currentPage - 3 + i
-                                    }
-
-                                    return (
-                                        <button
-                                            key={page}
-                                            onClick={() => handlePageChange(page)}
-                                            className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
-                                                currentPage === page
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'text-gray-700 hover:bg-gray-100'
-                                            }`}
-                                        >
-                                            {page + 1}
-                                        </button>
-                                    )
-                                })}
-
-                                <button
-                                    onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages - 1))}
-                                    disabled={currentPage === totalPages - 1}
-                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                        currentPage === totalPages - 1
-                                            ? 'text-gray-400 cursor-not-allowed'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M9 5l7 7-7 7'
-                                        />
-                                    </svg>
-                                </button>
-                            </div>
+                            <CustomPagination
+                                currentPage={currentPage + 1}
+                                totalPages={totalPages}
+                                onPageChange={(page) => handlePageChange(page - 1)}
+                                className=''
+                            />
                         </div>
                     </div>
                 </div>
