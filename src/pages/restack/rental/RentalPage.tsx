@@ -1,58 +1,71 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
-import { rentalPropertiesDummyData } from '../../dummy_data/restack_rental_dummy_data'
-import type { RentalProperty } from '../../../data_types/restack/restack-rental'
+import type { RestackRentalProperty } from '../../../data_types/restack/restack-rental.d'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Layout from '../../../layout/Layout'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+import { get99AcresRentalData, getMagicBricksRentalData } from '../../../services/restack/rentalService'
 
 const RentalPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [selectedListedBy, setSelectedListedBy] = useState<'All' | 'Owner' | 'Broker'>('All')
     const navigate = useNavigate()
-    const dispatch = useDispatch<any>()
+    const { type } = useParams<{ type: string }>()
 
-    const properties: RentalProperty[] = rentalPropertiesDummyData
+    const [properties, setProperties] = useState<RestackRentalProperty[]>([])
     const loading = false
 
     const ITEMS_PER_PAGE = 15
 
-    const [filteredProperties, setFilteredProperties] = useState<RentalProperty[]>([])
-    const [paginatedProperties, setPaginatedProperties] = useState<RentalProperty[]>([])
+    const [filteredProperties, setFilteredProperties] = useState<RestackRentalProperty[]>([])
+    const [paginatedProperties, setPaginatedProperties] = useState<RestackRentalProperty[]>([])
 
     useEffect(() => {
-        //dispatch(fetchPostReraProperties(undefined))
-    }, [dispatch])
+        const fetchData = async () => {
+            let data = await get99AcresRentalData()
+            switch (type) {
+                case '99acres':
+                    data = await get99AcresRentalData()
+                    break
+                case 'magicbricks':
+                    data = await getMagicBricksRentalData()
+                    break
+                default:
+                    break
+            }
+
+            setProperties(data)
+        }
+        fetchData()
+    }, [])
 
     useEffect(() => {
         let filtered = properties
-
         // Apply search filter
         if (searchValue.trim() !== '') {
             filtered = filtered.filter(
                 (property) =>
-                    property.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.propertyName.toLowerCase().includes(searchValue.toLowerCase()) ||
                     property.propertyId.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.propertyType.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.listingStatus?.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.listedBy.toLowerCase().includes(searchValue.toLowerCase()),
+                    property.description.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.address.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.micromarket.toLowerCase().includes(searchValue.toLowerCase()),
             )
         }
 
         // Apply listedBy filter
         if (selectedListedBy !== 'All') {
-            filtered = filtered.filter((property) => property.listedBy === selectedListedBy)
+            filtered = filtered.filter((property) => property.postedBy === selectedListedBy)
         }
 
         setFilteredProperties(filtered)
         setCurrentPage(1)
     }, [searchValue, properties, selectedListedBy])
-
     useEffect(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
         const endIndex = startIndex + ITEMS_PER_PAGE
@@ -69,9 +82,9 @@ const RentalPage = () => {
 
     const columns: TableColumn[] = [
         {
-            key: 'projectName',
+            key: 'propertyName',
             header: 'Project Name',
-            render: (value: string, row: RentalProperty) => (
+            render: (value: string, row: RestackRentalProperty) => (
                 <span className='whitespace-nowrap text-sm font-medium text-gray-900'>{value}</span>
             ),
         },
@@ -89,6 +102,7 @@ const RentalPage = () => {
             key: 'postedOn',
             header: 'Inventory Date',
             render: (value: number) => (
+                // <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>
                 <span className='whitespace-nowrap text-sm text-gray-600'>{formatUnixDate(value)}</span>
             ),
         },
@@ -96,15 +110,15 @@ const RentalPage = () => {
             key: 'listingStatus',
             header: 'Status',
             render: (value: string) => (
-                <span className='whitespace-nowrap text-sm text-gray-800'>{(value || 'apartment').toLowerCase()}</span>
+                <span className='whitespace-nowrap text-sm text-gray-800'>{(value || 'available').toUpperCase()}</span>
             ),
         },
         {
             key: 'actions',
             header: 'View Details',
-            render: (value: any, row: RentalProperty) => (
+            render: (value: any, row: RestackRentalProperty) => (
                 <button
-                    onClick={() => navigate(`/restack/rental/${row.propertyId}/details`)}
+                    onClick={() => navigate(`/restack/rental/${type}/${row.propertyId}/details`)}
                     className='bg-black text-white text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
                 >
                     View Details
