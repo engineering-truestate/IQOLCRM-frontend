@@ -8,7 +8,7 @@ import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../c
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 
-import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
+// import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
 import resetic from '/icons/acn/rotate-left.svg'
 import type { AppDispatch, RootState } from '../../../store/index'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
@@ -20,13 +20,14 @@ import algoliaService, {
     type AlgoliaSearchResponse,
     type FacetValue,
 } from '../../../services/acn/properties/algoliaPropertiesService'
+import type { IRequirement } from '../../../data_types/acn/types'
 
 const PropertiesSelectionPage = () => {
     const navigate = useNavigate()
     const { id } = useParams()
 
     // Redux state (for fallback data)
-    const { isLoadingMore } = useSelector((state: RootState) => state.properties)
+    // const { isLoadingMore } = useSelector((state: RootState) => state.properties)
     const dispatch = useDispatch<AppDispatch>()
 
     const { addingProperties, error } = useSelector((state: RootState) => state.requirements)
@@ -36,7 +37,7 @@ const PropertiesSelectionPage = () => {
     const [searchResults, setSearchResults] = useState<AlgoliaSearchResponse | null>(null)
     const [searchLoading, setSearchLoading] = useState(false)
     const [searchError, setSearchError] = useState<string | null>(null)
-    const [useAlgoliaData] = useState(false)
+    // const [useAlgoliaData] = useState(false)
 
     // Filter state
     const [filters, setFilters] = useState<SearchFilters>({})
@@ -49,7 +50,7 @@ const PropertiesSelectionPage = () => {
     const [activeTab, setActiveTab] = useState('resale')
     const [currentPage, setCurrentPage] = useState(0) // Algolia uses 0-based indexing
     const [selectedProperties, setSelectedProperties] = useState<Set<string>>(new Set())
-    const [_, setRequirement] = useState<RequirementData | null>(null)
+    const [_, setRequirement] = useState<IRequirement | null>(null)
 
     // Constants
     const ITEMS_PER_PAGE = 50
@@ -69,20 +70,20 @@ const PropertiesSelectionPage = () => {
     }, [])
 
     // Load initial data
-    useEffect(() => {
-        // Load requirement data
-        if (id) {
-            const allRequirements = generateRequirements()
-            const foundRequirement = allRequirements.find((req) => req.reqId === id)
-            if (foundRequirement) {
-                setRequirement(foundRequirement)
-                setSelectedProperties(new Set(foundRequirement.matchedPropertyIds))
-            }
-        }
+    // useEffect(() => {
+    //     // Load requirement data
+    //     if (id) {
+    //         const allRequirements = generateRequirements()
+    //         const foundRequirement = allRequirements.find((req) => req.reqId === id)
+    //         if (foundRequirement) {
+    //             setRequirement(foundRequirement)
+    //             setSelectedProperties(new Set(foundRequirement.matchedPropertyIds))
+    //         }
+    //     }
 
-        // Perform initial search to load data
-        performSearch('', {}, 0, '')
-    }, [id])
+    //     // Perform initial search to load data
+    //     performSearch('', {}, 0, '')
+    // }, [id])
 
     // Perform Algolia search
     const performSearch = useCallback(
@@ -905,13 +906,13 @@ const PropertiesSelectionPage = () => {
                         <div className='flex items-center gap-4 text-sm text-gray-600 mb-2'>
                             <span>
                                 Total: {totalItems} properties
-                                {useAlgoliaData && <span className='text-blue-600 ml-2'>(Algolia results)</span>}
+                                {/* {useAlgoliaData && <span className='text-blue-600 ml-2'>(Algolia results)</span>} */}
                                 {searchError && (
                                     <span className='text-red-600 ml-2'>(Search failed, showing local data)</span>
                                 )}
                             </span>
                             {searchLoading && <span className='text-blue-600'>Searching...</span>}
-                            {isLoadingMore && !useAlgoliaData && <span className='text-blue-600'>Loading more...</span>}
+                            {/* {isLoadingMore && !useAlgoliaData && <span className='text-blue-600'>Loading more...</span>} */}
                         </div>
                     </div>
 

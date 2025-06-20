@@ -1,7 +1,7 @@
 import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
-const searchClient = algoliasearch('754A0N2FFU', '440ca58a1a23b6028205bb0d83f13412')
-const INDEX_NAME = 'QC_Index'
+const searchClient = algoliasearch('YRTIP4R3ZR', '53f176209e2536837f335aba4c8e093d')
+const INDEX_NAME = 'qc-inventories'
 
 export interface InventorySearchFilters {
     kamId?: string[]
@@ -31,16 +31,16 @@ export interface InventorySearchResponse {
 const buildFilterString = (filters: InventorySearchFilters = {}): string => {
     const filterParts: string[] = []
 
-    if (filters.kamId?.length) {
+    if (filters.kamId?.length && !filters.kamId.includes('all')) {
         filterParts.push(`(${filters.kamId.map((s) => `kamId:${s}`).join(' OR ')})`)
     }
-    if (filters.stage?.length) {
+    if (filters.stage?.length && !filters.stage.includes('all')) {
         filterParts.push(`(${filters.stage.map((s) => `stage:${s}`).join(' OR ')})`)
     }
-    if (filters.KamStatus?.length) {
+    if (filters.KamStatus?.length && !filters.KamStatus.includes('all')) {
         filterParts.push(`(${filters.KamStatus.map((s) => `KamStatus:${s}`).join(' OR ')})`)
     }
-    if (filters.assetType?.length) {
+    if (filters.assetType?.length && !filters.assetType.includes('all')) {
         filterParts.push(`(${filters.assetType.map((t) => `assetType:${t}`).join(' OR ')})`)
     }
 
@@ -120,5 +120,36 @@ export const getInventoryFacets = async (): Promise<Record<string, { value: stri
     } catch (error) {
         console.error('Get inventory facets error:', error)
         throw new Error(`Failed to get facets: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+}
+
+export const getTotalProjectsByStage = async (): Promise<Record<string, number>> => {
+    try {
+        const response = await searchClient.search([
+            {
+                indexName: INDEX_NAME,
+                params: {
+                    query: '',
+                    hitsPerPage: 0,
+                    facets: ['stage'],
+                    maxValuesPerFacet: 100,
+                },
+            },
+        ])
+
+        const result = response.results[0] as SearchResponse<any>
+        const stageCounts: Record<string, number> = {}
+
+        // Extract stage counts from facets
+        if (result.facets && result.facets.stage) {
+            Object.entries(result.facets.stage).forEach(([stage, count]) => {
+                stageCounts[stage] = count as number
+            })
+        }
+
+        return stageCounts
+    } catch (error) {
+        console.error('Get total projects by stage error:', error)
+        throw new Error(`Failed to get stage counts: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }

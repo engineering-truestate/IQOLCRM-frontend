@@ -2,7 +2,14 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
 import { doc, getDoc, updateDoc, setDoc, runTransaction } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import type { IQCInventory, AgentData } from '../../../store/reducers/acn/qcTypes'
+import type {
+    IQCInventory,
+    BaseQCInventory,
+    UpdateQCStatusParams,
+    UpdateStatusResponse,
+    AddNoteParams,
+    AddNoteResponse,
+} from '../../../data_types/acn/types'
 
 // Helper function to get current Unix timestamp
 const getCurrentTimestamp = () => Date.now()
@@ -20,7 +27,7 @@ const generateUniquePropertyId = async (): Promise<string> => {
                 prefix: 'A',
             }
             transaction.set(adminDocRef, initialData)
-            const newPropertyId = `${initialData.prefix}${initialData.label}${initialData.count + 1}`
+            const newPropertyId = `${initialData.label}${initialData.prefix}${initialData.count + 1}`
             return newPropertyId
         }
 
@@ -30,7 +37,7 @@ const generateUniquePropertyId = async (): Promise<string> => {
         const prefix = adminData.prefix || 'A'
 
         const newCount = currentCount + 1
-        const newPropertyId = `${prefix}${label}${newCount}`
+        const newPropertyId = `${label}${prefix}${newCount}`
 
         transaction.update(adminDocRef, { count: newCount })
 
@@ -45,7 +52,7 @@ export const fetchQCInventoryById = createAsyncThunk<IQCInventory, string, { rej
         try {
             console.log('🔍 Fetching QC inventory with ID:', qcId)
 
-            const docRef = doc(db, 'acn-qc-inventories', qcId)
+            const docRef = doc(db, 'acnQCInventories', qcId)
             const docSnap = await getDoc(docRef)
 
             if (docSnap.exists()) {
@@ -63,155 +70,90 @@ export const fetchQCInventoryById = createAsyncThunk<IQCInventory, string, { rej
     },
 )
 
-// Update QC Status with Role-Based Logic
+// Update QC Status with Role-Based Logic and Business Rules
 export const updateQCStatusWithRoleCheck = createAsyncThunk<
-    {
-        propertyId: string
-        updates: Partial<IQCInventory>
-        propertyCreated: boolean
-    },
-    {
-        property: IQCInventory
-        status: string
-        agentData: AgentData
-        activeTab: string
-        reviewedBy: string
-    },
+    UpdateStatusResponse,
+    UpdateQCStatusParams,
     { rejectValue: string }
 >(
     'qc/updateStatusWithRoleCheck',
     async ({ property, status, agentData, activeTab, reviewedBy }, { rejectWithValue }) => {
         try {
-            console.log('📝 Updating QC status with role check:', {
+            let dataToSave: Partial<IQCInventory> = {}
+            let shouldCreateProperty = false
+            const currentTime = getCurrentTimestamp()
+            console.log('🔄 Processing status update:', {
                 propertyId: property.propertyId,
                 status,
                 role: agentData.role,
                 activeTab,
+                currentStage: property.stage,
             })
 
-            let dataToSave: Partial<IQCInventory> = {}
-            let shouldCreateProperty = false
-            const currentTime = getCurrentTimestamp()
+            // Safely get current statuses with fallbacks
+            const currentKamStatus = property.qcReview?.kamReview?.status || property.kamStatus || 'pending'
+            const currentDataStatus = property.qcReview?.dataReview?.status || property.dataStatus || 'pending'
 
-            // Role-based logic
             switch (agentData.role) {
-                case 'dataTeam':
-                    // Data team can only edit if KAM status is approved
-                    if (property.qcReview.kamReview.status !== 'approved') {
+                case 'data':
+                    console.log('🔄 Processing data update')
+                    // Role-based validation first
+                    if (currentKamStatus !== 'approved') {
                         return rejectWithValue('Data team can only edit status if KAM status is approved')
                     }
-                    if (status === property.qcReview.dataReview.status) {
+                    if (property.stage === 'notApproved') {
+                        return rejectWithValue('Data team cannot edit properties in notApproved stage')
+                    }
+                    if (status === currentDataStatus) {
                         return rejectWithValue(`You cannot change the status of a property that is already: ${status}`)
                     }
 
-                    dataToSave = {
-                        qcReview: {
-                            ...property.qcReview,
-                            dataReview: {
-                                status: status as any,
-                                reviewDate: currentTime,
-                                reviewedBy,
-                                comments: `Data review status updated to ${status}`,
-                            },
-                        },
-                        qcStatus: status as any,
-                        status: status === 'approved' ? 'available' : (status as any),
-                        lastmodified: currentTime,
-                        qcHistory: [
-                            ...property.qcHistory,
-                            {
-                                date: currentTime,
-                                action: `Data Review: ${status}`,
-                                performedBy: reviewedBy,
-                                details: `Data review status updated to ${status}`,
-                            },
-                        ],
-                    }
-
-                    // If data team approves and KAM already approved, create property
-                    if (status === 'approved' && property.qcReview.kamReview.status === 'approved') {
-                        shouldCreateProperty = true
-                        dataToSave.stage = 'live'
-                    }
-                    break
-
-                case 'kam':
-                    if (property.stage !== 'kam') {
-                        return rejectWithValue(
-                            'You cannot change the status of a property that is not in the KAM stage',
-                        )
-                    }
-                    if (status === property.qcReview.kamReview.status) {
-                        return rejectWithValue(`You cannot change the status of a property that is already: ${status}`)
-                    }
-
-                    dataToSave = {
-                        qcReview: {
-                            ...property.qcReview,
-                            kamReview: {
-                                status: status as any,
-                                reviewDate: currentTime,
-                                reviewedBy,
-                                comments: `KAM review status updated to ${status}`,
-                            },
-                        },
-                        kamStatus: status as any,
-                        stage: status === 'approved' ? 'dataTeam' : 'kam',
-                        lastmodified: currentTime,
-                        qcHistory: [
-                            ...property.qcHistory,
-                            {
-                                date: currentTime,
-                                action: `KAM Review: ${status}`,
-                                performedBy: reviewedBy,
-                                details: `KAM review status updated to ${status}`,
-                            },
-                        ],
-                    }
-                    break
-
-                case 'kamModerator':
-                    if (activeTab === 'kam') {
-                        if (status === property.qcReview.kamReview.status) {
-                            return rejectWithValue(
-                                `You cannot change the status of a property that is already: ${status}`,
-                            )
-                        }
-
+                    // Check if status is other than approved
+                    if (status !== 'approved') {
+                        // Apply special logic: kamStatus = given status, qcStatus = pending, stage = notApproved, status = given status
                         dataToSave = {
                             qcReview: {
                                 ...property.qcReview,
                                 kamReview: {
+                                    ...property.qcReview?.kamReview,
                                     status: status as any,
                                     reviewDate: currentTime,
                                     reviewedBy,
-                                    comments: `KAM review status updated to ${status} by moderator`,
+                                    comments: `Status updated to ${status} - moved to notApproved stage`,
+                                },
+                                dataReview: {
+                                    status: status as any,
+                                    reviewDate: currentTime,
+                                    reviewedBy,
+                                    comments: `Data review status updated to ${status}`,
                                 },
                             },
                             kamStatus: status as any,
-                            stage: status === 'approved' ? 'dataTeam' : 'kam',
-                            lastmodified: currentTime,
+                            dataStatus: status as any,
+                            qcStatus: 'pending',
+                            stage: 'notApproved',
+                            status: status as any,
+                            lastModified: currentTime,
                             qcHistory: [
-                                ...property.qcHistory,
+                                ...(property.qcHistory || []),
                                 {
-                                    date: currentTime,
-                                    action: `KAM Review (Moderator): ${status}`,
+                                    timestamp: currentTime,
+                                    qcStatus: status as any,
+                                    userName: reviewedBy,
+                                    userRole: agentData.role,
+                                    userEmail: agentData.email,
+                                    userPhone: agentData.phone,
+                                    kamId: agentData.kamId || '',
+                                    cpId: property.cpId,
+                                    action: `Status changed to ${status}`,
+                                    details: `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
                                     performedBy: reviewedBy,
-                                    details: `KAM review status updated to ${status} by moderator`,
+                                    date: currentTime,
                                 },
                             ],
                         }
-                    } else if (activeTab === 'dataTeam') {
-                        // Data team can only edit if KAM status is approved
-                        if (property.qcReview.kamReview.status !== 'approved') {
-                            return rejectWithValue('Data team can only edit status if KAM status is approved')
-                        }
-                        if (status === property.qcReview.dataReview.status) {
-                            return rejectWithValue(
-                                `You cannot change the status of a property that is already: ${status}`,
-                            )
-                        }
-
+                    } else {
+                        // Original logic for approved status
                         dataToSave = {
                             qcReview: {
                                 ...property.qcReview,
@@ -219,27 +161,305 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                     status: status as any,
                                     reviewDate: currentTime,
                                     reviewedBy,
-                                    comments: `Data review status updated to ${status} by moderator`,
+                                    comments: `Data review status updated to ${status}`,
                                 },
                             },
+                            dataStatus: status as any,
                             qcStatus: status as any,
-                            status: status === 'approved' ? 'available' : (status as any),
-                            lastmodified: currentTime,
+                            status: 'available',
+                            stage: 'live',
+                            lastModified: currentTime,
                             qcHistory: [
-                                ...property.qcHistory,
+                                ...(property.qcHistory || []),
                                 {
-                                    date: currentTime,
-                                    action: `Data Review (Moderator): ${status}`,
+                                    timestamp: currentTime,
+                                    qcStatus: status as any,
+                                    userName: reviewedBy,
+                                    userRole: agentData.role,
+                                    userEmail: agentData.email,
+                                    userPhone: agentData.phone,
+                                    kamId: agentData.kamId || '',
+                                    cpId: property.cpId,
+                                    action: `Status changed to ${status}`,
+                                    details: `Status updated by ${reviewedBy} (${agentData.role})`,
                                     performedBy: reviewedBy,
-                                    details: `Data review status updated to ${status} by moderator`,
+                                    date: currentTime,
                                 },
                             ],
                         }
+                        shouldCreateProperty = true
+                    }
+                    break
 
-                        // If moderator approves data and KAM already approved, create property
-                        if (status === 'approved' && property.qcReview.kamReview.status === 'approved') {
+                case 'kam':
+                    console.log('🔄 Processing kam update')
+                    // Role-based validation first
+                    if (property.stage !== 'kam' && property.stage !== 'notApproved') {
+                        return rejectWithValue(
+                            'You cannot change the status of a property that is not in the KAM or notApproved stage',
+                        )
+                    }
+                    if (status === currentKamStatus) {
+                        return rejectWithValue(`You cannot change the status of a property that is already: ${status}`)
+                    }
+
+                    // Check if status is other than approved
+                    if (status !== 'approved') {
+                        // Apply special logic: kamStatus = given status, qcStatus = pending, stage = notApproved, status = given status
+                        dataToSave = {
+                            qcReview: {
+                                ...property.qcReview,
+                                kamReview: {
+                                    status: status as any,
+                                    reviewDate: currentTime,
+                                    reviewedBy,
+                                    comments: `Status updated to ${status} - moved to notApproved stage`,
+                                },
+                                // Preserve existing dataReview if it exists
+                                ...(property.qcReview?.dataReview && { dataReview: property.qcReview.dataReview }),
+                            },
+                            kamStatus: status as any,
+                            qcStatus: 'pending',
+                            stage: 'notApproved',
+                            status: status as any,
+                            lastModified: currentTime,
+                            qcHistory: [
+                                ...(property.qcHistory || []),
+                                {
+                                    timestamp: currentTime,
+                                    qcStatus: status as any,
+                                    userName: reviewedBy,
+                                    userRole: agentData.role,
+                                    userEmail: agentData.email,
+                                    userPhone: agentData.phone,
+                                    kamId: agentData.kamId || '',
+                                    cpId: property.cpId,
+                                    action: `Status changed to ${status}`,
+                                    details: `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
+                                    performedBy: reviewedBy,
+                                    date: currentTime,
+                                },
+                            ],
+                        }
+                    } else {
+                        // Original logic for approved status
+                        dataToSave = {
+                            qcReview: {
+                                ...property.qcReview,
+                                kamReview: {
+                                    status: status as any,
+                                    reviewDate: currentTime,
+                                    reviewedBy,
+                                    comments: `KAM review status updated to ${status}`,
+                                },
+                                // Preserve existing dataReview if it exists
+                                ...(property.qcReview?.dataReview && { dataReview: property.qcReview.dataReview }),
+                            },
+                            kamStatus: status as any,
+                            stage: 'data',
+                            lastModified: currentTime,
+                            qcHistory: [
+                                ...(property.qcHistory || []),
+                                {
+                                    timestamp: currentTime,
+                                    qcStatus: status as any,
+                                    userName: reviewedBy,
+                                    userRole: agentData.role,
+                                    userEmail: agentData.email,
+                                    userPhone: agentData.phone,
+                                    kamId: agentData.kamId || '',
+                                    cpId: property.cpId,
+                                    action: `Status changed to ${status}`,
+                                    details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                    performedBy: reviewedBy,
+                                    date: currentTime,
+                                },
+                            ],
+                        }
+                    }
+                    break
+
+                case 'kamModerator':
+                    console.log('🔄 Processing kamModerator update')
+                    // KAM moderators can edit in ALL stages (kam, data, notApproved)
+                    if (activeTab === 'kam') {
+                        if (status === currentKamStatus) {
+                            return rejectWithValue(
+                                `You cannot change the status of a property that is already: ${status}`,
+                            )
+                        }
+
+                        // Check if status is other than approved
+                        if (status !== 'approved') {
+                            // Apply special logic
+                            dataToSave = {
+                                qcReview: {
+                                    ...property.qcReview,
+                                    kamReview: {
+                                        status: status as any,
+                                        reviewDate: currentTime,
+                                        reviewedBy,
+                                        comments: `Status updated to ${status} by moderator - moved to notApproved stage`,
+                                    },
+                                    // Preserve existing dataReview if it exists
+                                    ...(property.qcReview?.dataReview && { dataReview: property.qcReview.dataReview }),
+                                },
+                                kamStatus: status as any,
+                                qcStatus: 'pending',
+                                stage: 'notApproved',
+                                status: status as any,
+                                lastModified: currentTime,
+                                qcHistory: [
+                                    ...(property.qcHistory || []),
+                                    {
+                                        timestamp: currentTime,
+                                        qcStatus: status as any,
+                                        userName: reviewedBy,
+                                        userRole: agentData.role,
+                                        userEmail: agentData.email,
+                                        userPhone: agentData.phone,
+                                        kamId: agentData.kamId || '',
+                                        cpId: property.cpId,
+                                        action: `Status changed to ${status}`,
+                                        details: `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
+                                        performedBy: reviewedBy,
+                                        date: currentTime,
+                                    },
+                                ],
+                            }
+                        } else {
+                            // Original logic for approved status
+                            dataToSave = {
+                                qcReview: {
+                                    ...property.qcReview,
+                                    kamReview: {
+                                        status: status as any,
+                                        reviewDate: currentTime,
+                                        reviewedBy,
+                                        comments: `KAM review status updated to ${status} by moderator`,
+                                    },
+                                    // Preserve existing dataReview if it exists
+                                    ...(property.qcReview?.dataReview && { dataReview: property.qcReview.dataReview }),
+                                },
+                                kamStatus: status as any,
+                                stage: 'data',
+                                lastModified: currentTime,
+                                qcHistory: [
+                                    ...(property.qcHistory || []),
+                                    {
+                                        timestamp: currentTime,
+                                        qcStatus: status as any,
+                                        userName: reviewedBy,
+                                        userRole: agentData.role,
+                                        userEmail: agentData.email,
+                                        userPhone: agentData.phone,
+                                        kamId: agentData.kamId || '',
+                                        cpId: property.cpId,
+                                        action: `Status changed to ${status}`,
+                                        details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                        performedBy: reviewedBy,
+                                        date: currentTime,
+                                    },
+                                ],
+                            }
+                        }
+                    } else if (activeTab === 'data') {
+                        // For data tab, still need KAM to be approved (unless in notApproved stage)
+                        if (currentKamStatus !== 'approved' && property.stage !== 'notApproved') {
+                            return rejectWithValue('Data team can only edit status if KAM status is approved')
+                        }
+                        if (status === currentDataStatus) {
+                            return rejectWithValue(
+                                `You cannot change the status of a property that is already: ${status}`,
+                            )
+                        }
+
+                        // Check if status is other than approved
+                        if (status !== 'approved') {
+                            // Apply special logic
+                            dataToSave = {
+                                qcReview: {
+                                    ...property.qcReview,
+                                    kamReview: {
+                                        ...property.qcReview?.kamReview,
+                                        status: status as any,
+                                        reviewDate: currentTime,
+                                        reviewedBy,
+                                        comments: `Status updated to ${status} by moderator - moved to notApproved stage`,
+                                    },
+                                    dataReview: {
+                                        status: status as any,
+                                        reviewDate: currentTime,
+                                        reviewedBy,
+                                        comments: `Data review status updated to ${status} by moderator`,
+                                    },
+                                },
+                                kamStatus: status as any,
+                                dataStatus: status as any,
+                                qcStatus: 'pending',
+                                stage: 'notApproved',
+                                status: status as any,
+                                lastModified: currentTime,
+                                qcHistory: [
+                                    ...(property.qcHistory || []),
+                                    {
+                                        timestamp: currentTime,
+                                        qcStatus: status as any,
+                                        userName: reviewedBy,
+                                        userRole: agentData.role,
+                                        userEmail: agentData.email,
+                                        userPhone: agentData.phone,
+                                        kamId: agentData.kamId || '',
+                                        cpId: property.cpId,
+                                        action: `Status changed to ${status}`,
+                                        details: `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
+                                        performedBy: reviewedBy,
+                                        date: currentTime,
+                                    },
+                                ],
+                            }
+                        } else {
+                            // Original logic for approved status
+                            dataToSave = {
+                                qcReview: {
+                                    ...property.qcReview,
+                                    kamReview: property.qcReview?.kamReview || {
+                                        status: currentKamStatus as any,
+                                        reviewDate: currentTime,
+                                        reviewedBy: 'System',
+                                        comments: 'Initial KAM review',
+                                    },
+                                    dataReview: {
+                                        status: status as any,
+                                        reviewDate: currentTime,
+                                        reviewedBy,
+                                        comments: `Data review status updated to ${status} by moderator`,
+                                    },
+                                },
+                                dataStatus: status as any,
+                                qcStatus: status as any,
+                                status: 'available',
+                                stage: 'live',
+                                lastModified: currentTime,
+                                qcHistory: [
+                                    ...(property.qcHistory || []),
+                                    {
+                                        timestamp: currentTime,
+                                        qcStatus: status as any,
+                                        userName: reviewedBy,
+                                        userRole: agentData.role,
+                                        userEmail: agentData.email,
+                                        userPhone: agentData.phone,
+                                        kamId: agentData.kamId || '',
+                                        cpId: property.cpId,
+                                        action: `Status changed to ${status}`,
+                                        details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                        performedBy: reviewedBy,
+                                        date: currentTime,
+                                    },
+                                ],
+                            }
                             shouldCreateProperty = true
-                            dataToSave.stage = 'live'
                         }
                     } else {
                         return rejectWithValue('These fields cannot be edited from this tab!')
@@ -254,55 +474,47 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                 return rejectWithValue('Property ID is missing')
             }
 
+            console.log('💾 Saving data:', dataToSave)
+
             // Update QC inventory
-            const qcDocRef = doc(db, 'acn-qc-inventories', property.propertyId)
+            const qcDocRef = doc(db, 'acnQCInventories', property.propertyId)
             await updateDoc(qcDocRef, dataToSave)
 
-            // Send notification
-            try {
-                await fetch(`https://notification-server-acn.onrender.com/qcstatus/${property.propertyId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                })
-            } catch (notificationError) {
-                console.warn('Failed to send notification:', notificationError)
-            }
+            // Send notification (non-blocking)
+            fetch(`https://notification-server-acn.onrender.com/qcstatus/${property.propertyId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).catch(() => {})
 
             // Create property if both reviews are approved
             if (shouldCreateProperty) {
-                const propertyId = await generateUniquePropertyId()
-
+                const newPropertyId = await generateUniquePropertyId()
                 const propertyData = {
                     ...property,
                     ...dataToSave,
-                    propertyId,
-                    status: 'Available',
+                    propertyId: newPropertyId,
+                    status: 'available',
                     dateOfInventoryAdded: property.dateOfInventoryAdded,
                     dateOfStatusLastChecked: currentTime,
                     ageOfStatus: 0,
                 }
-
-                const propertyDocRef = doc(db, 'acn-properties', propertyId)
+                const propertyDocRef = doc(db, 'acnProperties', newPropertyId)
                 await setDoc(propertyDocRef, propertyData)
 
-                // Send property creation notification
-                try {
-                    await fetch(`https://notification-server-acn.onrender.com/property/${propertyId}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                    })
-                } catch (notificationError) {
-                    console.warn('Failed to send property creation notification:', notificationError)
-                }
+                console.log('🏠 Property created successfully with ID:', newPropertyId)
 
-                console.log('✅ Property created successfully with ID:', propertyId)
+                // Send property creation notification (non-blocking)
+                fetch(`https://notification-server-acn.onrender.com/property/${newPropertyId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }).catch(() => {})
             }
 
-            console.log('✅ QC status updated successfully')
+            console.log('✅ Status updated successfully')
             return {
                 propertyId: property.propertyId,
                 updates: dataToSave,
@@ -311,6 +523,54 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
         } catch (error: any) {
             console.error('❌ Error updating QC status:', error)
             return rejectWithValue(error.message || 'Failed to update QC status')
+        }
+    },
+)
+
+// Add Note to QC Inventory
+export const addQCInventoryNote = createAsyncThunk<AddNoteResponse, AddNoteParams, { rejectValue: string }>(
+    'qc/addNote',
+    async ({ propertyId, details, kamId, kamName }, { rejectWithValue }) => {
+        try {
+            console.log('📝 Adding note to QC inventory:', {
+                propertyId,
+                details,
+                kamId,
+                kamName,
+            })
+
+            const docRef = doc(db, 'acnQCInventories', propertyId)
+            const docSnap = await getDoc(docRef)
+
+            if (!docSnap.exists()) {
+                return rejectWithValue('Property not found')
+            }
+
+            const currentProperty = docSnap.data() as BaseQCInventory
+            const currentTime = getCurrentTimestamp()
+
+            const newNote = {
+                kamId,
+                kamName,
+                details,
+                timestamp: currentTime,
+            }
+
+            const dataToSave = {
+                notes: [...(currentProperty.notes || []), newNote],
+                lastModified: currentTime,
+            }
+
+            await updateDoc(docRef, dataToSave)
+
+            console.log('✅ Note added successfully')
+            return {
+                propertyId,
+                note: newNote,
+            }
+        } catch (error: any) {
+            console.error('❌ Error adding note:', error)
+            return rejectWithValue(error.message || 'Failed to add note')
         }
     },
 )

@@ -1,4 +1,4 @@
-export type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'Delisted' | 'Pending QC'
+export type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'De-listed'
 
 export type AssetType = 'Apartment' | 'Villa' | 'Plot' | 'Commercial'
 
@@ -104,7 +104,7 @@ const configurations = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5 BHK', 'Studio']
 
 const assetTypes: AssetType[] = ['Apartment', 'Villa', 'Plot', 'Commercial']
 const facings: Facing[] = ['East', 'West', 'North', 'South', 'North-East', 'North-West', 'South-East', 'South-West']
-const statuses: PropertyStatus[] = ['Available', 'Sold', 'Hold', 'Delisted', 'Pending QC']
+const statuses: PropertyStatus[] = ['Available', 'Sold', 'Hold', 'De-listed']
 
 function getRandomElement<T>(array: T[]): T {
     return array[Math.floor(Math.random() * array.length)]

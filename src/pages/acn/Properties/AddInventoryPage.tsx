@@ -21,7 +21,7 @@ import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 const assetTypes: { label: string; value: PropertyType; icon: string }[] = [
     { label: 'flats/apartments', value: 'apartments', icon: '🏢' },
     { label: 'Villa', value: 'villa', icon: '🏡' },
-    { label: 'plot', value: 'plot', icon: '🏞️' },
+    { label: 'Plot', value: 'plot', icon: '🏞️' },
     { label: 'Row House', value: 'rowhouse', icon: '🏘️' },
     { label: 'Villament', value: 'villament', icon: '🏠' },
     { label: 'Independent Building', value: 'independent', icon: '🏛️' },
@@ -475,11 +475,11 @@ const AddEditInventoryPage = () => {
                             </div>
 
                             {/* Form Sections */}
-                            <div className='space-y-8'>
+                            <div className='space-y-4'>
                                 {currentConfig.map((section, sectionIndex) => (
-                                    <div key={sectionIndex} className='bg-white border border-gray-200 rounded-lg p-6'>
-                                        <h3 className='text-lg font-semibold text-gray-900 mb-6'>{section.title}</h3>
-                                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                                    <div key={sectionIndex} className='bg-white '>
+                                        {/* <h3 className='text-lg font-semibold text-gray-900 mb-6'>{section.title}</h3> */}
+                                        <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
                                             {section.fields.map((field) => (
                                                 <FormFieldRenderer
                                                     key={field.id}
@@ -509,7 +509,7 @@ const AddEditInventoryPage = () => {
                                 <Button
                                     bgColor={loading ? 'bg-gray-400' : successMessage ? 'bg-green-600' : 'bg-gray-900'}
                                     textColor='text-white'
-                                    className='px-4 py-3 hover:bg-gray-800 text-base font-medium'
+                                    className='px-4 py-2 hover:bg-gray-800 text-base font-medium'
                                     onClick={handleSubmit}
                                     disabled={loading || successMessage !== ''}
                                 >
