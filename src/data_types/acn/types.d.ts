@@ -72,7 +72,7 @@ type EnquiryState = {
     enquiries: IEnquiry[]
     loading: boolean
     error: string | null
-    lastFetch: Date | null
+    lastFetch: number | null
 }
 
 // ==================== INVENTORY TYPES ====================
@@ -122,7 +122,7 @@ type InventoryState = {
     inventories: IInventory[]
     loading: boolean
     error: string | null
-    lastFetch: Date | null
+    lastFetch: number | null
 }
 
 // ==================== QC INVENTORY TYPES ====================
@@ -379,7 +379,7 @@ type QCInventoryState = {
     selectedInventory?: BaseQCInventory | null
     loading: boolean
     error: string | null
-    lastFetch: Date | null
+    lastFetch: number | null
     updateLoading: boolean
     noteLoading: boolean
 }
@@ -505,7 +505,7 @@ type RentalInventoryState = {
     rentalInventories: IRentalInventory[]
     loading: boolean
     error: string | null
-    lastFetch: Date | null
+    lastFetch: number | null
 }
 
 // ==================== REQUIREMENT TYPES ====================
@@ -559,7 +559,7 @@ type RequirementState = {
     requirements: IRequirement[]
     loading: boolean
     error: string | null
-    lastFetch: Date | null
+    lastFetch: number | null
 }
 
 // ==================== AGENT TYPES ====================
@@ -631,7 +631,7 @@ type AgentState = {
     agents: IAgent[]
     loading: boolean
     error: string | null
-    lastFetch: Date | null
+    lastFetch: number | null
 }
 
 // ==================== LEAD TYPES ====================
@@ -668,7 +668,7 @@ type LeadState = {
     leads: ILead[]
     loading: boolean
     error: string | null
-    lastFetch: Date | null
+    lastFetch: number | null
 }
 
 // ==================== ROOT STATE TYPE ====================

@@ -14,14 +14,6 @@ import { villamentComponents } from '../../../components/acn/addInventoryConfigs
 import { rowhouseComponents } from '../../../components/acn/addInventoryConfigs/rowhouseComponents'
 import { independentComponents } from '../../../components/acn/addInventoryConfigs/independentComponents'
 
-// Import icons
-import apartmentIcon from '/icons/acn/ListingFlow/Apartments.svg'
-import villaIcon from '/icons/acn/ListingFlow/Villas.svg'
-import plotIcon from '/icons/acn/ListingFlow/Plots.svg'
-import villamentIcon from '/icons/acn/ListingFlow/Villaments.svg'
-import rowhouseIcon from '/icons/acn/ListingFlow/RowHouses.svg'
-import independentIcon from '/icons/acn/ListingFlow/IndependentBuildings.svg'
-
 // Types
 export interface PropertyData {
     id?: string
