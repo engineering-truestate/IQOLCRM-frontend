@@ -16,6 +16,7 @@
         "@tailwindcss/vite": "^4.1.8",
         "@types/xlsx": "^0.0.35",
         "algoliasearch": "^5.27.0",
+        "emailjs-com": "^3.2.0",
         "firebase": "^11.8.1",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",

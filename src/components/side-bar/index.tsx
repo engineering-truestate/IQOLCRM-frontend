@@ -45,7 +45,7 @@ const Sidebar = () => {
 
             <nav className='flex-1 mt-2'>
                 <ul className='flex flex-col'>
-                    {acnMenuItems.map((item) => (
+                    {canvasHomesMenuItems.map((item) => (
                         <li key={item.label}>
                             <div
                                 className='flex items-center gap-3 px-6 py-2 rounded-md cursor-pointer font-medium text-base transition hover:bg-gray-200'
