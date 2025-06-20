@@ -3,7 +3,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../../store/index'
-import { fetchRequirementById, updateRequirement } from '../../../services/acn/requirements/requirementsService'
+import {
+    fetchRequirementById,
+    updateRequirement,
+    updateRequirementStatus,
+    addNoteToRequirement,
+    removeNoteFromRequirement,
+} from '../../../services/acn/requirements/requirementsService'
 import { clearCurrentRequirement, clearError } from '../../../store/reducers/acn/requirementsReducers'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
@@ -17,13 +23,17 @@ import Breadcrumb from '../../../components/acn/Breadcrumb'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
 import noteic from '/icons/acn/note.svg'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import { formatUnixDate, formatUnixDateTime } from '../../../components/helper/formatDate'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
 
 // Note interface for local notes
 interface Note {
     id: string
     author: string
     content: string
-    timestamp: string
+    timestamp: number
 }
 
 // Custom status badge component
@@ -82,7 +92,7 @@ const RequirementDetailsPage = () => {
 
     console.log('🔄 RequirementDetailsPage mounted with ID:', id)
 
-    const { properties: matchingPropertiesData, isLoadingMore: loadingProperties } = useSelector(
+    const { properties: matchingPropertiesData, loading: loadingProperties } = useSelector(
         (state: RootState) => state.properties,
     )
 
@@ -102,40 +112,6 @@ const RequirementDetailsPage = () => {
     const [notes, setNotes] = useState<Note[]>([])
     const [isEditing, setIsEditing] = useState(false)
 
-    // Simple dummy data for the table
-    // const dummyMatchingProperties = [
-    //     {
-    //         propertyId: 'PROP001',
-    //         propertyName: 'Luxury Villa in Bandra',
-    //         price: '₹8,50,00,000',
-    //         status: 'De-Listed',
-    //     },
-    //     {
-    //         propertyId: 'PROP002',
-    //         propertyName: 'Modern Apartment in Juhu',
-    //         price: '₹12,75,00,000',
-    //         status: 'Available',
-    //     },
-    //     {
-    //         propertyId: 'PROP003',
-    //         propertyName: 'Penthouse in Powai',
-    //         price: '₹15,25,00,000',
-    //         status: 'Hold',
-    //     },
-    //     {
-    //         propertyId: 'PROP004',
-    //         propertyName: 'Independent House in Andheri',
-    //         price: '₹6,85,00,000',
-    //         status: 'Available',
-    //     },
-    //     {
-    //         propertyId: 'PROP005',
-    //         propertyName: 'Studio Apartment in Worli',
-    //         price: '₹4,20,00,000',
-    //         status: 'Sold',
-    //     },
-    // ]
-
     // Load requirement data based on ID from URL
     useEffect(() => {
         console.log('🔄 Component mounted, requirement ID from URL:', id)
@@ -154,26 +130,34 @@ const RequirementDetailsPage = () => {
 
     // Update local state when requirement changes from Redux
     useEffect(() => {
-        if (requirement) {
-            console.log('📋 Requirement loaded from Redux, updating local state:', requirement.requirementId)
-            setLocalRequirement(requirement)
-            setOriginalRequirement(requirement)
+        const loadRequirementData = async () => {
+            if (requirement) {
+                console.log('📋 Requirement loaded from Redux, updating local state:', requirement.requirementId)
+                console.log('khuda haafiz', requirement)
+                setLocalRequirement(requirement)
+                setOriginalRequirement(requirement)
 
-            // Initialize notes
-            setNotes([])
+                // Initialize notes
+                setNotes([])
 
-            // Fetch real matching properties from Firebase
-            if (requirement.matchingProperties && requirement.matchingProperties.length > 0) {
-                console.log('🏠 Loading matching properties from Firebase:', requirement.matchingProperties)
-                dispatch(fetchPropertiesByIds(requirement.matchingProperties))
-            } else {
-                console.log('ℹ️ No matching properties found')
-                setMatchingProperties([])
-                // Clear properties from Redux state
-                dispatch(clearProperties())
+                // Fetch real matching properties from Firebase
+                if (requirement.matchingProperties && requirement.matchingProperties.length > 0) {
+                    console.log('🏠 Loading matching properties from Firebase:', requirement.matchingProperties)
+                    const properties = await dispatch(fetchPropertiesByIds(requirement.matchingProperties)).unwrap()
+                    console.log('khana khiladoooooo:', properties)
+                    setMatchingProperties(properties)
+                } else {
+                    console.log('ℹ️ No matching properties found')
+                    setMatchingProperties([])
+                    // Clear properties from Redux state
+                    dispatch(clearProperties())
+                }
             }
         }
+
+        loadRequirementData()
     }, [requirement, dispatch])
+
     // Handle error display
     useEffect(() => {
         if (error) {
@@ -195,7 +179,7 @@ const RequirementDetailsPage = () => {
             console.log('🏠 Properties loaded from Redux:', matchingPropertiesData.length)
 
             // Transform Firebase data to table format
-            const transformedProperties = matchingPropertiesData.map((property) => ({
+            const transformedProperties = matchingPropertiesData.map((property: IInventory) => ({
                 propertyId: property.propertyId,
                 propertyName: property.propertyName || property.area || 'Unknown Property',
                 price: formatCurrency(property.totalAskPrice),
@@ -219,13 +203,13 @@ const RequirementDetailsPage = () => {
             label: 'Open',
             value: 'open',
             color: '#E1F6DF',
-            textColor: '',
+            textColor: '#0A0B0A',
         },
         {
             label: 'Close',
             value: 'close',
             color: '#FFC8B8',
-            textColor: '',
+            textColor: '#0A0B0A',
         },
     ]
 
@@ -234,19 +218,19 @@ const RequirementDetailsPage = () => {
             label: 'Found',
             value: 'found',
             color: '#E1F6DF',
-            textColor: '',
+            textColor: '#0A0B0A',
         },
         {
             label: 'Not Found',
             value: 'not found',
             color: '#FFC8B8',
-            textColor: '',
+            textColor: '#0A0B0A',
         },
         {
             label: 'Pending',
             value: 'pending',
             color: '#F5F5F5',
-            textColor: '',
+            textColor: '#0A0B0A',
         },
     ]
 
@@ -349,21 +333,53 @@ const RequirementDetailsPage = () => {
     const addNote = () => {
         if (newNote.trim() && localRequirement) {
             console.log('📝 Adding new note:', newNote)
-            const note: Note = {
-                id: `note_${localRequirement.requirementId}_${Date.now()}`,
-                author: 'Current User',
+            const newNoteObj = {
+                id: `note_${Date.now()}`,
+                author: 'Current User', // TODO: Get from auth context
                 content: newNote.trim(),
-                timestamp: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+                timestamp: getUnixDateTime(),
             }
-            setNotes((prev) => [note, ...prev])
+
+            // Create a new array with the new note
+            const updatedNotes = [...(localRequirement.notes || []), newNoteObj]
+
+            // Update local state with new notes array
+            setLocalRequirement((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          notes: updatedNotes,
+                      }
+                    : null,
+            )
+
+            dispatch(
+                addNoteToRequirement({
+                    requirementId: localRequirement.requirementId,
+                    note: newNoteObj,
+                }),
+            )
             setNewNote('')
+        }
+    }
+
+    // Handle removing a note
+    const removeNote = (noteId: string) => {
+        if (localRequirement) {
+            console.log('🗑️ Removing note:', noteId)
+            dispatch(
+                removeNoteFromRequirement({
+                    requirementId: localRequirement.requirementId,
+                    noteId,
+                }),
+            )
         }
     }
 
     // Matching properties table columns
     const propertyColumns: TableColumn[] = [
         {
-            key: 'propertyId',
+            key: 'id',
             header: 'Property Id',
             render: (value) => <span className='whitespace-nowrap text-gray-600 text-sm font-normal'>{value}</span>,
         },
@@ -390,24 +406,14 @@ const RequirementDetailsPage = () => {
             key: 'actions',
             header: 'Actions',
             render: (_, row) => (
-                <a
-                    href={`/properties/${row.propertyId}`}
-                    className='text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors'
-                >
-                    View
-                </a>
+                <div onClick={() => navigate(`/acn/properties/${row.id}/details`)}>
+                    <span className='text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors'>
+                        View
+                    </span>
+                </div>
             ),
         },
     ]
-
-    // Helper function to format dates
-    const formatDate = (timestamp: number) => {
-        return new Date(timestamp).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-        })
-    }
 
     // Helper function to format budget range
     const formatBudgetRange = (budget: { from: number; to: number }) => {
@@ -462,6 +468,27 @@ const RequirementDetailsPage = () => {
                     <div className='text-sm font-semibold'>{value}</div>
                 </div>
             )
+        }
+    }
+
+    // Update the status update handlers
+    const handleStatusUpdate = (status: string, type: 'requirement' | 'internal') => {
+        if (localRequirement) {
+            // Dispatch the thunk to update Firebase
+            dispatch(
+                updateRequirementStatus({
+                    id: localRequirement.requirementId,
+                    status,
+                    type,
+                }),
+            ).then((result) => {
+                if (result.meta.requestStatus === 'fulfilled' && 'payload' in result) {
+                    const payload = result.payload as { updates: IRequirement }
+                    // Update local state with the latest data from Firebase
+                    setLocalRequirement(payload.updates)
+                    setOriginalRequirement(payload.updates)
+                }
+            })
         }
     }
 
@@ -600,10 +627,14 @@ const RequirementDetailsPage = () => {
                             {/* Basic Info Grid */}
                             <div className='grid grid-cols-2 gap-6'>
                                 <div className='space-y-4'>
-                                    {renderField('Location', localRequirement?.location || '', 'location')}
+                                    {renderField(
+                                        'Location',
+                                        toCapitalizedWords(localRequirement?.location) || '',
+                                        'location',
+                                    )}
                                     {renderField(
                                         'Asset Type',
-                                        localRequirement?.assetType || '',
+                                        toCapitalizedWords(localRequirement?.assetType) || '',
                                         'assetType',
                                         assetTypeOptions,
                                     )}
@@ -613,10 +644,26 @@ const RequirementDetailsPage = () => {
                                         'configuration',
                                         configurationOptions,
                                     )}
-                                    {renderField('Micromarket', localRequirement?.micromarket || '', 'micromarket')}
-                                    {renderField('Bedrooms', localRequirement?.bedrooms || '', 'bedrooms')}
-                                    {renderField('Bathrooms', localRequirement?.bathrooms || '', 'bathrooms')}
-                                    {renderField('Parking', localRequirement?.parking || '', 'parking')}
+                                    {renderField(
+                                        'Micromarket',
+                                        toCapitalizedWords(localRequirement?.micromarket) || '',
+                                        'micromarket',
+                                    )}
+                                    {renderField(
+                                        'Bedrooms',
+                                        toCapitalizedWords(localRequirement?.bedrooms) || '',
+                                        'bedrooms',
+                                    )}
+                                    {renderField(
+                                        'Bathrooms',
+                                        toCapitalizedWords(localRequirement?.bathrooms) || '',
+                                        'bathrooms',
+                                    )}
+                                    {renderField(
+                                        'Parking',
+                                        toCapitalizedWords(localRequirement?.parking) || '',
+                                        'parking',
+                                    )}
                                 </div>
 
                                 <div className='space-y-4'>
@@ -632,7 +679,7 @@ const RequirementDetailsPage = () => {
                                     <div>
                                         <label className='text-sm text-gray-500 block mb-1'>Creation Date</label>
                                         <div className='text-sm font-semibold'>
-                                            {localRequirement?.added ? formatDate(localRequirement.added) : 'N/A'}
+                                            {localRequirement?.added ? formatUnixDate(localRequirement.added) : 'N/A'}
                                         </div>
                                     </div>
                                     <div>
@@ -655,8 +702,10 @@ const RequirementDetailsPage = () => {
                                                 <label className='text-sm text-gray-500 block mb-1'>Status</label>
                                                 <Dropdown
                                                     options={statusDropdownOptions}
-                                                    onSelect={(value) => updateField('requirementStatus', value)}
-                                                    defaultValue={localRequirement?.requirementStatus || ''}
+                                                    onSelect={(value) => handleStatusUpdate(value, 'requirement')}
+                                                    defaultValue={
+                                                        toCapitalizedWords(localRequirement?.requirementStatus) || ''
+                                                    }
                                                     placeholder='Select Status'
                                                     className='relative w-full'
                                                     triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full cursor-pointer'
@@ -670,12 +719,14 @@ const RequirementDetailsPage = () => {
                                                 </label>
                                                 <Dropdown
                                                     options={internalStatusDropdownOptions}
-                                                    onSelect={(value) => updateField('internalStatus', value)}
-                                                    defaultValue={localRequirement?.internalStatus || ''}
+                                                    onSelect={(value) => handleStatusUpdate(value, 'internal')}
+                                                    defaultValue={
+                                                        toCapitalizedWords(localRequirement?.internalStatus) || ''
+                                                    }
                                                     placeholder='Select Status'
                                                     className='relative w-full'
                                                     triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full cursor-pointer'
-                                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                                    menuClassName='absolute z-50 mt-1 w-full border border-gray-300 rounded-md shadow-lg'
                                                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                                                 />
                                             </div>
@@ -685,7 +736,9 @@ const RequirementDetailsPage = () => {
                                             <div>
                                                 <label className='text-sm text-gray-500 block mb-1'>Status</label>
                                                 <StatusBadge
-                                                    status={localRequirement?.requirementStatus || ''}
+                                                    status={
+                                                        toCapitalizedWords(localRequirement?.requirementStatus) || ''
+                                                    }
                                                     type='requirement'
                                                 />
                                             </div>
@@ -694,7 +747,7 @@ const RequirementDetailsPage = () => {
                                                     Internal Status
                                                 </label>
                                                 <StatusBadge
-                                                    status={localRequirement?.internalStatus || ''}
+                                                    status={toCapitalizedWords(localRequirement?.internalStatus) || ''}
                                                     type='internal'
                                                 />
                                             </div>
@@ -704,7 +757,7 @@ const RequirementDetailsPage = () => {
                                         <label className='text-sm text-gray-500 block mb-1'>Last Modified</label>
                                         <div className='text-sm font-semibold'>
                                             {localRequirement?.lastModified
-                                                ? formatDate(localRequirement.lastModified)
+                                                ? formatUnixDate(localRequirement.lastModified)
                                                 : 'N/A'}
                                         </div>
                                     </div>
@@ -801,8 +854,10 @@ const RequirementDetailsPage = () => {
                                             <label className='text-sm text-gray-700 block mb-1'>Status</label>
                                             <Dropdown
                                                 options={statusDropdownOptions}
-                                                onSelect={(value) => updateField('requirementStatus', value)}
-                                                defaultValue={localRequirement?.requirementStatus || ''}
+                                                onSelect={(value) => handleStatusUpdate(value, 'requirement')}
+                                                defaultValue={
+                                                    toCapitalizedWords(localRequirement?.requirementStatus) || ''
+                                                }
                                                 placeholder='Select Status'
                                                 className='relative w-full'
                                                 triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full cursor-pointer'
@@ -814,8 +869,10 @@ const RequirementDetailsPage = () => {
                                             <label className='text-sm text-gray-700 block mb-1'>Internal Status</label>
                                             <Dropdown
                                                 options={internalStatusDropdownOptions}
-                                                onSelect={(value) => updateField('internalStatus', value)}
-                                                defaultValue={localRequirement?.internalStatus || ''}
+                                                onSelect={(value) => handleStatusUpdate(value, 'internal')}
+                                                defaultValue={
+                                                    toCapitalizedWords(localRequirement?.internalStatus) || ''
+                                                }
                                                 placeholder='Select Status'
                                                 className='relative w-full'
                                                 triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full cursor-pointer'
@@ -860,25 +917,27 @@ const RequirementDetailsPage = () => {
                                     <div>
                                         <h4 className='text-sm font-medium text-gray-700 mb-2'>Previous Notes</h4>
                                         <div className='max-h-90 overflow-y-auto space-y-3'>
-                                            {notes.length > 0 ? (
-                                                notes.map((note) => (
-                                                    <div
-                                                        key={note.id}
-                                                        className='bg-gray-50 rounded-lg p-3 border border-gray-200'
-                                                    >
-                                                        <div className='flex items-center justify-between mb-1'>
-                                                            <span className='text-xs font-medium text-gray-700'>
-                                                                {note.author}
-                                                            </span>
-                                                            <span className='text-xs text-gray-500'>
-                                                                on {note.timestamp}
-                                                            </span>
+                                            {localRequirement?.notes && localRequirement.notes.length > 0 ? (
+                                                [...localRequirement.notes]
+                                                    .sort((a, b) => b.timestamp - a.timestamp)
+                                                    .map((note: Note) => (
+                                                        <div
+                                                            key={note.id}
+                                                            className='bg-gray-50 rounded-lg p-3 border border-gray-200'
+                                                        >
+                                                            <div className='flex items-center justify-between mb-1'>
+                                                                <span className='text-xs font-medium text-gray-700'>
+                                                                    {note.author}
+                                                                </span>
+                                                                <span className='text-xs text-gray-500'>
+                                                                    on {formatUnixDateTime(note.timestamp)}
+                                                                </span>
+                                                            </div>
+                                                            <div className='text-sm text-gray-600 leading-relaxed'>
+                                                                {note.content}
+                                                            </div>
                                                         </div>
-                                                        <div className='text-sm text-gray-600 leading-relaxed'>
-                                                            {note.content}
-                                                        </div>
-                                                    </div>
-                                                ))
+                                                    ))
                                             ) : (
                                                 <div className='text-center py-4 text-gray-400 text-sm'>
                                                     No notes yet

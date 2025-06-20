@@ -246,6 +246,7 @@ export const getNextPropertyId = createAsyncThunk('properties/getNextId', async 
 export const fetchPropertyById = createAsyncThunk(
     'properties/fetchById',
     async (propertyId: string, { rejectWithValue }) => {
+        console.log('hullara:', propertyId)
         try {
             console.log('🔍 Fetching property with ID:', propertyId)
 
@@ -378,11 +379,20 @@ export const fetchPropertiesByIds = createAsyncThunk(
 
 export const updatePropertyStatus = createAsyncThunk(
     'properties/updateStatus',
-    async ({ propertyId, status }: { propertyId: string; status: string }, { rejectWithValue }) => {
+    async (
+        { propertyId, status, activeTab }: { propertyId: string; status: string; activeTab: string },
+        { rejectWithValue },
+    ) => {
         try {
             console.log('📝 Updating property status:', propertyId, status)
+            let dbPath = ''
+            if (activeTab === 'Resale') {
+                dbPath = 'acnProperties'
+            } else {
+                dbPath = 'acnRentalInventories'
+            }
 
-            const docRef = doc(db, 'acnProperties', propertyId)
+            const docRef = doc(db, dbPath, propertyId)
             await updateDoc(docRef, {
                 status: status,
                 currentStatus: status,

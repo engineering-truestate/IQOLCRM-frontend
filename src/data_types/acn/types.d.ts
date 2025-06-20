@@ -8,6 +8,7 @@ interface GeoLocation {
 interface PriceHistoryItem {
     timestamp: number
     price: number
+    updatedBy: string
 }
 
 interface ContactHistoryItem {
@@ -33,6 +34,15 @@ interface PaymentHistoryItem {
 interface QCHistoryItem {
     timestamp: number
     qcStatus: string
+    userName: string
+    userRole: string
+    userEmail: string
+    userPhone: string
+    cpId: string
+    action: string
+    details: string
+    performedBy: string
+    date: number
 }
 
 interface HighlightResultItem {
@@ -67,13 +77,15 @@ type EnquiryState = {
 
 // ==================== INVENTORY TYPES ====================
 
-interface IInventory {
+export interface IInventory {
     id: string
     propertyId: string
     cpId: string
     propertyName: string
     _geoloc: GeoLocation
     area: string
+    builerName: string
+    builderCategory: string
     micromarket: string
     mapLocation: string
     assetType: string
@@ -115,16 +127,78 @@ type InventoryState = {
 
 // ==================== QC INVENTORY TYPES ====================
 
+// Add missing supporting interfaces
+interface GeoLocation {
+    lat: number
+    lng: number
+}
+
+interface PriceHistoryItem {
+    price: number
+    timestamp: number
+}
+
+interface QCHistoryItem {
+    timestamp: number
+    qcStatus: 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
+    userName: string
+    userRole: 'kam' | 'data' | 'kamModerator'
+    userEmail?: string
+    userPhone?: string
+    kamId: string
+    cpId: string
+    action: string
+    details: string
+    performedBy: string
+    date: number
+}
+
+interface HighlightResult {
+    [key: string]: any
+}
+
+// Add ReviewDetails interface for review objects
+interface ReviewDetails {
+    status: 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
+    reviewDate: number
+    reviewedBy: string
+    comments: string
+}
+
 interface QCReview {
     type: 'rejected' | 'duplicate'
     rejectedFields: string[]
     qcNote: string
     originalPropertyId: string
+    kamReview: ReviewDetails
+    dataReview: ReviewDetails
 }
 
-interface IQCInventory {
+// Add Notes interface for the notes system
+interface QCNote {
+    kamId: string
+    kamName: string
+    details: string
+    timestamp: number
+}
+
+// Add Agent Data interface for role-based operations
+interface AgentData {
+    role: 'kam' | 'data' | 'kamModerator'
+    email: string
+    phone: string
+    name: string
+    kamId?: string
+    id: string
+}
+
+// Base QC Inventory type with required fields
+interface BaseQCInventory {
     propertyId: string
     propertyName: string
+    cpId: string
+    lastModified: number
+    __position2: number
     unitNo: string
     path: string
     _geoloc: GeoLocation
@@ -157,7 +231,7 @@ interface IQCInventory {
     askPricePerSqft: number
     priceHistory: PriceHistoryItem[]
     rentalIncome: number
-    status: 'available' | 'delisted' | 'sold' | 'hold'
+    status: 'available' | 'delisted' | 'sold' | 'hold' | 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
     currentStatus: 'ready to move' | 'under construction' | 'new launch'
     exclusive: boolean
     tenanted: boolean
@@ -167,13 +241,21 @@ interface IQCInventory {
     ocReceived: boolean
     bdaApproved: boolean
     biappaApproved: boolean
-    stage: 'kam' | 'data' | 'live'
-    qcStatus: 'approved' | 'pending' | 'reject' | 'duplicate' | 'primary'
+
+    // Core workflow fields based on your business logic
+    stage: 'kam' | 'data' | 'live' | 'notApproved'
+    qcStatus: 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
     qcReview: QCReview
-    kamStatus: 'approved' | 'pending' | 'rejected'
-    cpId: string
+
+    // KAM workflow fields
+    kamStatus: 'approved' | 'pending' | 'rejected' | 'duplicate'
     kamName: string
     kamId: string
+
+    // Data team workflow fields
+    dataStatus?: 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary'
+
+    // Additional fields
     handoverDate: number
     photo: string[]
     video: string[]
@@ -181,21 +263,115 @@ interface IQCInventory {
     driveLink: string
     noOfEnquiries: number
     dateOfInventoryAdded: number
-    lastModified: number
     dateOfStatusLastChecked: number
     ageOfInventory: number
     ageOfStatus: number
     qcHistory: QCHistoryItem[]
+    notes: QCNote[]
     extraDetails: string
-    __position2: number
-    _highlightResult: HighlightResult
+    _highlightResult?: HighlightResult
+
+    // Financial fields
+    price: number
+    pricePerSqft: number
+
+    // Location fields
+    city: string
+    state: string
 }
 
+// QC Inventory type for API responses
+type IQCInventory = BaseQCInventory
+
+// Type for partial updates - uses TypeScript's Partial utility type
+type QCInventoryUpdate = Partial<BaseQCInventory>
+
+// Update QCInventoryState type for Redux state management
 type QCInventoryState = {
-    qcInventories: IQCInventory[]
+    qcInventories: BaseQCInventory[]
+    currentQCInventory: BaseQCInventory | null
+    selectedInventory?: BaseQCInventory | null
     loading: boolean
     error: string | null
     lastFetch: Date | null
+    updateLoading: boolean
+    noteLoading: boolean
+}
+
+// Add a type for the action payload in Redux actions
+type UpdateQCStatusPayload = {
+    propertyId: string
+    updates: QCInventoryUpdate
+    propertyCreated?: boolean
+}
+
+// Add a type for the thunk response from API calls
+type QCInventoryResponse = BaseQCInventory
+
+// Types for thunk parameters
+type UpdateQCStatusParams = {
+    property: BaseQCInventory
+    status: string
+    agentData: AgentData
+    activeTab: string
+    reviewedBy: string
+}
+
+type UpdateKAMStatusParams = {
+    propertyId: string
+    newStatus: string
+    kamId: string
+    kamName: string
+}
+
+type UpdateDataTeamStatusParams = {
+    propertyId: string
+    newStatus: string
+    kamId: string
+    kamName: string
+}
+
+type AddNoteParams = {
+    propertyId: string
+    details: string
+    kamId: string
+    kamName: string
+}
+
+// Response types for thunk actions
+type UpdateStatusResponse = {
+    propertyId: string
+    updates: Partial<BaseQCInventory>
+    propertyCreated: boolean
+}
+
+type AddNoteResponse = {
+    propertyId: string
+    note: QCNote
+}
+
+// Export all types for use in other files
+export type {
+    BaseQCInventory,
+    IQCInventory,
+    QCInventoryUpdate,
+    QCInventoryState,
+    UpdateQCStatusPayload,
+    QCInventoryResponse,
+    QCHistoryItem,
+    QCNote,
+    QCReview,
+    ReviewDetails,
+    AgentData,
+    GeoLocation,
+    PriceHistoryItem,
+    HighlightResult,
+    UpdateQCStatusParams,
+    UpdateKAMStatusParams,
+    UpdateDataTeamStatusParams,
+    AddNoteParams,
+    UpdateStatusResponse,
+    AddNoteResponse,
 }
 
 // ==================== RENTAL INVENTORY TYPES ====================
@@ -247,6 +423,14 @@ type RentalInventoryState = {
 
 // ==================== REQUIREMENT TYPES ====================
 
+// Note interface
+export interface INote {
+    id: string
+    author: string
+    content: string
+    timestamp: number
+}
+
 interface BudgetRange {
     from: number
     to: number
@@ -257,8 +441,10 @@ interface SizeRange {
     to: number
 }
 
-interface IRequirement {
+export interface IRequirement {
     requirementId: string
+    agentNumber: string
+    agentName: string
     cpId: string
     location: string
     assetType: 'villa' | 'apartment' | 'plot' | 'commercial' | 'warehouse' | 'office'
@@ -266,6 +452,7 @@ interface IRequirement {
     _geoloc: GeoLocation
     micromarket: string
     budget: BudgetRange
+    note: string[]
     size: SizeRange
     bedrooms: string
     bathrooms: string
@@ -297,6 +484,11 @@ interface InventoryStatus {
 }
 
 interface IAgent {
+    planId: string
+    inventories: string[]
+    requirements: string[]
+    enquiries: string[]
+    legalLeads: string[]
     cpId: string
     name: string
     phoneNumber: string
@@ -485,4 +677,35 @@ interface RequirementFilters {
     assetType?: string[]
     configuration?: string[]
     micromarket?: string[]
+}
+
+// ==================== AGENT DATA TYPE ====================
+
+export interface AgentData {
+    role: string
+    email: string
+    phone: string
+    cpId: string
+    // Add any other fields as needed
+}
+
+// ==================== USER AUTH TYPES ====================
+
+export interface FirebaseUser {
+    uid: string
+    email: string | null
+    displayName: string | null
+    photoURL: string | null
+}
+
+export interface UserAuthResponse {
+    user: FirebaseUser | null
+    agentData: AgentData | null
+    lastFetch: number
+}
+
+export interface AuthStateResponse {
+    user: FirebaseUser | null
+    agentData: AgentData | null
+    lastFetch: number
 }

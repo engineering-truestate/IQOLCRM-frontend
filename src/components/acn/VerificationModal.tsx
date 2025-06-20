@@ -1,29 +1,53 @@
-import React, { useState } from 'react'
-
+import React, { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchKAMOptions, verifyLeadAndCreateAgent } from '../../services/acn/leads/leadsService'
+import {
+    selectKAMOptions,
+    selectKAMOptionsLoading,
+    selectAgentVerificationLoading,
+    selectAgentVerificationError,
+} from '../../store/reducers/acn/leadsReducers'
+import type { AppDispatch, RootState } from '../../store'
 interface VerificationModalProps {
     isOpen: boolean
     onClose: () => void
     rowData: {
-        id: string
-        agentName: string
-        contactNumber: string
+        leadId: string
+        name: string
+        phonenumber: string
         leadStatus: string
-        connectStatus: string
-        lastTried: string
+        contactStatus: string
+        lastTried: number
+        lastConnect: number
+        kamName?: string
+        kamId?: string
+        source?: string
+        verified?: boolean
+        communityJoined?: boolean
+        onBroadcast?: boolean
+        lastModified: number
     } | null
 }
 
 const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, rowData }) => {
+    const dispatch = useDispatch<AppDispatch>()
+
+    // Redux selectors
+    const kamOptions = useSelector(selectKAMOptions)
+    const kamOptionsLoading = useSelector(selectKAMOptionsLoading)
+    const agentVerificationLoading = useSelector(selectAgentVerificationLoading)
+    const agentVerificationError = useSelector(selectAgentVerificationError)
+
     const [formData, setFormData] = useState({
         name: '',
         phoneNumber: '',
-        email: '',
-        address: '',
-        reraNo: '',
+        emailAddress: '',
+        workAddress: '',
+        reraId: '',
         firmName: '',
         firmSize: '',
-        kam: '',
-        leadSource: '',
+        kamName: '',
+        kamId: '',
     })
 
     const [selectedAreas, setSelectedAreas] = useState<string[]>([])
@@ -43,6 +67,32 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
         'Prestige Real Estate',
     ]
 
+    // Load KAM options when modal opens
+    useEffect(() => {
+        if (isOpen && kamOptions.length === 0) {
+            dispatch(fetchKAMOptions())
+        }
+    }, [isOpen, kamOptions.length, dispatch])
+
+    // Prefill form data when rowData changes
+    useEffect(() => {
+        if (isOpen && rowData) {
+            setFormData({
+                name: rowData.name || '',
+                phoneNumber: rowData.phonenumber || '',
+                emailAddress: '', // This needs to be filled by user
+                workAddress: '', // Not mandatory
+                reraId: '',
+                firmName: '',
+                firmSize: '',
+                kamName: rowData.kamName || '',
+                kamId: rowData.kamId || '',
+            })
+            setSelectedAreas([])
+            setSelectedCategories([])
+        }
+    }, [isOpen, rowData])
+
     const handleInputChange = (field: string, value: string) => {
         setFormData({ ...formData, [field]: value })
 
@@ -54,6 +104,18 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                 setShowFirmDropdown(true)
             } else {
                 setShowFirmDropdown(false)
+            }
+        }
+
+        // Handle KAM selection
+        if (field === 'kamName') {
+            const selectedKAM = kamOptions.find((kam) => kam.value === value)
+            if (selectedKAM) {
+                setFormData((prev) => ({
+                    ...prev,
+                    kamName: value,
+                    kamId: selectedKAM.value, // You might need to modify this based on your KAM data structure
+                }))
             }
         }
     }
@@ -73,28 +135,47 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
         )
     }
 
-    const handleVerify = () => {
+    const handleVerify = async () => {
+        if (!rowData) return
+
         // Validation for mandatory fields
-        const requiredFields: (keyof typeof formData)[] = ['name', 'phoneNumber', 'email', 'address']
-        const missingFields = requiredFields.filter((field) => !formData[field].trim())
+        const requiredFields = ['name', 'phoneNumber', 'emailAddress', 'kamName']
+        const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData].trim())
 
         if (missingFields.length > 0) {
-            alert('Please fill all personal information fields')
+            alert(`Please fill the following mandatory fields: ${missingFields.join(', ')}`)
             return
         }
 
-        console.log('Verification data:', {
-            formData,
-            selectedAreas,
-            selectedCategories,
-        })
-        onClose()
+        try {
+            const verificationData = {
+                ...formData,
+                areaOfOperation: selectedAreas,
+                businessCategory: selectedCategories,
+            }
+
+            await dispatch(
+                verifyLeadAndCreateAgent({
+                    leadId: rowData.leadId,
+                    verificationData,
+                }),
+            ).unwrap()
+
+            alert('Agent verified and created successfully!')
+            onClose()
+
+            // Reload page to refresh the leads list
+            window.location.reload()
+        } catch (error) {
+            console.error('Failed to verify agent:', error)
+            alert('Failed to verify agent. Please try again.')
+        }
     }
 
     if (!isOpen || !rowData) return null
 
-    const areas = ['North Bangalore', 'South Bangalore', 'East Bangalore', 'West Bangalore', 'Pan Bangalore']
-    const categories = ['Resale', 'Rental', 'Primary']
+    const areas = ['north bangalore', 'south bangalore', 'east bangalore', 'west bangalore', 'pan bangalore']
+    const categories = ['resale', 'rental', 'primary']
 
     return (
         <>
@@ -107,7 +188,10 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                     {/* Header */}
                     <div className='p-6 border-b border-gray-200'>
                         <div className='flex items-center justify-between'>
-                            <h2 className='text-xl font-semibold text-gray-900'>Verify Agent Information</h2>
+                            <div>
+                                <div className='text-sm text-gray-500 mb-1'>{rowData.leadId}</div>
+                                <h2 className='text-xl font-semibold text-gray-900'>Verify Agent Information</h2>
+                            </div>
                             <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-md'>
                                 <svg
                                     className='w-5 h-5 text-gray-400'
@@ -128,12 +212,18 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
 
                     {/* Form Content */}
                     <div className='flex-1 p-6 overflow-y-auto'>
+                        {/* Error Display */}
+                        {agentVerificationError && (
+                            <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm'>
+                                {agentVerificationError}
+                            </div>
+                        )}
+
                         {/* Personal Information */}
                         <div className='mb-8'>
                             <h3 className='text-lg font-medium text-gray-900 mb-4'>
                                 Personal Information <span className='text-red-500'>*</span>
                             </h3>
-
                             <div className='grid grid-cols-2 gap-4 mb-4'>
                                 <div>
                                     <label className='block text-sm font-medium text-gray-700 mb-1'>
@@ -170,24 +260,21 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                                     </label>
                                     <input
                                         type='email'
-                                        value={formData.email}
-                                        onChange={(e) => handleInputChange('email', e.target.value)}
+                                        value={formData.emailAddress}
+                                        onChange={(e) => handleInputChange('emailAddress', e.target.value)}
                                         placeholder='Enter agent email Id'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm'
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-1'>
-                                        Address <span className='text-red-500'>*</span>
-                                    </label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-1'>Address</label>
                                     <input
                                         type='text'
-                                        value={formData.address}
-                                        onChange={(e) => handleInputChange('address', e.target.value)}
+                                        value={formData.workAddress}
+                                        onChange={(e) => handleInputChange('workAddress', e.target.value)}
                                         placeholder='Enter agent address'
                                         className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm'
-                                        required
                                     />
                                 </div>
                             </div>
@@ -201,8 +288,8 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                                 <label className='block text-sm font-medium text-gray-700 mb-1'>RERA No.</label>
                                 <input
                                     type='text'
-                                    value={formData.reraNo}
-                                    onChange={(e) => handleInputChange('reraNo', e.target.value)}
+                                    value={formData.reraId}
+                                    onChange={(e) => handleInputChange('reraId', e.target.value)}
                                     placeholder='Enter RERA no.'
                                     className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm'
                                 />
@@ -252,7 +339,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                                 <div>
                                     <label className='block text-sm font-medium text-gray-700 mb-1'>Firm Size</label>
                                     <input
-                                        type='text'
+                                        type='number'
                                         value={formData.firmSize}
                                         onChange={(e) => handleInputChange('firmSize', e.target.value)}
                                         placeholder='Enter firm size'
@@ -261,48 +348,27 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                                 </div>
                             </div>
 
-                            <div className='grid grid-cols-2 gap-4'>
+                            <div className='grid grid-cols-1 gap-4'>
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-1'>KAM</label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-1'>
+                                        KAM <span className='text-red-500'>*</span>
+                                    </label>
                                     <div className='relative'>
                                         <select
-                                            value={formData.kam}
-                                            onChange={(e) => handleInputChange('kam', e.target.value)}
+                                            value={formData.kamName}
+                                            onChange={(e) => handleInputChange('kamName', e.target.value)}
                                             className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm appearance-none bg-white'
+                                            required
+                                            disabled={kamOptionsLoading}
                                         >
-                                            <option value=''>Select KAM</option>
-                                            <option value='samarth'>Samarth</option>
-                                            <option value='priya'>Priya</option>
-                                            <option value='raj'>Raj</option>
-                                        </select>
-                                        <svg
-                                            className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none'
-                                            fill='none'
-                                            stroke='currentColor'
-                                            viewBox='0 0 24 24'
-                                        >
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M19 9l-7 7-7-7'
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-1'>Lead Source</label>
-                                    <div className='relative'>
-                                        <select
-                                            value={formData.leadSource}
-                                            onChange={(e) => handleInputChange('leadSource', e.target.value)}
-                                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm appearance-none bg-white'
-                                        >
-                                            <option value=''>Select Lead Source</option>
-                                            <option value='website'>Website</option>
-                                            <option value='referral'>Referral</option>
-                                            <option value='social_media'>Social Media</option>
-                                            <option value='advertisement'>Advertisement</option>
+                                            <option value=''>
+                                                {kamOptionsLoading ? 'Loading KAMs...' : 'Select KAM'}
+                                            </option>
+                                            {kamOptions.map((kam) => (
+                                                <option key={kam.value} value={kam.value}>
+                                                    {kam.value} ({kam.count})
+                                                </option>
+                                            ))}
                                         </select>
                                         <svg
                                             className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none'
@@ -330,7 +396,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                                     <button
                                         key={area}
                                         onClick={() => handleAreaToggle(area)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
                                             selectedAreas.includes(area)
                                                 ? 'bg-gray-900 text-white'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -350,7 +416,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                                     <button
                                         key={category}
                                         onClick={() => handleCategoryToggle(category)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
                                             selectedCategories.includes(category)
                                                 ? 'bg-gray-900 text-white'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -369,14 +435,19 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                             <button
                                 onClick={onClose}
                                 className='px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors'
+                                disabled={agentVerificationLoading}
                             >
                                 Close
                             </button>
                             <button
                                 onClick={handleVerify}
-                                className='px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors'
+                                disabled={agentVerificationLoading}
+                                className='px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
                             >
-                                Verify
+                                {agentVerificationLoading ? (
+                                    <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
+                                ) : null}
+                                Verify & Create Agent
                             </button>
                         </div>
                     </div>
