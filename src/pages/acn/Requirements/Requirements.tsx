@@ -440,14 +440,14 @@ const RequirementsPage = () => {
     return (
         <Layout loading={false}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                <div className='py-2 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
                     <AddRequirementModal
                         isOpen={isAddRequirementModalOpen}
                         onClose={() => setIsAddRequirementModalOpen(false)}
                     />
                     <div className='mb-4'>
-                        <div className='flex items-center justify-between mb-2'>
+                        <div className='flex items-center justify-between mb-2 px-6'>
                             <h1 className='text-lg font-semibold text-black'>Requirement</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
@@ -488,9 +488,9 @@ const RequirementsPage = () => {
                             </div>
                         </div>
                         <hr className='border-gray-200 mb-4' />
-                        <MetricCards metrics={metrics} className='mb-4' />
+                        <MetricCards metrics={metrics} className='mb-4 px-6' />
                         {/* Tab Switches and Filters */}
-                        <div className='flex items-center gap-4 mb-2'>
+                        <div className='flex items-center gap-4 mb-2 px-6'>
                             {/* Tab Switches for Resale/Rental */}
                             <div className='flex items-center bg-gray-100 rounded-md p-1 h-8'>
                                 <button
@@ -651,7 +651,7 @@ const RequirementsPage = () => {
                     )}
 
                     {/* Table with fixed actions column and vertical scrolling */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
+                    <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
                         <div className='h-[69vh] overflow-y-auto'>
                             {searchLoading ? (
                                 <div className='flex items-center justify-center h-64'>
@@ -670,7 +670,7 @@ const RequirementsPage = () => {
                                         cells: false,
                                         outer: false,
                                     }}
-                                    maxHeight='75vh'
+                                    maxHeight='69vh'
                                     className='rounded-lg'
                                     stickyHeader={true}
                                 />

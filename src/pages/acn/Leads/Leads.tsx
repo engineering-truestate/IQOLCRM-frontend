@@ -783,10 +783,10 @@ const LeadsPage = () => {
     return (
         <Layout loading={loading || reduxLoading}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                <div className='py-2 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
                     <div className='mb-4'>
-                        <div className='flex items-center justify-between mb-2'>
+                        <div className='flex items-center justify-between mb-2 px-6'>
                             <h1 className='text-lg font-semibold text-black'>Leads ({totalLeads})</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
@@ -826,10 +826,10 @@ const LeadsPage = () => {
                         <hr className='border-gray-200 mb-4' />
 
                         {/* Metrics */}
-                        <MetricsCards metrics={metrics} className='mb-2' />
+                        <MetricsCards metrics={metrics} className='mb-2 px-6' />
 
                         {/* Filters */}
-                        <div className='flex items-center gap-2 mb-2 flex-wrap'>
+                        <div className='flex items-center gap-2 mb-2 flex-wrap px-6'>
                             <button
                                 className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md'
                                 onClick={resetFilters}
@@ -894,8 +894,8 @@ const LeadsPage = () => {
                     </div>
 
                     {/* Table */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                        <div className='h-[65vh] overflow-y-auto'>
+                    <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
+                        <div className='h-[69vh] overflow-y-auto'>
                             <FlexibleTable
                                 data={leads}
                                 columns={columns}
@@ -907,7 +907,7 @@ const LeadsPage = () => {
                                     cells: false,
                                     outer: false,
                                 }}
-                                maxHeight='65vh'
+                                maxHeight='69vh'
                                 className='rounded-lg'
                                 stickyHeader={true}
                             />
