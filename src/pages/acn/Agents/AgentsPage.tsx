@@ -7,7 +7,7 @@ import type { AppDispatch } from '../../../store'
 import { setSelectedAgent } from '../../../store/slices/agentDetailsSlice'
 import { updateAgentStatusThunk, updateAgentPayStatusThunk } from '../../../services/acn/agents/agentThunkService'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
@@ -39,16 +39,6 @@ import { agentSortOptions } from '../../../services/acn/agents/algoliaAgentsServ
 import Button from '../../../components/design-elements/Button'
 import filter from '/icons/acn/filter.svg'
 import { AgentsFiltersModal } from '../../../components/acn/AgentsFiltersModal'
-
-const sampleMetrics = [
-    { label: 'Interested', value: 45 },
-    { label: 'Calls', value: 5 },
-    { label: 'Connects', value: 100 },
-    { label: 'RNR', value: 75 },
-    { label: 'Enquiry', value: 125 },
-    { label: 'Agents Enquired', value: 125 },
-    { label: 'App Installed', value: 125 },
-]
 
 // Status dropdown options with colors
 const agentStatusOptions = [
@@ -317,6 +307,47 @@ const AgentsPage = () => {
         setCurrentPage(1)
     }
 
+    const metrics = useMemo(() => {
+        const interestedCount = facets.agentStatus?.['interested'] || 0
+        const appInstalledCount = facets.appInstalled?.['true'] || 0
+        const contactStatusFacets = facets.contactStatus || {}
+
+        const connectsCount = (contactStatusFacets['connected'] || 0) + (contactStatusFacets['connnected'] || 0)
+
+        const rnrCount = Object.keys(contactStatusFacets).reduce((acc, key) => {
+            if (key.startsWith('rnr-')) {
+                return acc + (contactStatusFacets[key] || 0)
+            }
+            return acc
+        }, 0)
+
+        // Agents Enquired: sum of all noOfEnquiries facet counts where key > '0'
+        let totalEnquiries = 0
+        let agentsEnquired = 0
+        if (facets.noOfEnquiries) {
+            agentsEnquired = Object.entries(facets.noOfEnquiries)
+                .filter(([key, _]) => {
+                    // key is a string, but we want numeric > 0
+                    const num = parseInt(key, 10)
+                    totalEnquiries += num
+                    return !isNaN(num) && num > 0
+                })
+                .reduce((acc, [_, count]) => acc + (count as number), 0)
+        }
+
+        // Some values are placeholders as the data source is not yet available.
+        return [
+            { label: 'Total Agents', value: totalAgents },
+            { label: 'Interested', value: interestedCount },
+            { label: 'Calls', value: 100 },
+            { label: 'Connects', value: connectsCount },
+            { label: 'RNR', value: rnrCount },
+            { label: 'Enquiry', value: totalEnquiries },
+            { label: 'Agents Enquired', value: agentsEnquired },
+            { label: 'App Installed', value: appInstalledCount },
+        ]
+    }, [totalAgents, facets])
+
     // Fetch facets for filters from Algolia
     useEffect(() => {
         const fetchFacets = async () => {
@@ -366,6 +397,9 @@ const AgentsPage = () => {
             console.log('Agent data sample:', response.hits[0]) // Debug log
             setAgentsData(response.hits)
             setTotalAgents(response.nbHits)
+            if (response.facets) {
+                setFacets(response.facets)
+            }
         } catch (error) {
             console.error('Error fetching agents:', error)
         } finally {
@@ -697,7 +731,7 @@ const AgentsPage = () => {
 
                     {/* Metrics Cards */}
                     <div className='px-6'>
-                        <MetricsCards metrics={sampleMetrics} />
+                        <MetricsCards metrics={metrics} />
                     </div>
 
                     {/* Filters */}
