@@ -1,10 +1,115 @@
 // store/services/requirementsService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore'
 import { db } from '../../../firebase' // Adjust path to your Firebase config
 import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import type { INote } from '../../../data_types/acn/types'
+import { getMicromarketFromCoordinates } from '../../../components/helper/findMicromarket'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../../store'
+
+export const createRequirement = createAsyncThunk(
+    'requirements/create',
+    async (
+        requirementData: {
+            selectedPlace: {
+                name: string
+                lat: number
+                lng: number
+                address: string
+                mapLocation: string
+            }
+            assetType: string
+            superBuiltUpArea: string
+            plotArea: string
+            bedroom: number
+            budgetFrom: string
+            budgetTo: string
+            builderCategory: string
+            preferredFloor: string
+            facing: string
+            requirementDetails: string
+            cpId: string
+        },
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('🆕 Creating new requirement:', requirementData)
+
+            // Get the next requirement ID
+            const adminDocRef = doc(db, 'acn-admin', 'lastReqId')
+            const adminDoc = await getDoc(adminDocRef)
+
+            if (!adminDoc.exists()) {
+                throw new Error('Admin document not found')
+            }
+
+            const adminData = adminDoc.data()
+            const currentCount = adminData.count || 609
+            const prefix = adminData.prefix || 'A'
+            const label = adminData.label || 'RQ'
+
+            const nextCount = currentCount + 1
+            const requirementId = `${label}${prefix}${nextCount}`
+
+            // Get micromarket from coordinates
+            const [micromarket, zone] = getMicromarketFromCoordinates(requirementData.selectedPlace)
+
+            // Prepare the requirement data
+            const newRequirement: IRequirement = {
+                requirementId,
+                cpId: requirementData.cpId || 'CPA123',
+                propertyName: requirementData.selectedPlace.name,
+                location: requirementData.selectedPlace.address,
+                _geoloc: {
+                    lat: requirementData.selectedPlace.lat,
+                    lng: requirementData.selectedPlace.lng,
+                },
+                assetType: requirementData.assetType as IRequirement['assetType'],
+                configuration: `${requirementData.bedroom} bhk` as IRequirement['configuration'],
+                micromarket: micromarket || '', // Use the micromarket from coordinates
+                budget: {
+                    from: parseFloat(requirementData.budgetFrom),
+                    to: parseFloat(requirementData.budgetTo),
+                },
+                size: {
+                    from: parseFloat(requirementData.superBuiltUpArea),
+                    to: parseFloat(requirementData.plotArea),
+                },
+                bedrooms: requirementData.bedroom.toString(),
+                bathrooms: '', // Not provided in form
+                parking: '', // Not provided in form
+                extraDetails: requirementData.requirementDetails,
+                marketValue: '', // Not provided in form
+                requirementStatus: 'open',
+                internalStatus: 'pending',
+                added: getUnixDateTime(),
+                lastModified: getUnixDateTime(),
+                matchingProperties: [],
+                notes: [],
+            }
+
+            // Create the requirement document with the generated ID
+            const requirementDocRef = doc(db, 'acnRequirements', requirementId)
+            await setDoc(requirementDocRef, newRequirement)
+
+            // Update the counter in admin document
+            await updateDoc(adminDocRef, {
+                count: nextCount,
+            })
+
+            console.log('✅ Requirement created successfully:', requirementId)
+            console.log('📍 Micromarket detected:', micromarket)
+            console.log('🌍 Zone detected:', zone)
+
+            return newRequirement
+        } catch (error: any) {
+            console.error('❌ Error creating requirement:', error)
+            return rejectWithValue(error.message || 'Failed to create requirement')
+        }
+    },
+)
 
 // Fetch requirement by ID thunk
 export const fetchRequirementById = createAsyncThunk(
@@ -13,8 +118,16 @@ export const fetchRequirementById = createAsyncThunk(
         try {
             console.log('🔍 Fetching requirement with ID:', requirementId)
 
-            const docRef = doc(db, 'acnRequirements', requirementId)
-            const docSnap = await getDoc(docRef)
+            // Try to find the requirement in both collections
+            let docRef = doc(db, 'acnRequirements', requirementId)
+            let docSnap = await getDoc(docRef)
+
+            if (!docSnap.exists()) {
+                // If not found in acnRequirements, try acnRentalRequirements
+                console.log('🔍 Requirement not found in acnRequirements, trying acnRentalRequirements...')
+                docRef = doc(db, 'acnRentalRequirements', requirementId)
+                docSnap = await getDoc(docRef)
+            }
 
             if (docSnap.exists()) {
                 const data = docSnap.data() as IRequirement
@@ -33,11 +146,29 @@ export const fetchRequirementById = createAsyncThunk(
 
 export const updateRequirement = createAsyncThunk(
     'requirements/update',
-    async ({ id, updates }: { id: string; updates: Partial<IRequirement> }, { rejectWithValue }) => {
+    async (
+        {
+            id,
+            updates,
+            propertyType,
+        }: { id: string; updates: Partial<IRequirement>; propertyType?: 'Resale' | 'Rental' },
+        { rejectWithValue },
+    ) => {
         try {
-            console.log('📝 Updating requirement:', id, updates)
+            console.log('📝 Updating requirement:', id, updates, propertyType)
 
-            const docRef = doc(db, 'acnRequirements', id)
+            // If propertyType is provided, use it; otherwise try to determine from the requirement ID
+            let collectionName = 'acnRequirements' // default
+            if (propertyType) {
+                collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
+            } else {
+                // Try to determine from requirement ID pattern (RNT prefix for rental)
+                if (id.startsWith('RNT')) {
+                    collectionName = 'acnRentalRequirements'
+                }
+            }
+
+            const docRef = doc(db, collectionName, id)
             await updateDoc(docRef, {
                 ...updates,
                 lastModified: getUnixDateTime(),
@@ -69,7 +200,14 @@ export const updateRequirementStatus = createAsyncThunk(
         try {
             console.log('📝 Updating requirement status:', id, status, type)
 
-            const docRef = doc(db, 'acnRequirements', id)
+            let collectionName = 'acnRequirements' // default
+            // Use propertyId prefix: RQA for acnRequirements, RNT for acnRentalRequirements
+            if (id.startsWith('RNT')) {
+                collectionName = 'acnRentalRequirements'
+            } else if (id.startsWith('RQA')) {
+                collectionName = 'acnRequirements'
+            }
+            const docRef = doc(db, collectionName, id)
             const updateField = type === 'requirement' ? 'requirementStatus' : 'internalStatus'
 
             // Update the document
@@ -116,7 +254,16 @@ export const addNoteToRequirement = createAsyncThunk(
         try {
             console.log('📝 Adding note to requirement:', requirementId, note)
 
-            const docRef = doc(db, 'acnRequirements', requirementId)
+            // If propertyType is provided, use it; otherwise try to determine from the requirement ID
+            let collectionName = 'acnRequirements' // default
+            // Use propertyId prefix: RQA for acnRequirements, RNT for acnRentalRequirements
+            if (requirementId.startsWith('RNT')) {
+                collectionName = 'acnRentalRequirements'
+            } else if (requirementId.startsWith('RQA')) {
+                collectionName = 'acnRequirements'
+            }
+
+            const docRef = doc(db, collectionName, requirementId)
             const newNote: INote = {
                 ...note,
                 id: `note_${Date.now()}`,
@@ -143,16 +290,31 @@ export const removeNoteFromRequirement = createAsyncThunk(
         {
             requirementId,
             noteId,
+            propertyType,
         }: {
             requirementId: string
             noteId: string
+            propertyType?: 'Resale' | 'Rental'
         },
         { rejectWithValue },
     ) => {
         try {
-            console.log('🗑️ Removing note from requirement:', requirementId, noteId)
+            console.log('🗑️ Removing note from requirement:', requirementId, noteId, propertyType)
 
-            const docRef = doc(db, 'acnRequirements', requirementId)
+            // If propertyType is provided, use it; otherwise try to determine from the requirement ID
+            let collectionName = 'acnRequirements' // default
+            if (propertyType) {
+                collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
+            } else {
+                // Use propertyId prefix: RQA for acnRequirements, RNT for acnRentalRequirements
+                if (requirementId.startsWith('RNT')) {
+                    collectionName = 'acnRentalRequirements'
+                } else if (requirementId.startsWith('RQA')) {
+                    collectionName = 'acnRequirements'
+                }
+            }
+
+            const docRef = doc(db, collectionName, requirementId)
             const docSnap = await getDoc(docRef)
 
             if (!docSnap.exists()) {
@@ -178,11 +340,29 @@ export const removeNoteFromRequirement = createAsyncThunk(
 
 export const addPropertiesToRequirement = createAsyncThunk(
     'requirements/addMatchingProperties',
-    async ({ requirementId, propertyIds }: { requirementId: string; propertyIds: string[] }, { rejectWithValue }) => {
+    async (
+        {
+            requirementId,
+            propertyIds,
+            propertyType,
+        }: { requirementId: string; propertyIds: string[]; propertyType?: 'Resale' | 'Rental' },
+        { rejectWithValue },
+    ) => {
         try {
-            console.log('🏠 Adding properties to requirement:', requirementId, propertyIds)
+            console.log('🏠 Adding properties to requirement:', requirementId, propertyIds, propertyType)
 
-            const docRef = doc(db, 'acnRequirements', requirementId)
+            // If propertyType is provided, use it; otherwise try to determine from the requirement ID
+            let collectionName = 'acnRequirements' // default
+            if (propertyType) {
+                collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
+            } else {
+                // Try to determine from requirement ID pattern (RNT prefix for rental)
+                if (requirementId.startsWith('RNT')) {
+                    collectionName = 'acnRentalRequirements'
+                }
+            }
+
+            const docRef = doc(db, collectionName, requirementId)
 
             // Use arrayUnion to add property IDs without duplicates
             await updateDoc(docRef, {

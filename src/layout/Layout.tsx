@@ -3,17 +3,19 @@ import Sidebar from '../components/side-bar'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
-const Layout = ({ children, loading }: { children?: React.ReactNode; loading: boolean }) => {
+const Layout = ({ children, loading }: { children?: React.ReactNode; loading?: boolean }) => {
     return (
         <>
             <div className='flex min-h-screen'>
                 <Sidebar />
-                {loading ? (
+                {loading === undefined ? (
+                    <main className='flex-grow mt-0 max-w-[85%] h-screen overflow-auto'>{children}</main>
+                ) : loading ? (
                     <div className='flex-grow flex items-center justify-center'>
                         <ClipLoader color='#17294D' size={50} />
                     </div>
                 ) : (
-                    <main className='flex-grow mt-0 max-w-[84%] h-screen overflow-auto'>{children}</main>
+                    <main className='flex-grow mt-0 max-w-[85%] h-screen overflow-auto'>{children}</main>
                 )}
             </div>
             <ToastContainer />

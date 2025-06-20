@@ -318,9 +318,7 @@ const leadsSlice = createSlice({
                 } = action.payload
 
                 // Update connect history
-                state.connectHistoryByLeadId[leadId] = allConnectHistory.sort(
-                    (a: CallResultData, b: CallResultData) => b.timestamp - a.timestamp,
-                )
+                state.connectHistoryByLeadId[leadId] = allConnectHistory
 
                 // Update notes if they were modified
                 if (allNotes) {

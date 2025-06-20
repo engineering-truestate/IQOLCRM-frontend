@@ -1,3 +1,4 @@
+import React from 'react'
 // import Platforms from '../Platforms'
 import { acnMenuItems } from './menu-options/acn'
  import { restackMenuItems } from './menu-options/restack'
@@ -9,6 +10,7 @@ import { handleLogout } from '../../services/auth'
 // import { vaultMenuItems } from './menu-options/vault'
 import { useNavigate } from 'react-router-dom'
 import Button from '../design-elements/Button'
+import useAuth from '../../hooks/useAuth'
 // import { canvasHomesMenuItems } from './menu-options/canvas-homes'
 
 // interface MenuItem {
@@ -39,6 +41,8 @@ const Sidebar = () => {
 
     // const menuItems = getMenuItems()
 
+    const { role } = useAuth()
+
     return (
         <div className='flex flex-col w-[16%] min-h-screen h-full bg-[#F7F7F7] border-r border-[#ececec] sticky top-0 z-10'>
             <div className='px-6 py-4'>{/* <Platforms /> */}</div>
@@ -58,6 +62,18 @@ const Sidebar = () => {
                     ))}
                 </ul>
             </nav>
+            {/* {role === 'admin' && (
+                <div className='mt-auto px-6 py-4'>
+                    <Button onClick={() => navigate('/register')}>
+                        <span>Register</span>
+                    </Button>
+                </div>
+            )}
+            <div className='mt-auto px-6 py-4'>
+                <Button onClick={() => navigate('/profile')}>
+                    <span>Profile</span>
+                </Button>
+            </div> */}
 
             <div className='mt-auto px-6 py-4'>
                 <Button onClick={() => handleLogout(navigate)}>

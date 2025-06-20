@@ -1,7 +1,7 @@
 // QCPropertyDetailsPage.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../../store/index'
@@ -10,19 +10,70 @@ import {
     updateQCStatusWithRoleCheck,
     addQCInventoryNote,
 } from '../../../services/acn/qc/qcService'
-import { initializeAuthListener } from '../../../services/user/userRoleService' // Updated import path
+import { initializeAuthListener } from '../../../services/user/userRoleService'
 import { clearCurrentQCInventory, clearError } from '../../../store/reducers/acn/qcReducer'
 import Layout from '../../../layout/Layout'
 import Dropdown from '../../../components/design-elements/Dropdown'
+import MultiSelectDropdown from '../../../components/design-elements/MultiSelectDropdown'
 import { toast } from 'react-toastify'
 
 // Icons
 import shareIcon from '/icons/acn/share.svg'
-import editIcon from '/icons/acn/write.svg'
+import editIcon from '/icons/acn/edit.svg'
 import priceDropIcon from '/icons/acn/share.svg'
 import { formatCost } from '../../../components/helper/formatCost'
 import { camelCaseToCapitalizedWords } from '../../../components/helper/wordFormatter'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+
+// Available fields for rejection reasons
+// Available fields for rejection reasons - formatted for your MultiSelectDropdown
+export const AVAILABLE_PROPERTY_FIELDS = [
+    { label: 'Property Name', value: 'propertyName' },
+    { label: 'Address', value: 'address' },
+    { label: 'Area', value: 'area' },
+    { label: 'Micromarket', value: 'micromarket' },
+    { label: 'Map Location', value: 'mapLocation' },
+    { label: 'Asset Type', value: 'assetType' },
+    { label: 'Unit Type', value: 'unitType' },
+    { label: 'Sub Type', value: 'subType' },
+    { label: 'Community Type', value: 'communityType' },
+    { label: 'SBUA (Super Built-up Area)', value: 'sbua' },
+    { label: 'Carpet Area', value: 'carpet' },
+    { label: 'Plot Size', value: 'plotSize' },
+    { label: 'UDS (Undivided Share)', value: 'uds' },
+    { label: 'Structure', value: 'structure' },
+    { label: 'Building Age', value: 'buildingAge' },
+    { label: 'Floor Number', value: 'floorNo' },
+    { label: 'Exact Floor', value: 'exactFloor' },
+    { label: 'Facing Direction', value: 'facing' },
+    { label: 'Plot Facing', value: 'plotFacing' },
+    { label: 'Balcony Facing', value: 'balconyFacing' },
+    { label: 'Number of Balconies', value: 'noOfBalconies' },
+    { label: 'Number of Bathrooms', value: 'noOfBathrooms' },
+    { label: 'Car Parking', value: 'carPark' },
+    { label: 'Corner Unit', value: 'cornerUnit' },
+    { label: 'Extra Rooms', value: 'extraRoom' },
+    { label: 'Furnishing Status', value: 'furnishing' },
+    { label: 'Total Ask Price', value: 'totalAskPrice' },
+    { label: 'Ask Price Per Sqft', value: 'askPricePerSqft' },
+    { label: 'Price History', value: 'priceHistory' },
+    { label: 'Rental Income', value: 'rentalIncome' },
+    { label: 'Current Status', value: 'currentStatus' },
+    { label: 'Exclusive Listing', value: 'exclusive' },
+    { label: 'Tenanted Status', value: 'tenanted' },
+    { label: 'E-Khata', value: 'eKhata' },
+    { label: 'Building Khata', value: 'buildingKhata' },
+    { label: 'Land Khata', value: 'landKhata' },
+    { label: 'OC Received', value: 'ocReceived' },
+    { label: 'BDA Approved', value: 'bdaApproved' },
+    { label: 'BIAPPA Approved', value: 'biappaApproved' },
+    { label: 'Handover Date', value: 'handoverDate' },
+    { label: 'Photos', value: 'photo' },
+    { label: 'Videos', value: 'video' },
+    { label: 'Documents', value: 'document' },
+    { label: 'Drive Link', value: 'driveLink' },
+    { label: 'Extra Details', value: 'extraDetails' },
+]
 
 interface Note {
     id: string
@@ -36,9 +87,9 @@ const QCPropertyDetailsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
     const { id } = useParams()
 
-    // Redux state - Fixed property names
+    // Redux state
     const {
-        user: currentUser, // Changed from currentUser to user
+        user: currentUser,
         agentData,
         loading: userLoading,
         authInitialized,
@@ -53,8 +104,9 @@ const QCPropertyDetailsPage = () => {
         noteLoading,
     } = useSelector((state: RootState) => state.qc)
 
-    const [_, setCurrentImageIndex] = useState(0)
+    const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [newNote, setNewNote] = useState('')
+    const [comments, setComment] = useState('')
     const [notes] = useState<Note[]>([
         {
             id: '1',
@@ -71,6 +123,20 @@ const QCPropertyDetailsPage = () => {
     ])
     const [reviewLoading, setReviewLoading] = useState(false)
     const [selectedStatus, setSelectedStatus] = useState('')
+
+    // New state for rejected fields and original property ID
+    const [selectedRejectedFields, setSelectedRejectedFields] = useState<string[]>([])
+    const [originalPropertyId, setOriginalPropertyId] = useState('')
+
+    const WORD_LIMIT = 100
+
+    // Calculate word count
+    const wordCount = useMemo(() => {
+        return newNote
+            .trim()
+            .split(/\s+/)
+            .filter((word) => word.length > 0).length
+    }, [newNote])
 
     // Initialize auth listener
     useEffect(() => {
@@ -90,13 +156,30 @@ const QCPropertyDetailsPage = () => {
         }
     }, [id, dispatch])
 
-    // Helper function to safely get initials
+    // Initialize rejected fields and original property ID from existing data
+    useEffect(() => {
+        if (qcProperty?.qcReview) {
+            setSelectedRejectedFields(qcProperty.qcReview.rejectedFields || [])
+            setOriginalPropertyId(qcProperty.qcReview.originalPropertyId || '')
+        }
+    }, [qcProperty])
+
+    // Reset additional fields when status changes
+    useEffect(() => {
+        if (selectedStatus !== 'rejected') {
+            setSelectedRejectedFields([])
+        }
+        if (selectedStatus !== 'duplicate') {
+            setOriginalPropertyId('')
+        }
+    }, [selectedStatus])
+
+    // Helper functions
     const getInitials = (name: string | undefined): string => {
         if (!name || typeof name !== 'string') return 'UN'
         return name.substring(0, 2).toUpperCase()
     }
 
-    // Helper function to safely display text
     const safeDisplay = (value: any, fallback: string = 'N/A'): string => {
         if (value === null || value === undefined || value === '') {
             return fallback
@@ -104,21 +187,16 @@ const QCPropertyDetailsPage = () => {
         return String(value)
     }
 
-    // Determine active tab based on property stage and user role - UPDATED
     const getActiveTab = () => {
         if (!qcProperty || !agentData) return 'kam'
 
-        // For kamModerator, determine tab based on stage
         if (agentData.role === 'kamModerator') {
-            // In notApproved stage, default to kam tab since it's primarily KAM-controlled
             if (qcProperty.stage === 'notApproved') {
                 return 'kam'
             }
-            // In data stage, show data tab
             if (qcProperty.stage === 'data') {
                 return 'data'
             }
-            // In kam stage, show kam tab
             return 'kam'
         } else if (agentData.role === 'data') {
             return 'data'
@@ -127,10 +205,22 @@ const QCPropertyDetailsPage = () => {
         }
     }
 
-    const handleStatusChange = async (status: string) => {
-        console.log('test', status)
+    const handleStatusChange = async (status: string, comments: string) => {
+        console.log('test', status, comments)
         if (!qcProperty || !agentData || !currentUser) {
             toast.error('Missing required data for status update')
+            return
+        }
+
+        // Validation for rejected status
+        if (status === 'rejected' && selectedRejectedFields.length === 0) {
+            toast.error('Please select at least one rejected field')
+            return
+        }
+
+        // Validation for duplicate status
+        if (status === 'duplicate' && !originalPropertyId.trim()) {
+            toast.error('Please enter the original property ID')
             return
         }
 
@@ -140,7 +230,15 @@ const QCPropertyDetailsPage = () => {
         try {
             const activeTab = getActiveTab()
 
-            // Updated to use the new service structure with all required properties
+            // Prepare additional data for rejected and duplicate statuses
+            const additionalData: any = {}
+            if (status === 'rejected') {
+                additionalData.rejectedFields = selectedRejectedFields
+            }
+            if (status === 'duplicate') {
+                additionalData.originalPropertyId = originalPropertyId.trim()
+            }
+
             await dispatch(
                 updateQCStatusWithRoleCheck({
                     property: qcProperty,
@@ -152,19 +250,17 @@ const QCPropertyDetailsPage = () => {
                         name: agentData.name || currentUser.displayName || '',
                         kamId: agentData.kamId || agentData.id,
                         id: agentData.id,
-                        //cpId: agentData.cpId
                     },
                     activeTab,
                     reviewedBy: currentUser.displayName || currentUser.email || 'Unknown User',
+                    comments: comments,
+                    additionalData, // Pass additional data
                 }),
             ).unwrap()
 
-            // Refetch the data to get updated status
             dispatch(fetchQCInventoryById(qcProperty.propertyId))
-
             toast.success(`Status updated successfully to ${status}`)
 
-            // Navigate back to dashboard after successful update
             setTimeout(() => {
                 navigate('/acn/qc/dashboard')
             }, 2000)
@@ -223,6 +319,12 @@ const QCPropertyDetailsPage = () => {
             color: '#E0F2FE',
             textColor: '#0369A1',
         },
+        {
+            label: 'Pending',
+            value: 'pending',
+            color: '#F3F3F3',
+            textColor: '#000000',
+        },
     ]
 
     const getStatusBadgeColor = (status: string) => {
@@ -258,32 +360,26 @@ const QCPropertyDetailsPage = () => {
         }).format(amount)
     }
 
-    // Check if user can edit based on role and property status - UPDATED
     const canEdit = () => {
         if (!qcProperty || !agentData) return false
 
         switch (agentData.role) {
             case 'kam':
-                // KAM can edit in kam stage OR notApproved stage
                 return qcProperty.stage === 'kam' || qcProperty.stage === 'notApproved'
             case 'data':
-                // Data team can only edit in data stage when KAM is approved, NOT in notApproved
                 return qcProperty.stage === 'data' && qcProperty.kamStatus === 'approved'
             case 'kamModerator':
-                // KAM moderators can edit in ALL stages (kam, data, notApproved)
                 return true
             default:
                 return false
         }
     }
 
-    // Get current status based on active tab - UPDATED
     const getCurrentStatus = () => {
         if (!qcProperty) return 'pending'
 
         const activeTab = getActiveTab()
 
-        // For notApproved stage, always show kamStatus regardless of active tab
         if (qcProperty.stage === 'notApproved') {
             return qcProperty.kamStatus || 'pending'
         }
@@ -295,13 +391,29 @@ const QCPropertyDetailsPage = () => {
         }
     }
 
-    // Get review section title
     const getReviewSectionTitle = () => {
         const activeTab = getActiveTab()
         return activeTab === 'data' ? 'Data Review' : 'KAM Review'
     }
 
-    // Loading state - Check authInitialized first
+    // Carousel navigation functions
+    const nextImage = () => {
+        if (propertyImages.length > 0) {
+            setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length)
+        }
+    }
+
+    const prevImage = () => {
+        if (propertyImages.length > 0) {
+            setCurrentImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length)
+        }
+    }
+
+    const goToImage = (index: number) => {
+        setCurrentImageIndex(index)
+    }
+
+    // Loading and error states
     if (!authInitialized || qcLoading || userLoading) {
         return (
             <Layout loading={true}>
@@ -314,11 +426,10 @@ const QCPropertyDetailsPage = () => {
         )
     }
 
-    // Error state
     if (qcError || userError) {
         return (
             <Layout loading={false}>
-                <div className='flex items-center justify-center min-h-screen'>
+                <div className='flex items-center justify-center min-h-screen bg-white'>
                     <div className='text-center'>
                         <div className='text-lg text-red-600 mb-4'>
                             {qcError ? 'Error loading QC property' : 'Authentication error'}
@@ -330,7 +441,7 @@ const QCPropertyDetailsPage = () => {
                                     dispatch(clearError())
                                     if (id) dispatch(fetchQCInventoryById(id))
                                 }}
-                                className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+                                className='px-4 py-2 text-white rounded'
                             >
                                 Retry
                             </button>
@@ -347,7 +458,6 @@ const QCPropertyDetailsPage = () => {
         )
     }
 
-    // Not authenticated - Only show after auth is initialized
     if (authInitialized && !currentUser) {
         return (
             <Layout loading={false}>
@@ -367,7 +477,6 @@ const QCPropertyDetailsPage = () => {
         )
     }
 
-    // Not found state
     if (!qcProperty) {
         return (
             <Layout loading={false}>
@@ -386,7 +495,6 @@ const QCPropertyDetailsPage = () => {
         )
     }
 
-    // No agent data
     if (!agentData) {
         return (
             <Layout loading={false}>
@@ -416,9 +524,11 @@ const QCPropertyDetailsPage = () => {
                   'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
               ]
 
+    const isOverLimit = wordCount > WORD_LIMIT
+
     return (
         <Layout loading={false}>
-            <div className='w-full overflow-hidden font-sans bg-gray-50'>
+            <div className='w-full overflow-hidden font-sans'>
                 <div className='py-6 px-6 min-h-screen'>
                     {/* Breadcrumb */}
                     <div className='mb-4'>
@@ -431,49 +541,16 @@ const QCPropertyDetailsPage = () => {
                         </div>
                     </div>
 
-                    {/* User Info Display */}
-                    <div className='mb-4'>
-                        <div className='flex items-center gap-4 text-sm'>
-                            <div className='flex items-center gap-2'>
-                                <span className='text-gray-600'>Logged in as:</span>
-                                <span className='font-medium text-gray-900'>{safeDisplay(currentUser?.email)}</span>
-                            </div>
-                            <div className='flex items-center gap-2'>
-                                <span className='text-gray-600'>Role:</span>
-                                <span
-                                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${
-                                        agentData.role === 'kamModerator'
-                                            ? 'bg-purple-100 text-purple-800 border-purple-200'
-                                            : agentData.role === 'data'
-                                              ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                              : 'bg-green-100 text-green-800 border-green-200'
-                                    }`}
-                                >
-                                    {camelCaseToCapitalizedWords(agentData.role)}
-                                </span>
-                            </div>
-                            <div className='flex items-center gap-2'>
-                                <span className='text-gray-600'>Active Tab:</span>
-                                <span className='text-sm font-medium text-gray-900 capitalize'>
-                                    {camelCaseToCapitalizedWords(getActiveTab())}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    <hr className='border-gray-200 mb-4' />
 
                     {/* Header Actions */}
-                    <div className='flex items-center gap-4 mb-6'>
-                        <button className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'>
-                            <img src={shareIcon} alt='Share' className='w-4 h-4' />
-                            Share
-                        </button>
-                        <button className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'>
+                    <div className='flex items-center gap-4 mb-0'>
+                        <button
+                            className='flex items-center h-8 gap-2 px-2 py-2 text-gray-700 bg-[#F3F3F3] border border-gray-300 rounded-md hover:bg-gray-50'
+                            onClick={() => navigate(`/acn/qc/${qcProperty.propertyId}/edit`)}
+                        >
                             <img src={editIcon} alt='Edit' className='w-4 h-4' />
-                            Edit Property
-                        </button>
-                        <button className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'>
-                            <img src={priceDropIcon} alt='Price Drop' className='w-4 h-4' />
-                            Price Drop
+                            <span> Edit Property</span>
                         </button>
                     </div>
 
@@ -481,10 +558,10 @@ const QCPropertyDetailsPage = () => {
                         {/* Main Content */}
                         <div className='lg:col-span-2 space-y-6'>
                             {/* Property Header */}
-                            <div className='bg-white rounded-lg p-6'>
+                            <div className='bg-white rounded-lg py-2'>
                                 <div className='flex items-start justify-between mb-4'>
                                     <div>
-                                        <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
+                                        <h1 className='text-lg font-semibold text-black mb-4'>
                                             {safeDisplay(qcProperty.propertyName)}
                                         </h1>
                                         <div className='flex items-center gap-6 text-sm text-gray-600'>
@@ -551,151 +628,480 @@ const QCPropertyDetailsPage = () => {
                                         </div>
                                     </div>
                                     <div className='text-right'>
-                                        <div className='text-2xl font-bold text-gray-900 mb-2'>
+                                        <div className='text-lg font-bold text-gray-900 mb-2'>
                                             {formatCost(qcProperty.totalAskPrice || 0)}
-                                        </div>
-                                        <div className='flex items-center gap-3'>
-                                            <div className='w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
-                                                {getInitials(qcProperty.kamName)}
-                                            </div>
-                                            <div>
-                                                <div className='font-medium text-gray-900'>
-                                                    {safeDisplay(qcProperty.kamName)}
-                                                </div>
-                                                <div className='text-sm text-gray-600'>
-                                                    {safeDisplay(qcProperty.cpId)}
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Property Images */}
-                                <div className='grid grid-cols-3 gap-4 mb-6'>
-                                    {propertyImages.slice(0, 3).map((image: string, index: number) => (
-                                        <div
-                                            key={index}
-                                            className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer ${
-                                                index === 2 ? 'bg-gray-800' : ''
-                                            }`}
-                                            onClick={() => setCurrentImageIndex(index)}
-                                        >
-                                            <img
-                                                src={image}
-                                                alt={`Property ${index + 1}`}
-                                                className='w-full h-full object-cover'
-                                                onError={(e) => {
-                                                    const target = e.target as HTMLImageElement
-                                                    target.src =
-                                                        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
-                                                }}
-                                            />
-                                            {index === 2 && propertyImages.length > 3 && (
-                                                <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
-                                                    <button className='flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 text-white rounded-md backdrop-blur-sm'>
-                                                        <svg
-                                                            className='w-4 h-4'
-                                                            fill='none'
-                                                            stroke='currentColor'
-                                                            viewBox='0 0 24 24'
-                                                        >
-                                                            <path
-                                                                strokeLinecap='round'
-                                                                strokeLinejoin='round'
-                                                                strokeWidth={2}
-                                                                d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
-                                                            />
-                                                        </svg>
-                                                        View all photos ({propertyImages.length})
-                                                    </button>
-                                                </div>
-                                            )}
+                                {/* Image Carousel */}
+                                {/* Image Carousel - 3 pics at a time */}
+                                <div className='relative mb-0'>
+                                    {/* Main Images Display */}
+                                    <div className='relative rounded-lg overflow-hidden bg-gray-200'>
+                                        <div className='flex gap-2 h-40'>
+                                            {propertyImages
+                                                .slice(currentImageIndex, currentImageIndex + 3)
+                                                .map((image, index) => (
+                                                    <div
+                                                        key={currentImageIndex + index}
+                                                        className='flex-1 relative rounded-lg overflow-hidden bg-gray-200'
+                                                    >
+                                                        <img
+                                                            src={image || '/placeholder.svg'}
+                                                            alt={`Property ${currentImageIndex + index + 1}`}
+                                                            className='w-full h-full object-cover'
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement
+                                                                target.src =
+                                                                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ))}
                                         </div>
-                                    ))}
+
+                                        {/* Navigation Arrows */}
+                                        {propertyImages.length > 3 && (
+                                            <>
+                                                <button
+                                                    onClick={() =>
+                                                        setCurrentImageIndex(Math.max(0, currentImageIndex - 3))
+                                                    }
+                                                    disabled={currentImageIndex === 0}
+                                                    className='absolute left-4 top-2/5 transform  bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-30'
+                                                >
+                                                    <svg
+                                                        className='w-5 h-5'
+                                                        fill='none'
+                                                        stroke='currentColor'
+                                                        viewBox='0 0 24 24'
+                                                    >
+                                                        <path
+                                                            strokeLinecap='round'
+                                                            strokeLinejoin='round'
+                                                            strokeWidth={2}
+                                                            d='M15 19l-7-7 7-7'
+                                                        />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() =>
+                                                        setCurrentImageIndex(
+                                                            Math.min(propertyImages.length - 3, currentImageIndex + 3),
+                                                        )
+                                                    }
+                                                    disabled={currentImageIndex >= propertyImages.length - 3}
+                                                    className='absolute right-4 top-2/5 transform bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-30'
+                                                >
+                                                    <svg
+                                                        className='w-5 h-5'
+                                                        fill='none'
+                                                        stroke='currentColor'
+                                                        viewBox='0 0 24 24'
+                                                    >
+                                                        <path
+                                                            strokeLinecap='round'
+                                                            strokeLinejoin='round'
+                                                            strokeWidth={2}
+                                                            d='M9 5l7 7-7 7'
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Property Details */}
-                            <div className='bg-white rounded-lg p-6'>
-                                <h2 className='text-lg font-semibold text-gray-900 mb-6'>Property Details</h2>
+                            <div className='bg-white rounded-lg py-2'>
+                                <h2 className='text-md font-semibold text-gray-900 mb-2'>Property Details</h2>
 
-                                <div className='grid grid-cols-2 gap-x-8 gap-y-4'>
+                                <div className='grid grid-cols-2 gap-x-8 gap-y-0'>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Asset Type</span>
+                                        <span className='text-gray-600'>Property Type</span>
                                         <span className='font-medium capitalize'>
-                                            {safeDisplay(qcProperty.assetType)}
+                                            {safeDisplay(qcProperty.assetType, 'Apartment')}
                                         </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Unit Type</span>
-                                        <span className='font-medium'>{safeDisplay(qcProperty.unitType)}</span>
+                                        <span className='text-gray-600'>Bedrooms</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(qcProperty.unitType?.split(' ')[0] || '3')}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>SBUA</span>
-                                        <span className='font-medium'>{safeDisplay(qcProperty.sbua)} sq ft</span>
+                                        <span className='text-gray-600'>Sub Type</span>
+                                        <span className='font-medium capitalize'>
+                                            {safeDisplay(qcProperty.subType, 'Simplex')}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Carpet Area</span>
-                                        <span className='font-medium'>{safeDisplay(qcProperty.carpet)} sq ft</span>
+                                        <span className='text-gray-600'>Bathrooms</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(qcProperty.noOfBathrooms, '3')}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Plot Size</span>
-                                        <span className='font-medium'>{safeDisplay(qcProperty.plotSize)} sq ft</span>
+                                        <span className='text-gray-600'>Price</span>
+                                        <span className='font-medium'>
+                                            {formatCost(qcProperty.totalAskPrice || 15000000)}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Balconies</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(qcProperty.noOfBalconies, '3')}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Per Sqft Price</span>
+                                        <span className='font-medium'>
+                                            {formatCurrency(qcProperty.askPricePerSqft || 1500)} / Sqft
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Floor</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(
+                                                qcProperty.floorNo
+                                                    ? `${qcProperty.floorNo} Floor`
+                                                    : 'Lower Floor (1-5)',
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Area</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(qcProperty.sbua, '5500')} Sqft.
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Facing</span>
-                                        <span className='font-medium capitalize'>{safeDisplay(qcProperty.facing)}</span>
-                                    </div>
-                                    <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Total Ask Price</span>
-                                        <span className='font-medium'>
-                                            {formatCurrency(qcProperty.totalAskPrice || 0)}
-                                        </span>
-                                    </div>
-                                    <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Ask Price Per Sqft</span>
-                                        <span className='font-medium'>
-                                            {formatCurrency(qcProperty.askPricePerSqft || 0)}
-                                        </span>
-                                    </div>
-                                    <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Handover Date</span>
-                                        <span className='font-medium'>
-                                            {formatDate(qcProperty.handoverDate || Date.now())}
-                                        </span>
-                                    </div>
-                                    <div className='flex justify-between py-2 border-b border-gray-100'>
-                                        <span className='text-gray-600'>Stage</span>
                                         <span className='font-medium capitalize'>
-                                            {camelCaseToCapitalizedWords(qcProperty.stage)}
+                                            {safeDisplay(qcProperty.facing, 'East')}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Possession</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(qcProperty.currentStatus, 'Ready to move')}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Furnishing</span>
+                                        <span className='font-medium capitalize'>
+                                            {safeDisplay(qcProperty.furnishing, 'Fully furnished')}
                                         </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>KAM Status</span>
-                                        <span
-                                            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.kamStatus || 'pending')}`}
-                                        >
-                                            {toCapitalizedWords(qcProperty.kamStatus || 'pending')}
+                                        <span className='font-medium'>
+                                            {safeDisplay(qcProperty.kamStatus, 'Ready to move')}
                                         </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Data Status</span>
-                                        <span
-                                            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.qcStatus || qcProperty.dataStatus || 'pending')}`}
-                                        >
-                                            {toCapitalizedWords(
-                                                qcProperty.qcStatus || qcProperty.dataStatus || 'pending',
-                                            )}
+                                        <span className='font-medium'>
+                                            {safeDisplay(qcProperty.qcStatus, 'Ready to move')}
                                         </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Age of Property</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(qcProperty.buildingAge, '2')} years
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Parking</span>
+                                        <span className='font-medium'>{safeDisplay(qcProperty.carPark, '3')}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Age of Inventory</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(
+                                                qcProperty.ageOfInventory
+                                                    ? `${Math.floor(qcProperty.ageOfInventory / 30)}`
+                                                    : '1',
+                                            )}{' '}
+                                            Month old
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Building Khata</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(qcProperty.buildingKhata, '-')}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Age of Status</span>
+                                        <span className='font-medium'>
+                                            {safeDisplay(
+                                                qcProperty.ageOfStatus
+                                                    ? `${Math.floor(qcProperty.ageOfStatus / 30)}`
+                                                    : '1',
+                                            )}{' '}
+                                            Month old
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Land Khata</span>
+                                        <span className='font-medium'>{safeDisplay(qcProperty.landKhata, '-')}</span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Date of Inventory Added</span>
+                                        <span className='font-medium'>
+                                            {qcProperty.dateOfInventoryAdded
+                                                ? formatDate(qcProperty.dateOfInventoryAdded)
+                                                : 'July 2024'}
+                                        </span>
+                                    </div>
+                                    <div className='flex justify-between py-2 border-b border-gray-100'>
+                                        <span className='text-gray-600'>Tenanted</span>
+                                        <span className='font-medium'>{qcProperty.tenanted ? 'Yes' : 'Yes'}</span>
                                     </div>
                                 </div>
 
-                                {qcProperty.extraDetails && (
-                                    <div className='mt-6'>
-                                        <h3 className='font-medium text-gray-900 mb-3'>Extra Details</h3>
-                                        <p className='text-sm text-gray-600 leading-relaxed'>
-                                            {qcProperty.extraDetails}
-                                        </p>
+                                {/* Extra Details */}
+                                <div className='mt-2'>
+                                    <h3 className='font-medium text-gray-900 mb-3'>Extra Details</h3>
+                                    <div className='bg-gray-50 rounded-lg p-4'>
+                                        <ul className='space-y-1 text-sm text-gray-700'>
+                                            <li>• 2 BHK + 2 T</li>
+                                            <li>• 3 Balconies(west)</li>
+                                            <li>• 1 closed parking</li>
+                                            <li>• Semi furnished</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Location Details */}
+                                <div className='mt-2'>
+                                    <h3 className='font-medium text-gray-900 mb-2'>Location Details</h3>
+                                    <div className='grid grid-cols-1 gap-0'>
+                                        <div className='flex justify-between py-1 border-b border-gray-100'>
+                                            <span className='text-gray-600'>Micromarket</span>
+                                            <span className='font-medium'>
+                                                {safeDisplay(qcProperty.micromarket, 'Bannerghatta')}
+                                            </span>
+                                        </div>
+                                        <div className='flex justify-between py-1 border-b border-gray-100'>
+                                            <span className='text-gray-600'>Area</span>
+                                            <span className='font-medium'>
+                                                {safeDisplay(qcProperty.area, 'North Bangalore')}
+                                            </span>
+                                        </div>
+                                        <div className='flex justify-between py-1 border-b border-gray-100'>
+                                            <span className='text-gray-600'>Address</span>
+                                            <span className='font-medium'>
+                                                {safeDisplay(
+                                                    qcProperty.address,
+                                                    '1579, 27th Main, 2nd sector, HSR Layout, Bangalore',
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className='flex justify-between py-1 border-b border-gray-100'>
+                                            <span className='text-gray-600'>Coordinates</span>
+                                            <span className='font-medium'>
+                                                {qcProperty._geoloc
+                                                    ? `${qcProperty._geoloc.lat}, ${qcProperty._geoloc.lng}`
+                                                    : '13.2377419420783O3, 77.4484073426958T'}
+                                            </span>
+                                        </div>
+                                        <div className='flex justify-between py-1 border-b border-gray-100'>
+                                            <span className='text-gray-600'>Map</span>
+                                            <button
+                                                className='flex items-center gap-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-800'
+                                                onClick={() => {
+                                                    const lat = qcProperty._geoloc?.lat || 13.2377419420783
+                                                    const lng = qcProperty._geoloc?.lng || 77.4484073426958
+                                                    window.open(`https://maps.google.com?q=${lat},${lng}`, '_blank')
+                                                }}
+                                            >
+                                                <svg
+                                                    className='w-4 h-4'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'
+                                                    />
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M15 11a3 3 0 11-6 0 3 3 0 016 0z'
+                                                    />
+                                                </svg>
+                                                Open Maps
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Documents Section */}
+                                <div className='mt-2'>
+                                    <h3 className='font-medium text-gray-900 mb-2'>Documents</h3>
+                                    <div className='grid grid-cols-1 gap-3'>
+                                        {[
+                                            { name: 'Property Registration Document', type: 'PDF' },
+                                            { name: 'Building Approval Certificate', type: 'PDF' },
+                                        ].map((doc, index) => (
+                                            <div
+                                                key={index}
+                                                className='flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200'
+                                            >
+                                                <div className='flex items-center gap-3'>
+                                                    <div className='w-8 h-8 bg-red-100 rounded flex items-center justify-center'>
+                                                        <svg
+                                                            className='w-4 h-4 text-red-600'
+                                                            fill='currentColor'
+                                                            viewBox='0 0 20 20'
+                                                        >
+                                                            <path
+                                                                fillRule='evenodd'
+                                                                d='M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z'
+                                                                clipRule='evenodd'
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <div className='font-medium text-gray-900 text-sm'>
+                                                            {doc.name}
+                                                        </div>
+                                                        <div className='text-xs text-gray-500'>{doc.type}</div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    className='px-3 py-1 text-sm text-blue-600 hover:text-blue-800'
+                                                    onClick={() => toast.info('Document download would start here')}
+                                                >
+                                                    Download
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Review History */}
+                                {(qcProperty.qcReview?.kamReview || qcProperty.qcReview?.dataReview) && (
+                                    <div className='mt-2'>
+                                        <h3 className='font-medium text-gray-900 mb-2'>Review History</h3>
+
+                                        {/* KAM Review */}
+                                        {qcProperty.qcReview?.kamReview && (
+                                            <div className='mb-2 p-4 bg-gray-50 rounded-lg border border-gray-200'>
+                                                <div className='flex items-center justify-between mb-2'>
+                                                    <h4 className='font-medium text-gray-900'>KAM Review</h4>
+                                                    <span
+                                                        className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.qcReview.kamReview.status)}`}
+                                                    >
+                                                        {toCapitalizedWords(qcProperty.qcReview.kamReview.status)}
+                                                    </span>
+                                                </div>
+                                                <div className='text-sm text-gray-600 mb-2'>
+                                                    <span className='font-medium'>Reviewed by:</span>{' '}
+                                                    {qcProperty.qcReview.kamReview.reviewedBy}
+                                                </div>
+                                                <div className='text-sm text-gray-600 mb-2'>
+                                                    <span className='font-medium'>Date:</span>{' '}
+                                                    {formatDate(qcProperty.qcReview.kamReview.reviewDate)}
+                                                </div>
+                                                {qcProperty.qcReview.kamReview.comments && (
+                                                    <div className='text-sm text-gray-700 mb-2'>
+                                                        <span className='font-medium'>Comments:</span>{' '}
+                                                        {qcProperty.qcReview.kamReview.comments}
+                                                    </div>
+                                                )}
+                                                {qcProperty.qcReview.kamReview.status === 'rejected' &&
+                                                    qcProperty.qcReview.rejectedFields && (
+                                                        <div className='text-sm text-gray-700'>
+                                                            <span className='font-medium'>Rejected Fields:</span>
+                                                            <div className='flex flex-wrap gap-1 mt-1'>
+                                                                {qcProperty.qcReview.rejectedFields.map(
+                                                                    (field, index) => (
+                                                                        <span
+                                                                            key={index}
+                                                                            className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800'
+                                                                        >
+                                                                            {AVAILABLE_PROPERTY_FIELDS.find(
+                                                                                (f) => f.value === field,
+                                                                            )?.label || field}
+                                                                        </span>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                {qcProperty.qcReview.kamReview.status === 'duplicate' &&
+                                                    qcProperty.qcReview.originalPropertyId && (
+                                                        <div className='text-sm text-gray-700'>
+                                                            <span className='font-medium'>Original Property ID:</span>{' '}
+                                                            {qcProperty.qcReview.originalPropertyId}
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        )}
+
+                                        {/* Data Review */}
+                                        {qcProperty.qcReview?.dataReview && (
+                                            <div className='p-4 bg-gray-50 rounded-lg border border-gray-200'>
+                                                <div className='flex items-center justify-between mb-2'>
+                                                    <h4 className='font-medium text-gray-900'>Data Review</h4>
+                                                    <span
+                                                        className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.qcReview.dataReview.status)}`}
+                                                    >
+                                                        {toCapitalizedWords(qcProperty.qcReview.dataReview.status)}
+                                                    </span>
+                                                </div>
+                                                <div className='text-sm text-gray-600 mb-2'>
+                                                    <span className='font-medium'>Reviewed by:</span>{' '}
+                                                    {qcProperty.qcReview.dataReview.reviewedBy}
+                                                </div>
+                                                <div className='text-sm text-gray-600 mb-2'>
+                                                    <span className='font-medium'>Date:</span>{' '}
+                                                    {formatDate(qcProperty.qcReview.dataReview.reviewDate)}
+                                                </div>
+                                                {qcProperty.qcReview.dataReview.comments && (
+                                                    <div className='text-sm text-gray-700 mb-2'>
+                                                        <span className='font-medium'>Comments:</span>{' '}
+                                                        {qcProperty.qcReview.dataReview.comments}
+                                                    </div>
+                                                )}
+                                                {qcProperty.qcReview.dataReview.status === 'rejected' &&
+                                                    qcProperty.qcReview.rejectedFields && (
+                                                        <div className='text-sm text-gray-700'>
+                                                            <span className='font-medium'>Rejected Fields:</span>
+                                                            <div className='flex flex-wrap gap-1 mt-1'>
+                                                                {qcProperty.qcReview.rejectedFields.map(
+                                                                    (field, index) => (
+                                                                        <span
+                                                                            key={index}
+                                                                            className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800'
+                                                                        >
+                                                                            {AVAILABLE_PROPERTY_FIELDS.find(
+                                                                                (f) => f.value === field,
+                                                                            )?.label || field}
+                                                                        </span>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                {qcProperty.qcReview.dataReview.status === 'duplicate' &&
+                                                    qcProperty.qcReview.originalPropertyId && (
+                                                        <div className='text-sm text-gray-700'>
+                                                            <span className='font-medium'>Original Property ID:</span>{' '}
+                                                            {qcProperty.qcReview.originalPropertyId}
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -703,8 +1109,18 @@ const QCPropertyDetailsPage = () => {
 
                         {/* Sidebar */}
                         <div className='space-y-6'>
+                            <div className='flex items-center gap-3 px-6'>
+                                <div className='w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
+                                    {getInitials(qcProperty.kamName)}
+                                </div>
+                                <div>
+                                    <div className='font-medium text-gray-900'>{safeDisplay(qcProperty.kamName)}</div>
+                                    <div className='text-sm text-gray-600'>{safeDisplay(qcProperty.cpId)}</div>
+                                </div>
+                            </div>
+
                             {/* Review Section */}
-                            <div className='bg-white rounded-lg p-6'>
+                            <div className='bg-white rounded-lg px-6'>
                                 <h3 className='text-lg font-semibold text-gray-900 mb-4'>{getReviewSectionTitle()}</h3>
 
                                 {!canEdit() && (
@@ -725,7 +1141,7 @@ const QCPropertyDetailsPage = () => {
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>Status</label>
                                     <Dropdown
                                         options={getReviewOptions()}
-                                        onSelect={handleStatusChange}
+                                        onSelect={(status) => setSelectedStatus(status)}
                                         defaultValue={getCurrentStatus()}
                                         placeholder='Select Status'
                                         className='w-full'
@@ -738,6 +1154,51 @@ const QCPropertyDetailsPage = () => {
                                         optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md'
                                     />
                                 </div>
+
+                                {/* Rejected Fields Multiselect */}
+                                {selectedStatus === 'rejected' && (
+                                    <div className='mb-4'>
+                                        <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                            Rejected Fields <span className='text-red-500'>*</span>
+                                        </label>
+                                        <MultiSelectDropdown
+                                            options={AVAILABLE_PROPERTY_FIELDS}
+                                            selectedValues={selectedRejectedFields}
+                                            onSelectionChange={setSelectedRejectedFields}
+                                            placeholder='Select rejected fields...'
+                                            className='w-full'
+                                            triggerClassName='w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                            optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md'
+                                        />
+                                        {selectedRejectedFields.length === 0 && (
+                                            <p className='text-xs text-red-500 mt-1'>
+                                                Please select at least one rejected field
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Original Property ID Input */}
+                                {selectedStatus === 'duplicate' && (
+                                    <div className='mb-4'>
+                                        <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                            Original Property ID <span className='text-red-500'>*</span>
+                                        </label>
+                                        <input
+                                            type='text'
+                                            value={originalPropertyId}
+                                            onChange={(e) => setOriginalPropertyId(e.target.value)}
+                                            placeholder='Enter original property ID...'
+                                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                                        />
+                                        {!originalPropertyId.trim() && (
+                                            <p className='text-xs text-red-500 mt-1'>
+                                                Please enter the original property ID
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
 
                                 {(reviewLoading || updateLoading) && (
                                     <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
@@ -768,68 +1229,53 @@ const QCPropertyDetailsPage = () => {
                                     </div>
                                 )}
 
-                                {/* Review History */}
-                                <div className='mb-6'>
-                                    <h4 className='font-medium text-gray-900 mb-3'>Review History</h4>
-                                    <div className='space-y-2'>
-                                        {qcProperty.kamStatus && (
-                                            <div className='flex justify-between'>
-                                                <span className='text-gray-600'>KAM Status</span>
-                                                <span className='font-medium'>
-                                                    {toCapitalizedWords(qcProperty.kamStatus)}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {(qcProperty.qcStatus || qcProperty.dataStatus) && (
-                                            <div className='flex justify-between'>
-                                                <span className='text-gray-600'>Data Status</span>
-                                                <span className='font-medium'>
-                                                    {toCapitalizedWords(qcProperty.qcStatus || qcProperty.dataStatus)}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
+                                <div className='mb-2'>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Reason</label>
+                                    <textarea
+                                        value={comments}
+                                        onChange={(e) => setComment(e.target.value)}
+                                        placeholder='Add a note...'
+                                        rows={3}
+                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm'
+                                    />
                                 </div>
-                            </div>
 
-                            {/* QC History */}
-                            <div className='bg-white rounded-lg p-6'>
-                                <h3 className='text-lg font-semibold text-gray-900 mb-4'>QC History</h3>
-                                <div className='space-y-3 max-h-64 overflow-y-auto'>
-                                    {qcProperty.qcHistory && qcProperty.qcHistory.length > 0 ? (
-                                        qcProperty.qcHistory.map((item, index) => (
-                                            <div key={index} className='border-b border-gray-100 pb-3 last:border-b-0'>
-                                                <div className='flex justify-between items-start mb-1'>
-                                                    <span className='text-sm font-medium text-gray-900'>
-                                                        {safeDisplay(item.qcStatus)}
-                                                    </span>
-                                                    <span className='text-xs text-gray-500'>
-                                                        {formatDate(item.timestamp)}
-                                                    </span>
-                                                </div>
-                                                <div className='text-xs text-gray-600'>
-                                                    By: {safeDisplay(item.userName)}
-                                                </div>
-                                                <div className='text-xs text-gray-600 mt-1'>
-                                                    Role: {safeDisplay(item.userRole)}
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className='text-sm text-gray-500'>No history available</div>
-                                    )}
-                                </div>
+                                {/* Submit Button */}
+                                <button
+                                    onClick={() => {
+                                        if (!canEdit()) {
+                                            toast.error('You do not have permission to edit this property')
+                                            return
+                                        }
+
+                                        if (!selectedStatus) {
+                                            toast.error('Please select a status before submitting')
+                                            return
+                                        }
+
+                                        const comment = comments.trim() || ''
+                                        handleStatusChange(selectedStatus, comment)
+                                    }}
+                                    disabled={reviewLoading || updateLoading}
+                                    className={`h-8 bg-gray-900 text-white px-4 rounded-md hover:bg-gray-800 transition-colors ${
+                                        reviewLoading || updateLoading ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                >
+                                    {reviewLoading || updateLoading ? 'Submitting...' : 'Submit'}
+                                </button>
                             </div>
 
                             {/* Notes Section */}
-                            <div className='bg-white rounded-lg p-6'>
+                            <div className='bg-white rounded-lg px-6 py-6'>
                                 <div className='flex items-center justify-between mb-4'>
                                     <h3 className='text-lg font-semibold text-gray-900'>Notes</h3>
                                     <button
                                         onClick={handleAddNote}
-                                        disabled={noteLoading || !newNote.trim()}
+                                        disabled={noteLoading || !newNote.trim() || isOverLimit}
                                         className={`flex items-center gap-1 px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 ${
-                                            noteLoading || !newNote.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                                            noteLoading || !newNote.trim() || isOverLimit
+                                                ? 'opacity-50 cursor-not-allowed'
+                                                : ''
                                         }`}
                                     >
                                         <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
@@ -849,47 +1295,60 @@ const QCPropertyDetailsPage = () => {
                                         value={newNote}
                                         onChange={(e) => setNewNote(e.target.value)}
                                         placeholder='Add a note...'
-                                        rows={3}
-                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm'
+                                        rows={4}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 resize-none text-sm ${
+                                            isOverLimit
+                                                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                                                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                        }`}
                                     />
+                                    <div className='flex justify-between items-center mt-2'>
+                                        <div className={`text-xs ${isOverLimit ? 'text-red-500' : 'text-gray-500'}`}>
+                                            {wordCount}/{WORD_LIMIT} words
+                                            {isOverLimit && (
+                                                <span className='ml-2 font-medium'>Word limit exceeded!</span>
+                                            )}
+                                        </div>
+                                        {newNote.trim() && (
+                                            <div className='text-xs text-gray-400'>Press Enter for new line</div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <h4 className='font-medium text-gray-900 mb-3'>Previous Notes</h4>
+                                    <h4 className='font-semibold text-gray-900 mb-4 text-base'>Previous Notes</h4>
                                     <div className='space-y-4 max-h-80 overflow-y-auto'>
                                         {qcProperty.notes && qcProperty.notes.length > 0
                                             ? qcProperty.notes.map((note, index) => (
-                                                  <div
-                                                      key={index}
-                                                      className='border-b border-gray-100 pb-3 last:border-b-0'
-                                                  >
-                                                      <div className='flex items-center gap-2 mb-2'>
-                                                          <span className='font-medium text-sm text-gray-900'>
+                                                  <div key={index} className='space-y-2'>
+                                                      <div className='text-sm text-gray-600'>
+                                                          <span className='font-medium text-gray-900'>
                                                               {note.kamName}
                                                           </span>
-                                                          <span className='text-xs text-gray-500'>
-                                                              on {formatDate(note.timestamp)}
-                                                          </span>
+                                                          {' on '}
+                                                          <span>{formatDate(note.timestamp)}</span>
                                                       </div>
-                                                      <p className='text-sm text-gray-600 leading-relaxed'>
-                                                          {note.details}
-                                                      </p>
+                                                      <div className='bg-gray-50 rounded-lg p-4 border border-gray-100'>
+                                                          <p className='text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words'>
+                                                              {note.details}
+                                                          </p>
+                                                      </div>
                                                   </div>
                                               ))
                                             : notes.map((note) => (
-                                                  <div
-                                                      key={note.id}
-                                                      className='border-b border-gray-100 pb-3 last:border-b-0'
-                                                  >
-                                                      <div className='flex items-center gap-2 mb-2'>
-                                                          <span className='font-medium text-sm text-gray-900'>
+                                                  <div key={note.id} className='space-y-2'>
+                                                      <div className='text-sm text-gray-600'>
+                                                          <span className='font-medium text-gray-900'>
                                                               {note.author}
                                                           </span>
-                                                          <span className='text-xs text-gray-500'>on {note.date}</span>
+                                                          {' on '}
+                                                          <span>{note.date}</span>
                                                       </div>
-                                                      <p className='text-sm text-gray-600 leading-relaxed'>
-                                                          {note.content}
-                                                      </p>
+                                                      <div className='bg-gray-50 rounded-lg p-4 border border-gray-100'>
+                                                          <p className='text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words'>
+                                                              {note.content}
+                                                          </p>
+                                                      </div>
                                                   </div>
                                               ))}
                                     </div>

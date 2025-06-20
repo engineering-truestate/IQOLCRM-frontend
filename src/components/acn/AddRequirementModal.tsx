@@ -1,14 +1,29 @@
 import React, { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { createRequirement } from '../../services/acn/requirements/requirementsService'
+import { type AppDispatch, type RootState } from '../../store'
+import PlacesSearch from '../design-elements/PlacesSearch'
 
 interface AddRequirementModalProps {
     isOpen: boolean
     onClose: () => void
+    cpId: string
 }
 
-export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen, onClose }) => {
-    const [errorMessage, setErrorMessage] = useState('')
+interface Places {
+    name: string
+    lat: number
+    lng: number
+    address: string
+    mapLocation: string
+}
 
-    const [projectName, setProjectName] = useState('')
+export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen, onClose, cpId }) => {
+    const dispatch = useDispatch<AppDispatch>()
+    const { loading, error } = useSelector((state: RootState) => state.requirements)
+
+    const [errorMessage, setErrorMessage] = useState('')
+    const [selectedPlace, setSelectedPlace] = useState<Places | null>(null)
     const [assetType, setAssetType] = useState('')
     const [superBuiltUpArea, setSuperBuiltUpArea] = useState('')
     const [plotArea, setPlotArea] = useState('')
@@ -20,18 +35,33 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
     const [facing, setFacing] = useState('')
     const [requirementDetails, setRequirementDetails] = useState('')
 
-    const handleSubmit = () => {
+    const resetForm = () => {
+        setSelectedPlace(null)
+        setAssetType('')
+        setSuperBuiltUpArea('')
+        setPlotArea('')
+        setBedroom(null)
+        setBudgetFrom('')
+        setBudgetTo('')
+        setBuilderCategory('')
+        setPreferredFloor('')
+        setFacing('')
+        setRequirementDetails('')
+        setErrorMessage('')
+    }
+
+    const handleSubmit = async () => {
         const from = parseFloat(budgetFrom)
         const to = parseFloat(budgetTo)
 
+        // Validation
         if (!isNaN(from) && !isNaN(to) && from >= to) {
-            alert('Budget "From" must be less than "To"')
+            setErrorMessage('Budget "From" must be less than "To"')
             return
         }
-        setErrorMessage('')
 
         if (
-            !projectName.trim() ||
+            !selectedPlace ||
             !assetType ||
             !superBuiltUpArea ||
             !plotArea ||
@@ -46,26 +76,32 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
             return
         }
 
-        if (!isNaN(from) && !isNaN(to) && from >= to) {
-            setErrorMessage('Budget "From" must be less than "To"')
-            return
-        }
+        setErrorMessage('')
 
-        const formData = {
-            projectName,
-            assetType,
-            superBuiltUpArea,
-            plotArea,
-            bedroom,
-            budgetFrom,
-            budgetTo,
-            builderCategory,
-            preferredFloor,
-            facing,
-            requirementDetails,
-        }
+        try {
+            const requirementData = {
+                selectedPlace,
+                assetType,
+                superBuiltUpArea,
+                plotArea,
+                bedroom,
+                budgetFrom,
+                budgetTo,
+                builderCategory,
+                preferredFloor,
+                facing,
+                requirementDetails,
+                cpId,
+            }
 
-        console.log('Form Data:', formData)
+            await dispatch(createRequirement(requirementData)).unwrap()
+
+            // Success - reset form and close modal
+            resetForm()
+            onClose()
+        } catch (error: any) {
+            setErrorMessage(error || 'Failed to create requirement')
+        }
     }
 
     if (!isOpen) return null
@@ -92,18 +128,13 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
 
                 {/* Scrollable Content */}
                 <div className='overflow-y-auto p-4 flex-1 space-y-4'>
-                    <div>
-                        <label className='block text-sm  py-2'>
-                            Project Name/Location <span className='text-red-500'>*</span>
-                        </label>
-                        <input
-                            type='text'
-                            value={projectName}
-                            onChange={(e) => setProjectName(e.target.value)}
-                            placeholder='Project Name/Location'
-                            className='mt-1 w-full p-1 border-2 border-gray-300 rounded-sx rounded text-[14px]'
-                        />
-                    </div>
+                    <PlacesSearch
+                        selectedPlace={selectedPlace}
+                        setSelectedPlace={setSelectedPlace}
+                        placeholder='Search for project name or location...'
+                        label='Project Name/Location'
+                        required={true}
+                    />
 
                     <div>
                         <label className='block text-sm py-2'>
@@ -120,13 +151,15 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                             <option value='apartment'>Apartment</option>
                             <option value='villa'>Villa</option>
                             <option value='plot'>Plot</option>
-                            <option value='commercial building'>Commercial Building</option>
+                            <option value='commercial'>Commercial</option>
+                            <option value='warehouse'>Warehouse</option>
+                            <option value='office'>Office</option>
                         </select>
                     </div>
 
                     <div className='flex gap-4'>
                         <div className='flex-1'>
-                            <label className='block text-sm  py-2'>
+                            <label className='block text-sm py-2'>
                                 Super Built-up Area <span className='text-red-500'>*</span>
                             </label>
                             <div className='relative mt-1'>
@@ -163,7 +196,7 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                     </div>
 
                     <div>
-                        <label className='block text-sm  mb-1 py-2'>
+                        <label className='block text-sm mb-1 py-2'>
                             Bedroom <span className='text-red-500'>*</span>
                         </label>
                         <div className='flex gap-2'>
@@ -182,7 +215,7 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                     </div>
 
                     <div>
-                        <label className='block text-sm  py-2'>
+                        <label className='block text-sm py-2'>
                             Budget (INR) <span className='text-red-500'>*</span>
                         </label>
                         <div className='flex gap-2'>
@@ -204,7 +237,7 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                     </div>
 
                     <div>
-                        <label className='block text-sm  py-2'>
+                        <label className='block text-sm py-2'>
                             Builder Category <span className='text-red-500'>*</span>
                         </label>
                         <select
@@ -223,7 +256,7 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                     </div>
 
                     <div>
-                        <label className='block text-sm  py-2'>
+                        <label className='block text-sm py-2'>
                             Preferred Floor <span className='text-red-500'>*</span>
                         </label>
                         <select
@@ -243,7 +276,7 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                     </div>
 
                     <div>
-                        <label className='block text-sm  py-2'>
+                        <label className='block text-sm py-2'>
                             Facing <span className='text-red-500'>*</span>
                         </label>
                         <select
@@ -274,36 +307,25 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
 
                 {/* Footer */}
                 <div className='p-4 border-t border-gray-200 flex flex-col gap-3 flex-shrink-0'>
-                    {errorMessage && (
+                    {(errorMessage || error) && (
                         <div className='bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm'>
-                            {errorMessage}
+                            {errorMessage || error}
                         </div>
                     )}
                     <div className='flex justify-end gap-3'>
                         <button
-                            onClick={() => {
-                                setProjectName('')
-                                setAssetType('')
-                                setSuperBuiltUpArea('')
-                                setPlotArea('')
-                                setBedroom(null)
-                                setBudgetFrom('')
-                                setBudgetTo('')
-                                setBuilderCategory('')
-                                setPreferredFloor('')
-                                setFacing('')
-                                setRequirementDetails('')
-                                setErrorMessage('')
-                            }}
-                            className='px-4 py-2 rounded-lg bg-[#F3F3F3] cursor-pointer'
+                            onClick={resetForm}
+                            disabled={loading}
+                            className='px-4 py-2 rounded-lg bg-[#F3F3F3] cursor-pointer disabled:opacity-50'
                         >
                             Reset
                         </button>
                         <button
                             onClick={handleSubmit}
-                            className='px-4 py-2 bg-blue-600 text-white rounded-lg bg-gray-800 border cursor-pointer'
+                            disabled={loading}
+                            className='px-4 py-2 bg-blue-600 text-white rounded-lg bg-gray-800 border cursor-pointer disabled:opacity-50'
                         >
-                            Submit Requirement
+                            {loading ? 'Creating...' : 'Submit Requirement'}
                         </button>
                     </div>
                 </div>
