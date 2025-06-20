@@ -1,12 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import type { IInventory, IRequirement } from '../../data_types/acn/types'
+import type { IInventory, IQCInventory, IRequirement } from '../../data_types/acn/types'
 import { fetchAgentDetails } from '../../services/acn/agents/agentThunkService'
 
 interface PropertyData {
     inventories: IInventory[]
     requirements: IRequirement[]
     enquiries: any[]
+    qc: IQCInventory[]
 }
 
 interface AgentsState {
@@ -21,11 +22,13 @@ const initialState: AgentsState = {
         inventories: [],
         requirements: [],
         enquiries: [],
+        qc: [],
     },
     rental: {
         inventories: [],
         requirements: [],
         enquiries: [],
+        qc: [],
     },
     loading: false,
     error: null,
@@ -54,6 +57,7 @@ const agentsSlice = createSlice({
                 targetState.inventories = action.payload.inventories
                 targetState.requirements = action.payload.requirements
                 targetState.enquiries = action.payload.enquiries
+                targetState.qc = action.payload.qc
                 state.error = action.payload.error || null
             })
             .addCase(fetchAgentDetails.rejected, (state, action) => {

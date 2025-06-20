@@ -51,8 +51,8 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                 textColor: '#B45309',
             },
             {
-                label: 'Delisted',
-                value: 'Delisted',
+                label: 'De-Listed',
+                value: 'De-Listed',
                 color: '#F3F4F6',
                 textColor: '#374151',
             },
@@ -90,7 +90,7 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
     //             return 'bg-red-500'
     //         case 'Hold':
     //             return 'bg-orange-500'
-    //         case 'Delisted':
+    //         case 'De-Listed':
     //             return 'bg-gray-500'
     //         default:
     //             return 'bg-gray-500'

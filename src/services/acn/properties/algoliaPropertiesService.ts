@@ -12,13 +12,23 @@ const RENTAL_INDEX_NAME = 'rental-inventories'
 // Types for search parameters
 export interface SearchFilters {
     status?: string[]
-    kam?: string[]
+    kamName?: string[]
     assetType?: string[]
     micromarket?: string[]
-    priceRange?: {
-        min?: number
-        max?: number
-    }
+    landmark?: string
+    unitType?: string[]
+    noOfBathrooms?: string[]
+    noOfBalcony?: string[]
+    totalAskPrice?: { min?: number; max?: number }
+    askPricePerSqft?: { min?: number; max?: number }
+    sbua?: { min?: number; max?: number }
+    facing?: string[]
+    exactFloor?: string[]
+    area?: string[]
+    carpet?: { min?: number; max?: number }
+    currentStatus?: string[]
+    dateOfStatusLastCheckedFrom?: string
+    dateOfStatusLastCheckedTo?: string
 }
 
 export interface SearchParams {
@@ -46,7 +56,21 @@ export interface FacetValue {
     highlighted?: string
 }
 
-const buildFilterString = (filters: SearchFilters): string => {
+// Memoization utility for buildFilterString
+function memoizeBuildFilterString(fn: (filters: SearchFilters) => string) {
+    const cache = new Map<string, string>()
+    return (filters: SearchFilters) => {
+        const key = JSON.stringify(filters)
+        if (cache.has(key)) {
+            return cache.get(key) as string
+        }
+        const result = fn(filters)
+        cache.set(key, result)
+        return result
+    }
+}
+
+const _buildFilterString = (filters: SearchFilters): string => {
     const filterParts: string[] = []
 
     // Always exclude closed properties
@@ -57,9 +81,9 @@ const buildFilterString = (filters: SearchFilters): string => {
         filterParts.push(`(${statusFilters})`)
     }
 
-    if (filters.kam && filters.kam.length > 0) {
-        const kamFilters = filters.kam.map((kam) => `kam:'${kam}'`).join(' OR ')
-        filterParts.push(`(${kamFilters})`)
+    if (filters.kamName && filters.kamName.length > 0) {
+        const kamNameFilters = filters.kamName.map((kamName) => `kamName:'${kamName}'`).join(' OR ')
+        filterParts.push(`(${kamNameFilters})`)
     }
 
     if (filters.assetType && filters.assetType.length > 0) {
@@ -72,17 +96,88 @@ const buildFilterString = (filters: SearchFilters): string => {
         filterParts.push(`(${micromarketFilters})`)
     }
 
-    if (filters.priceRange) {
-        if (filters.priceRange.min !== undefined) {
-            filterParts.push(`price >= ${filters.priceRange.min}`)
+    if (filters.unitType && filters.unitType.length > 0) {
+        const unitTypeFilters = filters.unitType.map((type) => `unitType:'${type}'`).join(' OR ')
+        filterParts.push(`(${unitTypeFilters})`)
+    }
+
+    if (filters.noOfBathrooms && filters.noOfBathrooms.length > 0) {
+        const bathroomFilters = filters.noOfBathrooms.map((val) => `noOfBathrooms = ${val}`).join(' OR ')
+        filterParts.push(`(${bathroomFilters})`)
+    }
+
+    if (filters.noOfBalcony && filters.noOfBalcony.length > 0) {
+        const balconyFilters = filters.noOfBalcony.map((val) => `noOfBalcony = ${val}`).join(' OR ')
+        filterParts.push(`(${balconyFilters})`)
+    }
+
+    if (filters.facing && filters.facing.length > 0) {
+        const facingFilters = filters.facing.map((val) => `facing:'${val}'`).join(' OR ')
+        filterParts.push(`(${facingFilters})`)
+    }
+
+    if (filters.exactFloor && filters.exactFloor.length > 0) {
+        const floorFilters = filters.exactFloor.map((val) => `exactFloor:'${val}'`).join(' OR ')
+        filterParts.push(`(${floorFilters})`)
+    }
+
+    if (filters.area && filters.area.length > 0) {
+        const areaFilters = filters.area.map((val) => `area:'${val}'`).join(' OR ')
+        filterParts.push(`(${areaFilters})`)
+    }
+
+    if (filters.currentStatus && filters.currentStatus.length > 0) {
+        const availabilityFilters = filters.currentStatus.map((val) => `currentStatus:'${val}'`).join(' OR ')
+        filterParts.push(`(${availabilityFilters})`)
+    }
+
+    if (filters.totalAskPrice) {
+        if (filters.totalAskPrice.min !== undefined) {
+            filterParts.push(`totalAskPrice >= ${filters.totalAskPrice.min}`)
         }
-        if (filters.priceRange.max !== undefined) {
-            filterParts.push(`price <= ${filters.priceRange.max}`)
+        if (filters.totalAskPrice.max !== undefined) {
+            filterParts.push(`totalAskPrice <= ${filters.totalAskPrice.max}`)
         }
+    }
+
+    if (filters.askPricePerSqft) {
+        if (filters.askPricePerSqft.min !== undefined) {
+            filterParts.push(`askPricePerSqft >= ${filters.askPricePerSqft.min}`)
+        }
+        if (filters.askPricePerSqft.max !== undefined) {
+            filterParts.push(`askPricePerSqft <= ${filters.askPricePerSqft.max}`)
+        }
+    }
+
+    if (filters.sbua) {
+        if (filters.sbua.min !== undefined) {
+            filterParts.push(`sbua >= ${filters.sbua.min}`)
+        }
+        if (filters.sbua.max !== undefined) {
+            filterParts.push(`sbua <= ${filters.sbua.max}`)
+        }
+    }
+
+    if (filters.carpet) {
+        if (filters.carpet.min !== undefined) {
+            filterParts.push(`carpet >= ${filters.carpet.min}`)
+        }
+        if (filters.carpet.max !== undefined) {
+            filterParts.push(`carpet <= ${filters.carpet.max}`)
+        }
+    }
+
+    if (filters.dateOfStatusLastCheckedFrom) {
+        filterParts.push(`dateOfStatusLastChecked >= ${filters.dateOfStatusLastCheckedFrom}`)
+    }
+    if (filters.dateOfStatusLastCheckedTo) {
+        filterParts.push(`dateOfStatusLastChecked <= ${filters.dateOfStatusLastCheckedTo}`)
     }
 
     return filterParts.join(' AND ')
 }
+
+export const buildFilterString = memoizeBuildFilterString(_buildFilterString)
 
 // Helper function to get the correct client and index
 const getClientAndIndex = (propertyType: 'Resale' | 'Rental' = 'Resale', sortBy?: string) => {
@@ -125,7 +220,19 @@ export const searchProperties = async (params: SearchParams = {}): Promise<Algol
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: ['micromarket', 'assetType', 'status', 'kam'],
+                    facets: [
+                        'micromarket',
+                        'assetType',
+                        'status',
+                        'kamName',
+                        'unitType',
+                        'noOfBathrooms',
+                        'noOfBalcony',
+                        'facing',
+                        'exactFloor',
+                        'area',
+                        'currentStatus',
+                    ],
                     maxValuesPerFacet: 100,
                     analytics: true,
                 },
@@ -195,7 +302,20 @@ export const getAllFacets = async (
                     indexName,
                     query: '',
                     hitsPerPage: 0,
-                    facets: ['status', 'kam', 'assetType', 'micromarket'],
+                    facets: [
+                        'status',
+                        'kamName',
+                        'assetType',
+                        'micromarket',
+                        'unitType',
+                        'noOfBathrooms',
+                        'noOfBalcony',
+                        'facing',
+                        'exactFloor',
+                        'area',
+                        'currentStatus',
+                        'dateOfStatusLastChecked',
+                    ],
                     maxValuesPerFacet: 100,
                 },
             ],
@@ -263,7 +383,7 @@ export const searchMultipleIndices = async (
             indexName,
             query,
             hitsPerPage: 20,
-            facets: ['status', 'kam', 'assetType'],
+            facets: ['status', 'kamName', 'assetType'],
         }))
 
         const response = await resaleClient.search({

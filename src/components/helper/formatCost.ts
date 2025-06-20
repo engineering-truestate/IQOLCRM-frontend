@@ -5,3 +5,7 @@ export function formatCost(cost: number) {
         return `₹${cost} Lacs`
     }
 }
+
+export function formatExactCostToLacsOrCrs(cost: number) {
+    return formatCost(cost / 100000)
+}

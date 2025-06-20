@@ -14,6 +14,7 @@ export interface RequirementSearchParams {
 
 export interface RequirementSearchFilters {
     requirementStatus?: string[]
+    internalStatus?: string[]
     assetType?: string[]
     micromarket?: string[]
     configuration?: string[]
@@ -32,6 +33,9 @@ export interface AlgoliaRequirementSearchResponse {
     processingTimeMS: number
     facets?: Record<string, Record<string, number>>
 }
+
+// Exported type for facet values
+export type RequirementFacetValue = { value: string; count: number }
 
 // Algolia client configuration
 const resaleClient = algoliasearch('YXMDFDHYEO', '9394fe020e50445263e0171877e37a2a')
@@ -63,6 +67,11 @@ const buildFilterString = (filters: RequirementSearchFilters): string => {
     if (filters.requirementStatus && filters.requirementStatus.length > 0) {
         const statusFilters = filters.requirementStatus.map((status) => `requirementStatus:'${status}'`).join(' OR ')
         filterParts.push(`(${statusFilters})`)
+    }
+
+    if (filters.internalStatus && filters.internalStatus.length > 0) {
+        const internalStatusFilters = filters.internalStatus.map((status) => `internalStatus:'${status}'`).join(' OR ')
+        filterParts.push(`(${internalStatusFilters})`)
     }
 
     if (filters.assetType && filters.assetType.length > 0) {
@@ -117,7 +126,7 @@ export const searchRequirements = async (
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: ['micromarket', 'assetType', 'requirementStatus', 'configuration'],
+                    facets: ['micromarket', 'assetType', 'requirementStatus', 'internalStatus', 'configuration'],
                     maxValuesPerFacet: 100,
                     analytics: true,
                 },
@@ -187,7 +196,7 @@ export const getAllFacets = async (
                     indexName,
                     query: '',
                     hitsPerPage: 0,
-                    facets: ['requirementStatus', 'assetType', 'micromarket', 'configuration'],
+                    facets: ['requirementStatus', 'internalStatus', 'assetType', 'micromarket', 'configuration'],
                     maxValuesPerFacet: 100,
                 },
             ],

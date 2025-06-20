@@ -97,6 +97,15 @@ export interface IInventory {
     featured?: boolean
     priority?: number
     marketingNotes?: string
+
+    // Notes functionality
+    notes?: Array<{
+        id: string
+        email: string
+        author: string
+        content: string
+        timestamp: number
+    }>
 }
 
 // === Requirement shape ===
