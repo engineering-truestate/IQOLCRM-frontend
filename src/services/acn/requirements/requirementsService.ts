@@ -5,6 +5,7 @@ import { db } from '../../../firebase' // Adjust path to your Firebase config
 import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import type { INote } from '../../../data_types/acn/types'
+import { getMicromarketFromCoordinates } from '../../../components/helper/findMicromarket'
 
 export const createRequirement = createAsyncThunk(
     'requirements/create',
@@ -50,10 +51,13 @@ export const createRequirement = createAsyncThunk(
             const nextCount = currentCount + 1
             const requirementId = `${label}${prefix}${nextCount}`
 
+            // Get micromarket from coordinates
+            const [micromarket, zone] = getMicromarketFromCoordinates(requirementData.selectedPlace)
+
             // Prepare the requirement data
             const newRequirement: IRequirement = {
                 requirementId,
-                cpId: requirementData.cpId || 'CURRENT_USER',
+                cpId: requirementData.cpId || 'CPA123',
                 propertyName: requirementData.selectedPlace.name,
                 location: requirementData.selectedPlace.address,
                 _geoloc: {
@@ -62,7 +66,7 @@ export const createRequirement = createAsyncThunk(
                 },
                 assetType: requirementData.assetType as IRequirement['assetType'],
                 configuration: `${requirementData.bedroom} bhk` as IRequirement['configuration'],
-                micromarket: '', // You might want to derive this from location
+                micromarket: micromarket || '', // Use the micromarket from coordinates
                 budget: {
                     from: parseFloat(requirementData.budgetFrom),
                     to: parseFloat(requirementData.budgetTo),
@@ -72,8 +76,8 @@ export const createRequirement = createAsyncThunk(
                     to: parseFloat(requirementData.plotArea),
                 },
                 bedrooms: requirementData.bedroom.toString(),
-                bathrooms: '', // Not provided in form, you might want to add this
-                parking: '', // Not provided in form, you might want to add this
+                bathrooms: '', // Not provided in form
+                parking: '', // Not provided in form
                 extraDetails: requirementData.requirementDetails,
                 marketValue: '', // Not provided in form
                 requirementStatus: 'open',
@@ -94,6 +98,9 @@ export const createRequirement = createAsyncThunk(
             })
 
             console.log('✅ Requirement created successfully:', requirementId)
+            console.log('📍 Micromarket detected:', micromarket)
+            console.log('🌍 Zone detected:', zone)
+
             return newRequirement
         } catch (error: any) {
             console.error('❌ Error creating requirement:', error)
