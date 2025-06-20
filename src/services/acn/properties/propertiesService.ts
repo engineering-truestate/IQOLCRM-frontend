@@ -11,9 +11,11 @@ import {
     setDoc,
     runTransaction,
     QueryConstraint,
+    arrayUnion,
 } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 // Helper function to get current Unix timestamp in milliseconds
 const getCurrentTimestamp = () => Date.now()
@@ -246,12 +248,24 @@ export const getNextPropertyId = createAsyncThunk('properties/getNextId', async 
 export const fetchPropertyById = createAsyncThunk(
     'properties/fetchById',
     async (propertyId: string, { rejectWithValue }) => {
-        console.log('hullara:', propertyId)
+        console.log('🔍 Fetching property with ID:', propertyId)
         try {
-            console.log('🔍 Fetching property with ID:', propertyId)
+            // Determine collection based on property ID prefix
+            let dbPath = ''
+            if (propertyId.startsWith('PA')) {
+                dbPath = 'acnProperties'
+                console.log('🏠 Using acnProperties collection for PA prefix')
+            } else if (propertyId.startsWith('RN')) {
+                dbPath = 'acnRentalInventories'
+                console.log('🏠 Using acnRentalInventories collection for RN prefix')
+            } else {
+                // Fallback to acnProperties for backward compatibility
+                dbPath = 'acnProperties'
+                console.log('🏠 Using acnProperties collection as fallback')
+            }
 
             // Try to get by document ID (which should match propertyId)
-            const docRef = doc(db, 'acnProperties', propertyId)
+            const docRef = doc(db, dbPath, propertyId)
             const docSnap = await getDoc(docRef)
 
             if (docSnap.exists()) {
@@ -271,7 +285,7 @@ export const fetchPropertyById = createAsyncThunk(
 
             // If not found by document ID, try to find by propertyId field
             console.log('🔍 Document not found by ID, searching by propertyId field...')
-            const q = query(collection(db, 'acnProperties'), where('propertyId', '==', propertyId))
+            const q = query(collection(db, dbPath), where('propertyId', '==', propertyId))
             const querySnapshot = await getDocs(q)
 
             if (!querySnapshot.empty) {
@@ -349,7 +363,18 @@ export const fetchPropertiesByIds = createAsyncThunk(
             }
 
             const docPromises = propertyIds.map(async (propertyId) => {
-                const docRef = doc(db, 'acnProperties', propertyId)
+                // Determine collection based on property ID prefix
+                let dbPath = ''
+                if (propertyId.startsWith('PA')) {
+                    dbPath = 'acnProperties'
+                } else if (propertyId.startsWith('RN')) {
+                    dbPath = 'acnRentalInventories'
+                } else {
+                    // Fallback to acnProperties for backward compatibility
+                    dbPath = 'acnProperties'
+                }
+
+                const docRef = doc(db, dbPath, propertyId)
                 const docSnap = await getDoc(docRef)
 
                 if (docSnap.exists()) {
@@ -379,17 +404,22 @@ export const fetchPropertiesByIds = createAsyncThunk(
 
 export const updatePropertyStatus = createAsyncThunk(
     'properties/updateStatus',
-    async (
-        { propertyId, status, activeTab }: { propertyId: string; status: string; activeTab: string },
-        { rejectWithValue },
-    ) => {
+    async ({ propertyId, status }: { propertyId: string; status: string }, { rejectWithValue }) => {
         try {
             console.log('📝 Updating property status:', propertyId, status)
+
+            // Determine collection based on property ID prefix
             let dbPath = ''
-            if (activeTab === 'Resale') {
+            if (propertyId.startsWith('PA')) {
                 dbPath = 'acnProperties'
-            } else {
+                console.log('🏠 Using acnProperties collection for PA prefix')
+            } else if (propertyId.startsWith('RN')) {
                 dbPath = 'acnRentalInventories'
+                console.log('🏠 Using acnRentalInventories collection for RN prefix')
+            } else {
+                // Fallback to acnProperties for backward compatibility
+                dbPath = 'acnProperties'
+                console.log('🏠 Using acnProperties collection as fallback')
             }
 
             const docRef = doc(db, dbPath, propertyId)
@@ -404,7 +434,115 @@ export const updatePropertyStatus = createAsyncThunk(
             return { propertyId, status }
         } catch (error: any) {
             console.error('❌ Error updating property status:', error)
-            return rejectWithValue(error.message || 'Failed to fetch properties')
+            return rejectWithValue(error.message || 'Failed to update property status')
         }
     },
 )
+
+// Add note to property
+export const addNoteToProperty = createAsyncThunk(
+    'properties/addNote',
+    async (
+        {
+            propertyId,
+            note,
+        }: {
+            propertyId: string
+            note: Omit<INote, 'id' | 'timestamp'>
+        },
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('📝 Adding note to property:', propertyId, note)
+
+            // Determine collection based on property ID prefix
+            let dbPath = ''
+            if (propertyId.startsWith('PA')) {
+                dbPath = 'acnProperties'
+            } else if (propertyId.startsWith('RN')) {
+                dbPath = 'acnRentalInventories'
+            } else {
+                // Fallback to acnProperties for backward compatibility
+                dbPath = 'acnProperties'
+            }
+
+            const docRef = doc(db, dbPath, propertyId)
+            const newNote: INote = {
+                ...note,
+                id: `note_${Date.now()}`,
+                timestamp: getUnixDateTime(),
+            }
+
+            await updateDoc(docRef, {
+                notes: arrayUnion(newNote),
+                lastModified: getCurrentTimestamp(),
+            })
+
+            console.log('✅ Note added successfully')
+            return { propertyId, note: newNote }
+        } catch (error: any) {
+            console.error('❌ Error adding note:', error)
+            return rejectWithValue(error.message || 'Failed to add note')
+        }
+    },
+)
+
+// Remove note from property
+export const removeNoteFromProperty = createAsyncThunk(
+    'properties/removeNote',
+    async (
+        {
+            propertyId,
+            noteId,
+        }: {
+            propertyId: string
+            noteId: string
+        },
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('🗑️ Removing note from property:', propertyId, noteId)
+
+            // Determine collection based on property ID prefix
+            let dbPath = ''
+            if (propertyId.startsWith('PA')) {
+                dbPath = 'acnProperties'
+            } else if (propertyId.startsWith('RN')) {
+                dbPath = 'acnRentalInventories'
+            } else {
+                // Fallback to acnProperties for backward compatibility
+                dbPath = 'acnProperties'
+            }
+
+            const docRef = doc(db, dbPath, propertyId)
+            const docSnap = await getDoc(docRef)
+
+            if (!docSnap.exists()) {
+                throw new Error('Property not found')
+            }
+
+            const data = docSnap.data() as IInventory
+            const updatedNotes = (data.notes || []).filter((note: INote) => note.id !== noteId)
+
+            await updateDoc(docRef, {
+                notes: updatedNotes,
+                lastModified: getCurrentTimestamp(),
+            })
+
+            console.log('✅ Note removed successfully')
+            return { propertyId, noteId }
+        } catch (error: any) {
+            console.error('❌ Error removing note:', error)
+            return rejectWithValue(error.message || 'Failed to remove note')
+        }
+    },
+)
+
+// Note interface for properties
+interface INote {
+    id: string
+    email: string
+    author: string
+    content: string
+    timestamp: number
+}

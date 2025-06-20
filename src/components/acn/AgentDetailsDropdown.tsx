@@ -129,7 +129,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
         const isOpen = openSections[sectionKey as keyof typeof openSections]
 
         return (
-            <div className='border-b border-gray-200 last:border-b-0 max-h-[calc(100vh-80px)] overflow-y-auto'>
+            <div className='border-b-1 border-[#D3D4DD] overflow-y-auto'>
                 <button
                     onClick={() => toggleSection(sectionKey)}
                     className='w-full px-4 py-3  transition-colors duration-200 flex justify-between items-center text-left'
@@ -164,7 +164,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
     }
 
     return (
-        <div className=' mx-auto bg-gray-50 max-h-[calc(100vh-80px)] overflow-y-auto'>
+        <div className=' mx-auto bg-gray-50 overflow-y-auto'>
             {/* Header - Now clickable */}
             <div className='bg-white px-4 py-4 w-full'>
                 <div className='flex items-center justify-between'>

@@ -9,7 +9,7 @@ const Register: React.FC = () => {
     const [picture, setPicture] = useState<File | null>(null)
     const [role, setRole] = useState<string>('')
     const [picturePreview, setPicturePreview] = useState<string | null>(null)
-
+    const [platform, setPlatform] = useState<string>('')
     const handlePictureChange = (e: ChangeEvent<HTMLInputElement>): void => {
         const file = e.target.files?.[0]
         if (file) {
@@ -28,7 +28,7 @@ const Register: React.FC = () => {
                 return
             }
 
-            await registerUser(email, password, name, picture, role)
+            await registerUser(email, password, name, picture, role, platform)
             alert('Registration successful!')
 
             // Clean up preview URL
@@ -130,6 +130,21 @@ const Register: React.FC = () => {
                     />
                 </div>
 
+                {/* Platform Selection */}
+                <div className='mb-6'>
+                    <label className='block text-gray-700 text-sm font-bold mb-2'>Select Platform *</label>
+                    <Dropdown
+                        options={[
+                            { label: 'ACN', value: 'acn' },
+                            { label: 'Canvas Homes', value: 'canvas-homes' },
+                            { label: 'Restack', value: 'restack' },
+                            { label: 'TrueState', value: 'truestate' },
+                            { label: 'Vault', value: 'vault' },
+                        ]}
+                        onSelect={(value: string) => setPlatform(value)}
+                        placeholder='Choose a platform'
+                    />
+                </div>
                 <div className='flex items-center justify-between'>
                     <button
                         className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50'

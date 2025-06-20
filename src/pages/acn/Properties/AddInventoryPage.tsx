@@ -1,137 +1,295 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../../store/index'
 import {
     fetchPropertyById,
-    addProperty,
     updateProperty,
     getNextPropertyId,
 } from '../../../services/acn/properties/propertiesService'
+import { addQCInventory, updateQCInventory, fetchQCInventoryById } from '../../../services/acn/qc/qcService'
+import { fetchAgentByPhone } from '../../../services/acn/agents/agentThunkService'
 import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
+import { clearCurrentQCInventory } from '../../../store/reducers/acn/qcReducer'
+import { clearCurrentAgent, clearAgentError } from '../../../store/reducers/acn/agentsReducer'
+import { getMicromarketFromCoordinates } from '../../../components/helper/findMicromarket'
 import Layout from '../../../layout/Layout'
 import Button from '../../../components/design-elements/Button'
-import FormFieldRenderer from './AddInventoryRenderer'
-import { formConfigs, type PropertyType } from './add-inventory_config'
+import PlacesSearch from '../../../components/design-elements/PlacesSearch'
+import FormFieldRenderer, {
+    assetConfigurations,
+    getAssetTypeConfig,
+    validateCompulsoryFields,
+} from './AddInventoryRenderer'
 import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
+import type { IQCInventory } from '../../../data_types/acn/types'
+
+// Import icons
+import apartmentIcon from '/icons/acn/ListingFlow/Apartments.svg'
+import villaIcon from '/icons/acn/ListingFlow/Villas.svg'
+import plotIcon from '/icons/acn/ListingFlow/Plots.svg'
+import villamentIcon from '/icons/acn/ListingFlow/Villaments.svg'
+import rowhouseIcon from '/icons/acn/ListingFlow/RowHouses.svg'
+import independentIcon from '/icons/acn/ListingFlow/IndependentBuildings.svg'
+
+// Map old PropertyType to new AssetType
+type PropertyType = 'apartments' | 'villa' | 'plot' | 'rowhouse' | 'villament' | 'independent'
+type AssetType = keyof typeof assetConfigurations
+
+// Asset type mapping
+const propertyTypeToAssetType: Record<PropertyType, AssetType> = {
+    apartments: 'Apartment',
+    villa: 'Villa',
+    plot: 'Plot',
+    rowhouse: 'Row House',
+    villament: 'Villament',
+    independent: 'Independent Building',
+}
 
 // Asset type options
 const assetTypes: { label: string; value: PropertyType; icon: string }[] = [
-    { label: 'flats/apartments', value: 'apartments', icon: '🏢' },
-    { label: 'Villa', value: 'villa', icon: '🏡' },
-    { label: 'Plot', value: 'plot', icon: '🏞️' },
-    { label: 'Row House', value: 'rowhouse', icon: '🏘️' },
-    { label: 'Villament', value: 'villament', icon: '🏠' },
-    { label: 'Independent Building', value: 'independent', icon: '🏛️' },
+    { label: 'flats/ apartments', value: 'apartments', icon: apartmentIcon },
+    { label: 'Villa', value: 'villa', icon: villaIcon },
+    { label: 'Plot', value: 'plot', icon: plotIcon },
+    { label: 'Row House', value: 'rowhouse', icon: rowhouseIcon },
+    { label: 'Villament', value: 'villament', icon: villamentIcon },
+    { label: 'Independent Building', value: 'independent', icon: independentIcon },
 ]
 
-// Helper function to format Unix timestamp to readable date
-const formatUnixTimestamp = (timestamp: number | null | undefined): string => {
-    if (!timestamp) return ''
-    const date = new Date(timestamp)
-    return date.toISOString().split('T')[0] // Returns YYYY-MM-DD format
+interface Places {
+    name: string
+    lat: number
+    lng: number
+    address: string
+    mapLocation: string
 }
 
 // Helper function to map property data to form fields
 const mapPropertyToFormData = (property: IInventory): Record<string, any> => {
     return {
-        // Basic Information
-
-        communityType: 'gated',
-        projectName: property.nameOfTheProperty || property.area,
+        propertyName: property.propertyName || property.area,
+        communityType: property.communityType || 'gated',
+        subType: property.subType || 'Simplex',
         sbua: property.sbua?.toString() || '',
-        carpetArea: property.carpet?.toString() || '',
-        floorNo: property.floorNo || '',
-        doorFacing: property.facing?.toLowerCase() || '',
-        unitNo: property.propertyId,
-        furnishing: '',
-
-        // Property type specific
-        bedrooms: property.unitType?.includes('BHK') ? property.unitType.charAt(0) : '',
-        apartmentType: 'simplex',
-
-        // Pricing
+        carpet: property.carpet?.toString() || '',
+        exactFloor: property.exactFloor || property.floorNo || '',
+        facing: property.facing || '',
+        unitNo: property.unitNo || property.propertyId,
+        furnishing: property.furnishing || 'unfurnished',
+        unitType: property.unitType || '',
+        noOfBathrooms: property.noOfBathrooms?.toString() || '1',
+        noOfBalconies: property.noOfBalconies?.toString() || '0',
         totalAskPrice: property.totalAskPrice?.toString() || '',
-        handoverDate: formatUnixTimestamp(property.handoverDate),
-        readyToMove: false,
-
-        // Additional details
-        balconyFacing: 'outside',
-        ageOfBuilding: property.buildingAge?.toString() || '',
-        insideOutsideFacing: 'outside',
-        ups: '',
-        carPark: '',
-        cornerUnit: false,
-        ocReceived: property.ocReceived || false,
+        handoverDate: property.handoverDate
+            ? {
+                  month: new Date(property.handoverDate).getMonth() + 1,
+                  year: new Date(property.handoverDate).getFullYear(),
+              }
+            : null,
+        currentStatus: property.currentStatus === 'Available',
+        buildingAge: property.buildingAge?.toString() || 'New Building',
+        balconyFacing: property.balconyFacing || 'outside',
+        uds: property.uds?.toString() || '',
+        carPark: property.carPark?.toString() || '',
+        cornerUnit: property.cornerUnit || false,
+        exclusive: property.exclusive || false,
         tenanted: property.tenanted || false,
-        rentalIncome: '',
-        exclusive: false,
-
-        // Legal documents
-        buildingKhata: property.buildingKhata || 'a_khata',
-        landKhata: property.landKhata || 'a_khata',
-        eKhata: false,
-        biappaApprovedKhata: false,
-        bdaApprovedKhata: false,
-
-        // Files and notes
-        fileUpload: property.photo || [],
+        ocReceived: property.ocReceived || false,
+        rentalIncome: property.rentalIncome?.toString() || '',
+        buildingKhata: property.buildingKhata || 'A-Khata',
+        landKhata: property.landKhata || 'A-Khata',
+        eKhata: property.eKhata || false,
+        biappaApproved: property.biappaApproved || false,
+        bdaApproved: property.bdaApproved || false,
         extraDetails: property.extraDetails || '',
-
-        // Location
+        plotSize: property.plotSize?.toString() || '',
+        structure: property.structure || '',
         micromarket: property.micromarket || '',
         area: property.area || '',
         mapLocation: property.mapLocation || '',
-
-        // Additional IInventory fields
-        unitType: property.unitType || '',
-        subType: property.subType || '',
-        plotSize: property.plotSize?.toString() || '',
-        askPricePerSqft: property.askPricePerSqft?.toString() || '',
-        status: property.status || 'Available',
-        builder_name: property.builder_name || '',
-        driveLink: property.driveLink || '',
-        video: property.video || [],
         document: property.document || [],
+        photo: property.photo || [],
+        video: property.video || [],
+        driveLink: property.driveLink || '',
     }
 }
 
-// Helper function to map form data to IInventory
+// Helper function to map QC data to form fields
+const mapQCToFormData = (qc: IQCInventory): Record<string, any> => {
+    return {
+        communityType: qc.communityType || 'gated',
+        propertyName: qc.propertyName || qc.area,
+        subType: qc.subType || 'Simplex',
+        sbua: qc.sbua?.toString() || '',
+        carpet: qc.carpet?.toString() || '',
+        exactFloor: qc.exactFloor?.toString() || qc.floorNo?.toString() || '',
+        facing: qc.facing || '',
+        unitNo: qc.unitNo || qc.propertyId,
+        furnishing: qc.furnishing || 'unfurnished',
+        unitType: qc.unitType || '',
+        noOfBathrooms: qc.noOfBathrooms || '1',
+        noOfBalconies: qc.noOfBalconies || '0',
+        totalAskPrice: qc.totalAskPrice?.toString() || '',
+        handoverDate: qc.handoverDate
+            ? {
+                  month: new Date(qc.handoverDate).getMonth() + 1,
+                  year: new Date(qc.handoverDate).getFullYear(),
+              }
+            : null,
+        currentStatus: qc.currentStatus === 'ready to move',
+        buildingAge: qc.buildingAge?.toString() || 'New Building',
+        balconyFacing: qc.balconyFacing || 'outside',
+        uds: qc.uds?.toString() || '',
+        carPark: qc.carPark?.toString() || '',
+        cornerUnit: qc.cornerUnit || false,
+        exclusive: qc.exclusive || false,
+        tenanted: qc.tenanted || false,
+        ocReceived: qc.ocReceived || false,
+        rentalIncome: qc.rentalIncome?.toString() || '',
+        buildingKhata: qc.buildingKhata || 'A-Khata',
+        landKhata: qc.landKhata || 'A-Khata',
+        eKhata: qc.eKhata || false,
+        biappaApproved: qc.biappaApproved || false,
+        bdaApproved: qc.bdaApproved || false,
+        extraDetails: qc.extraDetails || '',
+        plotSize: qc.plotSize?.toString() || '',
+        structure: qc.structure?.toString() || '',
+        micromarket: qc.micromarket || '',
+        area: qc.area || '',
+        mapLocation: qc.mapLocation || '',
+        document: qc.document || [],
+        photo: qc.photo || [],
+        video: qc.video || [],
+        driveLink: qc.driveLink || '',
+    }
+}
+
+// Helper function to map form data to Property
 const mapFormDataToProperty = (formData: Record<string, any>, assetType: PropertyType): Partial<IInventory> => {
     return {
-        nameOfTheProperty: formData.projectName || '',
-        area: formData.area || formData.projectName || '',
+        propertyName: formData.propertyName || '',
+        area: formData.area || formData.propertyName || '',
         micromarket: formData.micromarket || '',
         mapLocation: formData.mapLocation || '',
-        assetType: assetType,
-        unitType: formData.unitType || (formData.bedrooms ? `${formData.bedrooms} BHK` : ''),
+        assetType: propertyTypeToAssetType[assetType],
+        unitType: formData.unitType || '',
         subType: formData.subType || '',
         sbua: formData.sbua ? parseInt(formData.sbua) : 0,
-        carpet: formData.carpetArea ? parseInt(formData.carpetArea) : null,
+        carpet: formData.carpet ? parseInt(formData.carpet) : null,
         plotSize: formData.plotSize ? parseInt(formData.plotSize) : null,
-        buildingAge: formData.ageOfBuilding ? parseInt(formData.ageOfBuilding) : null,
-        floorNo: formData.floorNo || '',
-        facing: formData.doorFacing || '',
+        buildingAge:
+            typeof formData.buildingAge === 'string' && formData.buildingAge !== 'New Building'
+                ? parseInt(formData.buildingAge.split('-')[0])
+                : null,
+        floorNo: formData.exactFloor || '',
+        exactFloor: formData.exactFloor || '',
+        facing: formData.facing || '',
+        furnishing: formData.furnishing || 'unFurnished',
+        noOfBathrooms: formData.noOfBathrooms ? parseInt(formData.noOfBathrooms) : 1,
+        noOfBalconies: formData.noOfBalconies ? parseInt(formData.noOfBalconies) : 0,
+        balconyFacing: formData.balconyFacing || '',
+        uds: formData.uds ? parseInt(formData.uds) : null,
+        carPark: formData.carPark ? parseInt(formData.carPark) : null,
+        cornerUnit: Boolean(formData.cornerUnit),
+        exclusive: Boolean(formData.exclusive),
         tenanted: Boolean(formData.tenanted),
-        totalAskPrice: formData.totalAskPrice ? parseInt(formData.totalAskPrice) : 0,
-        askPricePerSqft: formData.askPricePerSqft ? parseInt(formData.askPricePerSqft) : 0,
-        status: formData.status || 'Available',
-        currentStatus: formData.status || 'Available',
-        builder_name: formData.builder_name || null,
-        handoverDate: formData.handoverDate ? new Date(formData.handoverDate).getTime() : null,
+        ocReceived: Boolean(formData.ocReceived),
+        rentalIncome: formData.rentalIncome ? parseInt(formData.rentalIncome) : null,
         buildingKhata: formData.buildingKhata || null,
         landKhata: formData.landKhata || null,
-        ocReceived: Boolean(formData.ocReceived),
-        photo: Array.isArray(formData.fileUpload) ? formData.fileUpload : [],
+        eKhata: Boolean(formData.eKhata),
+        biappaApproved: Boolean(formData.biappaApproved),
+        bdaApproved: Boolean(formData.bdaApproved),
+        structure: formData.structure || '',
+        communityType: formData.communityType || '',
+        unitNo: formData.unitNo || '',
+        totalAskPrice: formData.totalAskPrice ? parseInt(formData.totalAskPrice) : 0,
+        askPricePerSqft: formData.askPricePerSqft ? parseInt(formData.askPricePerSqft) : 0,
+        currentStatus: formData.currentStatus ? 'Available' : 'Under Construction',
+        status: formData.status || 'Available',
+        handoverDate:
+            formData.handoverDate && formData.handoverDate.month && formData.handoverDate.year
+                ? new Date(formData.handoverDate.year, formData.handoverDate.month - 1).getTime()
+                : null,
+        photo: Array.isArray(formData.photo) ? formData.photo : [],
         video: Array.isArray(formData.video) ? formData.video : [],
         document: Array.isArray(formData.document) ? formData.document : [],
         driveLink: formData.driveLink || '',
         extraDetails: formData.extraDetails || '',
-        cpId: 'CURRENT_USER_ID', // Replace with actual user ID
-        cpCode: 'CURRENT_USER_CODE', // Replace with actual user code
-        _geoloc: { lat: 0, lng: 0 }, // Default coordinates
+        cpId: formData.cpId || 'CURRENT_USER_ID',
+        _geoloc: formData._geoloc || { lat: 0, lng: 0 },
+        dateOfInventoryAdded: Date.now(),
+        dateOfStatusLastChecked: Date.now(),
+        ageOfInventory: 0,
+        ageOfStatus: 0,
+    }
+}
+
+// Helper function to map form data to QC
+const mapFormDataToQC = (formData: Record<string, any>, assetType: PropertyType): Partial<IQCInventory> => {
+    return {
+        propertyName: formData.propertyName || '',
+        address: formData.area || formData.propertyName || '',
+        area: formData.area || formData.propertyName || '',
+        micromarket: formData.micromarket || '',
+        mapLocation: formData.mapLocation || '',
+        assetType: assetType as any,
+        unitType: (formData.unitType as any) || '1 bhk',
+        subType: formData.subType || '',
+        sbua: formData.sbua ? parseInt(formData.sbua) : 0,
+        carpet: formData.carpet ? parseInt(formData.carpet) : 0,
+        plotSize: formData.plotSize ? parseInt(formData.plotSize) : 0,
+        buildingAge:
+            typeof formData.buildingAge === 'string' && formData.buildingAge !== 'New Building'
+                ? parseInt(formData.buildingAge.split('-')[0])
+                : 0,
+        floorNo: formData.exactFloor ? parseInt(formData.exactFloor) : 0,
+        exactFloor: formData.exactFloor ? parseInt(formData.exactFloor) : 0,
+        facing: (formData.facing as any) || 'north',
+        furnishing: (formData.furnishing as any) || 'unfurnished',
+        noOfBathrooms: formData.noOfBathrooms || '1',
+        noOfBalconies: formData.noOfBalconies || '0',
+        balconyFacing: (formData.balconyFacing as any) || 'outside',
+        uds: formData.uds ? parseInt(formData.uds) : 0,
+        carPark: formData.carPark ? parseInt(formData.carPark) : 0,
+        cornerUnit: Boolean(formData.cornerUnit),
+        exclusive: Boolean(formData.exclusive),
+        tenanted: Boolean(formData.tenanted),
+        ocReceived: Boolean(formData.ocReceived),
+        rentalIncome: formData.rentalIncome ? parseInt(formData.rentalIncome) : 0,
+        buildingKhata: formData.buildingKhata || '',
+        landKhata: formData.landKhata || '',
+        eKhata: Boolean(formData.eKhata),
+        biappaApproved: Boolean(formData.biappaApproved),
+        bdaApproved: Boolean(formData.bdaApproved),
+        structure: formData.structure ? parseInt(formData.structure) : 0,
+        communityType: (formData.communityType as any) || 'gated',
+        unitNo: formData.unitNo || '',
+        totalAskPrice: formData.totalAskPrice ? parseInt(formData.totalAskPrice) : 0,
+        askPricePerSqft: formData.askPricePerSqft ? parseInt(formData.askPricePerSqft) : 0,
+        currentStatus: formData.currentStatus ? 'ready to move' : ('under construction' as any),
+        status: 'available' as any,
+        handoverDate:
+            formData.handoverDate && formData.handoverDate.month && formData.handoverDate.year
+                ? new Date(formData.handoverDate.year, formData.handoverDate.month - 1).getTime()
+                : Date.now(),
+        photo: Array.isArray(formData.photo) ? formData.photo : [],
+        video: Array.isArray(formData.video) ? formData.video : [],
+        document: Array.isArray(formData.document) ? formData.document : [],
+        driveLink: formData.driveLink || '',
+        extraDetails: formData.extraDetails || '',
+        cpId: formData.cpId || 'CURRENT_USER_ID',
+        kamName: 'CURRENT_USER_NAME',
+        kamId: 'CURRENT_USER_ID',
+        city: 'Bangalore',
+        state: 'Karnataka',
+        price: formData.totalAskPrice ? parseInt(formData.totalAskPrice) : 0,
+        pricePerSqft: formData.askPricePerSqft ? parseInt(formData.askPricePerSqft) : 0,
+        priceHistory: [],
+        extraRoom: [],
+        _geoloc: formData._geoloc || { lat: 0, lng: 0 },
     }
 }
 
@@ -154,66 +312,124 @@ const getPropertyTypeFromAssetType = (assetType: string): PropertyType => {
 
 const AddEditInventoryPage = () => {
     const navigate = useNavigate()
-    const { pId } = useParams<{ pId: string }>()
+    const location = useLocation()
+    const { id } = useParams<{ id: string }>()
     const dispatch = useDispatch<AppDispatch>()
-    const isEditMode = Boolean(pId)
+
+    // Determine the mode based on URL
+    const isPropertyEdit = location.pathname.includes('/properties/') && location.pathname.includes('/edit')
+    const isQCAdd = location.pathname.includes('/addinv')
+    const isQCEdit = location.pathname.includes('/qc/') && location.pathname.includes('/edit')
 
     // Redux state
-    const { currentProperty: property, loading, error } = useSelector((state: RootState) => state.properties)
+    const {
+        currentProperty: property,
+        loading: propertyLoading,
+        error: propertyError,
+    } = useSelector((state: RootState) => state.properties)
+    const {
+        currentQCInventory: qcInventory,
+        loading: qcLoading,
+        error: qcError,
+    } = useSelector((state: RootState) => state.qc)
+    const {
+        currentAgent,
+        fetchLoading: agentFetchLoading,
+        fetchError: agentFetchError,
+    } = useSelector((state: RootState) => state.agents)
 
     const [selectedAssetType, setSelectedAssetType] = useState<PropertyType>('apartments')
     const [formData, setFormData] = useState<Record<string, any>>({})
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [successMessage, setSuccessMessage] = useState('')
-    const [nextPropertyId, setNextPropertyId] = useState<string>('')
-    const [loadingNextId, setLoadingNextId] = useState(false)
-    const [agentIdInput, setAgentIdInput] = useState('')
-    const [fetchedAgentId, setFetchedAgentId] = useState<string | null>(null)
+    const [agentPhoneInput, setAgentPhoneInput] = useState('')
+    const [selectedPlace, setSelectedPlace] = useState<Places | null>(null)
 
-    // Load property data if in edit mode or get next property ID for new properties
+    const loading = propertyLoading || qcLoading
+    const error = propertyError || qcError
+
     useEffect(() => {
-        if (isEditMode && pId) {
-            console.log('🔄 Loading property for edit:', pId)
-            dispatch(fetchPropertyById(pId))
-        } else {
-            // Get next property ID for new properties
-            setLoadingNextId(true)
-            dispatch(getNextPropertyId())
-                .unwrap()
-                .then((nextId) => {
-                    console.log('📋 Next property ID received:', nextId)
-                    setNextPropertyId(nextId)
-                })
-                .catch((error) => {
-                    console.error('❌ Error getting next property ID:', error)
-                    setNextPropertyId('AP5270') // Fallback
-                })
-                .finally(() => {
-                    setLoadingNextId(false)
-                })
+        if ((isPropertyEdit && property) || (isQCEdit && qcInventory)) {
+            const currentData = property || qcInventory
+
+            // Check if we have the necessary location data
+            if (currentData && currentData._geoloc && currentData.propertyName) {
+                const prefillPlace: Places = {
+                    name: currentData.propertyName,
+                    lat: currentData._geoloc.lat,
+                    lng: currentData._geoloc.lng,
+                    address: currentData.area || '',
+                    mapLocation: currentData.mapLocation || '',
+                }
+
+                console.log('📍 Prefilling place data for edit:', prefillPlace)
+                setSelectedPlace(prefillPlace)
+            }
+        }
+    }, [property, qcInventory, isPropertyEdit, isQCEdit])
+
+    // Load data based on mode
+    useEffect(() => {
+        if (isPropertyEdit && id) {
+            console.log('🔄 Loading property for edit:', id)
+            dispatch(fetchPropertyById(id))
+        } else if (isQCEdit && id) {
+            console.log('🔄 Loading QC for edit:', id)
+            dispatch(fetchQCInventoryById(id))
+        } else if (isQCAdd) {
+            console.log('🆕 Ready to add new QC inventory')
         }
 
         // Cleanup on unmount
         return () => {
-            console.log('🧹 Clearing current property on unmount')
+            console.log('🧹 Clearing current data on unmount')
             dispatch(clearCurrentProperty())
+            dispatch(clearCurrentQCInventory())
+            dispatch(clearCurrentAgent())
         }
-    }, [isEditMode, pId, dispatch])
+    }, [isPropertyEdit, isQCEdit, isQCAdd, id, dispatch])
 
-    // Update form data when property is loaded
+    // Update form data when data is loaded
     useEffect(() => {
-        if (property && isEditMode) {
+        if (property && isPropertyEdit) {
             console.log('📋 Property loaded, updating form data:', property)
-
-            // Determine property type from asset type
             const propertyType = getPropertyTypeFromAssetType(property.assetType)
             setSelectedAssetType(propertyType)
-
-            // Map property data to form fields
             const mappedData = mapPropertyToFormData(property)
             setFormData(mappedData)
+        } else if (qcInventory && isQCEdit) {
+            console.log('📋 QC loaded, updating form data:', qcInventory)
+            const propertyType = getPropertyTypeFromAssetType(qcInventory.assetType)
+            setSelectedAssetType(propertyType)
+            const mappedData = mapQCToFormData(qcInventory)
+            setFormData(mappedData)
         }
-    }, [property, isEditMode])
+    }, [property, qcInventory, isPropertyEdit, isQCEdit])
+
+    // Update form data when place is selected
+    useEffect(() => {
+        if (selectedPlace) {
+            console.log('📍 Place selected, updating form data:', selectedPlace)
+
+            // Get micromarket from coordinates
+            const [micromarket, zone] = getMicromarketFromCoordinates(selectedPlace)
+
+            setFormData((prev) => ({
+                ...prev,
+                propertyName: selectedPlace.name,
+                area: selectedPlace.address,
+                mapLocation: selectedPlace.mapLocation,
+                micromarket: micromarket || '',
+                _geoloc: {
+                    lat: selectedPlace.lat,
+                    lng: selectedPlace.lng,
+                },
+            }))
+
+            console.log('🏘️ Micromarket detected:', micromarket)
+            console.log('🌍 Zone detected:', zone)
+        }
+    }, [selectedPlace])
 
     const handleFieldChange = (fieldId: string, value: any) => {
         setFormData((prev) => ({
@@ -221,7 +437,6 @@ const AddEditInventoryPage = () => {
             [fieldId]: value,
         }))
 
-        // Clear error when user starts typing
         if (errors[fieldId]) {
             setErrors((prev) => ({
                 ...prev,
@@ -230,28 +445,53 @@ const AddEditInventoryPage = () => {
         }
     }
 
+    const handleFetchAgent = async () => {
+        if (!agentPhoneInput.trim()) {
+            return
+        }
+
+        try {
+            dispatch(clearAgentError())
+
+            // Use unwrap() to get the returned agent details directly
+            const result = await dispatch(fetchAgentByPhone(agentPhoneInput.trim())).unwrap()
+
+            // Update form data directly with the returned agent details
+            setFormData((prev) => ({
+                ...prev,
+                cpId: result.cpId,
+                kamId: result.kamId,
+                kamName: result.kamName,
+            }))
+            console.log('👤 Agent fetched, updating cpId:', result)
+        } catch (error) {
+            console.error('Failed to fetch agent:', error)
+        }
+    }
+
     const validateForm = () => {
-        const newErrors: Record<string, string> = {}
-        const config = formConfigs[selectedAssetType]
+        const assetType = propertyTypeToAssetType[selectedAssetType]
+        const validation = validateCompulsoryFields(assetType, formData)
 
-        config.forEach((section) => {
-            section.fields.forEach((field) => {
-                if (field.required && !formData[field.id]) {
-                    newErrors[field.id] = `${field.label} is required`
-                }
+        if (!validation.isValid) {
+            const newErrors: Record<string, string> = {}
+            validation.missingFields.forEach((field) => {
+                newErrors[field] = `${field} is required`
             })
-        })
+            setErrors(newErrors)
+            return false
+        }
 
-        setErrors(newErrors)
-        return Object.keys(newErrors).length === 0
+        setErrors({})
+        return true
     }
 
     const handleSubmit = async () => {
         if (validateForm()) {
             try {
-                const propertyData = mapFormDataToProperty(formData, selectedAssetType)
-
-                if (isEditMode && property) {
+                if (isPropertyEdit && property) {
+                    // Property edit flow
+                    const propertyData = mapFormDataToProperty(formData, selectedAssetType)
                     console.log('📝 Updating property:', property.id, propertyData)
                     const updatedProperty = await dispatch(
                         updateProperty({
@@ -263,75 +503,109 @@ const AddEditInventoryPage = () => {
                     console.log('✅ Property updated successfully')
                     setSuccessMessage('Property updated successfully!')
 
-                    // Navigate to the updated property's details page using propertyId
                     setTimeout(() => {
                         navigate(`/acn/properties/${property.propertyId}/details`)
                     }, 1500)
-                } else {
-                    console.log('➕ Creating new property:', propertyData)
-                    const newProperty = await dispatch(addProperty(propertyData)).unwrap()
+                } else if (isQCAdd) {
+                    // QC add flow
+                    const qcData = mapFormDataToQC(formData, selectedAssetType)
+                    console.log('➕ Creating new QC:', qcData)
+                    const newQC = await dispatch(addQCInventory(qcData)).unwrap()
 
-                    console.log('✅ Property created successfully:', newProperty)
-                    setSuccessMessage('Property created successfully!')
+                    console.log('✅ QC created successfully:', newQC)
+                    setSuccessMessage('QC Inventory created successfully!')
 
-                    // Navigate to the new property's details page using propertyId
                     setTimeout(() => {
-                        navigate(`/acn/properties/${newProperty.propertyId}/details`)
+                        navigate('/acn/qc/dashboard')
+                    }, 1500)
+                } else if (isQCEdit && qcInventory) {
+                    // QC edit flow
+                    const qcData = mapFormDataToQC(formData, selectedAssetType)
+                    console.log('📝 Updating QC:', qcInventory.propertyId, qcData)
+                    const updatedQC = await dispatch(
+                        updateQCInventory({
+                            id: qcInventory.propertyId,
+                            updates: qcData,
+                        }),
+                    ).unwrap()
+
+                    console.log('✅ QC updated successfully')
+                    setSuccessMessage('QC Inventory updated successfully!')
+
+                    setTimeout(() => {
+                        navigate(`/acn/qc/${qcInventory.propertyId}/details`)
                     }, 1500)
                 }
             } catch (error) {
-                console.error('❌ Error saving property:', error)
+                console.error('❌ Error saving data:', error)
             }
         }
     }
 
-    const handleFetchAgentId = () => {
-        // Simulate fetching agent id
-        setFetchedAgentId('101')
-    }
-
-    const currentConfig = formConfigs[selectedAssetType]
+    // Get current configuration for selected asset type
+    const assetType = propertyTypeToAssetType[selectedAssetType]
+    const currentConfig = getAssetTypeConfig(assetType)
 
     // Loading state
-    if (loading && isEditMode && !property) {
+    if (loading && ((isPropertyEdit && !property) || (isQCEdit && !qcInventory))) {
         return (
             <Layout loading={true}>
                 <div className='flex items-center justify-center min-h-screen'>
-                    <div className='text-lg'>Loading property data...</div>
+                    <div className='text-lg'>Loading data...</div>
                 </div>
             </Layout>
         )
     }
 
     // Error state
-    if (error && isEditMode) {
+    if (error && (isPropertyEdit || isQCEdit)) {
         return (
             <Layout loading={false}>
                 <div className='flex items-center justify-center min-h-screen'>
                     <div className='text-center'>
-                        <div className='text-lg text-red-600 mb-4'>Error loading property</div>
+                        <div className='text-lg text-red-600 mb-4'>Error loading data</div>
                         <div className='text-sm text-gray-600 mb-4'>{error}</div>
                         <div className='flex gap-2 justify-center'>
                             <button
                                 onClick={() => {
                                     dispatch(clearError())
-                                    if (pId) dispatch(fetchPropertyById(pId))
+                                    if (id) {
+                                        if (isPropertyEdit) dispatch(fetchPropertyById(id))
+                                        if (isQCEdit) dispatch(fetchQCInventoryById(id))
+                                    }
                                 }}
                                 className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
                             >
                                 Retry
                             </button>
                             <button
-                                onClick={() => navigate('/acn/properties')}
+                                onClick={() => navigate(isPropertyEdit ? '/acn/properties' : '/acn/qc/dashboard')}
                                 className='px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600'
                             >
-                                Back to Properties
+                                Back
                             </button>
                         </div>
                     </div>
                 </div>
             </Layout>
         )
+    }
+
+    const getPageTitle = () => {
+        if (isPropertyEdit) return 'Edit Property'
+        if (isQCAdd) return 'Add QC Inventory'
+        if (isQCEdit) return 'Edit QC Inventory'
+        return 'Inventory Management'
+    }
+
+    const getEditingText = () => {
+        if (isPropertyEdit && property) {
+            return `Editing Property: ${property.propertyName || property.area} (${property.propertyId})`
+        }
+        if (isQCEdit && qcInventory) {
+            return `Editing QC: ${qcInventory.propertyName || qcInventory.area} (${qcInventory.propertyId})`
+        }
+        return null
     }
 
     return (
@@ -345,102 +619,120 @@ const AddEditInventoryPage = () => {
                             <button
                                 key={type.value}
                                 onClick={() => setSelectedAssetType(type.value)}
-                                disabled={isEditMode}
+                                disabled={isPropertyEdit || isQCEdit}
                                 className={`p-4 rounded-lg border-2 transition-all duration-200 text-left flex items-center gap-x-3 ${
                                     selectedAssetType === type.value
                                         ? 'border-blue-500 bg-blue-50 text-blue-700'
                                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                                } ${isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                } ${isPropertyEdit || isQCEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                <div className='text-2xl'>{type.icon}</div>
+                                <img src={type.icon} alt={type.label} className='text-2xl' />
                                 <div className='text-sm font-medium'>{type.label}</div>
                             </button>
                         ))}
                     </div>
-                    {isEditMode && (
+                    {(isPropertyEdit || isQCEdit) && (
                         <p className='text-sm text-gray-500 mt-4'>Asset type cannot be changed in edit mode</p>
                     )}
                 </div>
 
                 {/* Right Content Area */}
                 <div className='flex-1 pl-6 overflow-y-auto'>
-                    {/* Your scrollable content/form goes here */}
                     <div className='w-full overflow-hidden font-sans'>
                         <div className='py-6 px-6 bg-white min-h-screen'>
                             {/* Header */}
                             <div className='mb-6'>
-                                <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
-                                    {isEditMode ? 'Edit Inventory' : 'Add Inventory'}
-                                </h1>
+                                <h1 className='text-2xl font-semibold text-gray-900 mb-2'>{getPageTitle()}</h1>
 
-                                {isEditMode && property && (
-                                    <p className='text-gray-600 mb-6'>
-                                        Editing: {property.nameOfTheProperty || property.area} ({property.propertyId})
-                                    </p>
-                                )}
+                                {getEditingText() && <p className='text-gray-600 mb-6'>{getEditingText()}</p>}
 
-                                {!isEditMode && (
+                                {isQCAdd && (
                                     <div className='mb-6'>
-                                        {loadingNextId ? (
-                                            <p className='text-gray-600'>
-                                                <span className='inline-flex items-center gap-2'>
-                                                    <svg
-                                                        className='animate-spin h-4 w-4'
-                                                        fill='none'
-                                                        viewBox='0 0 24 24'
-                                                    >
-                                                        <circle
-                                                            className='opacity-25'
-                                                            cx='12'
-                                                            cy='12'
-                                                            r='10'
-                                                            stroke='currentColor'
-                                                            strokeWidth='4'
-                                                        ></circle>
-                                                        <path
-                                                            className='opacity-75'
-                                                            fill='currentColor'
-                                                            d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                                                        ></path>
-                                                    </svg>
-                                                    Loading next property ID...
-                                                </span>
-                                            </p>
-                                        ) : nextPropertyId ? (
-                                            <p className='text-gray-600'>
-                                                Next Property ID:{' '}
-                                                <span className='font-semibold text-blue-600'>{nextPropertyId}</span>
-                                            </p>
-                                        ) : (
-                                            <p className='text-gray-600'>
-                                                Next Property ID:{' '}
-                                                <span className='font-semibold text-gray-400'>Loading...</span>
-                                            </p>
-                                        )}
+                                        <p className='text-gray-600'>QC ID will be auto-generated (e.g., QCA357)</p>
                                     </div>
                                 )}
 
-                                {/* Add this block for text field and fetch button */}
-                                <div className='flex gap-2 mb-6 items-center'>
-                                    <input
-                                        type='text'
-                                        placeholder='Agent Number'
-                                        className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                        value={agentIdInput}
-                                        onChange={(e) => setAgentIdInput(e.target.value)}
-                                    />
-                                    <button
-                                        className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition'
-                                        onClick={() => setFetchedAgentId('101 | Name')}
-                                        type='button'
-                                    >
-                                        Fetch
-                                    </button>
-                                    {fetchedAgentId && (
-                                        <span className='ml-4 text-green-700 font-semibold'>{fetchedAgentId}</span>
+                                {/* Agent Phone fetch section */}
+                                <div className='mb-6'>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Agent Phone Number
+                                    </label>
+                                    <div className='flex gap-2 items-center'>
+                                        <input
+                                            type='text'
+                                            placeholder='Enter agent phone number'
+                                            className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1'
+                                            value={agentPhoneInput}
+                                            onChange={(e) => setAgentPhoneInput(e.target.value)}
+                                            disabled={isPropertyEdit || isQCEdit}
+                                        />
+                                        <button
+                                            className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed'
+                                            onClick={handleFetchAgent}
+                                            disabled={
+                                                agentFetchLoading ||
+                                                !agentPhoneInput.trim() ||
+                                                isPropertyEdit ||
+                                                isQCEdit
+                                            }
+                                            type='button'
+                                        >
+                                            {agentFetchLoading ? 'Fetching...' : 'Fetch Agent'}
+                                        </button>
+                                    </div>
+
+                                    {/* Agent fetch results */}
+                                    {currentAgent && (
+                                        <div className='mt-2 p-3 bg-green-50 border border-green-200 rounded-lg'>
+                                            <div className='flex items-center gap-2'>
+                                                <svg
+                                                    className='w-5 h-5 text-green-600'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M5 13l4 4L19 7'
+                                                    />
+                                                </svg>
+                                                <span className='text-green-700 font-semibold'>
+                                                    {currentAgent.cpId} | {currentAgent.agentName}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {agentFetchError && (
+                                        <div className='mt-2 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                                            <div className='text-sm text-red-700'>{agentFetchError}</div>
+                                        </div>
+                                    )}
+
+                                    {(isPropertyEdit || isQCEdit) && (
+                                        <p className='text-sm text-gray-500 mt-2'>
+                                            Agent cannot be changed in edit mode
+                                        </p>
                                     )}
                                 </div>
-                                {/* End of added block */}
+
+                                {/* Places Search */}
+                                <div className='mb-6'>
+                                    <PlacesSearch
+                                        key={
+                                            selectedPlace
+                                                ? `${selectedPlace.name}-${selectedPlace.lat}-${selectedPlace.lng}`
+                                                : 'empty'
+                                        }
+                                        selectedPlace={selectedPlace}
+                                        setSelectedPlace={setSelectedPlace}
+                                        placeholder='Search for project name or location...'
+                                        label='Project Name/Location'
+                                        required={true}
+                                    />
+                                </div>
 
                                 {/* Success/Error Messages */}
                                 {successMessage && (
@@ -461,9 +753,7 @@ const AddEditInventoryPage = () => {
                                             </svg>
                                             <div className='text-sm text-green-700'>{successMessage}</div>
                                         </div>
-                                        <div className='text-xs text-green-600 mt-1'>
-                                            Redirecting to property details...
-                                        </div>
+                                        <div className='text-xs text-green-600 mt-1'>Redirecting...</div>
                                     </div>
                                 )}
 
@@ -474,38 +764,26 @@ const AddEditInventoryPage = () => {
                                 )}
                             </div>
 
-                            {/* Form Sections */}
+                            {/* Dynamic Form Fields */}
                             <div className='space-y-4'>
-                                {currentConfig.map((section, sectionIndex) => (
-                                    <div key={sectionIndex} className='bg-white '>
-                                        {/* <h3 className='text-lg font-semibold text-gray-900 mb-6'>{section.title}</h3> */}
-                                        <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-                                            {section.fields.map((field) => (
-                                                <FormFieldRenderer
-                                                    key={field.id}
-                                                    field={field}
-                                                    value={formData[field.id]}
-                                                    onChange={(value) => handleFieldChange(field.id, value)}
-                                                    error={errors[field.id]}
-                                                />
-                                            ))}
-                                        </div>
+                                <div className='bg-white'>
+                                    <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+                                        {currentConfig.map((field, index) => (
+                                            <FormFieldRenderer
+                                                key={field.field || index}
+                                                field={field}
+                                                value={formData[field.field || '']}
+                                                onChange={(value) => handleFieldChange(field.field || '', value)}
+                                                error={errors[field.field || '']}
+                                                assetType={assetType}
+                                            />
+                                        ))}
                                     </div>
-                                ))}
+                                </div>
                             </div>
 
                             {/* Action Buttons */}
-                            <div className='flex justify-end gap-4 mt-8 pt-6 '>
-                                {/* Save as Draft */}
-                                <Button
-                                    bgColor='bg-gray-200'
-                                    textColor='text-gray-700'
-                                    className='px-1 py-1 border border-gray-300 hover:bg-gray-100 text-base font-medium'
-                                    // onClick={handleSaveAsDraft}
-                                    disabled={loading}
-                                >
-                                    Save as Draft
-                                </Button>
+                            <div className='flex justify-end gap-4 mt-8 pt-6'>
                                 <Button
                                     bgColor={loading ? 'bg-gray-400' : successMessage ? 'bg-green-600' : 'bg-gray-900'}
                                     textColor='text-white'
@@ -530,7 +808,7 @@ const AddEditInventoryPage = () => {
                                                     d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
                                                 ></path>
                                             </svg>
-                                            {isEditMode ? 'Updating...' : 'Creating...'}
+                                            {isPropertyEdit ? 'Updating...' : isQCEdit ? 'Updating...' : 'Creating...'}
                                         </div>
                                     ) : successMessage ? (
                                         <div className='flex items-center gap-2'>
@@ -547,10 +825,12 @@ const AddEditInventoryPage = () => {
                                                     d='M5 13l4 4L19 7'
                                                 />
                                             </svg>
-                                            {isEditMode ? 'Updated!' : 'Created!'}
+                                            {isPropertyEdit ? 'Updated!' : isQCEdit ? 'Updated!' : 'Created!'}
                                         </div>
-                                    ) : isEditMode ? (
+                                    ) : isPropertyEdit ? (
                                         'Update Property'
+                                    ) : isQCEdit ? (
+                                        'Update QC'
                                     ) : (
                                         'Submit'
                                     )}

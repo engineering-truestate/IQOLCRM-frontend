@@ -7,11 +7,7 @@ import React from 'react'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
-import Dashboard from './pages/canvas_homes/Dashboard'
-import Marketing from './pages/canvas_homes/marketing_dashboard/Marketing'
-import MarketingDetails from './pages/canvas_homes/marketing_dashboard/MarketingDetails'
-import Sales from './pages/canvas_homes/sales_dashboard/Sales'
-import LeadDetails from './pages/canvas_homes/sales_dashboard/LeadDetails'
+import Dashboard from './pages/canvas-homes/Dashboard'
 import LeadsPage from './pages/acn/Leads/Leads'
 import RequirementsPage from './pages/acn/Requirements/Requirements'
 import RequirementDetailsPage from './pages/acn/Requirements/RequirementDetails'
@@ -26,7 +22,6 @@ import Home from './Home'
 import AgentsPage from './pages/acn/Agents/AgentsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
 import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
-import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
 import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
 import AgentDetailsPage from './pages/acn/Agents/AgentDetailsPage'
 import QCDashboardPage from './pages/acn/QCDashboard/QCDashboardPage'
@@ -34,11 +29,25 @@ import QCPropertyDetailsPage from './pages/acn/QCDashboard/QCPropertyDetails'
 import PreReraPage from './pages/restack/Stock/Pre-Rera/PreReraPage'
 import PreReraDetailsPage from './pages/restack/Stock/Pre-Rera/PreReraDetailsPage'
 import PreReraEditPage from './pages/restack/Stock/Pre-Rera/PreReraEditPage'
+
+import ErrorPage from './404'
+import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+// import ResalePage from './pages/restack/Resale/ResalePage'
+// import ResalePageDetails from './pages/restack/Resale/ResalePageDetails'
+
+import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+
 import ComplaintsPage from './pages/restack/Primary/ComplaintsPage'
 import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
 import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
+import PrimaryPage from './pages/restack/Primary/Primary'
+import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
+import ResalePage from './pages/restack/resale/ResalePage'
+import Resale from './pages/restack/resale/Resale'
+import Rental from './pages/restack/rental/Rental'
 import PropertiesPage from './pages/acn/Properties/Properties'
+import AddEditInventoryPage from './pages/acn/Properties/AddInventoryPage'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -60,6 +69,10 @@ export const authRoutes: RouteObject[] = [
 ]
 
 export const protectedRoutes: RouteObject[] = [
+    {
+        path: '/',
+        element: React.createElement(React.Suspense, null, React.createElement(Home, null)),
+    },
     {
         path: '/profile',
         element: React.createElement(React.Suspense, null, React.createElement(ProfilePage, null)),
@@ -93,24 +106,16 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(RequirementsPage, null)),
     },
     {
-        path: '/acn/properties/:id/edit',
-        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
-    },
-    {
-        path: '/acn/properties/addinv',
-        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
-    },
-    {
-        path: '/acn/properties',
-        element: React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
-    },
-    {
         path: '/acn/agents/:agentId/properties',
         element: React.createElement(React.Suspense, null, React.createElement(AgentDetailsPage, null)),
     },
     {
         path: '/acn/qc/dashboard',
         element: React.createElement(React.Suspense, null, React.createElement(QCDashboardPage, null)),
+    },
+    {
+        path: '/acn/qc/:id/edit',
+        element: React.createElement(React.Suspense, null, React.createElement(AddEditInventoryPage, null)),
     },
     {
         path: '/acn/qc/:id/details',
@@ -145,6 +150,10 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryPage, null)),
     },
     {
+        path: '/restack/resale/:type/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(ResaleDetailsPage, null)),
+    },
+    {
         path: '/restack/primary/:id',
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
     },
@@ -153,6 +162,47 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(TypologyPage, null)),
     },
     {
+        path: '/restack/stock/post-rera',
+        element: React.createElement(React.Suspense, null, React.createElement(PostReraPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraPage, null)),
+    },
+
+    {
+        path: '/restack/stock/pre-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
+    },
+    {
+        path: '/restack/stock/post-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
+    },
+    {
+        path: '/restack/stock/post-rera/:id/documents',
+        element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera/:id/edit',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
+    },
+    {
+        path: '/restack/resale/:type',
+        element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
+    },
+    {
+        path: '/restack/resale',
+        element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
+    },
+    {
+        path: '/acn/properties',
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
+        ),
+    },
+    {
         path: '/restack/stock/post-rera/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
     },
@@ -177,7 +227,7 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(
             ProtectedRoute,
             null,
-            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+            React.createElement(React.Suspense, null, React.createElement(AddEditInventoryPage, null)),
         ),
     },
     {
@@ -185,43 +235,7 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(
             ProtectedRoute,
             null,
-            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
-        ),
-    },
-    {
-        path: '/restack/stock/post-rera/:id/details',
-        element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
-    },
-    {
-        path: '/restack/stock/post-rera/:id/documents',
-        element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
-    },
-    {
-        path: '/restack/stock/pre-rera/:id/edit',
-        element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
-    },
-    {
-        path: '/acn/properties',
-        element: React.createElement(
-            ProtectedRoute,
-            null,
-            React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
-        ),
-    },
-    {
-        path: '/acn/properties/addinv',
-        element: React.createElement(
-            ProtectedRoute,
-            null,
-            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
-        ),
-    },
-    {
-        path: '/acn/properties/:id/edit',
-        element: React.createElement(
-            ProtectedRoute,
-            null,
-            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+            React.createElement(React.Suspense, null, React.createElement(AddEditInventoryPage, null)),
         ),
     },
     {
@@ -229,8 +243,12 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(ComplaintsPage, null)),
     },
     {
-        path: '/restack/primary/:id/documents',
-        element: React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
+        path: '/acn/qc/dashboard',
+        element: React.createElement(React.Suspense, null, React.createElement(QCDashboardPage, null)),
+    },
+    {
+        path: '/acn/qc/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(QCPropertyDetailsPage, null)),
     },
     {
         path: '/restack/primary/:id/complaints',
@@ -257,12 +275,16 @@ export const protectedRoutes: RouteObject[] = [
         ),
     },
     {
-        path: '/restack/rental/:id/details',
+        path: '/restack/rental/:type/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(RentalDetailsPage, null)),
     },
     {
-        path: '/restack/rental',
+        path: '/restack/rental/:type',
         element: React.createElement(React.Suspense, null, React.createElement(RentalPage, null)),
+    },
+    {
+        path: '/restack/rental',
+        element: React.createElement(React.Suspense, null, React.createElement(Rental, null)),
     },
 ]
 

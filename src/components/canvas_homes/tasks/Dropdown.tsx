@@ -41,7 +41,7 @@ const Dropdown = ({
     // Event Handlers
     const handleOptionClick = (option, index) => {
         if (option.task) option.task()
-        if (option.modal) option.modal()
+        if (option.modal) option.modal(true)
 
         if (option.subOptions) {
             setNestedOpen(nestedOpen === index ? null : index)

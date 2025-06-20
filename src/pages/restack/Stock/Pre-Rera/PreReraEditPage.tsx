@@ -369,9 +369,9 @@ const PreReraProjectEdit = () => {
                         </div>
                         <div className='flex items-center gap-3'>
                             <Button
-                                bgColor='bg-blue-600'
-                                textColor='text-white'
-                                className='px-6 py-2'
+                                bgColor='bg-gray-200'
+                                textColor='text-gray-700'
+                                className='px-3 py-1 text-sm hover:bg-gray-300'
                                 onClick={handleSave}
                                 disabled={isSaving}
                             >
@@ -870,9 +870,9 @@ const PreReraProjectEdit = () => {
                                 <div className='flex justify-between items-center mb-4'>
                                     <h3 className='font-medium text-gray-700'>Tower Details</h3>
                                     <Button
-                                        bgColor='bg-blue-600'
-                                        textColor='text-white'
-                                        className='px-3 py-1 text-sm'
+                                        bgColor='bg-gray-200'
+                                        textColor='text-gray-700'
+                                        className='px-3 py-1 text-sm hover:bg-gray-300'
                                         onClick={addTower}
                                     >
                                         Add Tower
@@ -920,9 +920,9 @@ const PreReraProjectEdit = () => {
                                 <div className='flex justify-between items-center mb-2'>
                                     <label className='block text-sm font-medium text-gray-700'>Brochure URLs</label>
                                     <Button
-                                        bgColor='bg-blue-600'
-                                        textColor='text-white'
-                                        className='px-3 py-1 text-sm'
+                                        bgColor='bg-gray-200'
+                                        textColor='text-gray-700'
+                                        className='px-3 py-1 text-sm hover:bg-gray-300'
                                         onClick={() => addResourceURL('brochureURL')}
                                     >
                                         Add URL
@@ -956,9 +956,9 @@ const PreReraProjectEdit = () => {
                                 <div className='flex justify-between items-center mb-2'>
                                     <label className='block text-sm font-medium text-gray-700'>Master Plan URLs</label>
                                     <Button
-                                        bgColor='bg-blue-600'
-                                        textColor='text-white'
-                                        className='px-3 py-1 text-sm'
+                                        bgColor='bg-gray-200'
+                                        textColor='text-gray-700'
+                                        className='px-3 py-1 text-sm hover:bg-gray-300'
                                         onClick={() => addResourceURL('masterPlanURL')}
                                     >
                                         Add URL
@@ -994,9 +994,9 @@ const PreReraProjectEdit = () => {
                                         Unit and Floor Plan URLs
                                     </label>
                                     <Button
-                                        bgColor='bg-blue-600'
-                                        textColor='text-white'
-                                        className='px-3 py-1 text-sm'
+                                        bgColor='bg-gray-200'
+                                        textColor='text-gray-700'
+                                        className='px-3 py-1 text-sm hover:bg-gray-300'
                                         onClick={() => addResourceURL('unitandfloorURL')}
                                     >
                                         Add URL
@@ -1095,9 +1095,9 @@ const PreReraProjectEdit = () => {
                         <div className='flex justify-between items-center mb-4'>
                             <h2 className='text-lg font-semibold text-gray-900'>Amenities</h2>
                             <Button
-                                bgColor='bg-blue-600'
-                                textColor='text-white'
-                                className='px-3 py-1 text-sm'
+                                bgColor='bg-gray-200'
+                                textColor='text-gray-700'
+                                className='px-3 py-1 text-sm hover:bg-gray-300'
                                 onClick={addAmenity}
                             >
                                 Add Amenity
