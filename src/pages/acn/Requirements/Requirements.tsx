@@ -9,6 +9,8 @@ import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import AlgoliaFacetMultiSelect from '../../../components/design-elements/AlgoliaFacetMultiSelect'
 import MetricCards from '../../../components/design-elements/MetricCards'
+import CustomPagination from '../../../components/design-elements/CustomPagination'
+import NotesModal from '../../../components/acn/NotesModal'
 // import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
 import resetic from '/icons/acn/rotate-left.svg'
 import leadaddic from '/icons/acn/user-add.svg'
@@ -652,7 +654,7 @@ const RequirementsPage = () => {
 
                     {/* Table with fixed actions column and vertical scrolling */}
                     <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
-                        <div className='h-[69vh] overflow-y-auto'>
+                        <div className='h-[68vh] overflow-y-auto'>
                             {searchLoading ? (
                                 <div className='flex items-center justify-center h-64'>
                                     <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
@@ -670,7 +672,7 @@ const RequirementsPage = () => {
                                         cells: false,
                                         outer: false,
                                     }}
-                                    maxHeight='69vh'
+                                    maxHeight='68vh'
                                     className='rounded-lg'
                                     stickyHeader={true}
                                 />
@@ -688,79 +690,13 @@ const RequirementsPage = () => {
 
                         {/* Pagination */}
                         {!searchLoading && totalPages > 1 && (
-                            <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
-                                <div className='text-sm text-gray-500 font-medium'>
-                                    Showing {currentPage * ITEMS_PER_PAGE + 1} to{' '}
-                                    {Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalItems)} of{' '}
-                                    {totalItems.toLocaleString()} requirements
-                                </div>
-
-                                <div className='flex items-center gap-2'>
-                                    <button
-                                        onClick={() => handlePageChange(Math.max(currentPage - 1, 0))}
-                                        disabled={currentPage === 0}
-                                        className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            currentPage === 0
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M15 19l-7-7 7-7'
-                                            />
-                                        </svg>
-                                    </button>
-
-                                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                                        let pageNum: number
-                                        if (totalPages <= 7) {
-                                            pageNum = i
-                                        } else if (currentPage < 3) {
-                                            pageNum = i
-                                        } else if (currentPage > totalPages - 4) {
-                                            pageNum = totalPages - 7 + i
-                                        } else {
-                                            pageNum = currentPage - 3 + i
-                                        }
-
-                                        return (
-                                            <button
-                                                key={pageNum}
-                                                onClick={() => handlePageChange(pageNum)}
-                                                className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
-                                                    currentPage === pageNum
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'text-gray-700 hover:bg-gray-100'
-                                                }`}
-                                            >
-                                                {pageNum + 1}
-                                            </button>
-                                        )
-                                    })}
-
-                                    <button
-                                        onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages - 1))}
-                                        disabled={currentPage >= totalPages - 1}
-                                        className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            currentPage >= totalPages - 1
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M9 5l7 7-7 7'
-                                            />
-                                        </svg>
-                                    </button>
-                                </div>
+                            <div className='flex items-center justify-between px-6 border-t border-gray-200'>
+                                <CustomPagination
+                                    currentPage={currentPage + 1}
+                                    totalPages={totalPages}
+                                    onPageChange={(page) => handlePageChange(page - 1)}
+                                    className=''
+                                />
                             </div>
                         )}
                     </div>

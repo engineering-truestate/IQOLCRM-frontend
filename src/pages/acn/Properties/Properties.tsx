@@ -7,6 +7,7 @@ import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import CustomPagination from '../../../components/design-elements/CustomPagination'
 import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
 import UpdateInventoryStatusModal from '../../../components/acn/UpdateInventoryModal'
 import MetricsCards from '../../../components/design-elements/MetricCards'
@@ -1363,7 +1364,7 @@ const PropertiesPage = () => {
 
                     {/* Table with horizontal scrolling and fixed actions column */}
                     <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
-                        <div className='h-[70vh] overflow-y-auto'>
+                        <div className='h-[68] overflow-y-auto'>
                             {searchLoading ? (
                                 <div className='flex items-center justify-center h-64'>
                                     <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
@@ -1394,7 +1395,7 @@ const PropertiesPage = () => {
                                         cells: false,
                                         outer: false,
                                     }}
-                                    maxHeight='69vh'
+                                    maxHeight='68vh'
                                     className='rounded-lg'
                                     stickyHeader={true}
                                 />
@@ -1412,79 +1413,13 @@ const PropertiesPage = () => {
 
                         {/* Pagination */}
                         {!searchLoading && totalPages > 1 && (
-                            <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
-                                <div className='text-sm text-gray-500 font-medium'>
-                                    Showing {(urlParams.page - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                                    {Math.min(urlParams.page * ITEMS_PER_PAGE, totalItems)} of{' '}
-                                    {totalItems.toLocaleString()} properties
-                                </div>
-
-                                <div className='flex items-center gap-2'>
-                                    <button
-                                        onClick={() => handlePageChange(Math.max(urlParams.page - 1, 1))}
-                                        disabled={urlParams.page === 1}
-                                        className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            urlParams.page === 1
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M15 19l-7-7 7-7'
-                                            />
-                                        </svg>
-                                    </button>
-
-                                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                                        let pageNum: number
-                                        if (totalPages <= 7) {
-                                            pageNum = i + 1
-                                        } else if (urlParams.page < 4) {
-                                            pageNum = i + 1
-                                        } else if (urlParams.page > totalPages - 4) {
-                                            pageNum = totalPages - 7 + i + 1
-                                        } else {
-                                            pageNum = urlParams.page - 3 + i + 1
-                                        }
-
-                                        return (
-                                            <button
-                                                key={pageNum}
-                                                onClick={() => handlePageChange(pageNum)}
-                                                className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
-                                                    urlParams.page === pageNum
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'text-gray-700 hover:bg-gray-100'
-                                                }`}
-                                            >
-                                                {pageNum}
-                                            </button>
-                                        )
-                                    })}
-
-                                    <button
-                                        onClick={() => handlePageChange(Math.min(urlParams.page + 1, totalPages))}
-                                        disabled={urlParams.page >= totalPages}
-                                        className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            urlParams.page >= totalPages
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M9 5l7 7-7 7'
-                                            />
-                                        </svg>
-                                    </button>
-                                </div>
+                            <div className='flex items-center justify-between px-6 border-t border-gray-200'>
+                                <CustomPagination
+                                    currentPage={urlParams.page}
+                                    totalPages={totalPages}
+                                    onPageChange={handlePageChange}
+                                    className=''
+                                />
                             </div>
                         )}
                     </div>

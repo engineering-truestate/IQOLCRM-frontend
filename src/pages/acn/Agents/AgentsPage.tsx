@@ -12,6 +12,7 @@ import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import StatusBadge from '../../../components/design-elements/StatusBadge'
+import CustomPagination from '../../../components/design-elements/CustomPagination'
 import NotesModal from '../../../components/acn/NotesModal'
 import CallResultModal from '../../../components/acn/CallModal'
 import VerificationModal from '../../../components/acn/VerificationModal'
@@ -771,107 +772,37 @@ const AgentsPage = () => {
                             </div>
                         </div>
                     ) : (
-                        <div className='relative h-[69vh] overflow-y-auto pl-6'>
-                            <FlexibleTable
-                                data={agentsData}
-                                columns={columns}
-                                hoverable={true}
-                                borders={{
-                                    table: false,
-                                    header: true,
-                                    rows: true,
-                                    cells: false,
-                                    outer: false,
-                                }}
-                                maxHeight='69vh'
-                                className='rounded-lg'
-                                stickyHeader={true}
-                            />
+                        <div>
+                            <div className='relative h-[69vh] overflow-y-auto pl-6'>
+                                <FlexibleTable
+                                    data={agentsData}
+                                    columns={columns}
+                                    hoverable={true}
+                                    borders={{
+                                        table: false,
+                                        header: true,
+                                        rows: true,
+                                        cells: false,
+                                        outer: false,
+                                    }}
+                                    maxHeight='69vh'
+                                    className='rounded-lg'
+                                    stickyHeader={true}
+                                />
+                            </div>
+                            {/* Pagination */}
+                            <div className='h-[6vh] flex items-center justify-center'>
+                                {totalAgents > ITEMS_PER_PAGE && (
+                                    <CustomPagination
+                                        currentPage={currentPage}
+                                        totalPages={Math.ceil(totalAgents / ITEMS_PER_PAGE)}
+                                        onPageChange={setCurrentPage}
+                                        className='mt-4'
+                                    />
+                                )}
+                            </div>
                         </div>
                     )}
-
-                    {/* Pagination */}
-                    <div className='h-[6vh] flex items-center justify-center'>
-                        {totalAgents > ITEMS_PER_PAGE && (
-                            <div className='flex items-center justify-between mt-4 px-6'>
-                                <div className='flex items-center gap-2'>
-                                    <button
-                                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                        disabled={currentPage === 1}
-                                        className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            currentPage === 1
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M15 19l-7-7 7-7'
-                                            />
-                                        </svg>
-                                    </button>
-
-                                    {Array.from(
-                                        { length: Math.min(Math.ceil(totalAgents / ITEMS_PER_PAGE), 7) },
-                                        (_, i) => {
-                                            let pageNum: number
-                                            const totalPages = Math.ceil(totalAgents / ITEMS_PER_PAGE)
-
-                                            if (totalPages <= 7) {
-                                                pageNum = i + 1
-                                            } else if (currentPage < 4) {
-                                                pageNum = i + 1
-                                            } else if (currentPage > totalPages - 4) {
-                                                pageNum = totalPages - 7 + i + 1
-                                            } else {
-                                                pageNum = currentPage - 3 + i + 1
-                                            }
-
-                                            return (
-                                                <button
-                                                    key={pageNum}
-                                                    onClick={() => setCurrentPage(pageNum)}
-                                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
-                                                        currentPage === pageNum
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'text-gray-700 hover:bg-gray-100'
-                                                    }`}
-                                                >
-                                                    {pageNum}
-                                                </button>
-                                            )
-                                        },
-                                    )}
-
-                                    <button
-                                        onClick={() =>
-                                            setCurrentPage((prev) =>
-                                                Math.min(prev + 1, Math.ceil(totalAgents / ITEMS_PER_PAGE)),
-                                            )
-                                        }
-                                        disabled={currentPage >= Math.ceil(totalAgents / ITEMS_PER_PAGE)}
-                                        className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            currentPage >= Math.ceil(totalAgents / ITEMS_PER_PAGE)
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M9 5l7 7-7 7'
-                                            />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
 
                     {/* Modals */}
                     <NotesModal
