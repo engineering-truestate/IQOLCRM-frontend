@@ -26,7 +26,6 @@ export interface Lead {
         | null
     state: 'open' | 'closed' | 'fresh' | 'dropped' | null
     added: number | null
-    completionDate: number | null
     lastModified: number | null
 }
 

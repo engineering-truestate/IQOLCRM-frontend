@@ -4,7 +4,7 @@ import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
 // Algolia client configuration
 const searchClient = algoliasearch('L763N3TAOO', 'b6f11b06dd4ca0d7ba4b8e4599205a5c')
-const INDEX_NAME = 'canvashomeTasks'
+const INDEX_NAME = 'canvashomestasks'
 
 // Types for search parameters
 export interface TaskSearchFilters {
