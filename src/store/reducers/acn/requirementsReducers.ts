@@ -5,6 +5,7 @@ import {
     fetchRequirementById,
     updateRequirement,
     addPropertiesToRequirement,
+    createRequirement,
 } from '../../../services/acn/requirements/requirementsService'
 
 interface RequirementState {
@@ -14,7 +15,7 @@ interface RequirementState {
     updating: boolean
     addingProperties: boolean
     error: string | null
-    lastFetch: Date | null
+    lastFetch: number | null
 }
 
 const initialState: RequirementState = {
@@ -57,7 +58,7 @@ const requirementsSlice = createSlice({
                 console.log('✅ Fetch requirement by ID - fulfilled:', action.payload.requirementId)
                 state.loading = false
                 state.currentRequirement = action.payload
-                state.lastFetch = new Date()
+                state.lastFetch = Date.now()
                 state.error = null
 
                 const index = state.requirements.findIndex((req) => req.requirementId === action.payload.requirementId)
@@ -135,6 +136,19 @@ const requirementsSlice = createSlice({
             .addCase(addPropertiesToRequirement.rejected, (state, action) => {
                 console.log('❌ Add properties to requirement - rejected:', action.payload)
                 state.addingProperties = false
+                state.error = action.payload as string
+            })
+            .addCase(createRequirement.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(createRequirement.fulfilled, (state, action) => {
+                state.loading = false
+                state.requirements.unshift(action.payload) // Add to beginning of array
+                state.currentRequirement = action.payload
+            })
+            .addCase(createRequirement.rejected, (state, action) => {
+                state.loading = false
                 state.error = action.payload as string
             })
 

@@ -8,6 +8,8 @@ import {
     selectAgentVerificationError,
 } from '../../store/reducers/acn/leadsReducers'
 import type { AppDispatch, RootState } from '../../store'
+import { useLocation } from 'react-router-dom'
+
 interface VerificationModalProps {
     isOpen: boolean
     onClose: () => void
@@ -31,6 +33,7 @@ interface VerificationModalProps {
 
 const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, rowData }) => {
     const dispatch = useDispatch<AppDispatch>()
+    const location = useLocation()
 
     // Redux selectors
     const kamOptions = useSelector(selectKAMOptions)
@@ -172,7 +175,31 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
         }
     }
 
-    if (!isOpen || !rowData) return null
+    if (!isOpen) return null
+
+    // If on /acn/agents and rowData is empty, show a message or fallback UI
+    if (location.pathname === '/acn/leads' && !rowData) {
+        return (
+            <div className='fixed top-0 right-0 h-full w-[40%] bg-white z-50 shadow-2xl border-l border-gray-200 flex items-center justify-center'>
+                <div className='text-center w-full'>
+                    <h2 className='text-xl font-semibold text-gray-900 mb-2'>No Lead Selected</h2>
+                    <p className='text-gray-600'>Please select a lead to verify agent information.</p>
+                    <button
+                        onClick={onClose}
+                        className='mt-4 px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors'
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
+    // If on /acn/leads and rowData is present, show the full modal
+    if (location.pathname === '/acn/leads' && !rowData) {
+        // Defensive: if modal is open but no rowData, don't render
+        return null
+    }
 
     const areas = ['north bangalore', 'south bangalore', 'east bangalore', 'west bangalore', 'pan bangalore']
     const categories = ['resale', 'rental', 'primary']
@@ -180,7 +207,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
     return (
         <>
             {/* Very light overlay - only covers left 60% */}
-            <div className='fixed top-0 left-0 w-[60%] h-full bg-black opacity-50 z-40' onClick={onClose} />
+            <div className='fixed top-0 left-0 w-[60%] h-full bg-black opacity-50 z-50' onClick={onClose} />
 
             {/* Modal */}
             <div className='fixed top-0 right-0 h-full w-[40%] bg-white z-50 shadow-2xl border-l border-gray-200'>
@@ -189,7 +216,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                     <div className='p-6 border-b border-gray-200'>
                         <div className='flex items-center justify-between'>
                             <div>
-                                <div className='text-sm text-gray-500 mb-1'>{rowData.leadId}</div>
+                                <div className='text-sm text-gray-500 mb-1'>{rowData?.leadId || ''}</div>
                                 <h2 className='text-xl font-semibold text-gray-900'>Verify Agent Information</h2>
                             </div>
                             <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-md'>

@@ -85,7 +85,12 @@ const Dropdown = ({
     const defaultOptionClass = 'px-4 py-2 cursor-pointer hover:bg-gray-100 flex items-center'
 
     return (
-        <div className={className || defaultContainerClass} tabIndex={0} ref={dropdownRef} onKeyDown={handleKeyDown}>
+        <div
+            className={`${className || defaultContainerClass} flex flex-col`}
+            tabIndex={0}
+            ref={dropdownRef}
+            onKeyDown={handleKeyDown}
+        >
             {/* Trigger */}
             <div
                 ref={triggerRef}
@@ -108,8 +113,7 @@ const Dropdown = ({
             {/* Menu */}
             {isOpen && (
                 <div
-                    className={menuClassName || defaultMenuClass}
-                    style={{ minWidth: `${triggerWidth}px` }}
+                    className={`${menuClassName || defaultMenuClass} flex flex-col flex-grow min-w-fit whitespace-nowrap`}
                     role='listbox'
                 >
                     {options.map((option) => {

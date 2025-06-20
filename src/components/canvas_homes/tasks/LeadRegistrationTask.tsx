@@ -1,17 +1,10 @@
 import React, { useState } from 'react'
 import Dropdown from './Dropdown'
+import SendEmailModal from '../SendEmailModal'
 
-interface LeadRegistrationTaskProps {
-    propertyLink: string
-}
-
-interface EmailOption {
-    value: string
-    label: string
-}
-
-const LeadRegistrationTask: React.FC<LeadRegistrationTaskProps> = ({ propertyLink }) => {
-    const emailOptions: EmailOption[] = [
+const LeadRegistrationTask = ({ taskStatusOptions }) => {
+    const [isModalOpen, setModalOpen] = useState<boolean>(true)
+    const emailOptions = [
         { value: 'builder1@example.com', label: 'Builder 1' },
         { value: 'builder2@example.com', label: 'Builder 2' },
         { value: 'builder3@example.com', label: 'Builder 3' },
@@ -60,12 +53,15 @@ const LeadRegistrationTask: React.FC<LeadRegistrationTaskProps> = ({ propertyLin
             </div>
 
             <button
-                onClick={handleProceed}
+                onClick={() => {
+                    setModalOpen(true)
+                }}
                 className='px-2 bg-blue-500 w-26.5 h-8 text-white text-sm rounded-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
                 disabled={!selectedEmail}
             >
                 Proceed
             </button>
+            {isModalOpen && <SendEmailModal onClose={() => setModalOpen(false)} />}
         </div>
     )
 }

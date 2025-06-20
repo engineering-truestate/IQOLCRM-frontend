@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
@@ -19,6 +19,7 @@ import verifyIcon from '/icons/acn/verify.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import type { IQCInventory } from '../../../data_types/acn/types'
 import MultiSelectDropdown from '../../../components/design-elements/MultiSelectDropdown'
+import CustomPagination from '../../../components/design-elements/CustomPagination'
 
 // Define types locally with proper type safety
 export type QCReviewStatus = 'pending' | 'approved' | 'duplicate' | 'primary' | 'reject'
@@ -389,6 +390,11 @@ const QCDashboardPage = () => {
     // Base columns for kam and data tabs
     const getBaseColumns = (): TableColumn[] => [
         {
+            key: 'propertyId',
+            header: 'QC ID',
+            render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
+        },
+        {
             key: 'propertyName',
             header: 'Project Name/Location',
             render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
@@ -653,7 +659,7 @@ const QCDashboardPage = () => {
 
                     {/* Table */}
                     <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                        <div className='h-[65vh] overflow-y-auto'>
+                        <div className='h-[68vh] overflow-y-auto'>
                             <FlexibleTable
                                 data={qcData}
                                 columns={getColumns()}
@@ -665,99 +671,20 @@ const QCDashboardPage = () => {
                                     cells: false,
                                     outer: false,
                                 }}
-                                maxHeight='65vh'
+                                maxHeight='68vh'
                                 className='rounded-lg'
                                 stickyHeader={true}
                             />
                         </div>
 
                         {/* Pagination */}
-                        <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
-                            <div className='text-sm text-gray-500 font-medium'>
-                                Showing {currentPage * ITEMS_PER_PAGE + 1} to{' '}
-                                {Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalHits)} of {totalHits} properties
-                            </div>
-
-                            <div className='flex items-center gap-2'>
-                                <button
-                                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
-                                    disabled={currentPage === 0}
-                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                        currentPage === 0
-                                            ? 'text-gray-400 cursor-not-allowed'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M15 19l-7-7 7-7'
-                                        />
-                                    </svg>
-                                </button>
-
-                                {Array.from({ length: totalPages }, (_, i) => i)
-                                    .filter((page) => {
-                                        return (
-                                            page === 0 ||
-                                            page === totalPages - 1 ||
-                                            (page >= currentPage - 1 && page <= currentPage + 1)
-                                        )
-                                    })
-                                    .map((page, index, array) => {
-                                        const showEllipsisBefore = index > 0 && array[index - 1] !== page - 1
-                                        const showEllipsisAfter =
-                                            index < array.length - 1 && array[index + 1] !== page + 1
-
-                                        return (
-                                            <React.Fragment key={page}>
-                                                {showEllipsisBefore && (
-                                                    <span className='w-8 h-8 flex items-center justify-center text-gray-500'>
-                                                        ...
-                                                    </span>
-                                                )}
-
-                                                <button
-                                                    onClick={() => setCurrentPage(page)}
-                                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
-                                                        currentPage === page
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'text-gray-700 hover:bg-gray-100'
-                                                    }`}
-                                                >
-                                                    {page + 1}
-                                                </button>
-
-                                                {showEllipsisAfter && (
-                                                    <span className='w-8 h-8 flex items-center justify-center text-gray-500'>
-                                                        ...
-                                                    </span>
-                                                )}
-                                            </React.Fragment>
-                                        )
-                                    })}
-
-                                <button
-                                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
-                                    disabled={currentPage === totalPages - 1}
-                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                        currentPage === totalPages - 1
-                                            ? 'text-gray-400 cursor-not-allowed'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M9 5l7 7-7 7'
-                                        />
-                                    </svg>
-                                </button>
-                            </div>
+                        <div className='flex items-center justify-between px-6 border-t border-gray-200'>
+                            <CustomPagination
+                                currentPage={currentPage + 1}
+                                totalPages={totalPages}
+                                onPageChange={(page) => setCurrentPage(page - 1)}
+                                className=''
+                            />
                         </div>
                     </div>
                 </div>

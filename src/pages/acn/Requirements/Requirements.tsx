@@ -1,12 +1,16 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import AlgoliaFacetMultiSelect from '../../../components/design-elements/AlgoliaFacetMultiSelect'
+import MetricCards from '../../../components/design-elements/MetricCards'
+import CustomPagination from '../../../components/design-elements/CustomPagination'
+import NotesModal from '../../../components/acn/NotesModal'
 // import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
 import resetic from '/icons/acn/rotate-left.svg'
 import leadaddic from '/icons/acn/user-add.svg'
@@ -27,11 +31,10 @@ import type { IRequirement } from '../../../data_types/acn/types'
 const RequirementsPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [activeTab, setActiveTab] = useState('resale')
-    const [selectedRequirementStatus] = useState('')
-    const [selectedAssetType] = useState('')
     const [currentPage, setCurrentPage] = useState(0)
     const [paginatedData, setPaginatedData] = useState<IRequirement[]>([])
     const [filteredData, setFilteredData] = useState<IRequirement[]>([])
+    const [isAddRequirementModalOpen, setIsAddRequirementModalOpen] = useState(false)
     const navigate = useNavigate()
 
     // Items per page
@@ -44,11 +47,58 @@ const RequirementsPage = () => {
 
     // Facets for filtering
     const [facets, setFacets] = useState<Record<string, RequirementFacetValue[]>>({})
+    const [originalFacets, setOriginalFacets] = useState<Record<string, RequirementFacetValue[]>>({})
+
+    const metrics = useMemo(() => {
+        const totalReqs = searchResults?.nbHits || 0
+        const reqStatusFacets = facets.requirementStatus || []
+        const internalStatusFacets = facets.internalStatus || []
+
+        const reqStatusCounts = reqStatusFacets.reduce(
+            (acc, facet) => {
+                acc[facet.value.toLowerCase()] = facet.count
+                return acc
+            },
+            {} as Record<string, number>,
+        )
+
+        const internalStatusCounts = internalStatusFacets.reduce(
+            (acc, facet) => {
+                acc[facet.value.toLowerCase()] = facet.count
+                return acc
+            },
+            {} as Record<string, number>,
+        )
+
+        return [
+            { label: 'Total Req', value: totalReqs },
+            { label: 'Open', value: reqStatusCounts['open'] || 0 },
+            { label: 'Close', value: reqStatusCounts['close'] || 0 },
+            { label: 'Pending', value: internalStatusCounts['pending'] || 0 },
+        ]
+    }, [searchResults, facets])
 
     // Use imported data generation function
     const [requirementsData, setRequirementsData] = useState<IRequirement[]>([])
 
     const dispatch = useDispatch<AppDispatch>()
+
+    // Fetch facets from Algolia when component mounts and when tab changes
+    useEffect(() => {
+        const fetchFacets = async () => {
+            try {
+                const allFacets = await algoliaRequirementsService.getAllFacets(
+                    activeTab === 'rental' ? 'Rental' : 'Resale',
+                )
+                setOriginalFacets(allFacets) // Store original facets
+                setFacets(allFacets) // Initialize with original facets
+            } catch (error) {
+                console.error('Failed to fetch facets:', error)
+            }
+        }
+
+        fetchFacets()
+    }, [activeTab])
 
     // Perform Algolia search
     const performSearch = useCallback(async () => {
@@ -67,20 +117,19 @@ const RequirementsPage = () => {
             setSearchResults(response)
             setFilteredData(response.hits)
 
-            // Update facets for filtering options
-            setFacets(
-                response.facets
-                    ? Object.fromEntries(
-                          Object.entries(response.facets).map(([facetName, facetValues]) => [
-                              facetName,
-                              Object.entries(facetValues).map(([value, count]) => ({
-                                  value,
-                                  count,
-                              })),
-                          ]),
-                      )
-                    : {},
-            )
+            // Update facets for filtering options (filtered results)
+            if (response.facets) {
+                const updatedSearchFacets: Record<string, RequirementFacetValue[]> = {}
+                Object.entries(response.facets).forEach(([facetName, facetValues]) => {
+                    updatedSearchFacets[facetName] = Object.entries(facetValues)
+                        .map(([value, count]) => ({
+                            value,
+                            count: count as number,
+                        }))
+                        .sort((a, b) => b.count - a.count)
+                })
+                setFacets(updatedSearchFacets)
+            }
         } catch (error) {
             console.error('Search failed:', error)
             setSearchError(error instanceof Error ? error.message : 'Search failed')
@@ -118,18 +167,40 @@ const RequirementsPage = () => {
     const currentData = getCurrentData()
 
     // Update filters when dropdown selections change
-    const updateFilter = (filterType: keyof RequirementSearchFilters, value: string | null) => {
+    const updateFilters = (filterType: keyof RequirementSearchFilters, values: string[]) => {
         setFilters((prev) => {
             const newFilters = { ...prev }
 
-            if (value === null || value === '') {
+            if (values.length === 0) {
                 delete newFilters[filterType]
             } else {
-                newFilters[filterType] = [value]
+                newFilters[filterType] = values
             }
 
             return newFilters
         })
+    }
+
+    // Reset all filters
+    const resetFilters = () => {
+        setFilters({})
+    }
+
+    // Clear individual filter
+    const clearFilter = (filterType: keyof RequirementSearchFilters) => {
+        setFilters((prev) => {
+            const newFilters = { ...prev }
+            delete newFilters[filterType]
+            return newFilters
+        })
+    }
+
+    // Check if any filters are active
+    const hasActiveFilters = () => {
+        return (
+            Object.keys(filters).length > 0 &&
+            Object.values(filters).some((value) => (Array.isArray(value) ? value.length > 0 : value !== undefined))
+        )
     }
 
     // Update paginated data when page changes or filtered data changes
@@ -142,17 +213,29 @@ const RequirementsPage = () => {
     // Helper function to update a specific row's data
     const updateRowData = async (rowId: string, field: keyof IRequirement, value: string) => {
         try {
-            // Update local state optimistically
-            setRequirementsData((prevData) =>
+            // Update local state optimistically first for immediate user feedback
+            setFilteredData((prevData) =>
                 prevData.map((row) => (row.requirementId === rowId ? { ...row, [field]: value } : row)),
             )
 
-            // Dispatch the update action and wait for it to complete
+            // Also update searchResults for consistency
+            setSearchResults((prevResults) => {
+                if (!prevResults) return prevResults
+                return {
+                    ...prevResults,
+                    hits: prevResults.hits.map((row) =>
+                        row.requirementId === rowId ? { ...row, [field]: value } : row,
+                    ),
+                }
+            })
+
+            // Update Firebase in the background
             const result = await dispatch(
                 updateRequirementStatus({
                     id: rowId,
                     status: value,
                     type: field === 'requirementStatus' ? 'requirement' : 'internal',
+                    propertyType: activeTab === 'rental' ? 'Rental' : 'Resale',
                 }),
             ).unwrap()
 
@@ -160,28 +243,52 @@ const RequirementsPage = () => {
         } catch (error) {
             console.error('❌ Failed to update status:', error)
             // Revert local state on error
-            setRequirementsData((prevData) =>
+            setFilteredData((prevData) =>
                 prevData.map((row) => (row.requirementId === rowId ? { ...row, [field]: row[field] } : row)),
             )
+
+            // Also revert searchResults
+            setSearchResults((prevResults) => {
+                if (!prevResults) return prevResults
+                return {
+                    ...prevResults,
+                    hits: prevResults.hits.map((row) =>
+                        row.requirementId === rowId ? { ...row, [field]: row[field] } : row,
+                    ),
+                }
+            })
         }
     }
 
-    const requirementStatusOptions = [
-        { label: 'All Status', value: '' },
-        { label: 'Open', value: 'open' },
-        { label: 'Close', value: 'close' },
-    ]
+    // Helper function to convert facets to dropdown options
+    const getFacetOptions = (facetName: string) => {
+        const facetOptions = (facets[facetName] || []).map(({ value, count }) => ({
+            label: `${value} (${count})`,
+            value,
+        }))
 
-    const assetTypeOptions = [
-        { label: 'All Types', value: '' },
-        { label: 'Apartment', value: 'apartment' },
-        { label: 'Villa', value: 'villa' },
-        { label: 'Townhouse', value: 'townhouse' },
-        { label: 'Studio', value: 'studio' },
-        { label: 'Penthouse', value: 'penthouse' },
-    ]
+        // Add "Clear All" option at the beginning
+        return [{ label: 'Clear All', value: '' }, ...facetOptions]
+    }
 
-    // Enhanced status dropdown options with colors
+    // Helper function to get facet options for AlgoliaFacetMultiSelect
+    const getAlgoliaFacetOptions = (facetName: string) => {
+        const originalOptions = originalFacets[facetName] || []
+        const filteredOptions = facets[facetName] || []
+
+        // Create a map of filtered counts
+        const filteredCounts = new Map(filteredOptions.map(({ value, count }) => [value, count]))
+
+        // Merge original and filtered data
+        return originalOptions.map(({ value, count: originalCount }) => ({
+            value,
+            count: filteredCounts.get(value) || 0, // Use filtered count if available, otherwise 0
+            originalCount, // Keep original count for reference
+            label: `${value} (${filteredCounts.get(value) || 0}/${originalCount})`,
+        }))
+    }
+
+    // Enhanced status dropdown options with colors for table columns
     const statusDropdownOptions: DropdownOption[] = [
         {
             label: 'Open',
@@ -270,45 +377,25 @@ const RequirementsPage = () => {
             ),
         },
         {
-            key: 'status',
+            key: 'requirementStatus',
             header: 'Status',
-            render: (_, row) => {
-                const currentOption = statusDropdownOptions.find((option) => option.value === row.requirementStatus)
-                return (
-                    <Dropdown
-                        options={statusDropdownOptions}
-                        placeholder={toCapitalizedWords(row.requirementStatus)}
-                        onSelect={(value) => updateRowData(row.requirementId, 'requirementStatus', value)}
-                        className='relative inline-block'
-                        triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${currentOption ? `bg-[${currentOption.color}] text-[${currentOption.textColor}]` : 'bg-gray-100 text-gray-700'}`}
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                    />
-                )
+            dropdown: {
+                options: statusDropdownOptions,
+                placeholder: 'Select Status',
+                onChange: (value, row) => {
+                    updateRowData(row.requirementId, 'requirementStatus', value)
+                },
             },
         },
         {
-            key: 'intStatus',
+            key: 'internalStatus',
             header: 'Int. Status',
-            render: (_, row) => {
-                const currentOption = internalStatusDropdownOptions.find(
-                    (option) => option.value === row.internalStatus,
-                )
-                return (
-                    <Dropdown
-                        options={internalStatusDropdownOptions}
-                        placeholder={toCapitalizedWords(row.internalStatus)}
-                        onSelect={(value) => updateRowData(row.requirementId, 'internalStatus', value)}
-                        className='relative inline-block'
-                        triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${
-                            currentOption
-                                ? `bg-[${currentOption.color}] text-[${currentOption.textColor}]`
-                                : 'bg-gray-100 text-gray-700'
-                        }`}
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                    />
-                )
+            dropdown: {
+                options: internalStatusDropdownOptions,
+                placeholder: 'Select Status',
+                onChange: (value, row) => {
+                    updateRowData(row.requirementId, 'internalStatus', value)
+                },
             },
         },
         {
@@ -355,14 +442,14 @@ const RequirementsPage = () => {
     return (
         <Layout loading={false}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                <div className='py-2 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
                     <AddRequirementModal
                         isOpen={isAddRequirementModalOpen}
                         onClose={() => setIsAddRequirementModalOpen(false)}
                     />
                     <div className='mb-4'>
-                        <div className='flex items-center justify-between mb-2'>
+                        <div className='flex items-center justify-between mb-2 px-6'>
                             <h1 className='text-lg font-semibold text-black'>Requirement</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
@@ -403,8 +490,9 @@ const RequirementsPage = () => {
                             </div>
                         </div>
                         <hr className='border-gray-200 mb-4' />
+                        <MetricCards metrics={metrics} className='mb-4 px-6' />
                         {/* Tab Switches and Filters */}
-                        <div className='flex items-center gap-4 mb-2'>
+                        <div className='flex items-center gap-4 mb-2 px-6'>
                             {/* Tab Switches for Resale/Rental */}
                             <div className='flex items-center bg-gray-100 rounded-md p-1 h-8'>
                                 <button
@@ -431,38 +519,142 @@ const RequirementsPage = () => {
 
                             {/* Other Filters */}
                             <div className='flex items-center gap-2 h-8'>
-                                <button className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md'>
+                                <button
+                                    className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md hover:bg-gray-200'
+                                    onClick={resetFilters}
+                                    title='Reset Filters'
+                                >
                                     <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
                                 </button>
 
-                                <Dropdown
-                                    options={requirementStatusOptions}
-                                    onSelect={(value) => updateFilter('status', value)}
-                                    defaultValue={selectedRequirementStatus}
+                                <AlgoliaFacetMultiSelect
+                                    options={getAlgoliaFacetOptions('requirementStatus')}
+                                    selectedValues={filters.requirementStatus || []}
+                                    onSelectionChange={(values) => updateFilters('requirementStatus', values)}
                                     placeholder='Requirement Status'
-                                    className='relative inline-block'
-                                    triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer'
-                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                    label='Requirement Status'
+                                    className='text-sm text-[#696979]'
+                                    triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${
+                                        filters.requirementStatus && filters.requirementStatus.length > 0
+                                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                            : 'bg-gray-100 text-black hover:bg-gray-50'
+                                    }`}
                                 />
 
-                                <Dropdown
-                                    options={assetTypeOptions}
-                                    onSelect={(value) => updateFilter('assetType', value)}
-                                    defaultValue={selectedAssetType}
+                                <AlgoliaFacetMultiSelect
+                                    options={getAlgoliaFacetOptions('internalStatus')}
+                                    selectedValues={filters.internalStatus || []}
+                                    onSelectionChange={(values) => updateFilters('internalStatus', values)}
+                                    placeholder='Internal Status'
+                                    label='Internal Status'
+                                    className='text-sm text-[#696979]'
+                                    triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${
+                                        filters.internalStatus && filters.internalStatus.length > 0
+                                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                            : 'bg-gray-100 text-black hover:bg-gray-50'
+                                    }`}
+                                />
+
+                                <AlgoliaFacetMultiSelect
+                                    options={getAlgoliaFacetOptions('assetType')}
+                                    selectedValues={filters.assetType || []}
+                                    onSelectionChange={(values) => updateFilters('assetType', values)}
                                     placeholder='Asset Type'
-                                    className='relative inline-block'
-                                    triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
-                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                    label='Asset Type'
+                                    className='text-sm text-[#696979]'
+                                    triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer ${
+                                        filters.assetType && filters.assetType.length > 0
+                                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                            : 'bg-gray-100 text-black hover:bg-gray-50'
+                                    }`}
                                 />
                             </div>
                         </div>
                     </div>
 
+                    {/* Active Filters Display */}
+                    {/* {hasActiveFilters() && (
+                        <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
+                            <div className='flex items-center justify-between mb-2'>
+                                <span className='text-sm font-medium text-blue-800'>Active Filters:</span>
+                                <button
+                                    onClick={resetFilters}
+                                    className='text-xs text-blue-600 hover:text-blue-800 font-medium'
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+                            <div className='flex flex-wrap gap-2'>
+                                {filters.requirementStatus && filters.requirementStatus.length > 0 && (
+                                    <div className='flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs'>
+                                        <span>Status: {filters.requirementStatus.join(', ')}</span>
+                                        <button
+                                            onClick={() => clearFilter('requirementStatus')}
+                                            className='ml-1 text-blue-600 hover:text-blue-800'
+                                            title='Clear Status Filter'
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                )}
+                                {filters.internalStatus && filters.internalStatus.length > 0 && (
+                                    <div className='flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs'>
+                                        <span>Internal Status: {filters.internalStatus.join(', ')}</span>
+                                        <button
+                                            onClick={() => clearFilter('internalStatus')}
+                                            className='ml-1 text-blue-600 hover:text-blue-800'
+                                            title='Clear Internal Status Filter'
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                )}
+                                {filters.assetType && filters.assetType.length > 0 && (
+                                    <div className='flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs'>
+                                        <span>Asset Type: {filters.assetType.join(', ')}</span>
+                                        <button
+                                            onClick={() => clearFilter('assetType')}
+                                            className='ml-1 text-blue-600 hover:text-blue-800'
+                                            title='Clear Asset Type Filter'
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )} */}
+
+                    {/* Search Info */}
+                    {searchLoading && (
+                        <div className='mb-2 text-sm text-blue-600 flex items-center gap-2'>
+                            <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
+                            Searching...
+                        </div>
+                    )}
+
+                    {!searchLoading && hasActiveFilters() && (
+                        <div className='mb-2 text-sm text-gray-600'>
+                            Found {totalItems.toLocaleString()} requirements
+                            {searchValue && ` for "${searchValue}"`}
+                        </div>
+                    )}
+
+                    {searchError && (
+                        <div className='mb-2 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                            <div className='text-sm text-red-700'>Error: {searchError}</div>
+                            <button
+                                onClick={() => performSearch()}
+                                className='mt-2 text-sm text-red-600 hover:text-red-800 font-medium'
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    )}
+
                     {/* Table with fixed actions column and vertical scrolling */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                        <div className='h-[75vh] overflow-y-auto'>
+                    <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
+                        <div className='h-[68vh] overflow-y-auto'>
                             {searchLoading ? (
                                 <div className='flex items-center justify-center h-64'>
                                     <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
@@ -480,7 +672,7 @@ const RequirementsPage = () => {
                                         cells: false,
                                         outer: false,
                                     }}
-                                    maxHeight='75vh'
+                                    maxHeight='68vh'
                                     className='rounded-lg'
                                     stickyHeader={true}
                                 />
@@ -498,79 +690,13 @@ const RequirementsPage = () => {
 
                         {/* Pagination */}
                         {!searchLoading && totalPages > 1 && (
-                            <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
-                                <div className='text-sm text-gray-500 font-medium'>
-                                    Showing {currentPage * ITEMS_PER_PAGE + 1} to{' '}
-                                    {Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalItems)} of{' '}
-                                    {totalItems.toLocaleString()} requirements
-                                </div>
-
-                                <div className='flex items-center gap-2'>
-                                    <button
-                                        onClick={() => handlePageChange(Math.max(currentPage - 1, 0))}
-                                        disabled={currentPage === 0}
-                                        className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            currentPage === 0
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M15 19l-7-7 7-7'
-                                            />
-                                        </svg>
-                                    </button>
-
-                                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                                        let pageNum: number
-                                        if (totalPages <= 7) {
-                                            pageNum = i
-                                        } else if (currentPage < 3) {
-                                            pageNum = i
-                                        } else if (currentPage > totalPages - 4) {
-                                            pageNum = totalPages - 7 + i
-                                        } else {
-                                            pageNum = currentPage - 3 + i
-                                        }
-
-                                        return (
-                                            <button
-                                                key={pageNum}
-                                                onClick={() => handlePageChange(pageNum)}
-                                                className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
-                                                    currentPage === pageNum
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'text-gray-700 hover:bg-gray-100'
-                                                }`}
-                                            >
-                                                {pageNum + 1}
-                                            </button>
-                                        )
-                                    })}
-
-                                    <button
-                                        onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages - 1))}
-                                        disabled={currentPage >= totalPages - 1}
-                                        className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                            currentPage >= totalPages - 1
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M9 5l7 7-7 7'
-                                            />
-                                        </svg>
-                                    </button>
-                                </div>
+                            <div className='flex items-center justify-between px-6 border-t border-gray-200'>
+                                <CustomPagination
+                                    currentPage={currentPage + 1}
+                                    totalPages={totalPages}
+                                    onPageChange={(page) => handlePageChange(page - 1)}
+                                    className=''
+                                />
                             </div>
                         )}
                     </div>
