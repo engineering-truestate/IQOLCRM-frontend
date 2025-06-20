@@ -27,6 +27,7 @@ import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import { formatUnixDate, formatUnixDateTime } from '../../../components/helper/formatDate'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
+import useAuth from '../../../hooks/useAuth'
 
 // Note interface for local notes
 interface Note {
@@ -111,6 +112,7 @@ const RequirementDetailsPage = () => {
     const [newNote, setNewNote] = useState('')
     const [notes, setNotes] = useState<Note[]>([])
     const [isEditing, setIsEditing] = useState(false)
+    const { user } = useAuth()
 
     // Load requirement data based on ID from URL
     useEffect(() => {
@@ -328,6 +330,7 @@ const RequirementDetailsPage = () => {
             }
         }
     }
+    console.log('🔄 User:', user)
 
     // Handle adding new note
     const addNote = () => {
@@ -335,7 +338,8 @@ const RequirementDetailsPage = () => {
             console.log('📝 Adding new note:', newNote)
             const newNoteObj = {
                 id: `note_${Date.now()}`,
-                author: 'Current User', // TODO: Get from auth context
+                author: user?.displayName || 'Unknown',
+                email: user?.email || 'Unknown',
                 content: newNote.trim(),
                 timestamp: getUnixDateTime(),
             }

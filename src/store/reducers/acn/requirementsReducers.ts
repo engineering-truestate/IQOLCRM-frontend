@@ -15,7 +15,7 @@ interface RequirementState {
     updating: boolean
     addingProperties: boolean
     error: string | null
-    lastFetch: Date | null
+    lastFetch: number | null
 }
 
 const initialState: RequirementState = {
@@ -58,7 +58,7 @@ const requirementsSlice = createSlice({
                 console.log('✅ Fetch requirement by ID - fulfilled:', action.payload.requirementId)
                 state.loading = false
                 state.currentRequirement = action.payload
-                state.lastFetch = new Date()
+                state.lastFetch = Date.now()
                 state.error = null
 
                 const index = state.requirements.findIndex((req) => req.requirementId === action.payload.requirementId)

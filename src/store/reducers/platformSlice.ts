@@ -3,10 +3,12 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 
 interface PlatformState {
     selectedPlatform: string
+    googlePlacesApiKey: string
 }
 
 const initialState: PlatformState = {
     selectedPlatform: 'truestate', // Default platform
+    googlePlacesApiKey: import.meta.env.VITE_GOOGLE_PLACES_API_KEY || 'YOUR_API_KEY_HERE',
 }
 
 const platformSlice = createSlice({
@@ -19,8 +21,11 @@ const platformSlice = createSlice({
         initializePlatform: (state, action: PayloadAction<string>) => {
             state.selectedPlatform = action.payload
         },
+        setGooglePlacesApiKey: (state, action: PayloadAction<string>) => {
+            state.googlePlacesApiKey = action.payload
+        },
     },
 })
 
-export const { setSelectedPlatform, initializePlatform } = platformSlice.actions
+export const { setSelectedPlatform, initializePlatform, setGooglePlacesApiKey } = platformSlice.actions
 export default platformSlice.reducer

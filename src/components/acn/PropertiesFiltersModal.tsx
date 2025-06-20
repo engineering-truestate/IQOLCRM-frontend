@@ -7,6 +7,7 @@ import Button from '../design-elements/Button'
 import { getUnixDateTimeCustom } from '../helper/getUnixDateTime'
 import { SelectionGroup } from '../design-elements/SelectionButtonsGroup'
 import StateBaseTextField from '../design-elements/StateBaseTextField'
+import PlacesSearch from '../design-elements/PlacesSearch'
 
 function useDebouncedCallback<A extends any[]>(callback: (...args: A) => void, wait: number): (...args: A) => void {
     const timeoutId = useRef<NodeJS.Timeout | null>(null)
@@ -347,11 +348,19 @@ export const PropertiesFiltersModal: React.FC<PropertiesFiltersModalProps> = ({
 
                     <div className='mt-2'>
                         {activeTab === 'Landmark' ? (
-                            <StateBaseTextField
+                            <PlacesSearch
+                                selectedPlace={
+                                    landmarkValue
+                                        ? { name: landmarkValue, address: '', lat: 0, lng: 0, mapLocation: '' }
+                                        : null
+                                }
+                                setSelectedPlace={(place) => {
+                                    setLandmarkValue(place?.name || '')
+                                    debouncedOnFiltersChange({ ...filters, landmark: place?.name || '' })
+                                }}
                                 placeholder='Search by landmark'
-                                value={landmarkValue}
-                                onChange={handleLandmarkChange}
-                                className='w-full border border-gray-300 rounded px-3 py-2 text-sm'
+                                label='Landmark'
+                                className='w-full'
                             />
                         ) : (
                             <AlgoliaFacetMultiSelect
