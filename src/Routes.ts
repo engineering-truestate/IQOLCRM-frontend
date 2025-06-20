@@ -16,12 +16,12 @@ import Logout from './pages/auth/Logout'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import PreLaunchPage from './pages/restack/PreLaunch/PreLaunch'
 import PreLaunchDetailsPage from './pages/restack/PreLaunch/PreLaunchDetails'
-import ErrorPage from './404'
-import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+// import ErrorPage from './404'
+// import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 import Home from './Home'
 import AgentsPage from './pages/acn/Agents/AgentsPage'
-import PrimaryPage from './pages/restack/Primary/Primary'
-import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+// import PrimaryPage from './pages/restack/Primary/Primary'
+// import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
 import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
 import AgentDetailsPage from './pages/acn/Agents/AgentDetailsPage'
@@ -30,17 +30,19 @@ import QCPropertyDetailsPage from './pages/acn/QCDashboard/QCPropertyDetails'
 import PreReraPage from './pages/restack/Stock/Pre-Rera/PreReraPage'
 import PreReraDetailsPage from './pages/restack/Stock/Pre-Rera/PreReraDetailsPage'
 import PreReraEditPage from './pages/restack/Stock/Pre-Rera/PreReraEditPage'
-// import ErrorPage from './404'
-// import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+
+import ErrorPage from './404'
+import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 // import ResalePage from './pages/restack/Resale/ResalePage'
 // import ResalePageDetails from './pages/restack/Resale/ResalePageDetails'
 
-// import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+
 import ComplaintsPage from './pages/restack/Primary/ComplaintsPage'
 import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
 import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
-// import PrimaryPage from './pages/restack/Primary/Primary'
+import PrimaryPage from './pages/restack/Primary/Primary'
 import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
 import ResalePage from './pages/restack/resale/ResalePage'
 import Resale from './pages/restack/resale/Resale'
@@ -273,6 +275,10 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/restack/primary/:id/complaints',
         element: React.createElement(React.Suspense, null, React.createElement(ComplaintsPage, null)),
+    },
+    {
+        path: '/restack/primary/:id/documents',
+        element: React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
     },
     {
         path: '/restack/primary/:id/complaints',
