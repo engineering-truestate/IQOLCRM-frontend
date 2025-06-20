@@ -60,7 +60,7 @@ const Sidebar = () => {
                     ))}
                 </ul>
             </nav>
-            {role === 'admin' && (
+            {/* {role === 'admin' && (
                 <div className='mt-auto px-6 py-4'>
                     <Button onClick={() => navigate('/register')}>
                         <span>Register</span>
@@ -71,7 +71,7 @@ const Sidebar = () => {
                 <Button onClick={() => navigate('/profile')}>
                     <span>Profile</span>
                 </Button>
-            </div>
+            </div> */}
 
             <div className='mt-auto px-6 py-4'>
                 <Button onClick={() => handleLogout(navigate)}>

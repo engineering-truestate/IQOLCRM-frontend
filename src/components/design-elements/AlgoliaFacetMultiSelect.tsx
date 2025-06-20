@@ -89,7 +89,7 @@ const AlgoliaFacetMultiSelect: React.FC<AlgoliaFacetMultiSelectProps> = ({
 
             {isOpen && (
                 <div
-                    className={`${menuClassName} absolute z-50 mt-1 min-w-fit bg-white border border-gray-300 rounded-md shadow-lg whitespace-nowrap`}
+                    className={`${menuClassName} absolute z-50 mt-1 min-w-fit w-full bg-white border border-gray-300 rounded-md shadow-lg whitespace-nowrap`}
                 >
                     <div className='px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b sticky top-0'>
                         {label}

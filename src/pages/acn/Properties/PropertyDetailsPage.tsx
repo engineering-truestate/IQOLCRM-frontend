@@ -23,10 +23,11 @@ import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import { formatUnixDateTime } from '../../../components/helper/formatDate'
 
 // Icons
-import shareIcon from '/icons/acn/share.svg'
-import editIcon from '/icons/acn/write.svg'
+import shareIcon from '/icons/acn/share-1.svg'
+import editIcon from '/icons/acn/edit.svg'
 import priceDropIcon from '/icons/acn/share.svg'
 import noteIcon from '/icons/acn/note.svg'
+import useAuth from '../../../hooks/useAuth'
 
 interface Note {
     id: string
@@ -42,7 +43,7 @@ const PropertyDetailsPage = () => {
 
     // Redux state
     const { currentProperty: property, loading, error } = useSelector((state: RootState) => state.properties)
-    const { user, agentData } = useSelector((state: RootState) => state.user)
+    const { user, role, platform } = useAuth()
 
     // Local state
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -73,12 +74,7 @@ const PropertyDetailsPage = () => {
 
     // Get current user info for notes
     const getCurrentUserInfo = () => {
-        if (agentData?.name && agentData?.email) {
-            return {
-                name: agentData.name,
-                email: agentData.email,
-            }
-        } else if (user?.displayName && user?.email) {
+        if (user?.displayName && user?.email) {
             return {
                 name: user.displayName,
                 email: user.email,
@@ -90,11 +86,6 @@ const PropertyDetailsPage = () => {
             }
         }
     }
-
-    useEffect(() => {
-        console.log('🔍 User:', user)
-        console.log('🔍 Agent Data:', agentData)
-    }, [user, agentData])
 
     // Handle status change
     const handleStatusChange = async (option: string) => {
@@ -129,19 +120,20 @@ const PropertyDetailsPage = () => {
     const handleAddNote = async () => {
         if (newNote.trim() && localProperty?.propertyId) {
             console.log('📝 Adding new note:', newNote)
+            console.log('🔍 User:', user)
             const newNoteObj = {
-                author: getCurrentUserInfo().name,
-                email: getCurrentUserInfo().email,
+                author: user?.displayName || 'Unknown User',
+                email: user?.email || 'unknown@example.com',
                 content: newNote.trim(),
             }
 
             try {
-                // await dispatch(
-                //     addNoteToProperty({
-                //         propertyId: localProperty.propertyId,
-                //         note: newNoteObj,
-                //     }),
-                // ).unwrap()
+                await dispatch(
+                    addNoteToProperty({
+                        propertyId: localProperty.propertyId,
+                        note: newNoteObj,
+                    }),
+                ).unwrap()
                 console.log('🗑️ Adding new note:', newNoteObj)
 
                 // Refetch property details to update the UI
@@ -325,7 +317,7 @@ const PropertyDetailsPage = () => {
 
     return (
         <Layout loading={false}>
-            <div className='w-full overflow-hidden font-sans bg-gray-50'>
+            <div className='w-full overflow-hidden font-sans bg-white'>
                 <div className='py-6 px-6 min-h-screen'>
                     {/* Breadcrumb */}
                     <div className='mb-4'>
@@ -342,21 +334,17 @@ const PropertyDetailsPage = () => {
                     <div className='flex items-center gap-4 mb-6'>
                         <button
                             onClick={() => setIsShareModalOpen(true)}
-                            className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'
+                            className='flex flex-row gap-2 p-2 items-center text-black bg-[#F0F0F5] border border-gray-300 rounded-md hover:bg-gray-50'
                         >
-                            <img src={shareIcon} alt='Share' className='w-4 h-4' />
-                            Share
+                            <img src={shareIcon} alt='Share' className='w-5 h-5' />
+                            <span className='text-sm font-medium'>Share</span>
                         </button>
                         <button
                             onClick={() => navigate(`/acn/properties/${id}/edit`)}
-                            className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'
+                            className='flex flex-row gap-2 p-2 items-center text-black bg-[#F0F0F5] border border-gray-300 rounded-md hover:bg-gray-50'
                         >
-                            <img src={editIcon} alt='Edit' className='w-4 h-4' />
-                            Edit Property
-                        </button>
-                        <button className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'>
-                            <img src={priceDropIcon} alt='Price Drop' className='w-4 h-4' />
-                            Price Drop
+                            <img src={editIcon} alt='Edit' className='w-5 h-5' />
+                            <span className='text-sm font-medium'>Edit Property</span>
                         </button>
                     </div>
 
