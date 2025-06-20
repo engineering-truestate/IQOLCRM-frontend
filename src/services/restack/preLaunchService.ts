@@ -13,6 +13,7 @@ import {
     QueryDocumentSnapshot,
     QueryConstraint,
     serverTimestamp,
+    where,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { Property, PropertyFilters } from '../../store/reducers/restack/preLaunchtypes'
@@ -182,6 +183,59 @@ export class PreLaunchService {
             return property
         } catch (error) {
             console.error('Error fetching pre-launch property:', error)
+            throw error
+        }
+    }
+    static async getPropertyByName(projectName: string): Promise<Property | undefined> {
+        try {
+            const colRef = collection(db, 'restack_pre_launch_properties')
+            const q = query(colRef, where('projectName', '==', projectName))
+            const snapshot = await getDocs(q)
+
+            if (snapshot.empty) {
+                return undefined // Property not found
+            }
+
+            const docSnap = snapshot.docs[0] // Get the first document
+
+            const data = docSnap.data()
+
+            if (!data) {
+                throw new Error('Property data is empty')
+            }
+
+            const property: Property = {
+                ...data,
+                projectId: docSnap.id,
+            } as Property
+
+            return property
+        } catch (error) {
+            console.error('Error fetching pre-launch property:', error)
+            throw error
+        }
+    }
+    static async getAllPropertyName(): Promise<{ projectId: string; propertyName: string }[]> {
+        try {
+            const colRef = collection(db, 'restack_pre_launch_properties')
+
+            // Modify query to fetch all properties and order by creation date
+            const q = query(colRef, orderBy('createdAt', 'desc'))
+
+            const snapshot = await getDocs(q)
+
+            // Map over the snapshot to extract property names
+            const propertyNames = snapshot.docs.map((doc) => {
+                const data = doc.data()
+                return {
+                    projectId: doc.id, // Use Firestore document ID as projectId
+                    propertyName: data.projectName, // Assuming 'name' is the field for property names
+                }
+            })
+
+            return propertyNames
+        } catch (error) {
+            console.error('Error fetching property names:', error)
             throw error
         }
     }

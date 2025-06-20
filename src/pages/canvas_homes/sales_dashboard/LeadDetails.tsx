@@ -16,6 +16,7 @@ import CloseLeadSideModal from '../../../components/canvas_homes/CloseLeadSideMo
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../store'
 import ActivityTracker from './tabs/ActivityTracker'
+import PropertyDetail from './tabs/PropertyDetail'
 
 // Helper function to handle null/undefined values
 const formatValue = (value: any): string => {
@@ -176,6 +177,13 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                         enquiryId={selectedEnquiryId}
                         requirements={currentEnquiry?.requirements || []}
                         onRequirementsUpdate={refreshData}
+                    />
+                )
+            case 'Properties':
+                return (
+                    <PropertyDetail
+                        propertyId={currentEnquiry?.propertyId || ''}
+                        propertyName={currentEnquiry?.propertyName || ''}
                     />
                 )
             default:
