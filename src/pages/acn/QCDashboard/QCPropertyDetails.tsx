@@ -1,12 +1,16 @@
-// QCPropertyDetailsPage.tsx - Add proper null checks
+// QCPropertyDetailsPage.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../../store/index'
-import { fetchQCInventoryById, updateQCStatusWithRoleCheck } from '../../../services/acn/qc/qcService'
-import { getCurrentUser, monitorAuthState } from '../../../services/user/userRoleService'
+import {
+    fetchQCInventoryById,
+    updateQCStatusWithRoleCheck,
+    addQCInventoryNote,
+} from '../../../services/acn/qc/qcService'
+import { initializeAuthListener } from '../../../services/user/userRoleService' // Updated import path
 import { clearCurrentQCInventory, clearError } from '../../../store/reducers/acn/qcReducer'
 import Layout from '../../../layout/Layout'
 import Dropdown from '../../../components/design-elements/Dropdown'
@@ -16,6 +20,9 @@ import { toast } from 'react-toastify'
 import shareIcon from '/icons/acn/share.svg'
 import editIcon from '/icons/acn/write.svg'
 import priceDropIcon from '/icons/acn/share.svg'
+import { formatCost } from '../../../components/helper/formatCost'
+import { camelCaseToCapitalizedWords } from '../../../components/helper/wordFormatter'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 
 interface Note {
     id: string
@@ -26,27 +33,29 @@ interface Note {
 
 const QCPropertyDetailsPage = () => {
     const navigate = useNavigate()
-    const { id } = useParams<{ id: string }>()
     const dispatch = useDispatch<AppDispatch>()
+    const { id } = useParams()
 
-    // Redux state
+    // Redux state - Fixed property names
     const {
-        currentQCInventory: qcProperty,
-        loading: qcLoading,
-        error: qcError,
-    } = useSelector((state: RootState) => state.qc)
-
-    const {
-        currentUser,
+        user: currentUser, // Changed from currentUser to user
         agentData,
         loading: userLoading,
         authInitialized,
         error: userError,
     } = useSelector((state: RootState) => state.user)
 
+    const {
+        currentQCInventory: qcProperty,
+        loading: qcLoading,
+        error: qcError,
+        updateLoading,
+        noteLoading,
+    } = useSelector((state: RootState) => state.qc)
+
     const [_, setCurrentImageIndex] = useState(0)
     const [newNote, setNewNote] = useState('')
-    const [notes, setNotes] = useState<Note[]>([
+    const [notes] = useState<Note[]>([
         {
             id: '1',
             author: 'Samarth',
@@ -63,11 +72,10 @@ const QCPropertyDetailsPage = () => {
     const [reviewLoading, setReviewLoading] = useState(false)
     const [selectedStatus, setSelectedStatus] = useState('')
 
-    // Initialize auth state monitoring
+    // Initialize auth listener
     useEffect(() => {
-        console.log('🔄 Initializing auth state monitoring')
-        dispatch(monitorAuthState())
-        dispatch(getCurrentUser())
+        console.log('🔄 Initializing auth listener')
+        dispatch(initializeAuthListener())
     }, [dispatch])
 
     // Load QC property data when component mounts
@@ -96,20 +104,31 @@ const QCPropertyDetailsPage = () => {
         return String(value)
     }
 
-    // Determine active tab based on property stage and user role
+    // Determine active tab based on property stage and user role - UPDATED
     const getActiveTab = () => {
         if (!qcProperty || !agentData) return 'kam'
 
+        // For kamModerator, determine tab based on stage
         if (agentData.role === 'kamModerator') {
-            return qcProperty.stage === 'dataTeam' ? 'dataTeam' : 'kam'
-        } else if (agentData.role === 'dataTeam') {
-            return 'dataTeam'
+            // In notApproved stage, default to kam tab since it's primarily KAM-controlled
+            if (qcProperty.stage === 'notApproved') {
+                return 'kam'
+            }
+            // In data stage, show data tab
+            if (qcProperty.stage === 'data') {
+                return 'data'
+            }
+            // In kam stage, show kam tab
+            return 'kam'
+        } else if (agentData.role === 'data') {
+            return 'data'
         } else {
             return 'kam'
         }
     }
 
     const handleStatusChange = async (status: string) => {
+        console.log('test', status)
         if (!qcProperty || !agentData || !currentUser) {
             toast.error('Missing required data for status update')
             return
@@ -121,11 +140,20 @@ const QCPropertyDetailsPage = () => {
         try {
             const activeTab = getActiveTab()
 
+            // Updated to use the new service structure with all required properties
             await dispatch(
                 updateQCStatusWithRoleCheck({
                     property: qcProperty,
                     status,
-                    agentData,
+                    agentData: {
+                        role: agentData.role,
+                        email: agentData.email || currentUser.email || '',
+                        phone: agentData.phone || '',
+                        name: agentData.name || currentUser.displayName || '',
+                        kamId: agentData.kamId || agentData.id,
+                        id: agentData.id,
+                        //cpId: agentData.cpId
+                    },
                     activeTab,
                     reviewedBy: currentUser.displayName || currentUser.email || 'Unknown User',
                 }),
@@ -149,16 +177,24 @@ const QCPropertyDetailsPage = () => {
         }
     }
 
-    const handleAddNote = () => {
-        if (newNote.trim()) {
-            const note: Note = {
-                id: Date.now().toString(),
-                author: currentUser?.displayName || currentUser?.email || 'Current User',
-                date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-                content: newNote.trim(),
-            }
-            setNotes((prev) => [note, ...prev])
+    const handleAddNote = async () => {
+        if (!newNote.trim() || !qcProperty || !agentData || !currentUser) return
+
+        try {
+            await dispatch(
+                addQCInventoryNote({
+                    propertyId: qcProperty.propertyId,
+                    details: newNote.trim(),
+                    kamId: agentData.kamId || agentData.id,
+                    kamName: agentData.name || currentUser.displayName || '',
+                }),
+            ).unwrap()
+
             setNewNote('')
+            toast.success('Note added successfully')
+        } catch (error: any) {
+            toast.error(error || 'Failed to add note')
+            console.error('Add note error:', error)
         }
     }
 
@@ -222,48 +258,50 @@ const QCPropertyDetailsPage = () => {
         }).format(amount)
     }
 
-    // Check if user can edit based on role and property status
+    // Check if user can edit based on role and property status - UPDATED
     const canEdit = () => {
-        if (!qcProperty || !agentData || !qcProperty.qcReview) return false
-
-        const activeTab = getActiveTab()
+        if (!qcProperty || !agentData) return false
 
         switch (agentData.role) {
             case 'kam':
-                return qcProperty.stage === 'kam'
-            case 'dataTeam':
-                return qcProperty.stage === 'dataTeam' && qcProperty.qcReview?.kamReview?.status === 'approved'
+                // KAM can edit in kam stage OR notApproved stage
+                return qcProperty.stage === 'kam' || qcProperty.stage === 'notApproved'
+            case 'data':
+                // Data team can only edit in data stage when KAM is approved, NOT in notApproved
+                return qcProperty.stage === 'data' && qcProperty.kamStatus === 'approved'
             case 'kamModerator':
-                if (activeTab === 'kam') {
-                    return qcProperty.stage === 'kam'
-                } else {
-                    return qcProperty.stage === 'dataTeam' && qcProperty.qcReview?.kamReview?.status === 'approved'
-                }
+                // KAM moderators can edit in ALL stages (kam, data, notApproved)
+                return true
             default:
                 return false
         }
     }
 
-    // Get current status based on active tab
+    // Get current status based on active tab - UPDATED
     const getCurrentStatus = () => {
-        if (!qcProperty || !qcProperty.qcReview) return 'pending'
+        if (!qcProperty) return 'pending'
 
         const activeTab = getActiveTab()
 
-        if (activeTab === 'dataTeam') {
-            return qcProperty.qcReview?.dataReview?.status || 'pending'
+        // For notApproved stage, always show kamStatus regardless of active tab
+        if (qcProperty.stage === 'notApproved') {
+            return qcProperty.kamStatus || 'pending'
+        }
+
+        if (activeTab === 'data') {
+            return qcProperty.qcStatus || qcProperty.dataStatus || 'pending'
         } else {
-            return qcProperty.qcReview?.kamReview?.status || 'pending'
+            return qcProperty.kamStatus || 'pending'
         }
     }
 
     // Get review section title
     const getReviewSectionTitle = () => {
         const activeTab = getActiveTab()
-        return activeTab === 'dataTeam' ? 'Data Review' : 'KAM Review'
+        return activeTab === 'data' ? 'Data Review' : 'KAM Review'
     }
 
-    // Loading state
+    // Loading state - Check authInitialized first
     if (!authInitialized || qcLoading || userLoading) {
         return (
             <Layout loading={true}>
@@ -309,8 +347,8 @@ const QCPropertyDetailsPage = () => {
         )
     }
 
-    // Not authenticated
-    if (!currentUser) {
+    // Not authenticated - Only show after auth is initialized
+    if (authInitialized && !currentUser) {
         return (
             <Layout loading={false}>
                 <div className='flex items-center justify-center min-h-screen'>
@@ -356,7 +394,7 @@ const QCPropertyDetailsPage = () => {
                     <div className='text-center'>
                         <div className='text-lg text-red-600'>Access Denied</div>
                         <div className='text-sm text-gray-600 mt-2'>You are not authorized to access this page.</div>
-                        <div className='text-xs text-gray-500 mt-1'>User: {currentUser.email}</div>
+                        <div className='text-xs text-gray-500 mt-1'>User: {currentUser?.email}</div>
                         <button
                             onClick={() => navigate('/acn/qc/dashboard')}
                             className='mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
@@ -398,7 +436,7 @@ const QCPropertyDetailsPage = () => {
                         <div className='flex items-center gap-4 text-sm'>
                             <div className='flex items-center gap-2'>
                                 <span className='text-gray-600'>Logged in as:</span>
-                                <span className='font-medium text-gray-900'>{safeDisplay(currentUser.email)}</span>
+                                <span className='font-medium text-gray-900'>{safeDisplay(currentUser?.email)}</span>
                             </div>
                             <div className='flex items-center gap-2'>
                                 <span className='text-gray-600'>Role:</span>
@@ -406,17 +444,19 @@ const QCPropertyDetailsPage = () => {
                                     className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${
                                         agentData.role === 'kamModerator'
                                             ? 'bg-purple-100 text-purple-800 border-purple-200'
-                                            : agentData.role === 'dataTeam'
+                                            : agentData.role === 'data'
                                               ? 'bg-blue-100 text-blue-800 border-blue-200'
                                               : 'bg-green-100 text-green-800 border-green-200'
                                     }`}
                                 >
-                                    {agentData.role}
+                                    {camelCaseToCapitalizedWords(agentData.role)}
                                 </span>
                             </div>
                             <div className='flex items-center gap-2'>
                                 <span className='text-gray-600'>Active Tab:</span>
-                                <span className='text-sm font-medium text-gray-900 capitalize'>{getActiveTab()}</span>
+                                <span className='text-sm font-medium text-gray-900 capitalize'>
+                                    {camelCaseToCapitalizedWords(getActiveTab())}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -445,7 +485,7 @@ const QCPropertyDetailsPage = () => {
                                 <div className='flex items-start justify-between mb-4'>
                                     <div>
                                         <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
-                                            {safeDisplay(qcProperty.nameOfTheProperty)}
+                                            {safeDisplay(qcProperty.propertyName)}
                                         </h1>
                                         <div className='flex items-center gap-6 text-sm text-gray-600'>
                                             <div className='flex items-center gap-1'>
@@ -512,7 +552,7 @@ const QCPropertyDetailsPage = () => {
                                     </div>
                                     <div className='text-right'>
                                         <div className='text-2xl font-bold text-gray-900 mb-2'>
-                                            {formatCurrency(qcProperty.totalAskPrice || 0)}
+                                            {formatCost(qcProperty.totalAskPrice || 0)}
                                         </div>
                                         <div className='flex items-center gap-3'>
                                             <div className='w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
@@ -523,7 +563,7 @@ const QCPropertyDetailsPage = () => {
                                                     {safeDisplay(qcProperty.kamName)}
                                                 </div>
                                                 <div className='text-sm text-gray-600'>
-                                                    {safeDisplay(qcProperty.cpCode)}
+                                                    {safeDisplay(qcProperty.cpId)}
                                                 </div>
                                             </div>
                                         </div>
@@ -532,7 +572,7 @@ const QCPropertyDetailsPage = () => {
 
                                 {/* Property Images */}
                                 <div className='grid grid-cols-3 gap-4 mb-6'>
-                                    {propertyImages.slice(0, 3).map((image, index) => (
+                                    {propertyImages.slice(0, 3).map((image: string, index: number) => (
                                         <div
                                             key={index}
                                             className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer ${
@@ -626,22 +666,26 @@ const QCPropertyDetailsPage = () => {
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Stage</span>
-                                        <span className='font-medium capitalize'>{safeDisplay(qcProperty.stage)}</span>
+                                        <span className='font-medium capitalize'>
+                                            {camelCaseToCapitalizedWords(qcProperty.stage)}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>KAM Status</span>
                                         <span
-                                            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.qcReview?.kamReview?.status || 'pending')}`}
+                                            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.kamStatus || 'pending')}`}
                                         >
-                                            {qcProperty.qcReview?.kamReview?.status || 'pending'}
+                                            {toCapitalizedWords(qcProperty.kamStatus || 'pending')}
                                         </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Data Status</span>
                                         <span
-                                            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.qcReview?.dataReview?.status || 'pending')}`}
+                                            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getStatusBadgeColor(qcProperty.qcStatus || qcProperty.dataStatus || 'pending')}`}
                                         >
-                                            {qcProperty.qcReview?.dataReview?.status || 'pending'}
+                                            {toCapitalizedWords(
+                                                qcProperty.qcStatus || qcProperty.dataStatus || 'pending',
+                                            )}
                                         </span>
                                     </div>
                                 </div>
@@ -666,10 +710,13 @@ const QCPropertyDetailsPage = () => {
                                 {!canEdit() && (
                                     <div className='mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg'>
                                         <div className='text-sm text-yellow-800'>
-                                            {agentData.role === 'dataTeam' &&
-                                            qcProperty.qcReview?.kamReview?.status !== 'approved'
-                                                ? 'You can only edit when KAM status is approved'
-                                                : 'You cannot edit this property in its current stage'}
+                                            {qcProperty.stage === 'notApproved'
+                                                ? agentData.role === 'data'
+                                                    ? 'Data team cannot edit properties in notApproved stage. Only KAM and KAM Moderators can update.'
+                                                    : 'You cannot edit this property in its current stage'
+                                                : agentData.role === 'data' && qcProperty.kamStatus !== 'approved'
+                                                  ? 'You can only edit when KAM status is approved'
+                                                  : 'You cannot edit this property in its current stage'}
                                         </div>
                                     </div>
                                 )}
@@ -682,16 +729,17 @@ const QCPropertyDetailsPage = () => {
                                         defaultValue={getCurrentStatus()}
                                         placeholder='Select Status'
                                         className='w-full'
-                                        //disabled={!canEdit() || reviewLoading}
                                         triggerClassName={`w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                                            !canEdit() || reviewLoading ? 'opacity-50 cursor-not-allowed' : ''
+                                            !canEdit() || reviewLoading || updateLoading
+                                                ? 'opacity-50 cursor-not-allowed'
+                                                : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
                                         optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md'
                                     />
                                 </div>
 
-                                {reviewLoading && (
+                                {(reviewLoading || updateLoading) && (
                                     <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
                                         <div className='flex items-center gap-2'>
                                             <svg
@@ -724,19 +772,19 @@ const QCPropertyDetailsPage = () => {
                                 <div className='mb-6'>
                                     <h4 className='font-medium text-gray-900 mb-3'>Review History</h4>
                                     <div className='space-y-2'>
-                                        {qcProperty.qcReview?.kamReview?.reviewDate && (
+                                        {qcProperty.kamStatus && (
                                             <div className='flex justify-between'>
-                                                <span className='text-gray-600'>KAM Review Date</span>
+                                                <span className='text-gray-600'>KAM Status</span>
                                                 <span className='font-medium'>
-                                                    {formatDate(qcProperty.qcReview.kamReview.reviewDate)}
+                                                    {toCapitalizedWords(qcProperty.kamStatus)}
                                                 </span>
                                             </div>
                                         )}
-                                        {qcProperty.qcReview?.dataReview?.reviewDate && (
+                                        {(qcProperty.qcStatus || qcProperty.dataStatus) && (
                                             <div className='flex justify-between'>
-                                                <span className='text-gray-600'>Data Review Date</span>
+                                                <span className='text-gray-600'>Data Status</span>
                                                 <span className='font-medium'>
-                                                    {formatDate(qcProperty.qcReview.dataReview.reviewDate)}
+                                                    {toCapitalizedWords(qcProperty.qcStatus || qcProperty.dataStatus)}
                                                 </span>
                                             </div>
                                         )}
@@ -753,17 +801,17 @@ const QCPropertyDetailsPage = () => {
                                             <div key={index} className='border-b border-gray-100 pb-3 last:border-b-0'>
                                                 <div className='flex justify-between items-start mb-1'>
                                                     <span className='text-sm font-medium text-gray-900'>
-                                                        {safeDisplay(item.action)}
+                                                        {safeDisplay(item.qcStatus)}
                                                     </span>
                                                     <span className='text-xs text-gray-500'>
-                                                        {formatDate(item.date)}
+                                                        {formatDate(item.timestamp)}
                                                     </span>
                                                 </div>
                                                 <div className='text-xs text-gray-600'>
-                                                    By: {safeDisplay(item.performedBy)}
+                                                    By: {safeDisplay(item.userName)}
                                                 </div>
                                                 <div className='text-xs text-gray-600 mt-1'>
-                                                    {safeDisplay(item.details)}
+                                                    Role: {safeDisplay(item.userRole)}
                                                 </div>
                                             </div>
                                         ))
@@ -779,7 +827,10 @@ const QCPropertyDetailsPage = () => {
                                     <h3 className='text-lg font-semibold text-gray-900'>Notes</h3>
                                     <button
                                         onClick={handleAddNote}
-                                        className='flex items-center gap-1 px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50'
+                                        disabled={noteLoading || !newNote.trim()}
+                                        className={`flex items-center gap-1 px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 ${
+                                            noteLoading || !newNote.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     >
                                         <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                                             <path
@@ -789,7 +840,7 @@ const QCPropertyDetailsPage = () => {
                                                 d='M12 4v16m8-8H4'
                                             />
                                         </svg>
-                                        Add Note
+                                        {noteLoading ? 'Adding...' : 'Add Note'}
                                     </button>
                                 </div>
 
@@ -806,20 +857,41 @@ const QCPropertyDetailsPage = () => {
                                 <div>
                                     <h4 className='font-medium text-gray-900 mb-3'>Previous Notes</h4>
                                     <div className='space-y-4 max-h-80 overflow-y-auto'>
-                                        {notes.map((note) => (
-                                            <div
-                                                key={note.id}
-                                                className='border-b border-gray-100 pb-3 last:border-b-0'
-                                            >
-                                                <div className='flex items-center gap-2 mb-2'>
-                                                    <span className='font-medium text-sm text-gray-900'>
-                                                        {note.author}
-                                                    </span>
-                                                    <span className='text-xs text-gray-500'>on {note.date}</span>
-                                                </div>
-                                                <p className='text-sm text-gray-600 leading-relaxed'>{note.content}</p>
-                                            </div>
-                                        ))}
+                                        {qcProperty.notes && qcProperty.notes.length > 0
+                                            ? qcProperty.notes.map((note, index) => (
+                                                  <div
+                                                      key={index}
+                                                      className='border-b border-gray-100 pb-3 last:border-b-0'
+                                                  >
+                                                      <div className='flex items-center gap-2 mb-2'>
+                                                          <span className='font-medium text-sm text-gray-900'>
+                                                              {note.kamName}
+                                                          </span>
+                                                          <span className='text-xs text-gray-500'>
+                                                              on {formatDate(note.timestamp)}
+                                                          </span>
+                                                      </div>
+                                                      <p className='text-sm text-gray-600 leading-relaxed'>
+                                                          {note.details}
+                                                      </p>
+                                                  </div>
+                                              ))
+                                            : notes.map((note) => (
+                                                  <div
+                                                      key={note.id}
+                                                      className='border-b border-gray-100 pb-3 last:border-b-0'
+                                                  >
+                                                      <div className='flex items-center gap-2 mb-2'>
+                                                          <span className='font-medium text-sm text-gray-900'>
+                                                              {note.author}
+                                                          </span>
+                                                          <span className='text-xs text-gray-500'>on {note.date}</span>
+                                                      </div>
+                                                      <p className='text-sm text-gray-600 leading-relaxed'>
+                                                          {note.content}
+                                                      </p>
+                                                  </div>
+                                              ))}
                                     </div>
                                 </div>
                             </div>

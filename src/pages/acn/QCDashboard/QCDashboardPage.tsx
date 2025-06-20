@@ -12,105 +12,187 @@ import {
     getInventoryFacets,
     type InventorySearchParams,
     type InventorySearchResponse,
+    getTotalProjectsByStage,
 } from '../../../services/acn/qc/algoliaQcInventoryService'
-// Removed dummy data imports
 import resetic from '/icons/acn/rotate-left.svg'
 import verifyIcon from '/icons/acn/verify.svg'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import type { IQCInventory } from '../../../data_types/acn/types'
+import MultiSelectDropdown from '../../../components/design-elements/MultiSelectDropdown'
 
-// Define types locally instead of importing from dummy data
+// Define types locally with proper type safety
 export type QCReviewStatus = 'pending' | 'approved' | 'duplicate' | 'primary' | 'reject'
-
-export interface QCProperty {
-    id: string
-    projectName: string
-    assetType: string
-    phoneNumber: string
-    agent: string
-    sbua: string
-    plotSize: string
-    price: string
-    micromarket: string
-    kamReviewed: QCReviewStatus
-    dataReviewed: QCReviewStatus
-    kam: string
-    kamReviewDate?: string
-    dataReviewDate?: string
-    createdDate: string
-    stage?: string
-    status?: string
-}
-
 type TabType = 'kam' | 'data' | 'notApproved'
 
 const QCDashboardPage = () => {
     const [activeTab, setActiveTab] = useState<TabType>('kam')
     const [searchValue, setSearchValue] = useState('')
-    const [selectedKAM, setSelectedKAM] = useState('INT004')
     const [selectedSort, setSelectedSort] = useState('')
-    const [selectedAssetType, setSelectedAssetType] = useState<string[]>([])
     const [currentPage, setCurrentPage] = useState(0) // Algolia uses 0-based pagination
-    const [qcData, setQcData] = useState<QCProperty[]>([])
+    const [qcData, setQcData] = useState<IQCInventory[]>([])
     const [loading, setLoading] = useState(false)
     const [totalHits, setTotalHits] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
     const [facets, setFacets] = useState<Record<string, { value: string; count: number }[]>>({})
     const [kamCounts, setKamCounts] = useState({ kam: 0, data: 0, notApproved: 0 })
+    const [selectedKAM, setSelectedKAM] = useState<string[]>(['INT104'])
+    const [selectedAssetType, setSelectedAssetType] = useState<string[]>(['all'])
+    const [selectedStage, setSelectedStage] = useState<string[]>(['all'])
+    const [selectedKamStatus, setSelectedKamStatus] = useState<string[]>(['all'])
+
+    const [stageCounts, setStageCounts] = useState<Record<string, number>>({})
+
+    const fetchStageCounts = async () => {
+        try {
+            const counts = await getTotalProjectsByStage()
+            setStageCounts(counts)
+        } catch (error) {
+            console.error('Error fetching stage counts:', error)
+            setStageCounts({})
+        }
+    }
 
     const navigate = useNavigate()
-    // Items per page
     const ITEMS_PER_PAGE = 50
+    const DEFAULT_KAM_ID = 'INT103'
 
-    // Default KAM ID - you may want to get this from user context or props
-    const DEFAULT_KAM_ID = 'INT001' // Replace with actual KAM ID logic
-
-    // Transform Algolia data to QCProperty format
-    const transformAlgoliaData = (hits: any[]): QCProperty[] => {
-        console.log('hidsst', hits)
+    // Enhanced data transformation with proper nested structure handling
+    const transformAlgoliaData = (hits: any[]): IQCInventory[] => {
         return hits.map((hit, index) => ({
-            id: hit.objectID || `QC${index.toString().padStart(4, '0')}`,
-            projectName: hit.nameOfTheProperty || hit.project_name || 'N/A',
-            assetType: hit.assetType || hit.asset_type || 'N/A',
-            phoneNumber: hit.phoneNumber || hit.phone_number || 'N/A',
-            agent: hit.agent || hit.agent_name || 'N/A',
-            sbua: hit.sbua || hit.built_up_area || 'N/A',
-            plotSize: hit.plotSize || hit.plot_size || 'N/A',
-            price: hit.price || 'N/A',
+            propertyId: hit.propertyId || hit.objectID || `QC${index.toString().padStart(4, '0')}`,
+            propertyName: hit.propertyName || hit.project_name || 'N/A',
+            unitNo: hit.unitNo || 'N/A',
+            path: hit.path || 'N/A',
+            _geoloc: hit._geoloc || { lat: 0, lng: 0 },
+            address: hit.address || 'N/A',
+            area: hit.area || 'N/A',
             micromarket: hit.micromarket || hit.micro_market || 'N/A',
-            kamReviewed: (hit.kamReviewed || hit.kam_reviewed || 'pending') as QCReviewStatus,
-            dataReviewed: (hit.dataReviewed || hit.data_reviewed || 'pending') as QCReviewStatus,
-            kam: hit.kam || hit.kam_name || 'N/A',
-            kamReviewDate: hit.kamReviewDate || hit.kam_review_date,
-            dataReviewDate: hit.dataReviewDate || hit.data_review_date,
-            createdDate: hit.createdDate || hit.created_date || new Date().toLocaleDateString(),
-            stage: hit.stage || 'kam',
-            status: hit.status || 'active',
+            mapLocation: hit.mapLocation || 'N/A',
+            assetType: (hit.assetType || hit.asset_type || 'apartment') as
+                | 'villa'
+                | 'apartment'
+                | 'plot'
+                | 'commercial'
+                | 'warehouse'
+                | 'office',
+            unitType: (hit.unitType || '1 bhk') as '1 bhk' | '2 bhk' | '3 bhk' | '4 bhk' | '5+ bhk',
+            subType: hit.subType || 'N/A',
+            communityType: (hit.communityType || 'gated') as 'gated' | 'open' | 'independent',
+            sbua: hit.sbua || hit.built_up_area || 0,
+            carpet: hit.carpet || 0,
+            plotSize: hit.plotSize || hit.plot_size || 0,
+            uds: hit.uds || 0,
+            structure: hit.structure || 0,
+            buildingAge: hit.buildingAge || 0,
+            floorNo: hit.floorNo || 0,
+            exactFloor: hit.exactFloor || 0,
+            facing: (hit.facing || 'north') as
+                | 'north'
+                | 'south'
+                | 'east'
+                | 'west'
+                | 'northeast'
+                | 'northwest'
+                | 'southeast'
+                | 'southwest',
+            plotFacing: (hit.plotFacing || 'north') as 'north' | 'south' | 'east' | 'west',
+            balconyFacing: (hit.balconyFacing || 'north') as 'north' | 'south' | 'east' | 'west' | 'outside',
+            noOfBalconies: hit.noOfBalconies || 'N/A',
+            noOfBathrooms: hit.noOfBathrooms || 'N/A',
+            carPark: hit.carPark || 0,
+            cornerUnit: hit.cornerUnit || false,
+            extraRoom: hit.extraRoom || [],
+            furnishing: (hit.furnishing || 'unfurnished') as 'fullFurnished' | 'semiFurnished' | 'unfurnished',
+            totalAskPrice: hit.totalAskPrice || 0,
+            askPricePerSqft: hit.askPricePerSqft || 0,
+            priceHistory: hit.priceHistory || [],
+            rentalIncome: hit.rentalIncome || 0,
+            status: hit.status,
+            currentStatus: (hit.currentStatus || 'ready to move') as
+                | 'ready to move'
+                | 'under construction'
+                | 'new launch',
+            exclusive: hit.exclusive || false,
+            tenanted: hit.tenanted || false,
+            eKhata: hit.eKhata || false,
+            buildingKhata: hit.buildingKhata || 'N/A',
+            landKhata: hit.landKhata || 'N/A',
+            ocReceived: hit.ocReceived || false,
+            bdaApproved: hit.bdaApproved || false,
+            biappaApproved: hit.biappaApproved || false,
+            stage: hit.stage || 'data',
+            qcStatus: (hit.qcStatus || 'duplicate') as 'approved' | 'pending' | 'rejected' | 'duplicate' | 'primary',
+            qcReview: {
+                type: hit.qcReview?.type || hit.type || 'duplicate',
+                rejectedFields: hit.qcReview?.rejectedFields || [],
+                qcNote: hit.qcReview?.qcNote || hit.qcNote || '',
+                originalPropertyId: hit.qcReview?.originalPropertyId || hit.originalPropertyId || '',
+                kamReview: {
+                    status: hit.qcReview?.kamReview?.status || 'approved',
+                    reviewedBy: hit.qcReview?.kamReview?.reviewedBy || hit.kamName || 'N/A',
+                    reviewDate: hit.qcReview?.kamReview?.reviewDate || 0,
+                    comments: hit.qcReview?.kamReview?.comments || '',
+                },
+                dataReview: {
+                    status: hit.qcReview?.dataReview?.status || 'duplicate',
+                    reviewedBy: hit.qcReview?.dataReview?.reviewedBy || 'N/A',
+                    reviewDate: hit.qcReview?.dataReview?.reviewDate || 0,
+                    comments: hit.qcReview?.dataReview?.comments || '',
+                },
+            },
+            kamStatus: (hit.kamStatus || 'approved') as 'approved' | 'pending' | 'rejected',
+            cpId: hit.cpId || hit.agent_name || 'N/A',
+            cpPhone: hit.cpPhone || '',
+            kamName: hit.kamName || hit.kam_name || 'N/A',
+            kamId: hit.kamId || 'N/A',
+            handoverDate: hit.handoverDate || 0,
+            photo: hit.photo || [],
+            video: hit.video || [],
+            document: hit.document || [],
+            driveLink: hit.driveLink || 'N/A',
+            noOfEnquiries: hit.noOfEnquiries || 0,
+            dateOfInventoryAdded: hit.dateOfInventoryAdded || 0,
+            lastModified: hit.lastModified || 0,
+            dateOfStatusLastChecked: hit.dateOfStatusLastChecked || 0,
+            ageOfInventory: hit.ageOfInventory || 0,
+            ageOfStatus: hit.ageOfStatus || 0,
+            qcHistory: hit.qcHistory || [],
+            extraDetails: hit.extraDetails || 'N/A',
+            __position2: hit.__position2 || 0,
+            _highlightResult: hit._highlightResult || {},
+            notes: hit.notes,
+            price: hit.price,
+            pricePerSqft: hit.pricePerSqft,
+            city: hit.city,
+            state: hit.state,
         }))
     }
 
-    // Get stage filters based on active tab
+    // Get stage filters based on active tab - updated to match data structure
     const getStageFilters = (): string[] => {
         switch (activeTab) {
             case 'kam':
-                return ['kam'] // KAM review pending
+                return ['kam']
             case 'data':
-                return ['dataTeam'] // KAM approved, data review pending
+                return ['data'] // Updated to match your data structure
             case 'notApproved':
-                return ['kam', 'dataTeam'] // Not approved statuses
+                return ['notApproved']
             default:
                 return ['kam']
         }
     }
 
-    // Fetch QC data from Algolia only
+    // Fetch QC data with enhanced error handling
     const fetchQCData = async () => {
         setLoading(true)
         try {
             const searchParams: InventorySearchParams = {
                 query: searchValue,
                 filters: {
-                    kamId: [selectedKAM],
+                    kamId: selectedKAM.includes('all') ? undefined : selectedKAM,
                     stage: getStageFilters(),
-                    assetType: selectedAssetType && selectedAssetType.length > 0 ? selectedAssetType : undefined,
+                    assetType: selectedAssetType.includes('all') ? undefined : selectedAssetType,
+                    KamStatus: selectedKamStatus.includes('all') ? undefined : selectedKamStatus,
                 },
                 page: currentPage,
                 hitsPerPage: ITEMS_PER_PAGE,
@@ -118,14 +200,12 @@ const QCDashboardPage = () => {
             }
 
             const response: InventorySearchResponse = await searchInventory(searchParams)
-
             const transformedData = transformAlgoliaData(response.hits)
             setQcData(transformedData)
             setTotalHits(response.nbHits)
             setTotalPages(response.nbPages)
         } catch (error) {
             console.error('Error fetching QC data from Algolia:', error)
-            // Set empty data on error instead of using dummy data
             setQcData([])
             setTotalHits(0)
             setTotalPages(0)
@@ -134,16 +214,16 @@ const QCDashboardPage = () => {
         }
     }
 
-    // Removed dummy data fallback function
-
-    // Fetch counts for each tab from Algolia only
+    // Fetch tab counts with proper stage filtering
     const fetchTabCounts = async () => {
         try {
+            const kamFilter = selectedKAM.includes('all') ? undefined : selectedKAM
+
             const [kamResponse, dataResponse, notApprovedResponse] = await Promise.all([
                 searchInventory({
                     query: '',
                     filters: {
-                        kamId: [DEFAULT_KAM_ID],
+                        kamId: kamFilter,
                         stage: ['kam'],
                     },
                     hitsPerPage: 0,
@@ -151,17 +231,16 @@ const QCDashboardPage = () => {
                 searchInventory({
                     query: '',
                     filters: {
-                        kamId: [DEFAULT_KAM_ID],
-                        stage: ['dataTeam'],
+                        kamId: kamFilter,
+                        stage: ['data'],
                     },
                     hitsPerPage: 0,
                 }),
                 searchInventory({
                     query: '',
                     filters: {
-                        kamId: [DEFAULT_KAM_ID],
-                        stage: ['kam', 'dataTeam'],
-                        KamStatus: ['rejected'],
+                        kamId: kamFilter,
+                        stage: ['notApproved'],
                     },
                     hitsPerPage: 0,
                 }),
@@ -174,7 +253,6 @@ const QCDashboardPage = () => {
             })
         } catch (error) {
             console.error('Error fetching tab counts:', error)
-            // Set zero counts on error instead of using dummy data
             setKamCounts({
                 kam: 0,
                 data: 0,
@@ -187,34 +265,48 @@ const QCDashboardPage = () => {
     const fetchFacets = async () => {
         try {
             const facetsData = await getInventoryFacets()
-
-            console.log('filete data', facetsData)
+            console.log('filter data', facetsData)
             setFacets(facetsData)
         } catch (error) {
             console.error('Error fetching facets:', error)
         }
     }
 
-    // Initial data fetch
+    // Effect hooks for data fetching
     useEffect(() => {
         fetchTabCounts()
         fetchFacets()
+        fetchStageCounts()
     }, [])
 
-    // Immediate data fetch when filters change (no debounce)
     useEffect(() => {
         fetchQCData()
     }, [activeTab, searchValue, selectedKAM, selectedSort, selectedAssetType, currentPage])
 
-    // Reset to first page when changing tabs or filters
     useEffect(() => {
         setCurrentPage(0)
     }, [activeTab, searchValue, selectedKAM, selectedSort, selectedAssetType])
 
     // Generate dropdown options from facets
     const kamOptions = [
-        { label: 'All KAMs', value: '' },
+        { label: 'All KAMs', value: 'all' },
         ...(facets.kamId || []).map((facet) => ({
+            label: `${facet.value} (${facet.count})`,
+            value: facet.value,
+        })),
+    ]
+
+    const assetTypeOptions = [
+        { label: 'All Asset Types', value: 'all' },
+        ...(facets.assetType || []).map((facet) => ({
+            label: `${facet.value} (${facet.count})`,
+            value: facet.value.toLowerCase(),
+        })),
+    ]
+
+    const kamStatusOptions = [
+        { label: 'All Statuses', value: 'all' },
+        ...(facets.KamStatus || []).map((facet) => ({
             label: `${facet.value} (${facet.count})`,
             value: facet.value,
         })),
@@ -229,44 +321,8 @@ const QCDashboardPage = () => {
         { label: 'Recently Updated', value: 'updated_desc' },
     ]
 
-    const assetTypeOptions = [
-        { label: 'All Asset Types', value: '' },
-        ...(facets.assetType || []).map((facet) => ({
-            label: `${facet.value} (${facet.count})`,
-            value: facet.value.toLowerCase(),
-        })),
-    ]
-
-    // Review status options for dropdowns
-    // const getReviewStatusOptions = (isKamReview: boolean): DropdownOption[] => [
-    //     {
-    //         label: 'Approved',
-    //         value: 'approved',
-    //         color: '#E1F6DF',
-    //         textColor: '#065F46',
-    //     },
-    //     {
-    //         label: 'Duplicate',
-    //         value: 'duplicate',
-    //         color: '#FFF3CD',
-    //         textColor: '#B45309',
-    //     },
-    //     {
-    //         label: 'Primary',
-    //         value: 'primary',
-    //         color: '#E0F2FE',
-    //         textColor: '#0369A1',
-    //     },
-    //     {
-    //         label: 'Reject',
-    //         value: 'reject',
-    //         color: '#FEECED',
-    //         textColor: '#991B1B',
-    //     },
-    // ]
-
-    // Status badge component
-    const StatusBadge = ({ status }: { status: QCReviewStatus }) => {
+    // Enhanced StatusBadge component with proper null handling
+    const StatusBadge = ({ status }: { status: QCReviewStatus | undefined }) => {
         const getStatusColors = () => {
             switch (status) {
                 case 'approved':
@@ -285,6 +341,7 @@ const QCDashboardPage = () => {
         }
 
         const getDisplayText = () => {
+            if (!status) return 'N/A'
             return status.charAt(0).toUpperCase() + status.slice(1)
         }
 
@@ -297,31 +354,70 @@ const QCDashboardPage = () => {
         )
     }
 
+    const handleKamSelection = (value: string) => {
+        if (value === 'all') {
+            setSelectedKAM(['all'])
+        } else {
+            setSelectedKAM((prev) => {
+                const filtered = prev.filter((v) => v !== 'all')
+                if (filtered.includes(value)) {
+                    const newSelection = filtered.filter((v) => v !== value)
+                    return newSelection.length === 0 ? ['all'] : newSelection
+                } else {
+                    return [...filtered, value]
+                }
+            })
+        }
+    }
+
+    const handleAssetTypeSelection = (value: string) => {
+        if (value === 'all') {
+            setSelectedAssetType(['all'])
+        } else {
+            setSelectedAssetType((prev) => {
+                const filtered = prev.filter((v) => v !== 'all')
+                if (filtered.includes(value)) {
+                    const newSelection = filtered.filter((v) => v !== value)
+                    return newSelection.length === 0 ? ['all'] : newSelection
+                } else {
+                    return [...filtered, value]
+                }
+            })
+        }
+    }
+
     // Base columns for kam and data tabs
     const getBaseColumns = (): TableColumn[] => [
         {
-            key: 'projectName',
+            key: 'propertyName',
             header: 'Project Name/Location',
+            render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
+        },
+        {
+            key: 'kamId',
+            header: 'Kam',
             render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
         },
         {
             key: 'assetType',
             header: 'Asset type',
             render: (value) => (
-                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                    {toCapitalizedWords(value)}
+                </span>
             ),
         },
         {
-            key: 'phoneNumber',
+            key: 'cpId',
+            header: 'Agent',
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+        },
+        {
+            key: 'cpPhone',
             header: 'Phone Number',
             render: (value) => (
                 <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
             ),
-        },
-        {
-            key: 'agent',
-            header: 'Agent',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
             key: 'sbua',
@@ -334,7 +430,7 @@ const QCDashboardPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
-            key: 'price',
+            key: 'totalAskPrice',
             header: 'Price',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
@@ -353,9 +449,8 @@ const QCDashboardPage = () => {
                     <button
                         className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
                         onClick={() => {
-                            navigate(`/acn/qc/${row.id}/details`)
+                            navigate(`/acn/qc/${row.propertyId}/details`)
                         }}
-                        title='Verify'
                     >
                         <img src={verifyIcon} alt='Verify Icon' className='w-7 h-7 flex-shrink-0' />
                     </button>
@@ -364,29 +459,34 @@ const QCDashboardPage = () => {
         },
     ]
 
-    // Columns for not approved tab (includes review status columns)
+    // Enhanced columns for not approved tab with proper nested data access
     const getNotApprovedColumns = (): TableColumn[] => [
-        ...getBaseColumns().slice(0, -2), // Remove micromarket and actions columns temporarily
+        ...getBaseColumns().slice(0, -2),
         {
-            key: 'kamReviewed',
+            key: 'qcReview.kamReview',
             header: 'Kam Review',
-            render: (value) => (
-                <div className='whitespace-nowrap w-auto'>
-                    <StatusBadge status={value as QCReviewStatus} />
-                </div>
-            ),
+            render: (value, row) => {
+                const kamStatus = row.status || row.kamStatus || 'pending'
+                return (
+                    <div className='whitespace-nowrap w-auto'>
+                        <StatusBadge status={kamStatus as QCReviewStatus} />
+                    </div>
+                )
+            },
         },
         {
-            key: 'kam',
-            header: 'Kam',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            key: 'qcReview',
+            header: 'Reviewed By',
+            render: (value, row) => {
+                const reviewedBy = row.qcReview?.kamReview?.reviewedBy || row.kamName || 'N/A'
+                return <span className='whitespace-nowrap text-sm font-normal w-auto'>{reviewedBy}</span>
+            },
         },
         {
             key: 'micromarket',
             header: 'Micromarket',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
-        // Add actions column back
         getBaseColumns()[getBaseColumns().length - 1],
     ]
 
@@ -399,9 +499,21 @@ const QCDashboardPage = () => {
 
     // Calculate metrics from current data
     const QCMetrics = [
-        { label: 'Total Leads', value: totalHits },
-        { label: 'Total Properties', value: totalHits },
+        { label: 'Kam QC Pending', value: stageCounts.kam },
+        { label: 'Data QC Pending', value: stageCounts.data },
     ]
+
+    useEffect(() => {
+        fetchQCData()
+    }, [activeTab, searchValue, selectedKAM, selectedSort, selectedAssetType, selectedKamStatus, currentPage])
+
+    useEffect(() => {
+        setCurrentPage(0)
+    }, [activeTab, searchValue, selectedKAM, selectedSort, selectedAssetType, selectedKamStatus])
+
+    useEffect(() => {
+        fetchTabCounts()
+    }, [selectedKAM]) // Add this to update counts when KAM filter changes
 
     return (
         <Layout loading={loading}>
@@ -448,9 +560,10 @@ const QCDashboardPage = () => {
                                 className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors'
                                 onClick={() => {
                                     setSearchValue('')
-                                    setSelectedKAM('')
+                                    setSelectedKAM(['all'])
                                     setSelectedSort('')
-                                    setSelectedAssetType([])
+                                    setSelectedAssetType(['all'])
+                                    setSelectedKamStatus(['all'])
                                     setCurrentPage(0)
                                 }}
                                 title='Reset Filters'
@@ -458,7 +571,7 @@ const QCDashboardPage = () => {
                                 <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
                             </button>
 
-                            {/* Tab Selection */}
+                            {/* Tab Selection with counts */}
                             <div className='flex items-center bg-gray-100 rounded-md p-1 h-8'>
                                 <button
                                     onClick={() => setActiveTab('kam')}
@@ -468,7 +581,7 @@ const QCDashboardPage = () => {
                                             : 'text-gray-600 hover:text-black'
                                     }`}
                                 >
-                                    Kam Review ({kamCounts.kam})
+                                    Kam Review
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('data')}
@@ -478,7 +591,7 @@ const QCDashboardPage = () => {
                                             : 'text-gray-600 hover:text-black'
                                     }`}
                                 >
-                                    Data Review ({kamCounts.data})
+                                    Data Review
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('notApproved')}
@@ -488,19 +601,41 @@ const QCDashboardPage = () => {
                                             : 'text-gray-600 hover:text-black'
                                     }`}
                                 >
-                                    Not Approved ({kamCounts.notApproved})
+                                    Not Approved
                                 </button>
                             </div>
 
-                            <Dropdown
+                            <MultiSelectDropdown
                                 options={kamOptions}
-                                onSelect={setSelectedKAM}
-                                defaultValue={selectedKAM}
-                                placeholder='KAM'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                selectedValues={selectedKAM}
+                                onSelectionChange={setSelectedKAM}
+                                placeholder='All KAMs'
+                                displaySelected={(selected) =>
+                                    selected.includes('all')
+                                        ? 'All KAMs'
+                                        : selected.length === 1
+                                          ? kamOptions.find((opt) => opt.value === selected[0])?.label || selected[0]
+                                          : `${selected.length} KAMs`
+                                }
+                                className='relative inline-block min-w-[120px]'
+                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer h-8'
+                            />
+
+                            <MultiSelectDropdown
+                                options={assetTypeOptions}
+                                selectedValues={selectedAssetType}
+                                onSelectionChange={setSelectedAssetType}
+                                placeholder='All Types'
+                                displaySelected={(selected) =>
+                                    selected.includes('all')
+                                        ? 'All Types'
+                                        : selected.length === 1
+                                          ? assetTypeOptions.find((opt) => opt.value === selected[0])?.label ||
+                                            selected[0]
+                                          : `${selected.length} Types`
+                                }
+                                className='relative inline-block min-w-[120px]'
+                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer h-8'
                             />
 
                             <Dropdown
@@ -508,17 +643,6 @@ const QCDashboardPage = () => {
                                 onSelect={setSelectedSort}
                                 defaultValue={selectedSort}
                                 placeholder='Sort By'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                            />
-
-                            <Dropdown
-                                options={assetTypeOptions}
-                                onSelect={(value) => setSelectedAssetType([value])}
-                                defaultValue={selectedAssetType[0]}
-                                placeholder='Asset Type'
                                 className='relative inline-block'
                                 triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
                                 menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'

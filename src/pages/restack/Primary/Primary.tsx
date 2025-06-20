@@ -1,8 +1,7 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
@@ -12,14 +11,59 @@ import type { RootState } from '../../../store'
 import type { AppDispatch } from '../../../store'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import type { PrimaryProperty } from '../../../data_types/restack/restack-primary'
+import { setSortBy } from '../../../store/reducers/restack/primaryProperties'
 
 const PrimaryPage = () => {
     const dispatch = useDispatch<AppDispatch>()
-    const { properties, loading, error, filter } = useSelector((state: RootState) => state.primaryProperties)
+    const { properties, loading, error, filter, sortBy } = useSelector((state: RootState) => state.primaryProperties)
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const navigate = useNavigate()
     const ITEMS_PER_PAGE = 50
+
+    // SortFilter component
+    const SortFilter = () => {
+        const [isOpen, setIsOpen] = useState(false)
+        const sortOptions = [
+            { label: 'Sort', value: '' },
+            { label: 'Project Name A-Z', value: 'name_asc' },
+            { label: 'Project Name Z-A', value: 'name_desc' },
+            { label: 'Status: Active First', value: 'status_asc' },
+            { label: 'Status: Completed First', value: 'status_desc' },
+            { label: 'Start Date: Newest', value: 'date_desc' },
+            { label: 'Start Date: Oldest', value: 'date_asc' },
+        ]
+
+        return (
+            <div className='relative inline-block'>
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
+                >
+                    <span>Sort</span>
+                    <svg className='w-4 h-4 ml-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+                    </svg>
+                </button>
+
+                {isOpen && (
+                    <div className='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'>
+                        {sortOptions.map((option) => (
+                            <div
+                                key={option.value}
+                                className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md text-gray-700`}
+                                onClick={() => {
+                                    setIsOpen(false)
+                                }}
+                            >
+                                {option.label}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )
+    }
 
     // Fetch properties on component mount
     useEffect(() => {
@@ -149,6 +193,15 @@ const PrimaryPage = () => {
                         <div className='flex items-center justify-between mb-4'>
                             <h1 className='text-xl font-semibold text-gray-900'>Primary</h1>
                             <div className='flex items-center gap-4'>
+                                <SortFilter />
+                                <button
+                                    className='px-3 py-1 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    onClick={() => {
+                                        // Add filter functionality here
+                                    }}
+                                >
+                                    Filter
+                                </button>
                                 <div className='w-80'>
                                     <StateBaseTextField
                                         leftIcon={
