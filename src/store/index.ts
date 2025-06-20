@@ -46,6 +46,9 @@ interface AgentsState {
     connectHistoryLoading: boolean
     connectHistoryError: string | null
     currentAgentConnectHistory: any[]
+    notesLoading: boolean
+    notesError: string | null
+    agentNotes: Record<string, any[]>
 }
 
 const persistConfig = {

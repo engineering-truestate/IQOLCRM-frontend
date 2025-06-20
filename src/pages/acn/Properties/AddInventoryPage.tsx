@@ -620,10 +620,8 @@ const AddEditInventoryPage = () => {
                                 key={type.value}
                                 onClick={() => setSelectedAssetType(type.value)}
                                 disabled={isPropertyEdit || isQCEdit}
-                                className={`p-4 rounded-lg border-2 transition-all duration-200 text-left flex items-center gap-x-3 ${
-                                    selectedAssetType === type.value
-                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                                className={`p-4 rounded-lg border-1 transition-all duration-200 text-left flex items-center gap-x-3 ${
+                                    selectedAssetType === type.value ? 'bg-[#DFF4F3]' : 'bg-whiye text-gray-700'
                                 } ${isPropertyEdit || isQCEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <img src={type.icon} alt={type.label} className='text-2xl' />

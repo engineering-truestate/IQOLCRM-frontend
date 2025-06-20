@@ -86,7 +86,7 @@ const Dropdown = ({
 
     return (
         <div
-            className={`${className || defaultContainerClass} flex flex-col`}
+            className={`${className || defaultContainerClass} flex flex-col relative`}
             tabIndex={0}
             ref={dropdownRef}
             onKeyDown={handleKeyDown}

@@ -3,6 +3,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import { addNoteToLead, fetchLeadWithNotes } from '../../services/acn/leads/leadsService'
 import { selectNotesByLeadId, selectNotesLoading } from '../../store/reducers/acn/leadsReducers'
 import type { AppDispatch, RootState } from '../../store'
+import copyIcon from '../../../public/icons/acn/copy-icon.svg'
+import cross from '../../../public/icons/acn/cross.svg'
+import note from '../../../public/icons/acn/note.svg'
 
 interface NotesModalProps {
     isOpen: boolean
@@ -84,104 +87,63 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
     return (
         <>
             {/* Very light overlay - only covers left 60% */}
-            <div className='fixed top-0 left-0 w-[60%] h-full bg-black opacity-50 z-40' onClick={onClose} />
+            <div className='fixed top-0 left-0 w-[65%] h-full bg-black opacity-50 z-40' onClick={onClose} />
 
             {/* Modal */}
-            <div className='fixed top-0 right-0 h-full w-[40%] bg-white z-50 shadow-2xl border-l border-gray-200'>
-                <div className='flex flex-col h-full'>
+            <div className='fixed top-0 right-0 h-full w-[35%] bg-white z-50 shadow-2xl border-l border-gray-200'>
+                <div className='flex flex-col h-full px-4 py-2 '>
                     {/* Header */}
-                    <div className='p-6 border-b border-gray-200'>
-                        <div className='flex items-start justify-between'>
-                            <div className='flex-1'>
-                                <div className='text-sm text-gray-500 mb-1'>{rowData.leadId}</div>
-                                <h2 className='text-xl font-semibold text-gray-900 mb-2'>{rowData.name}</h2>
-                                <div className='flex flex-wrap gap-2 text-xs'>
-                                    <span className='px-2 py-1 bg-blue-100 text-blue-800 rounded'>
-                                        {rowData.leadStatus}
-                                    </span>
-                                    <span className='px-2 py-1 bg-green-100 text-green-800 rounded'>
-                                        {rowData.contactStatus}
-                                    </span>
-                                    {rowData.kamName && (
-                                        <span className='px-2 py-1 bg-purple-100 text-purple-800 rounded'>
-                                            KAM: {rowData.kamName}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
+                    <div className='flex items-start justify-between border-b border-gray-200'>
+                        <div className='flex-1 py-4'>
+                            <div className='text-sm mb-2'>{rowData.leadId}</div>
+                            <h2 className='text-xl font-bold text-gray-900'>{rowData.name}</h2>
+                        </div>
+                        <div className='flex flex-col items-end p-2'>
+                            <button onClick={onClose} className='bg-gray-200 rounded-full cursor-pointer mb-3'>
+                                <img src={cross} alt='Icon' className='w-7 h-7' />
+                            </button>
 
-                            <div className='flex flex-col items-end'>
-                                <button onClick={onClose} className='pb-2 hover:bg-gray-100 rounded-md'>
-                                    <svg
-                                        className='w-5 h-5 text-gray-400'
-                                        fill='none'
-                                        stroke='currentColor'
-                                        viewBox='0 0 24 24'
-                                    >
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M6 18L18 6M6 6l12 12'
-                                        />
-                                    </svg>
-                                </button>
-
+                            <div className='flex items-center gap-2'>
                                 <button
                                     onClick={() => navigator.clipboard.writeText(rowData.phonenumber)}
-                                    className='flex items-center gap-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm text-gray-700 transition-colors'
+                                    className='flex items-center p-1 bg-gray-200 hover:bg-gray-300 rounded-md text-sm text-gray-700 transition-colors cursor-pointer'
                                 >
-                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z'
-                                        />
-                                    </svg>
-                                    {rowData.phonenumber}
+                                    <img src={copyIcon} alt='Copy' className='w-4 h-4' />
                                 </button>
+                                <span className='text-sm text-black'>{rowData.phonenumber}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Notes Section */}
-                    <div className='flex-1 p-6 overflow-y-auto'>
+                    <div className='flex-1 pr-1 overflow-y-auto'>
                         {/* Internal Notes Section */}
-                        <div className='mb-8'>
-                            <h3 className='text-lg font-medium text-gray-900 mb-4'>Internal Notes</h3>
+                        <div className='mb-4 px-4 pt-7 pb-8'>
+                            <h3 className='text-base font-semibold text-gray-900 mb-4'>Internal Notes</h3>
                             <div className='relative'>
                                 <textarea
                                     value={internalNote}
                                     onChange={(e) => setInternalNote(e.target.value)}
                                     className='w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
-                                    placeholder='Add your internal notes here...'
                                 />
                                 <button
                                     onClick={handleAddNote}
                                     disabled={!internalNote.trim() || notesLoading}
-                                    className='absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors'
+                                    className='absolute right-0 mt-2 flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-200  text-blackdisabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors'
                                 >
                                     {notesLoading ? (
                                         <div className='w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin' />
                                     ) : (
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M12 6v6m0 0v6m0-6h6m-6 0H6'
-                                            />
-                                        </svg>
+                                        <img src={note} alt='Copy' className='w-4 h-4' />
                                     )}
-                                    Add Note
+                                    <span>Add Note</span>
                                 </button>
                             </div>
                         </div>
 
                         {/* Notes History Section */}
                         <div>
-                            <h3 className='text-lg font-medium text-gray-900 mb-6'>Notes ({notes.length})</h3>
+                            <h3 className='text-base font-semibold text-gray-900 mb-6'>Notes </h3>
 
                             {notesLoading && notes.length === 0 ? (
                                 <div className='flex justify-center py-8'>
@@ -193,13 +155,7 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
                                 <div className='space-y-6'>
                                     {notes.map((note, index) => (
                                         <div key={`${note.timestamp}-${index}`} className='space-y-3'>
-                                            <div className='flex justify-between items-center'>
-                                                <div className='flex items-center gap-2'>
-                                                    {/* <span className={`px-2 py-1 rounded text-xs font-medium ${getSourceBadge(note.source)}`}>
-                                                        {note.source}
-                                                    </span> */}
-                                                    <span className='text-xs text-gray-500'>by {note.kamId}</span>
-                                                </div>
+                                            <div className='flex justify-end items-center'>
                                                 <div className='text-xs text-gray-400'>
                                                     {formatTimestamp(note.timestamp)}
                                                 </div>
@@ -218,14 +174,14 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
 
                     {/* Footer */}
                     <div className='p-6 border-t border-gray-200'>
-                        <div className='flex justify-between items-center'>
-                            <div className='text-sm text-gray-500'>
+                        <div className='flex justify-end items-center'>
+                            {/* <div className='text-sm text-gray-500'>
                                 Last tried:{' '}
                                 {rowData.lastTried ? new Date(rowData.lastTried).toLocaleDateString() : 'Never'}
-                            </div>
+                            </div> */}
                             <button
                                 onClick={onClose}
-                                className='px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors'
+                                className='px-4 py-2 text-gray-600 bg-gray-200 text-sm font-medium transition-colors rounded-sm'
                             >
                                 Close
                             </button>

@@ -127,7 +127,8 @@ const agentsSlice = createSlice({
             })
             .addCase(addCallResultToAgent.fulfilled, (state, action) => {
                 state.loading = false
-                state.currentAgentConnectHistory = action.payload.contactHistory
+                // If action.payload is a single object, push it to the array
+                state.currentAgentConnectHistory.push(action.payload)
             })
             .addCase(addCallResultToAgent.rejected, (state, action) => {
                 state.loading = false
