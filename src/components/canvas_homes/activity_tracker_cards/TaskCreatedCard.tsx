@@ -1,0 +1,51 @@
+import React from 'react'
+
+const formatTime = (timestamp) => {
+    if (!timestamp) return ''
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true,
+    })
+}
+
+const formatDateTime = (timestamp) => {
+    if (!timestamp) return ''
+    const date = new Date(timestamp)
+    return (
+        date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        }) +
+        ' | ' +
+        formatTime(timestamp)
+    )
+}
+
+const TaskCreatedCard = ({ activity }) => {
+    const { activityType = 'Task Created', timestamp = '', agentName = '', data = {} } = activity || {}
+
+    const { taskType = '', scheduledDate = '' } = data || {}
+
+    return (
+        <div className='bg-white shadow-sm border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm px-4'>
+            <div className='flex justify-between items-start'>
+                <div className='font-semibold text-gray-800'>
+                    {activityType} <span className='text-gray-500 font-normal'>| {formatTime(timestamp)}</span>
+                </div>
+                <div className='text-gray-500 text-sm'>
+                    Agent: <span className='text-gray-700'>{agentName}</span>
+                </div>
+            </div>
+
+            <div className='mt-1 text-gray-700 font-medium '>
+                {taskType && `${taskType}`}{' '}
+                <span className='text-gray-500 font-normal'>| {formatDateTime(scheduledDate)}</span>
+            </div>
+        </div>
+    )
+}
+
+export default TaskCreatedCard

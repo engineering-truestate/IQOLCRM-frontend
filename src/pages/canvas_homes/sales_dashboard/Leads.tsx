@@ -11,6 +11,7 @@ import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
 import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
 import { useNavigate } from 'react-router-dom'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 // Status card component
 const StatusCard = ({
@@ -256,14 +257,19 @@ const Leads = () => {
         {
             key: 'name',
             header: 'Name',
-            render: (value, row) => (
-                <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
-                    <div className='text-sm font-medium text-gray-900'>{capitalizeFirst(value || row.name || '-')}</div>
-                    <div className='text-xs text-gray-500 font-normal'>
-                        {row.addedDate || `Added ${new Date(row.added).toLocaleDateString()}`}
+            render: (value, row) => {
+                const added = row.added || row.addedDate
+                const addedDateFormatted = added ? new Date(added * 1000).toLocaleDateString() : 'Unknown'
+
+                return (
+                    <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
+                        <div className='text-sm font-medium text-gray-900'>
+                            {capitalizeFirst(value || row.name || '-')}
+                        </div>
+                        <div className='text-xs text-gray-500 font-normal'>Added {addedDateFormatted}</div>
                     </div>
-                </div>
-            ),
+                )
+            },
         },
         {
             key: 'propertyName',
@@ -317,24 +323,31 @@ const Leads = () => {
         {
             key: 'tag',
             header: 'Tag',
-            render: (value) => (
-                <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFEDD5] text-[#9A3412]'>
-                    <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
-                    <span className='text-sm font-normal'>{capitalizeFirst(value || '-')}</span>
-                </div>
-            ),
+            render: (value) =>
+                value ? (
+                    <div className='inline-flex items-center min-w-[68px] w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFEDD5] text-[#9A3412]'>
+                        <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
+                        <span className='text-xs font-normal'>{capitalizeFirst(value)}</span>
+                    </div>
+                ) : (
+                    <div>-</div>
+                ),
         },
         {
-            key: 'aslc',
+            key: 'lastModified',
             header: 'ASLC',
             render: (value, row) => {
-                const today = Date.now()
-                const dateToUse = row.state === 'fresh' ? row.added : row.scheduledDate
-                const daysDifference = Math.floor((today - dateToUse) / (1000 * 60 * 60 * 24))
+                const lastModified = row.lastModified
+                const today = Math.floor(Date.now() / 1000) // in seconds
+
+                let daysDifference = 0
+                if (lastModified) {
+                    daysDifference = Math.floor((today - lastModified) / (60 * 60 * 24))
+                }
 
                 return (
                     <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {daysDifference + 1 || 0} days
+                        {daysDifference} days
                     </span>
                 )
             },
@@ -344,17 +357,22 @@ const Leads = () => {
             header: 'Schedule Task',
             render: (value, row) => {
                 const taskType = capitalizeFirst(value || row?.taskType || '-')
-                const date = row.scheduledDate
-                    ? new Date(row.scheduledDate).toLocaleDateString()
-                    : row.scheduleTask?.date
-                const time = row.scheduleTask?.time
+                const scheduleUnix = row.scheduledDate || row.scheduleTask?.date
+
+                let date = ''
+                if (scheduleUnix) {
+                    const ts = typeof scheduleUnix === 'string' ? parseInt(scheduleUnix) : scheduleUnix
+                    if (!isNaN(ts)) date = new Date(ts * 1000).toLocaleDateString()
+                }
+
+                const time = row.scheduleTask?.time || ''
 
                 return (
                     <div className='flex items-center gap-3'>
                         <div>
                             <div className='text-sm font-medium text-gray-900'>{taskType}</div>
                             <div className='text-xs text-gray-500'>
-                                {date || time ? `${date || ''}${date && time ? ' | ' : ''}${time || ''}` : ''}
+                                {date || time ? `${date}${date && time ? ' | ' : ''}${time}` : '-'}
                             </div>
                         </div>
                     </div>

@@ -83,7 +83,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     <div className='font-medium text-sm text-gray-900 mb-1'>{task.scheduledInfo || 'No Info'}</div>{' '}
                     {/* Ensure scheduledInfo exists */}
                     <div className='text-xs text-gray-500'>
-                        {formatUnixDateTime(task.firebaseTask.scheduledDate) || 'Not Scheduled'}
+                        {formatUnixDateTime(task.firebaseTask.scheduledDate / 1000) || 'Not Scheduled'}
                     </div>{' '}
                     {/* Ensure scheduledDate exists */}
                 </div>

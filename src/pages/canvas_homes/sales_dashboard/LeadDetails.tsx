@@ -15,6 +15,7 @@ import google from '/icons/canvas_homes/google.svg'
 import CloseLeadSideModal from '../../../components/canvas_homes/CloseLeadSideModal'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../store'
+import ActivityTracker from './tabs/ActivityTracker'
 
 // Helper function to handle null/undefined values
 const formatValue = (value: any): string => {
@@ -150,15 +151,9 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                     <Tasks
                         tasks={tasks}
                         loading={loading.tasks}
-                        onTaskStatusUpdate={updateTaskStatus}
                         error={errors.tasks}
                         setActiveTab={setActiveTab}
-                        onUpdateEnquiry={updateEnquiry}
-                        onUpdateLead={updateLead}
-                        onAddNote={addNote}
-                        onUpdateTask={updateTask}
-                        agentId={currentEnquiry?.agentId || ''}
-                        agentName={currentEnquiry?.agentHistory?.[0]?.agentName || ''}
+                        refreshData={refreshData}
                     />
                 )
             case 'Documents':
@@ -172,6 +167,8 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 )
             case 'Notes':
                 return <Notes notes={currentEnquiry?.notes || []} onAddNote={addNote} loading={loading.enquiries} />
+            case 'Activity tracker':
+                return <ActivityTracker enquiryId={selectedEnquiryId} />
             case 'Requirements':
                 return (
                     <Requirements

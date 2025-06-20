@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import Dropdown from '../../components/design-elements/Dropdown'
 import { leadService } from '../../services/canvas_homes'
+import { enquiryService } from '../../services/canvas_homes/enquiryService'
+import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 
 interface CreateTaskModalProps {
     isOpen: boolean
@@ -23,22 +25,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     onClose,
     enquiryId,
     onTaskCreated,
-    agentId = 'system',
-    agentName = 'System',
-    leadStatus = 'interested',
+    agentId,
+    agentName,
+    leadStatus,
     leadId = '',
     propertyName,
     leadAddDate,
     name,
-    stage = 'lead registered',
-    tag = 'potential',
+    stage,
+    tag,
 }) => {
     const [formData, setFormData] = useState({
         task: '',
         dueDate: '',
-        assignedTo: '',
-        priority: '',
-        status: '',
     })
 
     const [saving, setSaving] = useState(false)
@@ -79,35 +78,47 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
         try {
             const scheduledDate = new Date(formData.dueDate)
-            const today = new Date()
-            const timeDiff = scheduledDate.getTime() - today.getTime()
-            const dueDays = Math.ceil(timeDiff / (1000 * 3600 * 24))
-
             const taskData = {
                 enquiryId,
                 agentId,
-                agentName,
+                agentName: agentName,
                 propertyName: propertyName,
-                name,
-                leadAddDate: leadAddDate,
-                type: formData.task,
+                name: name,
+                leadAddDate,
+                taskType: formData.task,
                 status: 'open',
-                stage,
-                leadStatus,
-                tag,
+                stage: stage,
+                leadStatus: leadStatus,
+                tag: tag,
                 scheduledDate: scheduledDate.getTime(),
-                dueDays: dueDays > 0 ? dueDays : 1,
-                added: Date.now(),
+                added: getUnixDateTime(),
                 completionDate: null,
-                lastModified: Date.now(),
+                lastModified: getUnixDateTime(),
             }
 
             console.log('Creating task:', taskData)
+
+            // Update lead with task information
             await leadService.update(leadId, {
-                taskType: formData.task,
-                lastModified: Date.now(),
-                scheduledDate: scheduledDate.getTime(),
+                taskType: formData.task.toLowerCase(),
+                lastModified: getUnixDateTime(),
+                scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
             })
+
+            // Add activity history to enquiry
+            if (enquiryId) {
+                await enquiryService.addActivity(enquiryId, {
+                    activityType: 'task created',
+                    timestamp: getUnixDateTime(),
+                    agentName: agentName,
+                    data: {
+                        taskType: formData.task.toLowerCase(),
+                        scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
+                    },
+                })
+            }
+
+            // Create the task
             await onTaskCreated(taskData)
 
             alert('Task created successfully!')
@@ -124,9 +135,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         setFormData({
             task: '',
             dueDate: '',
-            assignedTo: '',
-            priority: '',
-            status: '',
         })
         onClose()
     }
@@ -143,7 +151,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         <>
             <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!saving ? onClose : undefined} />
 
-            <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[480px] bg-white z-50 rounded-lg shadow-2xl'>
+            <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[433px] bg-white z-50 rounded-lg shadow-2xl'>
                 <div className='flex flex-col'>
                     <div className='flex items-center justify-between p-6 pb-4'>
                         <h2 className='text-xl font-semibold text-gray-900'>Create Task</h2>
@@ -201,21 +209,20 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         </div>
 
                         {/* Due Date & Time */}
-                        <div className='col-span-2'>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Due Date & Time</label>
+                        <div>
                             <input
                                 type='datetime-local'
                                 value={formData.dueDate}
                                 onChange={(e) => handleInputChange('dueDate', e.target.value)}
                                 min={getCurrentDateTime()}
                                 disabled={saving}
-                                className='w-full h-8 px-3 py-2.5 border text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
+                                className='w-1/2 h-8 px-3 py-2.5 border text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
                             />
                         </div>
                     </div>
 
-                    <div className='flex items-center justify-center w-full'>
-                        <div className='flex w-fit items-center justify-between gap-3 p-6 pt-4'>
+                    <div className='flex items-center justify-center p-6 pt-4'>
+                        <div className='flex items-center gap-3'>
                             <button
                                 onClick={handleDiscard}
                                 disabled={saving}

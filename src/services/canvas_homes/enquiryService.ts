@@ -19,12 +19,14 @@ class EnquiryService {
 
     async getById(enquiryId: string): Promise<Enquiry | null> {
         try {
-            if (!enquiryId || typeof enquiryId !== 'string' || enquiryId.trim() === '') {
+            if (!enquiryId) {
                 console.error('Invalid enquiryId provided:', enquiryId)
                 return null
             }
 
-            const enquiryDoc = await getDoc(doc(db, this.collectionName, enquiryId.trim()))
+            console.log('Fetching enquiry by ID:', enquiryId)
+
+            const enquiryDoc = await getDoc(doc(db, this.collectionName, enquiryId))
             if (enquiryDoc.exists()) {
                 return { enquiryId: enquiryDoc.id, ...enquiryDoc.data() } as Enquiry
             }
@@ -35,18 +37,34 @@ class EnquiryService {
         }
     }
 
+    async getActivityHistory(enquiryId: string): Promise<ActivityHistoryItem[]> {
+        if (!enquiryId) {
+            throw new Error('Invalid enquiryId provided for getting activity history')
+        }
+
+        try {
+            console.log('Fetching activity history for enquiryId:', enquiryId)
+            const enquiry = await this.getById(enquiryId)
+            console.log('Fetched enquiry for activity history:', enquiry)
+            return enquiry?.activityHistory ?? []
+        } catch (error) {
+            console.error('Error getting activity history:', error)
+            throw error
+        }
+    }
+
     async getByLeadId(leadId: string): Promise<Enquiry[]> {
         try {
             console.log('Hare Krishna', leadId)
             // Validate leadId
-            if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {
+            if (!leadId) {
                 console.error('Invalid leadId provided for enquiry fetch:', leadId)
                 return []
             }
 
             console.log('Fetching enquiries for leadId:', leadId)
 
-            const q = query(collection(db, this.collectionName), where('leadId', '==', leadId.trim()))
+            const q = query(collection(db, this.collectionName), where('leadId', '==', leadId))
 
             const querySnapshot = await getDocs(q)
 
@@ -67,6 +85,7 @@ class EnquiryService {
             throw new Error(`Failed to fetch enquiries: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
     }
+
     async create(enquiryData: Omit<Enquiry, 'enquiryId' | 'added' | 'lastModified'>): Promise<string> {
         try {
             // Query to get the last created enquiry and generate the next enquiry ID
@@ -105,7 +124,7 @@ class EnquiryService {
 
     async update(enquiryId: string, updates: Partial<Enquiry>): Promise<void> {
         try {
-            if (!enquiryId || typeof enquiryId !== 'string' || enquiryId.trim() === '') {
+            if (!enquiryId) {
                 throw new Error('Invalid enquiryId provided for update')
             }
 
@@ -113,7 +132,7 @@ class EnquiryService {
                 ...updates,
                 lastModified: Date.now(),
             }
-            await updateDoc(doc(db, this.collectionName, enquiryId.trim()), updateData)
+            await updateDoc(doc(db, this.collectionName, enquiryId), updateData)
         } catch (error) {
             console.error('Error updating enquiry:', error)
             throw error
@@ -125,23 +144,27 @@ class EnquiryService {
         noteData: {
             agentId: string
             agentName: string
-            TaskType: string
+            taskType: string
             note: string
+            timestamp?: number
         },
     ): Promise<void> {
         try {
-            if (!enquiryId || typeof enquiryId !== 'string' || enquiryId.trim() === '') {
+            if (!enquiryId) {
                 throw new Error('Invalid enquiryId provided for adding note')
             }
 
-            const enquiryRef = doc(db, this.collectionName, enquiryId.trim())
+            const enquiryRef = doc(db, this.collectionName, enquiryId)
             const enquiryDoc = await getDoc(enquiryRef)
 
             if (enquiryDoc.exists()) {
                 const currentData = enquiryDoc.data() as Enquiry
                 const newNote: NoteItem = {
-                    timestamp: Date.now(),
-                    ...noteData,
+                    timestamp: noteData.timestamp || Date.now(),
+                    agentId: noteData.agentId,
+                    agentName: noteData.agentName,
+                    taskType: noteData.taskType,
+                    note: noteData.note,
                 }
 
                 const updatedNotes = [...(currentData.notes || []), newNote]
@@ -160,25 +183,27 @@ class EnquiryService {
     async addActivity(
         enquiryId: string,
         activityData: {
-            agentId: string
             activityType: string
-            activityStatus: string
-            activityNote: string
+            timestamp: number
+            agentName: string
+            data?: any
         },
     ): Promise<void> {
         try {
-            if (!enquiryId || typeof enquiryId !== 'string' || enquiryId.trim() === '') {
+            if (!enquiryId) {
                 throw new Error('Invalid enquiryId provided for adding activity')
             }
 
-            const enquiryRef = doc(db, this.collectionName, enquiryId.trim())
+            const enquiryRef = doc(db, this.collectionName, enquiryId)
             const enquiryDoc = await getDoc(enquiryRef)
 
             if (enquiryDoc.exists()) {
                 const currentData = enquiryDoc.data() as Enquiry
                 const newActivity: ActivityHistoryItem = {
-                    timestamp: Date.now(),
-                    ...activityData,
+                    activityType: activityData.activityType,
+                    timestamp: activityData.timestamp,
+                    agentName: activityData.agentName,
+                    data: activityData.data || {},
                 }
 
                 const updatedActivity = [...(currentData.activityHistory || []), newActivity]
@@ -195,14 +220,14 @@ class EnquiryService {
     }
 
     subscribeToEnquiry(enquiryId: string, callback: (enquiry: Enquiry | null) => void) {
-        if (!enquiryId || typeof enquiryId !== 'string' || enquiryId.trim() === '') {
+        if (!enquiryId) {
             console.error('Invalid enquiryId provided for subscription')
             callback(null)
             return () => {}
         }
 
         return onSnapshot(
-            doc(db, this.collectionName, enquiryId.trim()),
+            doc(db, this.collectionName, enquiryId),
             (doc) => {
                 if (doc.exists()) {
                     callback({ enquiryId: doc.id, ...doc.data() } as Enquiry)
@@ -218,17 +243,13 @@ class EnquiryService {
     }
 
     subscribeToEnquiriesByLeadId(leadId: string, callback: (enquiries: Enquiry[]) => void) {
-        if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {
+        if (!leadId) {
             console.error('Invalid leadId provided for enquiries subscription')
             callback([])
             return () => {}
         }
 
-        const q = query(
-            collection(db, this.collectionName),
-            where('leadId', '==', leadId.trim()),
-            orderBy('added', 'desc'),
-        )
+        const q = query(collection(db, this.collectionName), where('leadId', '==', leadId), orderBy('added', 'desc'))
 
         return onSnapshot(
             q,

@@ -155,14 +155,6 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             if (additionalPhoneNumbers.length > 0) {
                 // Already have additional numbers, add to the array
                 updateData.phoneNumbers = [...additionalPhoneNumbers, newPhoneEntry]
-            } else if (currentPhoneNumber) {
-                // Have a main number but no additional ones, create the array
-                const mainPhoneEntry = {
-                    number: currentPhoneNumber,
-                    label: currentLabel,
-                    addedAt: Date.now() - 1000, // Slightly earlier timestamp
-                }
-                updateData.phoneNumbers = [mainPhoneEntry, newPhoneEntry]
             } else {
                 // No phone numbers at all, set as main number
                 updateData.phoneNumber = formattedPhoneNumber

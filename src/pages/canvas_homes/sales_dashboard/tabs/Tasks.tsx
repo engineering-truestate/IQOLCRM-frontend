@@ -1,40 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react'
 import TaskCard from '../../../../components/canvas_homes/tasks/TaskCard'
+import { useParams } from 'react-router-dom'
+import useAuth from '../../../../hooks/useAuth'
 import LeadRegistrationTask from '../../../../components/canvas_homes/tasks/LeadRegistrationTask'
 import InitialContactTask from '../../../../components/canvas_homes/tasks/InitialContactTask'
 import SiteVisitTask from '../../../../components/canvas_homes/tasks/SiteVisitTask'
 import CollectEOITask from '../../../../components/canvas_homes/tasks/CollectEOITask'
 import BookingAmountTask from '../../../../components/canvas_homes/tasks/BookingAmountTask'
 import type { Task } from '../../../../services/canvas_homes/types'
-import { updateLead } from '../../../../services/canvas_homes/leadAlgoliaService'
+import { taskService } from '../../../../services/canvas_homes/taskService'
+import { leadService } from '../../../../services/canvas_homes/leadService'
+import { enquiryService } from '../../../../services/canvas_homes/enquiryService'
+import { getUnixDateTime } from '../../../../components/helper/getUnixDateTime'
 
 interface TasksProps {
     tasks: Task[]
     loading: boolean
-    onTaskStatusUpdate: (taskId: string, status: 'open' | 'complete', taskResult?: string) => Promise<void>
-    onUpdateTask?: (taskId: string, updates: any) => Promise<void> // Added missing function
     error?: string | null
     setActiveTab?: (tab: string) => void
-    onUpdateEnquiry?: (updates: any) => Promise<void>
-    onUpdateLead?: (updates: any) => Promise<void>
-    onAddNote?: (noteData: any) => Promise<void>
-    agentId?: string
-    agentName?: string
+    refreshData?: () => void
 }
 
-const Tasks: React.FC<TasksProps> = ({
-    tasks: firebaseTasks = [],
-    loading,
-    onTaskStatusUpdate,
-    onUpdateTask,
-    error,
-    setActiveTab,
-    onUpdateEnquiry,
-    onUpdateLead,
-    onAddNote,
-    agentId,
-    agentName,
-}) => {
+const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error, setActiveTab, refreshData }) => {
     const [expandedTasks, setExpandedTasks] = useState<{ [key: string]: boolean }>({}) // Track which tasks are expanded
     const [taskStates, setTaskStates] = useState<{ [key: string]: { [key: string]: string } }>({}) // Track state for each task
     const [updatingTasks, setUpdatingTasks] = useState<{ [key: string]: boolean }>({}) // Track task updates in progress
@@ -44,6 +31,10 @@ const Tasks: React.FC<TasksProps> = ({
         { label: 'Open', value: 'open' },
         { label: 'Complete', value: 'complete' },
     ]
+    const { leadId } = useParams<{ leadId?: string }>()
+    const { user } = useAuth()
+    const agentId = user?.uid || ''
+    const agentName = user?.displayName || ''
 
     // Convert Firebase tasks to display format
     const getDisplayTasks = () => {
@@ -51,13 +42,14 @@ const Tasks: React.FC<TasksProps> = ({
             .map((firebaseTask) => ({
                 id: firebaseTask.taskId,
                 enquiryId: firebaseTask.enquiryId,
-                type: firebaseTask.type,
-                title: getTaskTitle(firebaseTask.type),
+                type: firebaseTask.taskType,
+                title: getTaskTitle(firebaseTask.taskType),
                 date: formatDateTime(firebaseTask.added),
                 scheduledInfo: firebaseTask?.eventName ? firebaseTask.eventName : getScheduledInfo(firebaseTask),
                 scheduledDate: formatDateTime(firebaseTask.scheduledDate),
                 status: firebaseTask.status,
                 firebaseTask: firebaseTask,
+                eoiEntries: firebaseTask.eoiEntries || [],
             }))
             .sort((a, b) => {
                 const taskOrder: { [key: string]: number } = {
@@ -80,12 +72,12 @@ const Tasks: React.FC<TasksProps> = ({
             'eoi collection': 'Collect EOI',
             booking: 'Booking Amount',
         }
-        return titleMapping[firebaseType.toLowerCase()] || firebaseType
+        return titleMapping[firebaseType?.toLowerCase()] || firebaseType
     }
 
     const formatDateTime = (timestamp: number): string => {
         if (!timestamp) return 'Not scheduled'
-        const date = new Date(timestamp)
+        const date = new Date(timestamp * 1000) // Convert Unix timestamp to milliseconds
         return (
             date.toLocaleDateString('en-US', {
                 month: '2-digit',
@@ -102,7 +94,7 @@ const Tasks: React.FC<TasksProps> = ({
     }
 
     const getScheduledInfo = (task: Task): string => {
-        switch (task.type.toLowerCase()) {
+        switch (task.taskType?.toLowerCase()) {
             case 'lead registration':
                 return 'Registration scheduled'
             case 'initial contact':
@@ -156,35 +148,42 @@ const Tasks: React.FC<TasksProps> = ({
         return taskStates[taskId]?.[key] || defaultValue
     }
 
-    // Handle task status update
+    // Handle task status update using services
     const handleTaskStatusUpdate = async (taskId: string, selectedStatus: string) => {
         setUpdatingTasks((prev) => ({ ...prev, [taskId]: true }))
 
         try {
-            onTaskStatusUpdate(taskId, 'complete')
+            const currentUnixTime = getUnixDateTime()
 
-            // Update task with completion details
-            if (onUpdateTask) {
-                await onUpdateTask(taskId, {
-                    status: 'complete',
-                    lastModified: Date.now(),
-                })
-            }
+            // Update task with completion details using service
+            await taskService.update(taskId, {
+                status: 'complete',
+                completionDate: currentUnixTime,
+                lastModified: currentUnixTime,
+            })
 
-            // Update enquiry status and tag
-            if (onUpdateEnquiry) {
-                await onUpdateEnquiry({
+            // Update enquiry status and tag using service
+            const task = firebaseTasks.find((t) => t.taskId === taskId)
+            if (task?.enquiryId) {
+                await enquiryService.update(task.enquiryId, {
                     stage: 'lead registered',
                     state: 'open',
                 })
+                await enquiryService.addActivity(task.enquiryId, {
+                    activityType: 'task execution',
+                    agentName: user?.displayName || 'Unknown Agent',
+                    timestamp: currentUnixTime,
+                    data: {},
+                })
             }
 
-            // Update lead status, state, and tag
-            if (onUpdateLead) {
-                await onUpdateLead({
+            // Update lead status, state, and tag using service
+            if (leadId) {
+                await leadService.update(leadId, {
                     stage: 'lead registered',
                     state: 'open',
-                    lastModified: Date.now(),
+                    completionDate: currentUnixTime,
+                    lastModified: currentUnixTime,
                 })
             }
 
@@ -196,6 +195,11 @@ const Tasks: React.FC<TasksProps> = ({
                     status: selectedStatus,
                 },
             }))
+
+            // Refresh data if callback provided
+            if (refreshData) {
+                refreshData()
+            }
         } catch (error) {
             console.error('Failed to update task:', error)
             alert('Failed to update task status. Please try again.')
@@ -206,20 +210,14 @@ const Tasks: React.FC<TasksProps> = ({
 
     const renderTaskContent = (task: any) => {
         const commonProps = {
-            taskId: task.id,
             updateTaskState,
             getTaskState,
-            onUpdateLead,
-            onUpdateTask,
-            onUpdateEnquiry,
-            onTaskStatusUpdate,
-            onAddNote,
             updating: updatingTasks[task.id] || false,
         }
 
-        switch (task.type.toLowerCase()) {
+        switch (task.type?.toLowerCase()) {
             case 'lead registration':
-                return <LeadRegistrationTask {...commonProps} propertyLink={task.firebaseTask.propertyLink || '#'} />
+                return <LeadRegistrationTask propertyLink={task.firebaseTask.propertyLink || '#'} />
             case 'initial contact':
                 return (
                     <InitialContactTask
@@ -238,6 +236,7 @@ const Tasks: React.FC<TasksProps> = ({
                         {...commonProps}
                         setActiveTab={setActiveTab}
                         taskStatusOptions={taskStatusOptions}
+                        eoiEntries={task.eoiEntries}
                     />
                 )
             case 'booking':
@@ -246,10 +245,6 @@ const Tasks: React.FC<TasksProps> = ({
                         {...commonProps}
                         taskStatusOptions={taskStatusOptions}
                         setActiveTab={setActiveTab}
-                        onTaskStatusUpdate={onTaskStatusUpdate}
-                        onUpdateEnquiry={onUpdateEnquiry}
-                        onUpdateLead={onUpdateLead}
-                        onAddNote={onAddNote}
                         agentId={agentId}
                         agentName={agentName}
                     />
@@ -325,9 +320,10 @@ const Tasks: React.FC<TasksProps> = ({
             >
                 {displayTasks.map((task, index) => (
                     <TaskCard
+                        key={task.id}
                         task={task}
                         index={index}
-                        isExpanded={expandedTasks[task.id]}
+                        isExpanded={expandedTasks[task.id] || task.eoiEntries?.length > 0}
                         onToggleExpansion={toggleTaskExpansion}
                         taskStatusOptions={taskStatusOptions}
                         onStatusUpdate={handleTaskStatusUpdate}
