@@ -25,7 +25,8 @@ import {
     updateLeadLocal,
 } from '../../../store/reducers/acn/leadsReducers'
 import type { RootState, AppDispatch } from '../../../store/index'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import CustomPagination from '../../../components/design-elements/CustomPagination'
 
 // Import your existing icons
 import phoneic from '/icons/acn/phone.svg'
@@ -783,10 +784,10 @@ const LeadsPage = () => {
     return (
         <Layout loading={loading || reduxLoading}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                <div className='py-2 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
                     <div className='mb-4'>
-                        <div className='flex items-center justify-between mb-2'>
+                        <div className='flex items-center justify-between mb-2 px-6'>
                             <h1 className='text-lg font-semibold text-black'>Leads ({totalLeads})</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
@@ -826,10 +827,10 @@ const LeadsPage = () => {
                         <hr className='border-gray-200 mb-4' />
 
                         {/* Metrics */}
-                        <MetricsCards metrics={metrics} className='mb-2' />
+                        <MetricsCards metrics={metrics} className='mb-2 px-6' />
 
                         {/* Filters */}
-                        <div className='flex items-center gap-2 mb-2 flex-wrap'>
+                        <div className='flex items-center gap-2 mb-2 flex-wrap px-6'>
                             <button
                                 className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md'
                                 onClick={resetFilters}
@@ -894,8 +895,8 @@ const LeadsPage = () => {
                     </div>
 
                     {/* Table */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                        <div className='h-[65vh] overflow-y-auto'>
+                    <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
+                        <div className='h-[69vh] overflow-y-auto'>
                             <FlexibleTable
                                 data={leads}
                                 columns={columns}
@@ -907,99 +908,25 @@ const LeadsPage = () => {
                                     cells: false,
                                     outer: false,
                                 }}
-                                maxHeight='65vh'
+                                maxHeight='69vh'
                                 className='rounded-lg'
                                 stickyHeader={true}
                             />
                         </div>
 
                         {/* Pagination */}
-                        <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
+                        <div className='flex items-center justify-between px-6 border-t border-gray-200'>
                             <div className='text-sm text-gray-500 font-medium'>
                                 Showing {(filterState.page - 1) * ITEMS_PER_PAGE + 1} to{' '}
                                 {Math.min(filterState.page * ITEMS_PER_PAGE, totalLeads)} of {totalLeads} leads
                             </div>
 
-                            <div className='flex items-center gap-2'>
-                                <button
-                                    onClick={() => handlePageChange()(Math.max(filterState.page - 1, 1))}
-                                    disabled={filterState.page === 1}
-                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                        filterState.page === 1
-                                            ? 'text-gray-400 cursor-not-allowed'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M15 19l-7-7 7-7'
-                                        />
-                                    </svg>
-                                </button>
-
-                                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                                    .filter((page) => {
-                                        return (
-                                            page === 1 ||
-                                            page === totalPages ||
-                                            (page >= filterState.page - 1 && page <= filterState.page + 1)
-                                        )
-                                    })
-                                    .map((page, index, array) => {
-                                        const showEllipsisBefore = index > 0 && array[index - 1] !== page - 1
-                                        const showEllipsisAfter =
-                                            index < array.length - 1 && array[index + 1] !== page + 1
-
-                                        return (
-                                            <React.Fragment key={page}>
-                                                {showEllipsisBefore && (
-                                                    <span className='w-8 h-8 flex items-center justify-center text-gray-500'>
-                                                        ...
-                                                    </span>
-                                                )}
-
-                                                <button
-                                                    onClick={() => handlePageChange()(page)}
-                                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
-                                                        filterState.page === page
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'text-gray-700 hover:bg-gray-100'
-                                                    }`}
-                                                >
-                                                    {page}
-                                                </button>
-
-                                                {showEllipsisAfter && (
-                                                    <span className='w-8 h-8 flex items-center justify-center text-gray-500'>
-                                                        ...
-                                                    </span>
-                                                )}
-                                            </React.Fragment>
-                                        )
-                                    })}
-
-                                <button
-                                    onClick={() => handlePageChange()(Math.min(filterState.page + 1, totalPages))}
-                                    disabled={filterState.page === totalPages}
-                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                        filterState.page === totalPages
-                                            ? 'text-gray-400 cursor-not-allowed'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                        <path
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                            strokeWidth={2}
-                                            d='M9 5l7 7-7 7'
-                                        />
-                                    </svg>
-                                </button>
-                            </div>
+                            <CustomPagination
+                                currentPage={filterState.page}
+                                totalPages={totalPages}
+                                onPageChange={(page) => handlePageChange()(page)}
+                                className=''
+                            />
                         </div>
                     </div>
 
