@@ -18,9 +18,9 @@ export interface NoteData {
 
 // Call result interface matching your database structure
 export interface CallResultData {
-    connection: 'connected' | 'not connected'
-    connectMedium: 'on call' | 'on whatsapp'
-    direction: 'inbound' | 'outbound'
+    connection: 'connected' | 'not connected' | ''
+    connectMedium: 'on call' | 'on whatsapp' | ''
+    direction: 'inbound' | 'outbound' | ''
     timestamp: number
 }
 

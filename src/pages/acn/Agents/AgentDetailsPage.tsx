@@ -856,7 +856,7 @@ const AgentDetailsPage = () => {
                         fixedPosition: 'right',
                         render: (_, row) => (
                             <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
-                                <span onClick={() => navigate(`/acn/qcs/${row.qcId}/details`)}>
+                                <span onClick={() => navigate(`/acn/qc/${row.qcId}/details`)}>
                                     <Button
                                         bgColor='bg-[#F3F3F3]'
                                         textColor='text-[#3A3A47]'

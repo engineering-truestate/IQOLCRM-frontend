@@ -43,6 +43,9 @@ interface AgentsState {
     error: string | null
     fetchLoading: boolean
     fetchError: string | null
+    connectHistoryLoading: boolean
+    connectHistoryError: string | null
+    currentAgentConnectHistory: any[]
 }
 
 const persistConfig = {

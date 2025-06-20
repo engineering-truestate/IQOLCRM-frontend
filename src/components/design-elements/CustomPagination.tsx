@@ -54,7 +54,7 @@ const CustomPagination: React.FC<CustomPaginationProps> = ({
     const pages = generatePages()
 
     return (
-        <div className={`py-4 w-full flex justify-center ${className}`}>
+        <div className={`py-1 w-full flex justify-center ${className}`}>
             <ul className='inline-flex items-center space-x-2'>
                 {/* Previous Button */}
                 {/* <li
@@ -73,14 +73,14 @@ const CustomPagination: React.FC<CustomPaginationProps> = ({
                     page === '...' ? (
                         <li
                             key={`ellipsis-${index}`}
-                            className='flex items-center justify-center px-2 py-2 text-gray-500'
+                            className='flex items-center justify-center px-0 py-0 text-gray-500'
                         >
                             ...
                         </li>
                     ) : (
                         <li
                             key={`page-${page}`}
-                            className={`flex items-center justify-center w-10 h-10 border border-gray-300 rounded-[4px] text-gray-600 hover:bg-gray-100 hover:border-gray-400 cursor-pointer transition-colors ${
+                            className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-[4px] text-gray-600 hover:bg-gray-100 hover:border-gray-400 cursor-pointer transition-colors ${
                                 currentPage === page
                                     ? 'bg-[#24252E] text-white hover:text-white border-blue-600'
                                     : 'bg-[#F3F3F3] text-[#3A3A47]'

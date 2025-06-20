@@ -1,7 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, updateDoc, getDoc, arrayUnion } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import type { IInventory, IRequirement } from '../../../data_types/acn/types'
+
+const getCurrentTimestamp = () => Date.now()
 
 interface AgentDetailsResponse {
     inventories: IInventory[]
@@ -55,6 +57,151 @@ export const fetchAgentByPhone = createAsyncThunk(
         } catch (error: any) {
             console.error('❌ Error fetching agent:', error)
             return rejectWithValue(error.message || 'Failed to fetch agent')
+        }
+    },
+)
+
+export const addCallResultToAgent = createAsyncThunk(
+    'agents/addCallResultToAgent',
+    async (
+        {
+            cpId,
+            callData,
+            note,
+        }: {
+            cpId: string
+            callData: {
+                connection: 'connected' | 'not connected' | ''
+                connectMedium: 'on call' | 'on whatsapp' | ''
+                direction: 'inbound' | 'outbound' | ''
+            }
+            note?: string
+        },
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('📞 Adding call result to agent:', cpId, callData)
+
+            const docRef = doc(db, 'acnAgents', cpId)
+            const agentDoc = await getDoc(docRef)
+
+            if (!agentDoc.exists()) {
+                throw new Error('Agent not found')
+            }
+
+            const agentData = agentDoc.data()
+            const contactHistory = agentData.contactHistory || []
+            const currentContactStatus = agentData.contactStatus || 'not contact'
+
+            const timestamp = Math.floor(Date.now() / 1000)
+
+            // Determine contactResult based on callData
+            let contactResult: string
+            if (callData.connection === 'connected') {
+                if (callData.connectMedium === 'on call') {
+                    contactResult = callData.direction === 'inbound' ? 'in bound' : 'out bound'
+                } else {
+                    contactResult = 'on whatsapp'
+                }
+            } else {
+                contactResult = 'not connected'
+            }
+
+            const newHistoryItem = {
+                timestamp,
+                contactResult,
+            }
+
+            // RNR Logic (same as leads)
+            let newContactStatus = currentContactStatus
+
+            if (callData.connection === 'connected') {
+                // If connected, status becomes 'connected' regardless of previous status
+                newContactStatus = 'connected'
+            } else {
+                // If not connected, handle RNR progression
+                if (currentContactStatus === 'not contact') {
+                    // First failed attempt: not contact -> rnr-1
+                    newContactStatus = 'rnr-1'
+                } else if (currentContactStatus.startsWith('rnr-')) {
+                    // Extract current RNR number and increment
+                    const currentRnrNumber = parseInt(currentContactStatus.split('-')[1])
+                    const nextRnrNumber = currentRnrNumber + 1
+                    newContactStatus = `rnr-${nextRnrNumber}`
+                } else if (currentContactStatus === 'connected') {
+                    // If was connected but now not connected, start RNR sequence
+                    newContactStatus = 'rnr-1'
+                }
+            }
+
+            const updateData: any = {
+                contactHistory: [...contactHistory, newHistoryItem],
+                contactStatus: newContactStatus,
+                lastTried: timestamp,
+                lastModified: Date.now(),
+            }
+
+            // Update lastConnected only if connected
+            if (callData.connection === 'connected') {
+                updateData.lastConnected = timestamp
+            }
+
+            // Add note if provided
+            if (note && note.trim()) {
+                const noteEntry = {
+                    note: note.trim(),
+                    timestamp,
+                    source: 'contact',
+                    kamId: agentData.kamId || 'UNKNOWN',
+                    archive: false,
+                }
+
+                updateData.notes = [...(agentData.notes || []), noteEntry]
+            }
+
+            await updateDoc(docRef, updateData)
+
+            console.log('✅ Call result added to agent successfully')
+            console.log('📊 Contact status changed from', currentContactStatus, 'to', newContactStatus)
+
+            return {
+                cpId,
+                updateData,
+                previousContactStatus: currentContactStatus,
+                newContactStatus,
+            }
+        } catch (error: any) {
+            console.error('❌ Error adding call result to agent:', error)
+            return rejectWithValue(error.message || 'Failed to add call result to agent')
+        }
+    },
+)
+
+export const fetchAgentWithConnectHistory = createAsyncThunk(
+    'agents/fetchAgentWithConnectHistory',
+    async (cpId: string, { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching agent connect history for:', cpId)
+
+            const agentDocRef = doc(db, 'acnAgents', cpId)
+            const agentDoc = await getDoc(agentDocRef)
+
+            if (!agentDoc.exists()) {
+                throw new Error('Agent not found')
+            }
+
+            const agentData = agentDoc.data()
+            console.log('✅ Agent connect history fetched:', agentData.contactHistory)
+
+            return {
+                cpId,
+                contactHistory: agentData.contactHistory || [],
+                lastConnected: agentData.lastConnected,
+                contactStatus: agentData.contactStatus,
+            }
+        } catch (error: any) {
+            console.error('❌ Error fetching agent connect history:', error)
+            return rejectWithValue(error.message || 'Failed to fetch agent connect history')
         }
     },
 )
