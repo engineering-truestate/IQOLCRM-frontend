@@ -7,7 +7,7 @@ import PlacesSearch from '../design-elements/PlacesSearch'
 interface AddRequirementModalProps {
     isOpen: boolean
     onClose: () => void
-    cpId: string // Add this prop to pass the current user's ID
+    cpId: string
 }
 
 interface Places {
