@@ -7,6 +7,7 @@ interface AgentDetailsResponse {
     inventories: IInventory[]
     requirements: IRequirement[]
     enquiries: any[]
+    qc: any[]
     error?: string
 }
 
@@ -112,10 +113,23 @@ export const fetchAgentDetails = createAsyncThunk(
                 assetType: propertyType.toLowerCase(),
             }))
 
+            // Fetch QC data from Firebase
+            const qcCollectionName = propertyType === 'Resale' ? 'acnQCInventories' : 'acnRentalQCInventories'
+            const qcRef = collection(db, qcCollectionName)
+            const qcQuery = query(qcRef, where('cpId', '==', agentId))
+            const qcSnapshot = await getDocs(qcQuery)
+            const qc = qcSnapshot.docs.map((doc) => ({
+                id: doc.id,
+                qcId: doc.id,
+                ...doc.data(),
+                assetType: propertyType.toLowerCase(),
+            }))
+
             return {
                 inventories,
                 requirements,
                 enquiries,
+                qc,
             }
         } catch (error) {
             console.error('Error fetching agent details:', error)
@@ -123,6 +137,7 @@ export const fetchAgentDetails = createAsyncThunk(
                 inventories: [],
                 requirements: [],
                 enquiries: [],
+                qc: [],
                 error: error instanceof Error ? error.message : 'Failed to fetch agent details',
             }
         }

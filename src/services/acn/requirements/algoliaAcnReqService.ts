@@ -33,6 +33,9 @@ export interface AlgoliaRequirementSearchResponse {
     facets?: Record<string, Record<string, number>>
 }
 
+// Exported type for facet values
+export type RequirementFacetValue = { value: string; count: number }
+
 // Algolia client configuration
 const resaleClient = algoliasearch('YXMDFDHYEO', '9394fe020e50445263e0171877e37a2a')
 const rentalClient = algoliasearch('QPC0GQQX8S', 'a0a0e3ba32c5b4158707987d4244fd32')

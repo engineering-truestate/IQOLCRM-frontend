@@ -624,7 +624,6 @@ const LeadsPage = () => {
 
     // Sort options (single select)
     const sortOptions = [
-        { label: 'Sort by Date', value: '' },
         { label: 'Newest First', value: 'added_desc' },
         { label: 'Oldest First', value: 'added_asc' },
         { label: 'Name A-Z', value: 'name_asc' },
@@ -891,7 +890,7 @@ const LeadsPage = () => {
                                 placeholder='Sort'
                                 className='relative inline-block'
                                 triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                menuClassName='absolute z-50 mt-1  bg-white border border-gray-300 rounded-md shadow-lg'
                                 optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                             />
 

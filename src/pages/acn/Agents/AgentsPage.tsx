@@ -1,26 +1,21 @@
 'use client'
 
 import React from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import { useDispatch } from 'react-redux'
 import { setSelectedAgent } from '../../../store/slices/agentDetailsSlice'
 
 import { useState, useEffect } from 'react'
 import Layout from '../../../layout/Layout'
-import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
-import Dropdown from '../../../components/design-elements/Dropdown'
-import Button from '../../../components/design-elements/Button'
+import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import NotesModal from '../../../components/acn/NotesModal'
 import CallResultModal from '../../../components/acn/CallModal'
 import VerificationModal from '../../../components/acn/VerificationModal'
 import AddLeadModal from '../../../components/acn/AddLeadModal'
-import { generateLeads, type Lead, type LeadStatus } from '../../dummy_data/acn_leads_dummy_data'
 import phoneic from '/icons/acn/phone.svg'
 import notesic from '/icons/acn/notes.svg'
-import verifyic from '/icons/acn/verify.svg'
 import resetic from '/icons/acn/rotate-left.svg'
-import leadaddic from '/icons/acn/user-add.svg'
 import facebookic from '/icons/acn/facebook.svg'
 import classifiedic from '/icons/acn/classified.svg'
 import whatsappic from '/icons/acn/whatsapp.svg'
@@ -31,16 +26,25 @@ import MetricsCards from '../../../components/design-elements/MetricCards'
 import algoliaAgentsService from '../../../services/acn/agents/algoliaAgentsService'
 import type { AgentSearchFilters } from '../../../services/acn/agents/algoliaAgentsService'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import { formatUnixDate, getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 import { formatRelativeTime } from '../../../components/helper/formatDate'
+import searchnormalic from '/icons/acn/search-normal.svg'
+import userTick from '/icons/acn/user-tick.svg'
+import AlgoliaFacetMultiSelect from '../../../components/design-elements/AlgoliaFacetMultiSelect'
+import Dropdown from '../../../components/design-elements/Dropdown'
+import { agentSortOptions } from '../../../services/acn/agents/algoliaAgentsService'
+import Button from '../../../components/design-elements/Button'
+import filter from '/icons/acn/filter.svg'
+import { AgentsFiltersModal } from '../../../components/acn/AgentsFiltersModal'
 
 const sampleMetrics = [
-    { label: 'Total Agents', value: 50 },
-    { label: 'Active Agents', value: 45 },
-    { label: 'Inactive Agents', value: 5 },
-    { label: 'Total Properties', value: 100 },
-    { label: 'Total Requirements', value: 75 },
-    { label: 'Total Enquiries', value: 125 },
+    { label: 'Interested', value: 45 },
+    { label: 'Calls', value: 5 },
+    { label: 'Connects', value: 100 },
+    { label: 'RNR', value: 75 },
+    { label: 'Enquiry', value: 125 },
+    { label: 'Agents Enquired', value: 125 },
+    { label: 'App Installed', value: 125 },
 ]
 
 // Custom status badge component with outline design
@@ -65,10 +69,6 @@ const StatusBadge = ({ status, type }: { status: string; type: 'lead' | 'connect
                 case 'Not Contact':
                     return 'border-[#CCCBCB]'
                 default:
-                    // For RNR statuses (RNR-1, RNR-2, etc.)
-                    // if (status.startsWith('RNR')) {
-                    //     return 'border-[#FCCE74]'
-                    // }
                     return 'border-gray-400 text-gray-600 bg-gray-50'
             }
         }
@@ -82,6 +82,21 @@ const StatusBadge = ({ status, type }: { status: string; type: 'lead' | 'connect
         </span>
     )
 }
+
+// Status dropdown options with colors
+const agentStatusOptions = [
+    { label: 'Active', value: 'active', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Inactive', value: 'inactive', color: '#FEE2E2', textColor: '#000000' },
+    { label: 'Pending', value: 'pending', color: '#FEF3C7', textColor: '#000000' },
+    { label: 'Blocked', value: 'blocked', color: '#F3F4F6', textColor: '#000000' },
+]
+
+const payStatusOptions = [
+    { label: 'Free', value: 'free', color: '#E0F2FE', textColor: '#000000' },
+    { label: 'Premium', value: 'premium', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Trial', value: 'trial', color: '#FEF3C7', textColor: '#000000' },
+    { label: 'Expired', value: 'expired', color: '#FEE2E2', textColor: '#000000' },
+]
 
 // Lead Source component with outlined design and SVG icons
 const LeadSourceCell = ({ source }: { source: string }) => {
@@ -120,13 +135,205 @@ const LeadSourceCell = ({ source }: { source: string }) => {
     )
 }
 
+// FiltersBar component for all filters
+interface FiltersBarProps {
+    kamOptions: { label: string; value: string }[]
+    planOptions: { label: string; value: string }[]
+    statusOptions: { label: string; value: string }[]
+    locationOptions: { label: string; value: string }[]
+    appInstalledOptions: { label: string; value: string }[]
+    inventoryStatusOptions: { label: string; value: string }[]
+    selectedKam: string[]
+    setSelectedKam: (v: string[]) => void
+    selectedPlan: string[]
+    setSelectedPlan: (v: string[]) => void
+    selectedStatus: string[]
+    setSelectedStatus: (v: string[]) => void
+    selectedLocation: string[]
+    setSelectedLocation: (v: string[]) => void
+    selectedAppInstalled: string[]
+    setSelectedAppInstalled: (v: string[]) => void
+    selectedInventoryStatuses: string[]
+    setSelectedInventoryStatuses: (v: string[]) => void
+    facets: Record<string, any>
+    resetAllFilters: () => void
+    handleSortChange: (value: string) => void
+    sortBy: string
+    setIsAgentsFiltersModalOpen: (open: boolean) => void
+}
+
+const FiltersBar: React.FC<FiltersBarProps> = ({
+    handleSortChange,
+    sortBy = 'recent',
+    kamOptions,
+    planOptions,
+    statusOptions,
+    locationOptions,
+    appInstalledOptions,
+    inventoryStatusOptions,
+    selectedKam,
+    setSelectedKam,
+    selectedPlan,
+    setSelectedPlan,
+    selectedStatus,
+    setSelectedStatus,
+    selectedLocation,
+    setSelectedLocation,
+    selectedAppInstalled,
+    setSelectedAppInstalled,
+    selectedInventoryStatuses,
+    setSelectedInventoryStatuses,
+    facets,
+    resetAllFilters,
+    setIsAgentsFiltersModalOpen,
+}) => {
+    // Helper to convert options to AlgoliaFacetMultiSelect format
+    const toFacetOptions = (opts: { label: string; value: string }[], facetName: string) => {
+        return opts
+            .filter((o) => o.value !== '')
+            .map((o) => ({
+                value: o.value,
+                count: facets[facetName]?.[o.value] || 0,
+            }))
+    }
+
+    return (
+        <div className='flex items-center gap-2'>
+            <button className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md' onClick={resetAllFilters}>
+                <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
+            </button>
+
+            <AlgoliaFacetMultiSelect
+                options={toFacetOptions(kamOptions, 'kamName')}
+                selectedValues={selectedKam}
+                onSelectionChange={setSelectedKam}
+                placeholder='KAM'
+                label='KAM'
+                className='relative inline-block'
+                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
+                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+            />
+            <Dropdown
+                options={agentSortOptions}
+                onSelect={handleSortChange}
+                defaultValue={sortBy}
+                placeholder='Sort'
+                className='relative inline-block'
+                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
+                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+            />
+            <AlgoliaFacetMultiSelect
+                options={toFacetOptions(planOptions, 'payStatus')}
+                selectedValues={selectedPlan}
+                onSelectionChange={setSelectedPlan}
+                placeholder='Plan'
+                label='Plan'
+                className='relative inline-block'
+                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
+                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+            />
+            <AlgoliaFacetMultiSelect
+                options={toFacetOptions(statusOptions, 'agentStatus')}
+                selectedValues={selectedStatus}
+                onSelectionChange={setSelectedStatus}
+                placeholder='Status'
+                label='Status'
+                className='relative inline-block'
+                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
+                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+            />
+            <AlgoliaFacetMultiSelect
+                options={inventoryStatusOptions.map((o) => ({
+                    value: o.value,
+                    count: facets[`inventoryStatus.${o.value.toLowerCase()}`]?.true || 0,
+                }))}
+                selectedValues={selectedInventoryStatuses}
+                onSelectionChange={setSelectedInventoryStatuses}
+                placeholder='Inventory Status'
+                label='Inventory Status'
+                className='relative inline-block'
+                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer'
+                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+            />
+            <AlgoliaFacetMultiSelect
+                options={toFacetOptions(appInstalledOptions, 'appInstalled')}
+                selectedValues={selectedAppInstalled}
+                onSelectionChange={setSelectedAppInstalled}
+                placeholder='App Installed'
+                label='App Installed'
+                className='relative inline-block'
+                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
+                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+            />
+            <Button
+                bgColor='bg-[#F0F0F5]'
+                textColor='text-black'
+                leftIcon={<img src={filter} alt='Filter Icon' className='w-5 h-5' />}
+                className='h-7 font-semibold text-sm'
+                onClick={() => setIsAgentsFiltersModalOpen(true)}
+            >
+                Filter
+            </Button>
+        </div>
+    )
+}
+
+const useAgentFilters = () => {
+    const [selectedKam, setSelectedKam] = useState<string[]>([])
+    const [selectedPlan, setSelectedPlan] = useState<string[]>([])
+    const [selectedStatus, setSelectedStatus] = useState<string[]>([])
+    const [selectedLocation, setSelectedLocation] = useState<string[]>([])
+    const [selectedAppInstalled, setSelectedAppInstalled] = useState<string[]>([])
+    const [selectedInventoryStatuses, setSelectedInventoryStatuses] = useState<string[]>([])
+    const resetAllFilters = () => {
+        setSelectedKam([])
+        setSelectedPlan([])
+        setSelectedStatus([])
+        setSelectedLocation([])
+        setSelectedAppInstalled([])
+        setSelectedInventoryStatuses([])
+    }
+    return {
+        selectedKam,
+        setSelectedKam,
+        selectedPlan,
+        setSelectedPlan,
+        selectedStatus,
+        setSelectedStatus,
+        selectedLocation,
+        setSelectedLocation,
+        selectedAppInstalled,
+        setSelectedAppInstalled,
+        selectedInventoryStatuses,
+        setSelectedInventoryStatuses,
+        resetAllFilters,
+    }
+}
+
+const ITEMS_PER_PAGE = 50
+
 const AgentsPage = () => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const [searchValue, setSearchValue] = useState('')
-    const [selectedRole, setSelectedRole] = useState('')
-    const [selectedStatus, setSelectedStatus] = useState('')
-    const [selectedLocation, setSelectedLocation] = useState('')
+    const {
+        selectedKam,
+        setSelectedKam,
+        selectedPlan,
+        setSelectedPlan,
+        selectedStatus,
+        setSelectedStatus,
+        selectedLocation,
+        setSelectedLocation,
+        selectedAppInstalled,
+        setSelectedAppInstalled,
+        selectedInventoryStatuses,
+        setSelectedInventoryStatuses,
+        resetAllFilters,
+    } = useAgentFilters()
+    const [isAgentsFiltersModalOpen, setIsAgentsFiltersModalOpen] = useState(false)
+    const [modalFilters, setModalFilters] = useState<AgentSearchFilters>({})
     const [currentPage, setCurrentPage] = useState(1)
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false)
     const [isCallResultModalOpen, setIsCallResultModalOpen] = useState(false)
@@ -136,18 +343,50 @@ const AgentsPage = () => {
     const [agentsData, setAgentsData] = useState<any[]>([])
     const [totalAgents, setTotalAgents] = useState(0)
     const [loading, setLoading] = useState(false)
+    const [facets, setFacets] = useState<Record<string, any>>({})
+    // Sort state and handler for Algolia sort
+    const [sortBy, setSortBy] = useState('recent')
+    const handleSortChange = (value: string) => {
+        setSortBy(value)
+        setCurrentPage(1)
+    }
 
-    // Items per page
-    const ITEMS_PER_PAGE = 50
+    // Fetch facets for filters from Algolia
+    useEffect(() => {
+        const fetchFacets = async () => {
+            try {
+                const allFacets = await algoliaAgentsService.getAllAgentFacets()
+                setFacets(allFacets)
+                console.log('Facets', allFacets)
+            } catch (err) {
+                console.error('Failed to fetch agent facets', err)
+            }
+        }
+        fetchFacets()
+    }, [])
 
     // Fetch agents data
     const fetchAgents = async () => {
         try {
             setLoading(true)
+            // Convert selectedInventoryStatuses to object format for Algolia
+            const inventoryStatusFilter = selectedInventoryStatuses.reduce(
+                (acc, status) => {
+                    acc[status.toLowerCase()] = true
+                    return acc
+                },
+                {} as Record<string, boolean>,
+            )
+
+            // Combine all filters
             const filters: AgentSearchFilters = {
-                status: selectedStatus ? [selectedStatus] : undefined,
-                role: selectedRole ? [selectedRole] : undefined,
-                location: selectedLocation ? [selectedLocation] : undefined,
+                agentStatus: selectedStatus.length > 0 ? selectedStatus[0] : undefined,
+                kamName: selectedKam.length > 0 ? selectedKam[0] : undefined,
+                payStatus: selectedPlan.length > 0 ? selectedPlan[0] : undefined,
+                areaOfOperation: selectedLocation.length > 0 ? selectedLocation : undefined,
+                inventoryStatus: Object.keys(inventoryStatusFilter).length > 0 ? inventoryStatusFilter : undefined,
+                appInstalled: selectedAppInstalled.length > 0 ? selectedAppInstalled[0] : undefined,
+                ...modalFilters, // Modal filters should override top bar filters if both are set
             }
 
             const response = await algoliaAgentsService.searchAgents({
@@ -155,8 +394,10 @@ const AgentsPage = () => {
                 filters,
                 page: currentPage - 1,
                 hitsPerPage: ITEMS_PER_PAGE,
+                sortBy: sortBy || undefined,
             })
 
+            console.log('Agent data sample:', response.hits[0]) // Debug log
             setAgentsData(response.hits)
             setTotalAgents(response.nbHits)
         } catch (error) {
@@ -169,33 +410,92 @@ const AgentsPage = () => {
     // Fetch agents when filters change
     useEffect(() => {
         fetchAgents()
-    }, [searchValue, selectedRole, selectedStatus, selectedLocation, currentPage])
+    }, [
+        searchValue,
+        selectedKam,
+        selectedPlan,
+        selectedStatus,
+        selectedLocation,
+        selectedInventoryStatuses,
+        selectedAppInstalled,
+        currentPage,
+        sortBy,
+        modalFilters,
+    ])
 
-    // Dropdown options
-    const roleOptions = [
+    // Dynamic dropdown options from Algolia facets
+    const kamOptions = [
         { label: 'All Roles', value: '' },
-        { label: 'Agent', value: 'agent' },
-        { label: 'Broker', value: 'broker' },
-        { label: 'Developer', value: 'developer' },
+        ...Object.entries(facets.kamName || {}).map(([value, count]) => ({
+            label: value,
+            value: value,
+        })),
+    ]
+
+    const planOptions = [
+        { label: 'All Plans', value: '' },
+        ...Object.entries(facets.payStatus || {}).map(([value, count]) => ({
+            label: value,
+            value: value,
+        })),
     ]
 
     const statusOptions = [
         { label: 'All Status', value: '' },
-        { label: 'Active', value: 'active' },
-        { label: 'Inactive', value: 'inactive' },
-        { label: 'Pending', value: 'pending' },
+        ...Object.entries(facets.agentStatus || {}).map(([value, count]) => ({
+            label: value,
+            value: value,
+        })),
     ]
 
     const locationOptions = [
         { label: 'All Locations', value: '' },
-        { label: 'Mumbai', value: 'mumbai' },
-        { label: 'Delhi', value: 'delhi' },
-        { label: 'Bangalore', value: 'bangalore' },
+        ...Object.entries(facets.areaOfOperation || {}).map(([value, count]) => ({
+            label: value,
+            value: value,
+        })),
+    ]
+
+    // App Installed options from facets
+    const appInstalledOptions = [
+        { label: 'All', value: '' },
+        ...Object.entries(facets.appInstalled || {}).map(([value, count]) => ({
+            label: value === 'true' ? 'Yes' : 'No',
+            value: value,
+        })),
+    ]
+
+    // Inventory status options from facets
+    const inventoryStatusOptions = [
+        { label: 'Available', value: 'Available', count: facets['inventoryStatus.available']?.true || 0 },
+        { label: 'Hold', value: 'Hold', count: facets['inventoryStatus.hold']?.true || 0 },
+        { label: 'Sold', value: 'Sold', count: facets['inventoryStatus.sold']?.true || 0 },
+        { label: 'De-listed', value: 'De-listed', count: facets['inventoryStatus.delisted']?.true || 0 },
     ]
 
     const handleAgentClick = (agentId: string, agentData: any) => {
         dispatch(setSelectedAgent(agentData))
         navigate(`/acn/agents/${agentId}`)
+    }
+
+    // Helper function to update agent status
+    const updateAgentStatus = async (agentId: string, field: string, value: string) => {
+        try {
+            // Update local state optimistically
+            setAgentsData((prevData) =>
+                prevData.map((agent) => (agent.objectID === agentId ? { ...agent, [field]: value } : agent)),
+            )
+
+            // Update in Algolia
+
+            console.log('✅ Agent status updated successfully')
+        } catch (error) {
+            console.error('❌ Failed to update agent status:', error)
+            // Revert local state on error
+            setAgentsData((prevData) =>
+                prevData.map((agent) => (agent.objectID === agentId ? { ...agent, [field]: agent[field] } : agent)),
+            )
+        }
     }
 
     // Table columns configuration
@@ -261,23 +561,43 @@ const AgentsPage = () => {
             ),
         },
         {
-            key: 'lastConnected',
+            key: 'contactHistory[0]',
             header: 'Last Connected',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatRelativeTime(value)}</span>
-            ),
-        },
-        {
-            key: 'lastTried',
-            header: 'Last Tried',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatRelativeTime(value)}</span>
-            ),
+            render: (value, row) => {
+                // Handle different possible data structures
+                let timestamp = null
+                const contactHistory = row.contactHistory
+                if (Array.isArray(contactHistory) && contactHistory.length > 0) {
+                    // If it's an array of contact history
+                    timestamp = contactHistory[0].timestamp
+                } else if (contactHistory && typeof contactHistory === 'object') {
+                    // If it's a single contact history object
+                    timestamp = contactHistory.timestamp
+                } else if (row.lastConnected) {
+                    // Fallback to lastConnected if available
+                    timestamp = row.lastConnected
+                }
+
+                return (
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                        {timestamp ? formatRelativeTime(timestamp) : 'Never'}
+                    </span>
+                )
+            },
         },
         {
             key: 'contactHistory[0].contactResult',
             header: 'Last Connected Status',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value, row) => {
+                const contactHistory = row.contactHistory
+                let contactResult = null
+                if (Array.isArray(contactHistory) && contactHistory.length > 0) {
+                    contactResult = contactHistory[0].contactResult
+                } else if (contactHistory && typeof contactHistory === 'object') {
+                    contactResult = contactHistory.contactResult
+                }
+                return <span className='whitespace-nowrap text-sm font-normal w-auto'>{contactResult || 'N/A'}</span>
+            },
         },
         {
             key: 'lastEnquiry',
@@ -289,16 +609,40 @@ const AgentsPage = () => {
         {
             key: 'agentStatus',
             header: 'Agent Status',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>{toCapitalizedWords(value)}</span>
-            ),
+            render: (_, row) => {
+                const currentOption = agentStatusOptions.find(
+                    (option) => option.value === row.agentStatus?.toLowerCase(),
+                )
+                return (
+                    <Dropdown
+                        options={agentStatusOptions}
+                        placeholder={toCapitalizedWords(row.agentStatus)}
+                        onSelect={(value) => updateAgentStatus(row.objectID, 'agentStatus', value)}
+                        className='relative inline-block'
+                        triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${currentOption ? `bg-[${currentOption.color}] text-[${currentOption.textColor}]` : 'bg-gray-100 text-gray-700'}`}
+                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    />
+                )
+            },
         },
         {
             key: 'payStatus',
             header: 'Pay Status',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>{toCapitalizedWords(value)}</span>
-            ),
+            render: (_, row) => {
+                const currentOption = payStatusOptions.find((option) => option.value === row.payStatus?.toLowerCase())
+                return (
+                    <Dropdown
+                        options={payStatusOptions}
+                        placeholder={toCapitalizedWords(row.payStatus)}
+                        onSelect={(value) => updateAgentStatus(row.objectID, 'payStatus', value)}
+                        className='relative inline-block'
+                        triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${currentOption ? `bg-[${currentOption.color}] text-[${currentOption.textColor}]` : 'bg-gray-100 text-gray-700'}`}
+                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    />
+                )
+            },
         },
         {
             key: 'kamName',
@@ -340,161 +684,184 @@ const AgentsPage = () => {
     ]
 
     return (
-        <Layout loading={loading}>
+        <Layout>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                <div
+                    className='flex flex-col gap-4 py-2 px-6 bg-white min-h-screen'
+                    style={{ width: 'calc(100vw)', maxWidth: '100%' }}
+                >
                     {/* Header */}
-                    <div className='mb-4'>
-                        <div className='flex items-center justify-between mb-2'>
-                            <h1 className='text-lg font-semibold text-black'>Agents ({totalAgents})</h1>
+                    <div className=''>
+                        <div className='flex items-center justify-between'>
+                            <h1 className='text-lg font-semibold text-black'>Agents {/*({totalAgents})*/}</h1>
                             <div className='flex items-center gap-4'>
-                                <div className='w-80'>
+                                <div className='flex flex-row w-full gap-[10px] items-center'>
                                     <StateBaseTextField
-                                        leftIcon={
-                                            <svg
-                                                className='w-4 h-4 text-gray-400'
-                                                fill='none'
-                                                stroke='currentColor'
-                                                viewBox='0 0 24 24'
-                                            >
-                                                <path
-                                                    strokeLinecap='round'
-                                                    strokeLinejoin='round'
-                                                    strokeWidth={2}
-                                                    d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
-                                                />
-                                            </svg>
-                                        }
+                                        leftIcon={<img src={searchnormalic} alt='Search Icon' className='w-4 h-4' />}
                                         placeholder='Search name and number'
                                         value={searchValue}
                                         onChange={(e) => setSearchValue(e.target.value)}
                                         className='h-8'
                                     />
+                                    <button
+                                        className='flex items-center justify-center rounded-sm px-2 py-[5px] hover:bg-gray-100 bg-[#24252E] gap-2'
+                                        onClick={() => {
+                                            setIsVerificationModalOpen(true)
+                                        }}
+                                    >
+                                        <img src={userTick} alt='Search Icon' className='w-4 h-4' />
+                                        <span className='text-white text-sm font-medium'>Verify Agent</span>
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Filters */}
-                        <div className='flex items-center gap-2 mb-2'>
-                            <button
-                                className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md'
-                                onClick={() => {
-                                    setSelectedRole('')
-                                    setSelectedStatus('')
-                                    setSelectedLocation('')
-                                    setSearchValue('')
-                                }}
-                            >
-                                <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
-                            </button>
-                            <Dropdown
-                                options={roleOptions}
-                                onSelect={setSelectedRole}
-                                defaultValue={selectedRole}
-                                placeholder='Role'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                            />
-                            <Dropdown
-                                options={statusOptions}
-                                onSelect={setSelectedStatus}
-                                defaultValue={selectedStatus}
-                                placeholder='Status'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                            />
-                            <Dropdown
-                                options={locationOptions}
-                                onSelect={setSelectedLocation}
-                                defaultValue={selectedLocation}
-                                placeholder='Location'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                            />
                         </div>
                     </div>
 
                     {/* Metrics Cards */}
-                    <div className='mb-4'>
+                    <div className=''>
                         <MetricsCards metrics={sampleMetrics} />
                     </div>
 
-                    {/* Table */}
-                    <div className='h-[65vh] overflow-y-auto'>
-                        <FlexibleTable
-                            data={agentsData}
-                            columns={columns}
-                            hoverable={true}
-                            borders={{
-                                table: false,
-                                header: true,
-                                rows: true,
-                                cells: false,
-                                outer: false,
-                            }}
-                            maxHeight='65vh'
-                            className='rounded-lg'
-                            stickyHeader={true}
-                        />
-                    </div>
+                    {/* Filters */}
+                    <FiltersBar
+                        handleSortChange={handleSortChange}
+                        sortBy={sortBy}
+                        kamOptions={kamOptions}
+                        planOptions={planOptions}
+                        statusOptions={statusOptions}
+                        locationOptions={locationOptions}
+                        appInstalledOptions={appInstalledOptions}
+                        inventoryStatusOptions={inventoryStatusOptions}
+                        selectedKam={selectedKam}
+                        setSelectedKam={setSelectedKam}
+                        selectedPlan={selectedPlan}
+                        setSelectedPlan={setSelectedPlan}
+                        selectedStatus={selectedStatus}
+                        setSelectedStatus={setSelectedStatus}
+                        selectedLocation={selectedLocation}
+                        setSelectedLocation={setSelectedLocation}
+                        selectedAppInstalled={selectedAppInstalled}
+                        setSelectedAppInstalled={setSelectedAppInstalled}
+                        selectedInventoryStatuses={selectedInventoryStatuses}
+                        setSelectedInventoryStatuses={setSelectedInventoryStatuses}
+                        facets={facets}
+                        resetAllFilters={resetAllFilters}
+                        setIsAgentsFiltersModalOpen={setIsAgentsFiltersModalOpen}
+                    />
+
+                    {/* Table with loader overlay */}
+                    {loading === true ? (
+                        <div className='relative h-[65vh] overflow-y-auto'>
+                            <div className='absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-60'>
+                                <div className='w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className='relative h-[65vh] overflow-y-auto'>
+                            <FlexibleTable
+                                data={agentsData}
+                                columns={columns}
+                                hoverable={true}
+                                borders={{
+                                    table: false,
+                                    header: true,
+                                    rows: true,
+                                    cells: false,
+                                    outer: false,
+                                }}
+                                maxHeight='65vh'
+                                className='rounded-lg'
+                                stickyHeader={true}
+                            />
+                        </div>
+                    )}
 
                     {/* Pagination */}
-                    <div className='flex items-center justify-between mt-4'>
-                        <div className='text-sm text-gray-500 font-medium'>
-                            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                            {Math.min(currentPage * ITEMS_PER_PAGE, totalAgents)} of {totalAgents} agents
-                        </div>
+                    {totalAgents > ITEMS_PER_PAGE && (
+                        <div className='flex items-center justify-between mt-4'>
+                            <div className='text-sm text-gray-500 font-medium'>
+                                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
+                                {Math.min(currentPage * ITEMS_PER_PAGE, totalAgents)} of {totalAgents.toLocaleString()}{' '}
+                                agents
+                            </div>
 
-                        <div className='flex items-center gap-2'>
-                            <button
-                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                disabled={currentPage === 1}
-                                className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                    currentPage === 1
-                                        ? 'text-gray-400 cursor-not-allowed'
-                                        : 'text-gray-700 hover:bg-gray-100'
-                                }`}
-                            >
-                                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                    <path
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                        strokeWidth={2}
-                                        d='M15 19l-7-7 7-7'
-                                    />
-                                </svg>
-                            </button>
+                            <div className='flex items-center gap-2'>
+                                <button
+                                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
+                                        currentPage === 1
+                                            ? 'text-gray-400 cursor-not-allowed'
+                                            : 'text-gray-700 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                        <path
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                            strokeWidth={2}
+                                            d='M15 19l-7-7 7-7'
+                                        />
+                                    </svg>
+                                </button>
 
-                            <button
-                                onClick={() =>
-                                    setCurrentPage((prev) =>
-                                        Math.min(prev + 1, Math.ceil(totalAgents / ITEMS_PER_PAGE)),
-                                    )
-                                }
-                                disabled={currentPage >= Math.ceil(totalAgents / ITEMS_PER_PAGE)}
-                                className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                                    currentPage >= Math.ceil(totalAgents / ITEMS_PER_PAGE)
-                                        ? 'text-gray-400 cursor-not-allowed'
-                                        : 'text-gray-700 hover:bg-gray-100'
-                                }`}
-                            >
-                                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                    <path
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                        strokeWidth={2}
-                                        d='M9 5l7 7-7 7'
-                                    />
-                                </svg>
-                            </button>
+                                {Array.from(
+                                    { length: Math.min(Math.ceil(totalAgents / ITEMS_PER_PAGE), 7) },
+                                    (_, i) => {
+                                        let pageNum: number
+                                        const totalPages = Math.ceil(totalAgents / ITEMS_PER_PAGE)
+
+                                        if (totalPages <= 7) {
+                                            pageNum = i + 1
+                                        } else if (currentPage < 4) {
+                                            pageNum = i + 1
+                                        } else if (currentPage > totalPages - 4) {
+                                            pageNum = totalPages - 7 + i + 1
+                                        } else {
+                                            pageNum = currentPage - 3 + i + 1
+                                        }
+
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                onClick={() => setCurrentPage(pageNum)}
+                                                className={`w-8 h-8 rounded flex items-center justify-center text-sm font-semibold transition-colors ${
+                                                    currentPage === pageNum
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'text-gray-700 hover:bg-gray-100'
+                                                }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        )
+                                    },
+                                )}
+
+                                <button
+                                    onClick={() =>
+                                        setCurrentPage((prev) =>
+                                            Math.min(prev + 1, Math.ceil(totalAgents / ITEMS_PER_PAGE)),
+                                        )
+                                    }
+                                    disabled={currentPage >= Math.ceil(totalAgents / ITEMS_PER_PAGE)}
+                                    className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
+                                        currentPage >= Math.ceil(totalAgents / ITEMS_PER_PAGE)
+                                            ? 'text-gray-400 cursor-not-allowed'
+                                            : 'text-gray-700 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                        <path
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                            strokeWidth={2}
+                                            d='M9 5l7 7-7 7'
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Modals */}
                     <NotesModal
@@ -513,6 +880,16 @@ const AgentsPage = () => {
                         isOpen={isVerificationModalOpen}
                         onClose={() => setIsVerificationModalOpen(false)}
                         rowData={selectedRowData}
+                    />
+                    <AgentsFiltersModal
+                        isOpen={isAgentsFiltersModalOpen}
+                        onClose={() => setIsAgentsFiltersModalOpen(false)}
+                        filters={modalFilters}
+                        onFiltersChange={(newFilters) => {
+                            setModalFilters(newFilters)
+                            // Reset page when filters change
+                            setCurrentPage(1)
+                        }}
                     />
 
                     <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
