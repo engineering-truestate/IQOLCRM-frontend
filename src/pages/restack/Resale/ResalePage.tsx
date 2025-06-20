@@ -121,7 +121,7 @@ const ResalePage = () => {
             render: (_, row) => (
                 <button
                     className='bg-black text-white text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
-                    onClick={() => navigate(`/restack/resale/${row.propertyId}/details`)}
+                    onClick={() => navigate(`/restack/resale/${resaleType}/${row.propertyId}/details`)}
                 >
                     View Details
                 </button>

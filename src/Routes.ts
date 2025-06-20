@@ -44,7 +44,7 @@ import TypologyPage from './pages/restack/Primary/TypologyPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
-import ResaleDetailsPage from './pages/restack/resale/ResalePageDetails'
+import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
 import ResalePage from './pages/restack/resale/ResalePage'
 import Resale from './pages/restack/resale/Resale'
 
@@ -113,7 +113,7 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryPage, null)),
     },
     {
-        path: '/restack/resale/:id/details',
+        path: '/restack/resale/:type/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(ResaleDetailsPage, null)),
     },
     {

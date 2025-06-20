@@ -65,6 +65,7 @@ export interface OverviewData {
 
 interface FetchResaleDataRequestAction {
     type: typeof FETCH_RESALE_DATA_REQUEST
+    payload: string
 }
 
 interface FetchResaleDataSuccessAction {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
@@ -7,195 +8,79 @@ import Dropdown from '../../../components/design-elements/Dropdown'
 import NumberInput from '../../../components/design-elements/StateBaseNumberField'
 import DateInput from '../../../components/design-elements/DateInputUnixTimestamps'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
-
-// Import the dummy data and types
-import {
-    propertyDetailsData,
-    getPropertyById,
-    type PropertyDetails,
-    type PropertyImages,
-    type BasicPropertyInfo,
-    type LocationDetails,
-    type AmenitiesAndFeatures,
-} from '../../dummy_data/restack_resale_details_dummy_data'
 import editic from '/icons/acn/edit.svg'
-
-// Type definitions for section and field names
-type PropertySection = 'basicInfo' | 'location' | 'amenitiesAndFeatures'
-type FieldName =
-    | keyof PropertyDetails['basicInfo']
-    | keyof PropertyDetails['location']
-    | keyof PropertyDetails['amenitiesAndFeatures']
-
-// Property type options
-const propertyTypes = [
-    { label: 'Residential', value: 'Residential' },
-    { label: 'Commercial', value: 'Commercial' },
-    { label: 'Industrial', value: 'Industrial' },
-]
-
-const subTypes = [
-    { label: 'Apartment', value: 'Apartment' },
-    { label: 'Villa', value: 'Villa' },
-    { label: 'Plot', value: 'Plot' },
-    { label: 'Penthouse', value: 'Penthouse' },
-]
-
-const configurations = [
-    { label: '1 BHK', value: '1 BHK' },
-    { label: '2 BHK', value: '2 BHK' },
-    { label: '3 BHK', value: '3 BHK' },
-    { label: '4 BHK', value: '4 BHK' },
-    { label: '5+ BHK', value: '5+ BHK' },
-]
-
-const statusOptions = [
-    { label: 'Ready to Move', value: 'Ready to Move' },
-    { label: 'Under Construction', value: 'Under Construction' },
-    { label: 'Upcoming', value: 'Upcoming' },
-]
-
-const furnishingOptions = [
-    { label: 'Furnished', value: 'Furnished' },
-    { label: 'Semi-Furnished', value: 'Semi-Furnished' },
-    { label: 'Unfurnished', value: 'Unfurnished' },
-]
-
-const facingOptions = [
-    { label: 'North', value: 'North' },
-    { label: 'South', value: 'South' },
-    { label: 'East', value: 'East' },
-    { label: 'West', value: 'West' },
-    { label: 'North-East', value: 'North-East' },
-    { label: 'North-West', value: 'North-West' },
-    { label: 'South-East', value: 'South-East' },
-    { label: 'South-West', value: 'South-West' },
-]
-
-// Image Gallery Component
-const ImageGallery = ({ images }: { images: PropertyImages[] }) => {
-    const [selectedImage, setSelectedImage] = useState(0)
-    const [imageError, setImageError] = useState<{ [key: string]: boolean }>({})
-
-    const handleImageError = (imageId: string) => {
-        setImageError((prev) => ({ ...prev, [imageId]: true }))
-    }
-
-    const handleImageLoad = (imageId: string) => {
-        setImageError((prev) => ({ ...prev, [imageId]: false }))
-    }
-
-    if (!images || images.length === 0) {
-        return (
-            <div className='mb-6'>
-                <div className='w-full h-96 bg-gray-200 rounded flex items-center justify-center'>
-                    <span className='text-gray-500'>No images available</span>
-                </div>
-            </div>
-        )
-    }
-
-    const currentImage = images[selectedImage] || images[0]
-
-    return (
-        <div className='mb-6'>
-            {/* Thumbnail Grid - Show all images in two rows */}
-            <div className='grid grid-cols-5 gap-3 mb-4'>
-                {/* First row - show first 5 images */}
-                {images.slice(0, 5).map((image, index) => (
-                    <div
-                        key={image.id}
-                        className={`cursor-pointer rounded overflow-hidden border-2 aspect-[4/3] ${
-                            selectedImage === index ? 'border-blue-500' : 'border-gray-200'
-                        }`}
-                        onClick={() => setSelectedImage(index)}
-                    >
-                        <img
-                            src={image.url}
-                            alt={image.alt}
-                            className='w-full h-full object-cover'
-                            onError={() => handleImageError(image.id)}
-                        />
-                    </div>
-                ))}
-            </div>
-
-            {/* Second row if more than 5 images */}
-            {images.length > 5 && (
-                <div className='grid grid-cols-5 gap-3 mb-4'>
-                    {images.slice(5, 9).map((image, index) => (
-                        <div
-                            key={image.id}
-                            className={`cursor-pointer rounded overflow-hidden border-2 aspect-[4/3] ${
-                                selectedImage === index + 5 ? 'border-blue-500' : 'border-gray-200'
-                            }`}
-                            onClick={() => setSelectedImage(index + 5)}
-                        >
-                            <img
-                                src={image.url}
-                                alt={image.alt}
-                                className='w-full h-full object-cover'
-                                onError={() => handleImageError(image.id)}
-                            />
-                        </div>
-                    ))}
-                    {/* Show +X more overlay if there are more than 9 images */}
-                    {images.length > 9 && (
-                        <div className='relative cursor-pointer rounded overflow-hidden border-2 border-gray-200 aspect-[4/3]'>
-                            <img
-                                src={images[9].url}
-                                alt={images[9].alt}
-                                className='w-full h-full object-cover'
-                                onError={() => handleImageError(images[9].id)}
-                            />
-                            <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
-                                <span className='text-white text-sm font-medium'>+{images.length - 9}</span>
-                            </div>
-                        </div>
-                    )}
-                    {/* Add Image Button */}
-                    <div className='flex items-center justify-center border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-gray-400 aspect-[4/3]'>
-                        <div className='text-center'>
-                            <div className='text-gray-400 text-sm mb-1'>✏️</div>
-                            <div className='text-gray-400 text-xs'>Add Image</div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-}
+import type { ResaleData } from '../../../store/actionTypes/restack/resaleActionTypes'
+import type { RestackResaleProperty } from '../../../data_types/restack/restack-resale'
+import { get99AcresResaleDataById, getMagicBricksResaleDataById } from '../../../services/restack/resaleService'
 
 const ResaleDetailsPage = () => {
     const navigate = useNavigate()
-    const { id } = useParams()
+    const { type, id } = useParams()
+    const dispatch = useDispatch()
 
-    const [propertyDetails, setPropertyDetails] = useState<PropertyDetails | null>(null)
-    const [originalDetails, setOriginalDetails] = useState<PropertyDetails | null>(null)
+    const [propertyDetails, setPropertyDetails] = useState<RestackResaleProperty | null>(null)
+    const [originalDetails, setOriginalDetails] = useState<ResaleData | null>(null)
     const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(false)
     const [isEditingLocation, setIsEditingLocation] = useState(false)
     const [isEditingInventory, setIsEditingInventory] = useState(false)
     const [isEditingAmenities, setIsEditingAmenities] = useState(false)
-    const [loading, setLoading] = useState(true)
+    // const resaleData = useSelector((state: any) => state.resale.data)
+    // const loading = useSelector((state: any) => state.resale.loading)
+    // const error = useSelector((state: any) => state.resale.error)
 
-    // Load property data based on id
     useEffect(() => {
-        if (id) {
-            setLoading(true)
+        const fetchData = async (): Promise<void> => {
             try {
-                const property = getPropertyById(id) || propertyDetailsData
-                if (!property) {
-                    throw new Error('Property not found')
+                let data: RestackResaleProperty[] = []
+
+                switch (type) {
+                    case '99acres': {
+                        const result99 = await get99AcresResaleDataById(String(id))
+                        data = result99 ? (Array.isArray(result99) ? result99 : [result99]) : []
+                        break
+                    }
+                    case 'magicbricks': {
+                        const resultMagicBricks = await getMagicBricksResaleDataById(String(id))
+                        data = resultMagicBricks
+                            ? Array.isArray(resultMagicBricks)
+                                ? resultMagicBricks
+                                : [resultMagicBricks]
+                            : []
+                        break
+                    }
+                    default:
+                        console.error('Invalid resale type:', type)
+                        return
                 }
-                setPropertyDetails(property)
-                setOriginalDetails(property)
+
+                if (!data || data.length === 0) {
+                    console.error(`No data found for ${type} with id:`, id)
+                    return
+                }
+
+                setPropertyDetails(data[0])
             } catch (error) {
-                console.error('Error fetching property details:', error)
-            } finally {
-                setLoading(false)
+                console.error('Error fetching property data:', error)
+                setPropertyDetails(null)
             }
         }
-    }, [id])
+
+        fetchData()
+    }, [type, id])
+
+    // Load property data based on id
+    // useEffect(() => {
+    //     if (id) {
+    //         dispatch(fetchResaleDataRequest(id) as any);
+    //     }
+    // }, [id, dispatch]);
+
+    // useEffect(() => {
+    //     if (resaleData) {
+    //         setPropertyDetails(resaleData);
+    //         setOriginalDetails(resaleData);
+    //     }
+    // }, [resaleData]);
 
     // Handle field updates with types
     const updateField = (field: string, value: string | number | null) => {
@@ -206,22 +91,7 @@ const ResaleDetailsPage = () => {
 
             if (keys.length === 2) {
                 const [section, key] = keys
-                if (section === 'basicInfo') {
-                    updatedDetails.basicInfo = {
-                        ...updatedDetails.basicInfo,
-                        [key]: value,
-                    }
-                } else if (section === 'location') {
-                    updatedDetails.location = {
-                        ...updatedDetails.location,
-                        [key]: value,
-                    }
-                } else if (section === 'amenitiesAndFeatures') {
-                    updatedDetails.amenitiesAndFeatures = {
-                        ...updatedDetails.amenitiesAndFeatures,
-                        [key]: value,
-                    }
-                }
+                ;(updatedDetails as any)[key] = value
             }
             return updatedDetails
         })
@@ -235,7 +105,7 @@ const ResaleDetailsPage = () => {
     // Generic handle cancel for sections
     const handleCancelSection = (
         setter: React.Dispatch<React.SetStateAction<boolean>>,
-        originalData: PropertyDetails | null,
+        originalData: ResaleData | null,
     ) => {
         setter(false)
         setPropertyDetails(originalData)
@@ -264,7 +134,6 @@ const ResaleDetailsPage = () => {
         onClick1?: () => void,
         onClick2?: () => void,
         classNameOverride?: string,
-        isSectionEditable: boolean = false,
     ) => {
         const renderField = (
             label: string,
@@ -280,7 +149,7 @@ const ResaleDetailsPage = () => {
                     className={`flex flex-col gap-1 border-t border-solid border-t-[#d4dbe2] py-4 ${classNameOverride?.includes('pr-') ? '' : 'pr-2'}`}
                 >
                     <p className='text-[#5c738a] text-sm font-normal leading-normal'>{label}</p>
-                    {isSectionEditable && fieldKey ? (
+                    {fieldKey ? (
                         options ? (
                             <Dropdown
                                 options={options}
@@ -347,7 +216,7 @@ const ResaleDetailsPage = () => {
         return (
             <>
                 <div
-                    className={`${classNameOverride && classNameOverride.includes('col-span-2') ? classNameOverride : ''}`}
+                    className={`{classNameOverride && classNameOverride.includes('col-span-2') ? classNameOverride : ''}`}
                 >
                     {renderField(label1, value1, fieldKey1, options1, type1, onClick1)}
                 </div>
@@ -358,8 +227,16 @@ const ResaleDetailsPage = () => {
         )
     }
 
-    if (loading || !propertyDetails) {
-        return <Layout loading={true}>Loading property details...</Layout>
+    // if (loading) {
+    //     return <Layout loading={true}>Loading property details...</Layout>;
+    // }
+
+    // if (error) {
+    //     return <Layout loading={false}>Error: {error}</Layout>;
+    // }
+
+    if (!propertyDetails) {
+        return <Layout loading={false}>Property details not found.</Layout>
     }
 
     return (
@@ -380,20 +257,20 @@ const ResaleDetailsPage = () => {
                             <span className='bg-green-100 text-green-800 text-xs px-2 py-1 rounded'>
                                 {propertyDetails.status}
                             </span>
-                            <span className='text-lg font-semibold text-black'>{propertyDetails.basicInfo.price}</span>
+                            <span className='text-lg font-semibold text-black'>{propertyDetails.price}</span>
                         </div>
-                        <h2 className='text-xl font-semibold text-black'>{propertyDetails.title}</h2>
+                        <h2 className='text-xl font-semibold text-black'>{propertyDetails.projectName}</h2>
                         <div className='text-sm text-gray-500 mt-1'>
                             <button onClick={() => navigate('/restack/resale')} className='hover:text-gray-700'>
                                 Resale
                             </button>
                             <span className='mx-2'>/</span>
-                            <span className='text-black font-medium'>{propertyDetails.id}</span>
+                            <span className='text-black font-medium'>{propertyDetails.propertyId}</span>
                         </div>
                     </div>
 
                     {/* Property Images */}
-                    <ImageGallery images={propertyDetails.images} />
+                    {/* <ImageGallery images={propertyDetails.images} /> */}
 
                     {/* Property Overview */}
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
@@ -428,43 +305,41 @@ const ResaleDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Project Name',
-                            propertyDetails.basicInfo.projectName,
+                            propertyDetails.projectName,
                             'Property Type',
-                            propertyDetails.basicInfo.propertyType,
-                            'basicInfo.projectName',
-                            'basicInfo.propertyType',
+                            propertyDetails.propertyType,
+                            'projectName',
+                            'propertyType',
                             undefined,
-                            propertyTypes,
+                            undefined,
                             'text',
                             'text',
                             undefined,
                             undefined,
                             undefined,
-                            isEditingBasicInfo,
                         )}
                         {renderInfoRow(
                             'Sub Type',
-                            propertyDetails.basicInfo.subType,
+                            propertyDetails.subType,
                             'Configuration',
-                            propertyDetails.basicInfo.configuration,
-                            'basicInfo.subType',
-                            'basicInfo.configuration',
-                            subTypes,
-                            configurations,
+                            propertyDetails.configuration,
+                            'subType',
+                            'configuration',
+                            undefined,
+                            undefined,
                             'text',
                             'text',
                             undefined,
                             undefined,
                             undefined,
-                            isEditingBasicInfo,
                         )}
                         {renderInfoRow(
                             'Price',
-                            propertyDetails.basicInfo.price,
+                            propertyDetails.price,
                             'Price per sq ft',
-                            propertyDetails.basicInfo.pricePerSqFt,
-                            'basicInfo.price',
-                            'basicInfo.pricePerSqFt',
+                            propertyDetails.pricePerSqft?.toString(),
+                            'price',
+                            'pricePerSqft',
                             undefined,
                             undefined,
                             'text',
@@ -472,15 +347,14 @@ const ResaleDetailsPage = () => {
                             undefined,
                             undefined,
                             undefined,
-                            isEditingBasicInfo,
                         )}
                         {renderInfoRow(
                             'RERA ID',
-                            propertyDetails.basicInfo.reraId,
+                            propertyDetails.reraId,
                             'Project Size',
-                            propertyDetails.basicInfo.projectSize,
-                            'basicInfo.reraId',
-                            'basicInfo.projectSize',
+                            propertyDetails.projectSize,
+                            'reraId',
+                            'projectSize',
                             undefined,
                             undefined,
                             'text',
@@ -488,15 +362,14 @@ const ResaleDetailsPage = () => {
                             undefined,
                             undefined,
                             undefined,
-                            isEditingBasicInfo,
                         )}
                         {renderInfoRow(
                             'Super Built-up Area',
-                            propertyDetails.basicInfo.superBuiltUpArea,
+                            propertyDetails.superBuiltUpArea?.toString(),
                             'Carpet Area',
-                            propertyDetails.basicInfo.carpetArea,
-                            'basicInfo.superBuiltUpArea',
-                            'basicInfo.carpetArea',
+                            propertyDetails.carpetArea,
+                            'superBuiltUpArea',
+                            'carpetArea',
                             undefined,
                             undefined,
                             'text',
@@ -504,15 +377,14 @@ const ResaleDetailsPage = () => {
                             undefined,
                             undefined,
                             undefined,
-                            isEditingBasicInfo,
                         )}
                         {renderInfoRow(
                             'Total Units',
-                            propertyDetails.basicInfo.totalUnits,
+                            propertyDetails.totalUnits?.toString(),
                             'Developer',
-                            propertyDetails.basicInfo.developer,
-                            'basicInfo.totalUnits',
-                            'basicInfo.developer',
+                            propertyDetails.developer,
+                            'totalUnits',
+                            'developer',
                             undefined,
                             undefined,
                             'text',
@@ -520,23 +392,21 @@ const ResaleDetailsPage = () => {
                             undefined,
                             undefined,
                             undefined,
-                            isEditingBasicInfo,
                         )}
                         {renderInfoRow(
                             'Possession',
-                            propertyDetails.basicInfo.possession,
+                            propertyDetails.handoverDate,
                             'Age of Property',
-                            propertyDetails.basicInfo.ageOfProperty,
-                            'basicInfo.possession',
-                            'basicInfo.ageOfProperty',
-                            statusOptions,
+                            propertyDetails.ageOfProperty,
+                            'handoverDate',
+                            'ageOfProperty',
+                            undefined,
                             undefined,
                             'text',
                             'text',
                             undefined,
                             undefined,
                             undefined,
-                            isEditingBasicInfo,
                         )}
                     </div>
 
@@ -573,27 +443,26 @@ const ResaleDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Project Address',
-                            propertyDetails.location.projectAddress,
+                            propertyDetails.projectAddress,
                             'Area',
-                            propertyDetails.location.area,
-                            'location.projectAddress',
-                            'location.area',
+                            propertyDetails.area,
+                            'projectAddress',
+                            'area',
                             undefined,
                             undefined,
                             'text',
                             'text',
                             undefined,
                             undefined,
-                            undefined,
-                            isEditingLocation,
+                            'col-span-2 pr-[50%]',
                         )}
                         {renderInfoRow(
                             'Micromarket',
-                            propertyDetails.location.micromarket,
+                            propertyDetails.micromarket,
                             'Launch Date',
-                            propertyDetails.location.launchDate,
-                            'location.micromarket',
-                            'location.launchDate',
+                            propertyDetails.launchDate,
+                            'micromarket',
+                            'launchDate',
                             undefined,
                             undefined,
                             'text',
@@ -601,30 +470,27 @@ const ResaleDetailsPage = () => {
                             undefined,
                             undefined,
                             undefined,
-                            isEditingLocation,
                         )}
                         {renderInfoRow(
                             'Handover Date',
-                            propertyDetails.location.handoverDate,
+                            propertyDetails.handoverDate,
                             'Map Link',
                             'View on Map',
-                            'location.handoverDate',
+                            'handoverDate',
                             undefined,
                             undefined,
                             undefined,
                             'date',
                             'link',
                             undefined,
-                            () => window.open(propertyDetails.location.mapLink, '_blank'),
-                            undefined,
-                            isEditingLocation,
+                            () => window.open(propertyDetails.maplink, '_blank'),
                         )}
                         {renderInfoRow(
                             'Coordinates',
-                            `${propertyDetails.location.coordinates.latitude}, ${propertyDetails.location.coordinates.longitude}`,
+                            `${propertyDetails.lat}, ${propertyDetails.long}`,
                             '',
                             '',
-                            'location.coordinates',
+                            'coordinates',
                             undefined,
                             undefined,
                             undefined,
@@ -633,7 +499,6 @@ const ResaleDetailsPage = () => {
                             undefined,
                             undefined,
                             'col-span-2 pr-[50%]',
-                            isEditingLocation,
                         )}
                     </div>
 
@@ -670,11 +535,11 @@ const ResaleDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Availability',
-                            propertyDetails.basicInfo.availability,
+                            propertyDetails.inventoryDetails?.availability,
                             'Floor Number',
-                            propertyDetails.basicInfo.floorNumber,
-                            'basicInfo.availability',
-                            'basicInfo.floorNumber',
+                            propertyDetails.inventoryDetails?.floorNumber?.toString(),
+                            'inventoryDetails.availability',
+                            'inventoryDetails.floorNumber',
                             undefined,
                             undefined,
                             'text',
@@ -682,23 +547,21 @@ const ResaleDetailsPage = () => {
                             undefined,
                             undefined,
                             undefined,
-                            isEditingInventory,
                         )}
                         {renderInfoRow(
                             'Facing',
-                            propertyDetails.basicInfo.facing,
+                            propertyDetails.inventoryDetails?.facing,
                             'Furnishing',
-                            propertyDetails.basicInfo.furnishing,
-                            'basicInfo.facing',
-                            'basicInfo.furnishing',
-                            facingOptions,
-                            furnishingOptions,
+                            propertyDetails.extraDetails?.furnishing,
+                            'inventoryDetails.facing',
+                            'extraDetails.furnishing',
+                            undefined,
+                            undefined,
                             'text',
                             'text',
                             undefined,
                             undefined,
                             undefined,
-                            isEditingInventory,
                         )}
                     </div>
 
@@ -735,16 +598,13 @@ const ResaleDetailsPage = () => {
                     {isEditingAmenities ? (
                         <div className='flex flex-wrap gap-3 p-3 pr-4'>
                             <textarea
-                                value={propertyDetails?.amenitiesAndFeatures?.amenities?.join(', ')}
+                                value={propertyDetails?.amenities?.join(', ')}
                                 onChange={(e) =>
                                     setPropertyDetails((prev) =>
                                         prev
                                             ? {
                                                   ...prev,
-                                                  amenitiesAndFeatures: {
-                                                      ...prev.amenitiesAndFeatures,
-                                                      amenities: e.target.value.split(',').map((s) => s.trim()),
-                                                  },
+                                                  amenities: e.target.value.split(',').map((s) => s.trim()),
                                               }
                                             : null,
                                     )
@@ -756,7 +616,7 @@ const ResaleDetailsPage = () => {
                         </div>
                     ) : (
                         <div className='flex flex-wrap gap-3 p-3 pr-4'>
-                            {propertyDetails?.amenitiesAndFeatures?.amenities?.map((amenity: string, index: number) => (
+                            {propertyDetails?.amenities?.map((amenity: string, index: number) => (
                                 <div
                                     key={index}
                                     className='flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#e9edf1] pl-4 pr-4'
@@ -772,16 +632,25 @@ const ResaleDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2'>
                         {renderInfoRow(
                             'Configuration',
-                            '3BHK Flat',
+                            propertyDetails.aboutProject?.configuration,
                             'Towers and Units',
-                            `${propertyDetails.projectOverview.totalTowers}, ${propertyDetails.basicInfo.totalUnits} units`,
+                            propertyDetails.aboutProject?.towersandunits,
+                            'aboutProject.configuration',
+                            'aboutProject.towersandunits',
+                            undefined,
+                            undefined,
+                            'text',
+                            'text',
+                            undefined,
+                            undefined,
+                            undefined,
                         )}
                     </div>
                     <div className='p-4'>
                         <div className='border-t border-solid border-t-[#d4dbe2] py-4'>
                             <p className='text-[#5c738a] text-sm font-normal leading-normal mb-2'>Description</p>
                             <p className='text-[#101418] text-sm font-normal leading-normal'>
-                                {propertyDetails.description}
+                                {propertyDetails.aboutProject?.description}
                             </p>
                         </div>
                     </div>
@@ -791,16 +660,20 @@ const ResaleDetailsPage = () => {
                     <div className='p-4'>
                         <div className='grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-solid border-t-[#d4dbe2] py-4'>
                             <div className='text-center'>
-                                <div className='text-lg font-semibold text-[#101418]'>3</div>
+                                <div className='text-lg font-semibold text-[#101418]'>
+                                    {propertyDetails.extraDetails?.baths}
+                                </div>
                                 <div className='text-sm text-[#5c738a]'>Baths</div>
                             </div>
                             <div className='text-center'>
-                                <div className='text-lg font-semibold text-[#101418]'>2</div>
+                                <div className='text-lg font-semibold text-[#101418]'>
+                                    {propertyDetails.extraDetails?.balconies}
+                                </div>
                                 <div className='text-sm text-[#5c738a]'>Balconies</div>
                             </div>
                             <div className='text-center'>
                                 <div className='text-lg font-semibold text-[#101418]'>
-                                    {propertyDetails.basicInfo.furnishing}
+                                    {propertyDetails.extraDetails?.furnishing}
                                 </div>
                                 <div className='text-sm text-[#5c738a]'>Furnishing</div>
                             </div>
@@ -812,4 +685,4 @@ const ResaleDetailsPage = () => {
     )
 }
 
-export default ResaleDetailsPage
+export { ResaleDetailsPage }

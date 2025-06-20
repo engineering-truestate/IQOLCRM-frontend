@@ -12,8 +12,9 @@ import {
 import type { OverviewData, ResaleActionTypes } from '../../actionTypes/restack/resaleActionTypes'
 import { get99AcresResaleData, getMagicBricksResaleData } from '../../../services/restack/resaleService'
 
-export const fetchResaleDataRequest = (): ResaleActionTypes => ({
+export const fetchResaleDataRequest = (id: string): ResaleActionTypes => ({
     type: FETCH_RESALE_DATA_REQUEST,
+    payload: id,
 })
 
 export const fetchResaleDataSuccess = (payload: ResaleData): ResaleActionTypes => ({
