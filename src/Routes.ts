@@ -46,6 +46,8 @@ import ResalePage from './pages/restack/resale/ResalePage'
 import Resale from './pages/restack/resale/Resale'
 import Rental from './pages/restack/rental/Rental'
 import PropertiesPage from './pages/acn/Properties/Properties'
+import SalesDashboard from './pages/canvas_homes/sales_dashboard/Sales'
+import LeadDetails from './pages/canvas_homes/sales_dashboard/LeadDetails'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -85,7 +87,7 @@ export const protectedRoutes: RouteObject[] = [
     },
     {
         path: '/canvas-homes/sales/',
-        element: React.createElement(React.Suspense, null, React.createElement(Sales, null)),
+        element: React.createElement(React.Suspense, null, React.createElement(SalesDashboard, null)),
     },
     {
         path: '/canvas-homes/sales/leaddetails/:leadId',
