@@ -389,6 +389,11 @@ const QCDashboardPage = () => {
     // Base columns for kam and data tabs
     const getBaseColumns = (): TableColumn[] => [
         {
+            key: 'propertyId',
+            header: 'QC ID',
+            render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,
+        },
+        {
             key: 'propertyName',
             header: 'Project Name/Location',
             render: (value) => <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>,

@@ -26,7 +26,6 @@ import Home from './Home'
 import AgentsPage from './pages/acn/Agents/AgentsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
 import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
-import AddInventoryPage from './pages/acn/Properties/AddInventoryPage'
 import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
 import AgentDetailsPage from './pages/acn/Agents/AgentDetailsPage'
 import QCDashboardPage from './pages/acn/QCDashboard/QCDashboardPage'
@@ -39,6 +38,7 @@ import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
 import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
 import PropertiesPage from './pages/acn/Properties/Properties'
+import AddEditInventoryPage from './pages/acn/Properties/AddInventoryPage'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -93,24 +93,16 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(RequirementsPage, null)),
     },
     {
-        path: '/acn/properties/:id/edit',
-        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
-    },
-    {
-        path: '/acn/properties/addinv',
-        element: React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
-    },
-    {
-        path: '/acn/properties',
-        element: React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
-    },
-    {
         path: '/acn/agents/:agentId/properties',
         element: React.createElement(React.Suspense, null, React.createElement(AgentDetailsPage, null)),
     },
     {
         path: '/acn/qc/dashboard',
         element: React.createElement(React.Suspense, null, React.createElement(QCDashboardPage, null)),
+    },
+    {
+        path: '/acn/qc/:id/edit',
+        element: React.createElement(React.Suspense, null, React.createElement(AddEditInventoryPage, null)),
     },
     {
         path: '/acn/qc/:id/details',
@@ -173,22 +165,6 @@ export const protectedRoutes: RouteObject[] = [
         ),
     },
     {
-        path: '/acn/properties/addinv',
-        element: React.createElement(
-            ProtectedRoute,
-            null,
-            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
-        ),
-    },
-    {
-        path: '/acn/properties/:id/edit',
-        element: React.createElement(
-            ProtectedRoute,
-            null,
-            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
-        ),
-    },
-    {
         path: '/restack/stock/post-rera/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
     },
@@ -213,7 +189,7 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(
             ProtectedRoute,
             null,
-            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+            React.createElement(React.Suspense, null, React.createElement(AddEditInventoryPage, null)),
         ),
     },
     {
@@ -221,7 +197,7 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(
             ProtectedRoute,
             null,
-            React.createElement(React.Suspense, null, React.createElement(AddInventoryPage, null)),
+            React.createElement(React.Suspense, null, React.createElement(AddEditInventoryPage, null)),
         ),
     },
     {

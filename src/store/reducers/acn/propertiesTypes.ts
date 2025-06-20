@@ -5,10 +5,10 @@ import type { QueryDocumentSnapshot, Timestamp, FieldValue } from 'firebase/fire
 // === Inventory shape ===
 // store/reducers/acn/propertiesTypes.ts
 export interface IInventory {
+    // Core required properties
     id: string
     propertyId: string
     cpId: string
-    cpCode: string
     nameOfTheProperty: string
     _geoloc: { lat: number; lng: number }
     area: string
@@ -43,11 +43,60 @@ export interface IInventory {
     ageOfStatus: number
     extraDetails: string
 
-    // Additional properties
+    // Additional core properties
     objectID?: string
     enquiries?: number
     lastCheck?: number // Unix timestamp in milliseconds
     propertyName?: string
+
+    // Extended optional properties for different asset types
+    communityType?: string
+    unitNo?: string
+    plotFacing?: string
+    furnishing?: string
+    extraRoom?: string | string[] // Flexible type for different implementations
+    noOfBathrooms?: number
+    noOfBalconies?: number
+    balconyFacing?: string
+    uds?: number | string | null // Allowing both number and string
+    carPark?: number | string | null // Allowing both number and string
+    cornerUnit?: boolean
+    exclusive?: boolean
+    rentalIncome?: number | string | null // Allowing both number and string
+    eKhata?: boolean
+    biappaApproved?: boolean
+    bdaApproved?: boolean
+
+    // Plot-specific fields
+    oddSized?: boolean
+    plotLength?: number | string // Allowing both number and string
+    plotBreadth?: number | string // Allowing both number and string
+
+    // Villa / Villament and similar
+    exactFloor?: string
+    structure?: string
+
+    // Additional metadata fields
+    propertyAge?: number
+    lastRenovated?: number
+    amenities?: string[]
+    nearbyLandmarks?: string[]
+    transportConnectivity?: string[]
+
+    // Pricing details
+    maintenanceCharges?: number
+    securityDeposit?: number
+    brokerage?: number
+
+    // Legal and compliance
+    approvalStatus?: string
+    legalClearance?: boolean
+    encumbrance?: boolean
+
+    // Marketing
+    featured?: boolean
+    priority?: number
+    marketingNotes?: string
 }
 
 // === Requirement shape ===
