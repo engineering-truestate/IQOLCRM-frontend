@@ -225,6 +225,10 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
     },
     {
+        path: '/restack/stock/pre-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
+    },
+    {
         path: '/restack/stock/pre-rera/:id/edit',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
     },

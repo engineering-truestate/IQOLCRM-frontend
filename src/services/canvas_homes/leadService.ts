@@ -7,12 +7,12 @@ import {
     updateDoc,
     deleteDoc,
     query,
-    where,
     orderBy,
     limit,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { Lead } from './types'
+import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 
 class LeadService {
     private collectionName = 'canvashomesLeads'
@@ -42,62 +42,28 @@ class LeadService {
     }
 
     /**
-     * Fetch all leads with optional filtering based on agentId, stage, leadState, or tag.
-     * Results are ordered by 'added' timestamp in descending order.
-     */
-    async getAll(filters?: { agentId?: string; stage?: string; leadState?: string; tag?: string }): Promise<Lead[]> {
-        try {
-            let q = query(collection(db, this.collectionName), orderBy('added', 'desc'))
-
-            // Apply filters dynamically
-            if (filters?.agentId) {
-                q = query(q, where('agentId', '==', filters.agentId))
-            }
-            if (filters?.stage) {
-                q = query(q, where('stage', '==', filters.stage))
-            }
-            if (filters?.leadState) {
-                q = query(q, where('leadState', '==', filters.leadState))
-            }
-            if (filters?.tag) {
-                q = query(q, where('tag', '==', filters.tag))
-            }
-
-            const querySnapshot = await getDocs(q)
-            return querySnapshot.docs.map((doc) => ({
-                leadId: doc.id,
-                ...doc.data(),
-            })) as Lead[]
-        } catch (error) {
-            console.error('Error fetching leads:', error)
-            throw error
-        }
-    }
-
-    /**
-     * Create a new lead with a unique sequential leadId (e.g., lead001, lead002, ...)
+     * Create a new lead with a unique sequential leadId (e.g., lead01, lead02, etc.).
      */
     async create(leadData: Omit<Lead, 'leadId' | 'added' | 'lastModified'>): Promise<string> {
         try {
-            // Get the most recent lead to determine the next leadId
             const q = query(collection(db, this.collectionName), orderBy('leadId', 'desc'), limit(1))
             const snapshot = await getDocs(q)
 
-            let nextLeadId = 'lead001'
+            let nextLeadId = 'lead01'
 
             if (!snapshot.empty) {
                 const lastLeadId = snapshot.docs[0].data().leadId
                 const lastNumber = parseInt(lastLeadId.replace('lead', ''))
                 const newNumber = lastNumber + 1
-                nextLeadId = `lead${newNumber.toString().padStart(3, '0')}`
+                nextLeadId = `lead${newNumber.toString().padStart(2, '0')}`
             }
 
-            // Construct new lead object with timestamps
+            const timestamp = getUnixDateTime()
             const newLead = {
                 ...leadData,
                 leadId: nextLeadId,
-                added: Date.now(),
-                lastModified: Date.now(),
+                added: timestamp,
+                lastModified: timestamp,
             }
 
             await setDoc(doc(db, this.collectionName, nextLeadId), newLead)
@@ -121,7 +87,7 @@ class LeadService {
 
             const updateData = {
                 ...updates,
-                lastModified: Date.now(),
+                lastModified: getUnixDateTime(),
             }
 
             await updateDoc(doc(db, this.collectionName, leadId.trim()), updateData)

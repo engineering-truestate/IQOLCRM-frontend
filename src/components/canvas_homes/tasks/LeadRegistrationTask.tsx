@@ -1,20 +1,29 @@
 import React, { useState } from 'react'
 import Dropdown from './Dropdown'
 
-const LeadRegistrationTask = ({ propertyLink }) => {
-    const emailOptions = [
+interface LeadRegistrationTaskProps {
+    propertyLink: string
+}
+
+interface EmailOption {
+    value: string
+    label: string
+}
+
+const LeadRegistrationTask: React.FC<LeadRegistrationTaskProps> = ({ propertyLink }) => {
+    const emailOptions: EmailOption[] = [
         { value: 'builder1@example.com', label: 'Builder 1' },
         { value: 'builder2@example.com', label: 'Builder 2' },
         { value: 'builder3@example.com', label: 'Builder 3' },
     ]
 
-    const [selectedEmail, setSelectedEmail] = useState('')
+    const [selectedEmail, setSelectedEmail] = useState<string>('')
 
-    const handleEmailSelect = (email) => {
+    const handleEmailSelect = (email: string) => {
         setSelectedEmail(email)
     }
 
-    const handleProceed = (e) => {
+    const handleProceed = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
         if (selectedEmail) {
             window.location.href = `mailto:${selectedEmail}`
@@ -30,6 +39,7 @@ const LeadRegistrationTask = ({ propertyLink }) => {
 
             <div className='flex justify-between items-center mb-3'>
                 <Dropdown
+                    defaultValue='Select Builder Email'
                     onSelect={handleEmailSelect}
                     options={emailOptions}
                     placeholder='Select Builder Email'

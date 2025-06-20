@@ -26,6 +26,7 @@ export interface Lead {
         | null
     state: 'open' | 'closed' | 'fresh' | 'dropped' | null
     added: number | null
+    completionDate: number | null
     lastModified: number | null
 }
 
@@ -89,10 +90,10 @@ export interface NoteItem {
 }
 
 export interface ActivityHistoryItem {
-    timestamp: number
-    agentId: string
-    agentName: string
     activityType: string
+    timestamp: number // includes both date and time
+    agentName: string
+    data: Record<string, any>
 }
 
 export interface Task {
@@ -103,7 +104,7 @@ export interface Task {
     name: string
     leadAddDate: number
     propertyName: string
-    type: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking'
+    taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking'
     eventName?: string
     status: 'open' | 'complete'
     stage: string // e.g., "Initial Contacted"
@@ -111,6 +112,7 @@ export interface Task {
     tag: string // e.g., "Hot"
     scheduledDate: number
     added: number
+    eoiEntries?: any
     completionDate?: number
     lastModified: number
 }
@@ -118,7 +120,7 @@ export interface Task {
 export interface User {
     userId: string | null
     name: string | null
-    phonenumber: string | null
+    phoneNumber: string | null
     emailAddress: string | null
     label?: 'whatsapp' | 'call' | null
     added: number | null
