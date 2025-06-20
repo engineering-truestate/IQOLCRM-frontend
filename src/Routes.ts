@@ -49,7 +49,6 @@ import Rental from './pages/restack/rental/Rental'
 import PropertiesPage from './pages/acn/Properties/Properties'
 import AddEditInventoryPage from './pages/acn/Properties/AddInventoryPage'
 
-
 export const authRoutes: RouteObject[] = [
     {
         path: '/login',
@@ -83,7 +82,6 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(Dashboard, null)),
     },
     {
-
         path: '/acn/agents',
         element: React.createElement(React.Suspense, null, React.createElement(AgentsPage, null)),
     },
