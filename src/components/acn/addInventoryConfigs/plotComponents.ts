@@ -9,12 +9,7 @@ export const plotComponents = [
         ],
         colspan: 2,
     },
-    {
-        label: 'Property Name',
-        type: 'textInput',
-        field: 'propertyName',
-        colspan: 2,
-    },
+
     {
         label: 'Plot No.',
         type: 'textInput',

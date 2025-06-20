@@ -16,6 +16,49 @@ interface FetchAgentDetailsParams {
     propertyType: 'Resale' | 'Rental'
 }
 
+interface AgentData {
+    cpId: string
+    agentName: string
+    phoneNumber: string
+    kamId: string
+    kamName: string
+    // Add other agent fields as needed
+}
+
+export const fetchAgentByPhone = createAsyncThunk(
+    'agents/fetchAgentByPhone',
+    async (phoneNumber: string, { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching agent by phone:', phoneNumber)
+
+            const agentsRef = collection(db, 'acnAgents')
+            const agentQuery = query(agentsRef, where('phoneNumber', '==', phoneNumber))
+            const agentSnapshot = await getDocs(agentQuery)
+
+            if (agentSnapshot.empty) {
+                throw new Error('Agent not found with this phone number')
+            }
+
+            const agentDoc = agentSnapshot.docs[0]
+            const agentData = agentDoc.data() as AgentData
+
+            console.log('✅ Agent found:', agentData)
+
+            // Return the agent details
+            return {
+                cpId: agentData.cpId,
+                agentName: agentData.agentName,
+                phoneNumber: agentData.phoneNumber,
+                kamId: agentData.kamId,
+                kamName: agentData.kamName,
+            }
+        } catch (error: any) {
+            console.error('❌ Error fetching agent:', error)
+            return rejectWithValue(error.message || 'Failed to fetch agent')
+        }
+    },
+)
+
 export const fetchAgentDetails = createAsyncThunk(
     'agents/fetchAgentDetails',
     async ({ agentId, propertyType }: FetchAgentDetailsParams): Promise<AgentDetailsResponse> => {

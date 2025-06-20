@@ -10,12 +10,6 @@ export const appartmentComponents = [
         colspan: 2,
     },
     {
-        label: 'Property Name',
-        type: 'textInput',
-        field: 'propertyName',
-        colspan: 2,
-    },
-    {
         label: 'Apartment Type',
         type: 'slider',
         field: 'subType',

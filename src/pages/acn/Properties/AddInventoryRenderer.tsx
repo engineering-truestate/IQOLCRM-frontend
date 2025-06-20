@@ -113,31 +113,31 @@ const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({ field, value, onC
 
     const renderField = () => {
         // Custom: Use PlacesSearch for propertyName
-        if (field.field === 'propertyName') {
-            return (
-                <PlacesSearch
-                    selectedPlace={value && value.lat && value.lng ? value : null}
-                    setSelectedPlace={(place) => {
-                        if (place) {
-                            // Pass a composite object to parent: { name, address, lat, lng, mapLocation }
-                            onChange({
-                                name: place.name,
-                                address: place.address,
-                                lat: place.lat,
-                                lng: place.lng,
-                                mapLocation: place.mapLocation,
-                            })
-                        } else {
-                            onChange('')
-                        }
-                    }}
-                    placeholder={field.placeholder || 'Search property name...'}
-                    label={field.label || 'Property Name'}
-                    required={field.required}
-                    error={error}
-                />
-            )
-        }
+        // if (field.field === 'propertyName') {
+        //     return (
+        //         <PlacesSearch
+        //             selectedPlace={value && value.lat && value.lng ? value : null}
+        //             setSelectedPlace={(place) => {
+        //                 if (place) {
+        //                     // Pass a composite object to parent: { name, address, lat, lng, mapLocation }
+        //                     onChange({
+        //                         name: place.name,
+        //                         address: place.address,
+        //                         lat: place.lat,
+        //                         lng: place.lng,
+        //                         mapLocation: place.mapLocation,
+        //                     })
+        //                 } else {
+        //                     onChange('')
+        //                 }
+        //             }}
+        //             placeholder={field.placeholder || 'Search property name...'}
+        //             label={field.label || 'Property Name'}
+        //             required={field.required}
+        //             error={error}
+        //         />
+        //     )
+        // }
         switch (field.type) {
             case 'text':
             case 'number':

@@ -10,12 +10,6 @@ export const independentComponents = [
         colspan: 2,
     },
     {
-        label: 'Property Name',
-        type: 'textInput',
-        field: 'propertyName',
-        colspan: 2,
-    },
-    {
         label: 'Building No.',
         type: 'textInput',
         field: 'unitNo',

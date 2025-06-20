@@ -29,11 +29,20 @@ interface PropertyData {
     enquiries: any[]
 }
 
+interface AgentInfo {
+    cpId: string
+    agentName: string
+    phoneNumber: string
+}
+
 interface AgentsState {
+    currentAgent: AgentInfo | null
     resale: PropertyData
     rental: PropertyData
     loading: boolean
     error: string | null
+    fetchLoading: boolean
+    fetchError: string | null
 }
 
 const persistConfig = {

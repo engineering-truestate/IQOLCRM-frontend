@@ -10,10 +10,14 @@ import {
     getNextPropertyId,
 } from '../../../services/acn/properties/propertiesService'
 import { addQCInventory, updateQCInventory, fetchQCInventoryById } from '../../../services/acn/qc/qcService'
+import { fetchAgentByPhone } from '../../../services/acn/agents/agentThunkService'
 import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
 import { clearCurrentQCInventory } from '../../../store/reducers/acn/qcReducer'
+import { clearCurrentAgent, clearAgentError } from '../../../store/reducers/acn/agentsReducer'
+import { getMicromarketFromCoordinates } from '../../../components/helper/findMicromarket'
 import Layout from '../../../layout/Layout'
 import Button from '../../../components/design-elements/Button'
+import PlacesSearch from '../../../components/design-elements/PlacesSearch'
 import FormFieldRenderer, {
     assetConfigurations,
     getAssetTypeConfig,
@@ -44,15 +48,6 @@ const propertyTypeToAssetType: Record<PropertyType, AssetType> = {
     independent: 'Independent Building',
 }
 
-const assetTypeToPropertyType: Record<AssetType, PropertyType> = {
-    Apartment: 'apartments',
-    Villa: 'villa',
-    Plot: 'plot',
-    'Row House': 'rowhouse',
-    Villament: 'villament',
-    'Independent Building': 'independent',
-}
-
 // Asset type options
 const assetTypes: { label: string; value: PropertyType; icon: string }[] = [
     { label: 'flats/ apartments', value: 'apartments', icon: apartmentIcon },
@@ -62,6 +57,14 @@ const assetTypes: { label: string; value: PropertyType; icon: string }[] = [
     { label: 'Villament', value: 'villament', icon: villamentIcon },
     { label: 'Independent Building', value: 'independent', icon: independentIcon },
 ]
+
+interface Places {
+    name: string
+    lat: number
+    lng: number
+    address: string
+    mapLocation: string
+}
 
 // Helper function to map property data to form fields
 const mapPropertyToFormData = (property: IInventory): Record<string, any> => {
@@ -215,8 +218,8 @@ const mapFormDataToProperty = (formData: Record<string, any>, assetType: Propert
         document: Array.isArray(formData.document) ? formData.document : [],
         driveLink: formData.driveLink || '',
         extraDetails: formData.extraDetails || '',
-        cpId: 'CURRENT_USER_ID',
-        _geoloc: { lat: 0, lng: 0 },
+        cpId: formData.cpId || 'CURRENT_USER_ID',
+        _geoloc: formData._geoloc || { lat: 0, lng: 0 },
         dateOfInventoryAdded: Date.now(),
         dateOfStatusLastChecked: Date.now(),
         ageOfInventory: 0,
@@ -277,7 +280,7 @@ const mapFormDataToQC = (formData: Record<string, any>, assetType: PropertyType)
         document: Array.isArray(formData.document) ? formData.document : [],
         driveLink: formData.driveLink || '',
         extraDetails: formData.extraDetails || '',
-        cpId: 'CURRENT_USER_ID',
+        cpId: formData.cpId || 'CURRENT_USER_ID',
         kamName: 'CURRENT_USER_NAME',
         kamId: 'CURRENT_USER_ID',
         city: 'Bangalore',
@@ -286,7 +289,7 @@ const mapFormDataToQC = (formData: Record<string, any>, assetType: PropertyType)
         pricePerSqft: formData.askPricePerSqft ? parseInt(formData.askPricePerSqft) : 0,
         priceHistory: [],
         extraRoom: [],
-        _geoloc: { lat: 0, lng: 0 },
+        _geoloc: formData._geoloc || { lat: 0, lng: 0 },
     }
 }
 
@@ -329,16 +332,41 @@ const AddEditInventoryPage = () => {
         loading: qcLoading,
         error: qcError,
     } = useSelector((state: RootState) => state.qc)
+    const {
+        currentAgent,
+        fetchLoading: agentFetchLoading,
+        fetchError: agentFetchError,
+    } = useSelector((state: RootState) => state.agents)
 
     const [selectedAssetType, setSelectedAssetType] = useState<PropertyType>('apartments')
     const [formData, setFormData] = useState<Record<string, any>>({})
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [successMessage, setSuccessMessage] = useState('')
-    const [agentIdInput, setAgentIdInput] = useState('')
-    const [fetchedAgentId, setFetchedAgentId] = useState<string | null>(null)
+    const [agentPhoneInput, setAgentPhoneInput] = useState('')
+    const [selectedPlace, setSelectedPlace] = useState<Places | null>(null)
 
     const loading = propertyLoading || qcLoading
     const error = propertyError || qcError
+
+    useEffect(() => {
+        if ((isPropertyEdit && property) || (isQCEdit && qcInventory)) {
+            const currentData = property || qcInventory
+
+            // Check if we have the necessary location data
+            if (currentData && currentData._geoloc && currentData.propertyName) {
+                const prefillPlace: Places = {
+                    name: currentData.propertyName,
+                    lat: currentData._geoloc.lat,
+                    lng: currentData._geoloc.lng,
+                    address: currentData.area || '',
+                    mapLocation: currentData.mapLocation || '',
+                }
+
+                console.log('📍 Prefilling place data for edit:', prefillPlace)
+                setSelectedPlace(prefillPlace)
+            }
+        }
+    }, [property, qcInventory, isPropertyEdit, isQCEdit])
 
     // Load data based on mode
     useEffect(() => {
@@ -357,6 +385,7 @@ const AddEditInventoryPage = () => {
             console.log('🧹 Clearing current data on unmount')
             dispatch(clearCurrentProperty())
             dispatch(clearCurrentQCInventory())
+            dispatch(clearCurrentAgent())
         }
     }, [isPropertyEdit, isQCEdit, isQCAdd, id, dispatch])
 
@@ -377,6 +406,31 @@ const AddEditInventoryPage = () => {
         }
     }, [property, qcInventory, isPropertyEdit, isQCEdit])
 
+    // Update form data when place is selected
+    useEffect(() => {
+        if (selectedPlace) {
+            console.log('📍 Place selected, updating form data:', selectedPlace)
+
+            // Get micromarket from coordinates
+            const [micromarket, zone] = getMicromarketFromCoordinates(selectedPlace)
+
+            setFormData((prev) => ({
+                ...prev,
+                propertyName: selectedPlace.name,
+                area: selectedPlace.address,
+                mapLocation: selectedPlace.mapLocation,
+                micromarket: micromarket || '',
+                _geoloc: {
+                    lat: selectedPlace.lat,
+                    lng: selectedPlace.lng,
+                },
+            }))
+
+            console.log('🏘️ Micromarket detected:', micromarket)
+            console.log('🌍 Zone detected:', zone)
+        }
+    }, [selectedPlace])
+
     const handleFieldChange = (fieldId: string, value: any) => {
         setFormData((prev) => ({
             ...prev,
@@ -388,6 +442,30 @@ const AddEditInventoryPage = () => {
                 ...prev,
                 [fieldId]: '',
             }))
+        }
+    }
+
+    const handleFetchAgent = async () => {
+        if (!agentPhoneInput.trim()) {
+            return
+        }
+
+        try {
+            dispatch(clearAgentError())
+
+            // Use unwrap() to get the returned agent details directly
+            const result = await dispatch(fetchAgentByPhone(agentPhoneInput.trim())).unwrap()
+
+            // Update form data directly with the returned agent details
+            setFormData((prev) => ({
+                ...prev,
+                cpId: result.cpId,
+                kamId: result.kamId,
+                kamName: result.kamName,
+            }))
+            console.log('👤 Agent fetched, updating cpId:', result)
+        } catch (error) {
+            console.error('Failed to fetch agent:', error)
         }
     }
 
@@ -412,7 +490,7 @@ const AddEditInventoryPage = () => {
         if (validateForm()) {
             try {
                 if (isPropertyEdit && property) {
-                    // Property edit flow (unchanged)
+                    // Property edit flow
                     const propertyData = mapFormDataToProperty(formData, selectedAssetType)
                     console.log('📝 Updating property:', property.id, propertyData)
                     const updatedProperty = await dispatch(
@@ -574,25 +652,86 @@ const AddEditInventoryPage = () => {
                                     </div>
                                 )}
 
-                                {/* Agent ID fetch section */}
-                                <div className='flex gap-2 mb-6 items-center'>
-                                    <input
-                                        type='text'
-                                        placeholder='Agent Number'
-                                        className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                        value={agentIdInput}
-                                        onChange={(e) => setAgentIdInput(e.target.value)}
-                                    />
-                                    <button
-                                        className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition'
-                                        onClick={() => setFetchedAgentId('101 | Name')}
-                                        type='button'
-                                    >
-                                        Fetch
-                                    </button>
-                                    {fetchedAgentId && (
-                                        <span className='ml-4 text-green-700 font-semibold'>{fetchedAgentId}</span>
+                                {/* Agent Phone fetch section */}
+                                <div className='mb-6'>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Agent Phone Number
+                                    </label>
+                                    <div className='flex gap-2 items-center'>
+                                        <input
+                                            type='text'
+                                            placeholder='Enter agent phone number'
+                                            className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1'
+                                            value={agentPhoneInput}
+                                            onChange={(e) => setAgentPhoneInput(e.target.value)}
+                                            disabled={isPropertyEdit || isQCEdit}
+                                        />
+                                        <button
+                                            className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed'
+                                            onClick={handleFetchAgent}
+                                            disabled={
+                                                agentFetchLoading ||
+                                                !agentPhoneInput.trim() ||
+                                                isPropertyEdit ||
+                                                isQCEdit
+                                            }
+                                            type='button'
+                                        >
+                                            {agentFetchLoading ? 'Fetching...' : 'Fetch Agent'}
+                                        </button>
+                                    </div>
+
+                                    {/* Agent fetch results */}
+                                    {currentAgent && (
+                                        <div className='mt-2 p-3 bg-green-50 border border-green-200 rounded-lg'>
+                                            <div className='flex items-center gap-2'>
+                                                <svg
+                                                    className='w-5 h-5 text-green-600'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M5 13l4 4L19 7'
+                                                    />
+                                                </svg>
+                                                <span className='text-green-700 font-semibold'>
+                                                    {currentAgent.cpId} | {currentAgent.agentName}
+                                                </span>
+                                            </div>
+                                        </div>
                                     )}
+
+                                    {agentFetchError && (
+                                        <div className='mt-2 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                                            <div className='text-sm text-red-700'>{agentFetchError}</div>
+                                        </div>
+                                    )}
+
+                                    {(isPropertyEdit || isQCEdit) && (
+                                        <p className='text-sm text-gray-500 mt-2'>
+                                            Agent cannot be changed in edit mode
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Places Search */}
+                                <div className='mb-6'>
+                                    <PlacesSearch
+                                        key={
+                                            selectedPlace
+                                                ? `${selectedPlace.name}-${selectedPlace.lat}-${selectedPlace.lng}`
+                                                : 'empty'
+                                        }
+                                        selectedPlace={selectedPlace}
+                                        setSelectedPlace={setSelectedPlace}
+                                        placeholder='Search for project name or location...'
+                                        label='Project Name/Location'
+                                        required={true}
+                                    />
                                 </div>
 
                                 {/* Success/Error Messages */}

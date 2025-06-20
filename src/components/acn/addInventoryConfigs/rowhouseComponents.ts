@@ -9,12 +9,7 @@ export const rowhouseComponents = [
         ],
         colspan: 2,
     },
-    {
-        label: 'Property Name',
-        type: 'textInput',
-        field: 'propertyName',
-        colspan: 2,
-    },
+
     {
         label: 'Row House No.',
         type: 'textInput',
