@@ -3,6 +3,8 @@ import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { taskService } from '../../services/canvas_homes/taskService'
 import Dropdown from '../design-elements/Dropdown' // Updated path to match other components
+import { formatProdErrorMessage } from '@reduxjs/toolkit'
+import { getUnixDateTime } from '../helper/getUnixDateTime'
 
 interface ChangeAgentModalProps {
     isOpen: boolean
@@ -12,7 +14,14 @@ interface ChangeAgentModalProps {
     onDetailsAdded?: () => void // Renamed from onEnquiryAdded to match parent component
 }
 
-const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({ isOpen, onClose, leadId, enquiryId, onDetailsAdded }) => {
+const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
+    agentName,
+    isOpen,
+    onClose,
+    leadId,
+    enquiryId,
+    onDetailsAdded,
+}) => {
     const [formData, setFormData] = useState({
         agentId: '',
         agentName: '',
@@ -103,6 +112,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({ isOpen, onClose, le
 
         try {
             // Get current enquiry data to preserve existing fields
+            const currentTimestamp = getUnixDateTime()
             const currentEnquiry = await enquiryService.getById(enquiryId)
 
             if (!currentEnquiry) {
@@ -114,7 +124,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({ isOpen, onClose, le
                 timestamp: Date.now(),
                 agentId: formData.agentId,
                 agentName: formData.agentName,
-                lastStage: currentEnquiry?.stage || 'assigned',
+                lastStage: currentEnquiry?.stage,
                 assignedAt: Date.now(),
             }
 
@@ -126,18 +136,15 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({ isOpen, onClose, le
                 agentId: formData.agentId,
                 agentName: formData.agentName,
                 agentHistory: updatedAgentHistory,
-                lastModified: Date.now(),
+                lastModified: currentTimestamp,
             }
             await enquiryService.addActivity(enquiryId, {
-                activityType: 'Property Change',
+                activityType: 'Agent Transfer',
                 timestamp: currentTimestamp,
                 agentName: agentName,
                 data: {
-                    propertyAdded: formData.propertyName,
-                    propertyChanged: previousPropertyName,
-                    leadStatus: 'Property Changed',
-                    reason: formData.reason,
-                    note: formData.note || '',
+                    fromAgent: agentName || 'Unknown',
+                    toAgent: formData.agentName,
                 },
             })
 

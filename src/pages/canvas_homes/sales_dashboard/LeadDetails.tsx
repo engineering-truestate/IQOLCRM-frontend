@@ -652,6 +652,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 onDetailsAdded={handleDetailsAdded}
                 leadId={leadId}
                 enquiryId={selectedEnquiryId}
+                agentName={leadData?.agentName}
             />
             <AddEnquiryModal
                 isOpen={isAddEnquiryModalOpen}
@@ -659,6 +660,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 onEnquiryAdded={refreshData}
                 leadId={leadId}
                 stage={leadData?.stage}
+                agentName={leadData?.agentName}
             />
             <CloseLeadSideModal
                 isOpen={isCloseLeadSideModalOpen}
@@ -666,6 +668,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 leadId={leadId}
                 enquiryId={selectedEnquiryId}
                 onLeadClosed={refreshData}
+                agentName={leadData?.agentName}
             />
         </Layout>
     )

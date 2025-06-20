@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams } from 'react-router'
+import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getUnixDateTime, getUnixDateTimeCustom } from '../helper/getUnixDateTime'
 import useAuth from '../../hooks/useAuth'
@@ -36,6 +36,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onC
     })
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const navigate = useNavigate()
 
     // Redux and route params
     const { taskId, enquiryId } = useSelector((state: RootState) => state.taskId)
@@ -210,6 +211,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onC
 
             // 6. Refresh data and clean up
             await refreshData()
+            navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
             dispatch(clearTaskId())
 
             toast.success('Event rescheduled successfully!')

@@ -12,6 +12,7 @@ import type { AppDispatch } from '../../store'
 import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import useAuth from '../../hooks/useAuth'
+import { useNavigate } from 'react-router-dom'
 
 interface RootState {
     taskId: {
@@ -33,6 +34,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
     const [note, setNote] = useState<string>('')
     const [isSaving, setIsSaving] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
+    const navigate = useNavigate()
 
     // Get IDs from Redux and route params
     const { taskId, enquiryId, taskState } = useSelector((state: RootState) => state.taskId)
@@ -167,6 +169,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
             // 7. Refresh data and clean up
             await refreshData()
             dispatch(clearTaskId())
+            navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
 
             // 8. Show success message and close modal
             toast.success('Requirements collected successfully!')

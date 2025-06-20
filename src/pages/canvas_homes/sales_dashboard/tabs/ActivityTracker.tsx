@@ -113,7 +113,7 @@ const ActivityTracker: React.FC = (enquiryId) => {
                 return <PropertyChangeCard key={index} activity={activity} />
             case 'Lead Closed':
                 return <LeadStateCard key={index} activity={activity} />
-            case 'Lead Added':
+            case 'lead added':
                 return <LeadAddedCard key={index} activity={activity} />
             default:
                 return (

@@ -81,6 +81,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             const taskData = {
                 enquiryId,
                 agentId,
+                leadId,
                 agentName: agentName,
                 propertyName: propertyName,
                 name: name,

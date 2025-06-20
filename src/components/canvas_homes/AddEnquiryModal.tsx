@@ -10,9 +10,17 @@ interface AddEnquiryModalProps {
     leadId: string
     stage: string
     onEnquiryAdded?: () => void
+    agentName: string
 }
 
-const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, leadId, onEnquiryAdded, stage }) => {
+const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
+    agentName,
+    isOpen,
+    onClose,
+    leadId,
+    onEnquiryAdded,
+    stage,
+}) => {
     // Format current date and time for datetime-local input
     const getCurrentDateTimeString = (): string => {
         const now = new Date()
@@ -171,10 +179,21 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
                         lastStage: stage,
                     },
                 ],
-                activityHistory: [],
+                activityHistory: [
+                    {
+                        activityType: 'New Enquiry',
+                        timestamp: currentTimestamp,
+                        agentName: agentName,
+                        data: {
+                            propertyAdded: formData.propertyName,
+                            leadStatus: null,
+                            tag: null,
+                        },
+                    },
+                ],
                 notes: [],
                 state: 'open',
-                tag: 'potential',
+                tag: null,
                 documents: [],
                 requirements: [],
                 added: enquiryDateTimestamp,
@@ -188,9 +207,9 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, lead
                 agentId: formData.agentId,
                 agentName: formData.agentName,
                 stage: null,
-                Status: 'interested',
-                tag: 'potential',
-                state: 'fresh',
+                Status: null,
+                tag: null,
+                state: 'open',
                 lastModified: Date.now(),
             }
 

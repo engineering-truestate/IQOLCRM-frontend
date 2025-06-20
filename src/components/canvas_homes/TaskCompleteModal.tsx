@@ -9,6 +9,7 @@ import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
+import { useNavigate } from 'react-router'
 
 interface TaskCompleteModalProps {
     isOpen: boolean
@@ -34,6 +35,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     const { user } = useAuth()
     const { leadId } = useParams()
     const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
+    const navigate = useNavigate()
 
     // Set selected enquiry ID when component mounts
     React.useEffect(() => {
@@ -132,6 +134,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
 
             toast.success('Task completed successfully!')
             onClose()
+            navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
 
             // Reset form
             setFormData({

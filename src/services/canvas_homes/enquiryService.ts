@@ -97,7 +97,7 @@ class EnquiryService {
                 const lastEnquiryId = snapshot.docs[0].data().enquiryId
                 const lastNumber = parseInt(lastEnquiryId.replace('enq', ''))
                 const newNumber = lastNumber + 1
-                nextEnquiryId = `enq${newNumber.toString().padStart(3, '0')}` // Format the ID like 'enq001', 'enq002', etc.
+                nextEnquiryId = `enq${newNumber.toString().padStart(2, '0')}` // Format the ID like 'enq001', 'enq002', etc.
             }
 
             // Prepare the new enquiry data with the generated ID

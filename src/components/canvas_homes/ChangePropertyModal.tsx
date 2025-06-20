@@ -10,6 +10,7 @@ import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { getNextPropertyId } from '../../services/acn/properties/propertiesService'
+import { useNavigate } from 'react-router'
 
 interface ChangePropertyModalProps {
     isOpen: boolean
@@ -24,6 +25,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     const { user } = useAuth()
     const { leadId } = useParams()
     const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
+    const navigate = useNavigate()
     // Set selected enquiry ID when component mounts
     React.useEffect(() => {
         if (enquiryId) {
@@ -216,6 +218,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                 refreshData()
                 onClose()
 
+                navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
                 // Reset form
                 setFormData((prev) => ({
                     ...prev,

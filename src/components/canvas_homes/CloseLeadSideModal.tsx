@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { leadService } from '../../services/canvas_homes/leadService' // Adjust path as needed
 import { enquiryService } from '../../services/canvas_homes/enquiryService' // Adjust path as needed
+import { getUnixDateTime } from '../helper/getUnixDateTime'
 
 interface CloseLeadSideModalProps {
     isOpen: boolean
@@ -8,6 +9,7 @@ interface CloseLeadSideModalProps {
     leadId: string // The lead to update
     enquiryId: string
     onLeadClosed?: () => void // Callback to refresh the lead data or perform actions post closure
+    agentName?: string // Optional agent name to log in activity
 }
 
 const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
@@ -16,6 +18,7 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
     leadId,
     onLeadClosed,
     enquiryId,
+    agentName,
 }) => {
     const [reason, setReason] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -44,6 +47,7 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
 
         try {
             // Update the lead status to 'closed' with the provided reason
+            const currentTimestamp = getUnixDateTime()
             await leadService.update(leadId, {
                 state: 'closed',
                 lastModified: Date.now(),
@@ -51,6 +55,14 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
             await enquiryService.update(enquiryId, {
                 state: 'closed',
                 lastModified: Date.now(),
+            })
+            await enquiryService.addActivity(enquiryId, {
+                activityType: 'Lead Closed',
+                timestamp: currentTimestamp,
+                agentName: agentName,
+                data: {
+                    reason: reason,
+                },
             })
 
             // Show success message

@@ -10,6 +10,7 @@ import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { LEAD_STATUSES } from '../../pages/dummy_data/acn_leads_dummy_data'
+import { useNavigate } from 'react-router'
 
 interface CloseLeadModalProps {
     isOpen: boolean
@@ -24,6 +25,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
     const { user } = useAuth()
     const { leadId } = useParams()
     const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
+    const navigate = useNavigate()
 
     // Set selected enquiry ID when component mounts
     React.useEffect(() => {
@@ -202,7 +204,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
 
                 toast.success('Lead closed successfully')
                 onClose()
-
+                navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
                 // Reset form
                 setFormData({
                     reason: '',
