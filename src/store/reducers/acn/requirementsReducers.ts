@@ -5,6 +5,7 @@ import {
     fetchRequirementById,
     updateRequirement,
     addPropertiesToRequirement,
+    createRequirement,
 } from '../../../services/acn/requirements/requirementsService'
 
 interface RequirementState {
@@ -135,6 +136,19 @@ const requirementsSlice = createSlice({
             .addCase(addPropertiesToRequirement.rejected, (state, action) => {
                 console.log('❌ Add properties to requirement - rejected:', action.payload)
                 state.addingProperties = false
+                state.error = action.payload as string
+            })
+            .addCase(createRequirement.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(createRequirement.fulfilled, (state, action) => {
+                state.loading = false
+                state.requirements.unshift(action.payload) // Add to beginning of array
+                state.currentRequirement = action.payload
+            })
+            .addCase(createRequirement.rejected, (state, action) => {
+                state.loading = false
                 state.error = action.payload as string
             })
 

@@ -1,10 +1,106 @@
 // store/services/requirementsService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore'
 import { db } from '../../../firebase' // Adjust path to your Firebase config
 import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import type { INote } from '../../../data_types/acn/types'
+
+export const createRequirement = createAsyncThunk(
+    'requirements/create',
+    async (
+        requirementData: {
+            selectedPlace: {
+                name: string
+                lat: number
+                lng: number
+                address: string
+                mapLocation: string
+            }
+            assetType: string
+            superBuiltUpArea: string
+            plotArea: string
+            bedroom: number
+            budgetFrom: string
+            budgetTo: string
+            builderCategory: string
+            preferredFloor: string
+            facing: string
+            requirementDetails: string
+            cpId: string
+        },
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('🆕 Creating new requirement:', requirementData)
+
+            // Get the next requirement ID
+            const adminDocRef = doc(db, 'acn-admin', 'lastReqId')
+            const adminDoc = await getDoc(adminDocRef)
+
+            if (!adminDoc.exists()) {
+                throw new Error('Admin document not found')
+            }
+
+            const adminData = adminDoc.data()
+            const currentCount = adminData.count || 609
+            const prefix = adminData.prefix || 'A'
+            const label = adminData.label || 'RQ'
+
+            const nextCount = currentCount + 1
+            const requirementId = `${label}${prefix}${nextCount}`
+
+            // Prepare the requirement data
+            const newRequirement: IRequirement = {
+                requirementId,
+                cpId: requirementData.cpId || 'CURRENT_USER',
+                propertyName: requirementData.selectedPlace.name,
+                location: requirementData.selectedPlace.address,
+                _geoloc: {
+                    lat: requirementData.selectedPlace.lat,
+                    lng: requirementData.selectedPlace.lng,
+                },
+                assetType: requirementData.assetType as IRequirement['assetType'],
+                configuration: `${requirementData.bedroom} bhk` as IRequirement['configuration'],
+                micromarket: '', // You might want to derive this from location
+                budget: {
+                    from: parseFloat(requirementData.budgetFrom),
+                    to: parseFloat(requirementData.budgetTo),
+                },
+                size: {
+                    from: parseFloat(requirementData.superBuiltUpArea),
+                    to: parseFloat(requirementData.plotArea),
+                },
+                bedrooms: requirementData.bedroom.toString(),
+                bathrooms: '', // Not provided in form, you might want to add this
+                parking: '', // Not provided in form, you might want to add this
+                extraDetails: requirementData.requirementDetails,
+                marketValue: '', // Not provided in form
+                requirementStatus: 'open',
+                internalStatus: 'pending',
+                added: getUnixDateTime(),
+                lastModified: getUnixDateTime(),
+                matchingProperties: [],
+                notes: [],
+            }
+
+            // Create the requirement document with the generated ID
+            const requirementDocRef = doc(db, 'acnRequirements', requirementId)
+            await setDoc(requirementDocRef, newRequirement)
+
+            // Update the counter in admin document
+            await updateDoc(adminDocRef, {
+                count: nextCount,
+            })
+
+            console.log('✅ Requirement created successfully:', requirementId)
+            return newRequirement
+        } catch (error: any) {
+            console.error('❌ Error creating requirement:', error)
+            return rejectWithValue(error.message || 'Failed to create requirement')
+        }
+    },
+)
 
 // Fetch requirement by ID thunk
 export const fetchRequirementById = createAsyncThunk(
