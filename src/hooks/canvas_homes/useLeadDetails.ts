@@ -35,7 +35,7 @@ interface UseLeadDetailsReturn {
     setSelectedEnquiryId: (id: string) => void
     refreshData: () => void
     updateTaskStatus: (taskId: string, status: 'open' | 'complete') => Promise<void>
-    addNote: (noteData: { agentId: string; agentName: string; TaskType: string; note: string }) => Promise<void>
+    addNote: (noteData: { agentId: string; agentName: string; taskType: string; note: string }) => Promise<void>
     createNewTask: (taskData: any) => Promise<void>
     addActivity: (activityData: {
         agentId: string
@@ -45,6 +45,7 @@ interface UseLeadDetailsReturn {
     }) => Promise<void>
     updateEnquiry: (updates: any) => Promise<void>
     updateLead: (updates: any) => Promise<void>
+    updateTask: (taskId: string, updates: any) => Promise<void>
 }
 
 export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
@@ -76,7 +77,7 @@ export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
     // Load lead data
     const loadLeadData = useCallback(async () => {
         // Validate leadId before making the call
-        if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {
+        if (!leadId) {
             console.error('Invalid leadId provided to useLeadDetails:', leadId)
             setErrors((prev) => ({ ...prev, lead: 'Invalid lead ID provided' }))
             return
@@ -111,7 +112,7 @@ export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
     // Load enquiries data
     const loadEnquiriesData = useCallback(async () => {
         // Validate leadId before making the call
-        if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {
+        if (!leadId) {
             console.error('Invalid leadId provided for enquiries:', leadId)
             setErrors((prev) => ({ ...prev, enquiries: 'Invalid lead ID provided' }))
             return
@@ -142,7 +143,7 @@ export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
 
     // Load tasks data
     const loadTasksData = useCallback(async () => {
-        if (!selectedEnquiryId || typeof selectedEnquiryId !== 'string' || selectedEnquiryId.trim() === '') {
+        if (!selectedEnquiryId) {
             console.log('No valid selectedEnquiryId, skipping task load')
             return
         }
@@ -189,7 +190,7 @@ export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
     // Actions
     const updateTaskStatus = useCallback(
         async (taskId: string, status: 'open' | 'complete', taskResult?: string) => {
-            if (!taskId || typeof taskId !== 'string' || taskId.trim() === '') {
+            if (!taskId) {
                 throw new Error('Invalid taskId provided')
             }
 
@@ -206,8 +207,8 @@ export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
     )
 
     const addNote = useCallback(
-        async (noteData: { agentId: string; agentName: string; TaskType: string; note: string }) => {
-            if (!selectedEnquiryId || typeof selectedEnquiryId !== 'string' || selectedEnquiryId.trim() === '') {
+        async (noteData: { agentId: string; agentName: string; taskType: string; note: string }) => {
+            if (!selectedEnquiryId) {
                 throw new Error('No valid enquiry selected')
             }
 
@@ -290,6 +291,17 @@ export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
         [leadId],
     )
 
+    const updateTask = useCallback(async (taskId: string, updates: any) => {
+        try {
+            if (taskId) {
+                await taskService.update(taskId, updates)
+            }
+        } catch (error: any) {
+            console.error('Failed to update task:', error)
+            throw error
+        }
+    }, [])
+
     const refreshData = useCallback(() => {
         if (leadId && typeof leadId === 'string' && leadId.trim() !== '') {
             loadLeadData()
@@ -304,7 +316,7 @@ export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
     useEffect(() => {
         console.log('useLeadDetails effect triggered with leadId:', leadId)
         console.log(leadId)
-        if (leadId && typeof leadId === 'string' && leadId.trim() !== '') {
+        if (leadId) {
             loadLeadData()
             loadEnquiriesData()
         } else {
@@ -314,7 +326,7 @@ export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
     }, [leadId]) // Remove other dependencies to prevent loops
 
     useEffect(() => {
-        if (selectedEnquiryId && typeof selectedEnquiryId === 'string' && selectedEnquiryId.trim() !== '') {
+        if (selectedEnquiryId) {
             loadTasksData()
         }
     }, [selectedEnquiryId]) // Only depend on selectedEnquiryId
@@ -348,5 +360,6 @@ export const useLeadDetails = (leadId: string): UseLeadDetailsReturn => {
         // ADD THESE LINES:
         updateEnquiry,
         updateLead,
+        updateTask,
     }
 }

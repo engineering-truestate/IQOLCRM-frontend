@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { enquiryService } from '../../../../services/canvas_homes'
+import RequirementCollectedModal from '../../../../components/canvas_homes/RquirementCollectionModal'
+import { toast } from 'react-toastify'
+import { useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch } from '../../../../store'
+import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 
 interface Requirement {
     id: string
@@ -14,6 +20,11 @@ interface Requirement {
     possessionType: string
     notes: string
     added: string
+}
+interface RootState {
+    taskId: {
+        taskState: string
+    }
 }
 
 interface RequirementsProps {
@@ -31,6 +42,7 @@ const Requirements: React.FC<RequirementsProps> = ({
     const [activeRequirement, setActiveRequirement] = useState<string | null>(null)
     const [isAddingNew, setIsAddingNew] = useState(false)
     const [saving, setSaving] = useState(false)
+    const dispatch = useDispatch<AppDispatch>()
     const [formData, setFormData] = useState({
         expectedBudget: '',
         zone: '',
@@ -44,6 +56,10 @@ const Requirements: React.FC<RequirementsProps> = ({
     })
 
     const [requirements, setRequirements] = useState<Requirement[]>(existingRequirements)
+
+    const [isRequirementModalOpen, SetIsRequirementModalOpen] = useState(false)
+
+    const { taskState } = useSelector((state: RootState) => state.taskId)
 
     // Update local requirements when props change
     useEffect(() => {
@@ -83,7 +99,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                 requirements: updatedRequirements,
             })
 
-            if (onRequirementsUpdate) {
+            if (onRequirementsUpdate && taskState == null) {
                 onRequirementsUpdate()
             }
         } catch (error) {
@@ -134,15 +150,17 @@ const Requirements: React.FC<RequirementsProps> = ({
             setRequirements(updatedRequirements)
             setActiveRequirement(newRequirement.id)
             setIsAddingNew(false)
-            alert('Requirement saved successfully!')
+            toast.success('Requirement saved successfully!')
 
             // Notify parent to refresh data to show new note
-            if (onRequirementsUpdate) {
+            if (onRequirementsUpdate && taskState == null) {
                 onRequirementsUpdate()
+            } else {
+                SetIsRequirementModalOpen(true)
             }
         } catch (error) {
             console.error('Error saving requirement:', error)
-            alert('Failed to save requirement. Please try again.')
+            toast.error('Failed to save requirement. Please try again.')
         } finally {
             setSaving(false)
         }
@@ -164,6 +182,7 @@ const Requirements: React.FC<RequirementsProps> = ({
             possessionType: '',
             notes: '',
         })
+        // dispatch(clearTaskId());
     }
 
     const handleRequirementSelect = (reqId: string) => {
@@ -173,7 +192,7 @@ const Requirements: React.FC<RequirementsProps> = ({
 
     const handleDelete = async (reqId: string) => {
         if (!enquiryId) {
-            alert('No enquiry selected.')
+            toast.error('No enquiry selected.')
             return
         }
 
@@ -193,10 +212,10 @@ const Requirements: React.FC<RequirementsProps> = ({
                 }
             }
 
-            alert('Requirement deleted successfully!')
+            toast.success('Requirement deleted successfully!')
         } catch (error) {
             console.error('Error deleting requirement:', error)
-            alert('Failed to delete requirement. Please try again.')
+            toast.error('Failed to delete requirement. Please try again.')
         }
     }
 
@@ -569,6 +588,18 @@ const Requirements: React.FC<RequirementsProps> = ({
                         Add First Requirement
                     </button>
                 </div>
+            )}
+            {isRequirementModalOpen && (
+                <>
+                    {console.log('Modal should render now')}
+                    <RequirementCollectedModal
+                        isOpen={isRequirementModalOpen}
+                        onClose={() => {
+                            console.log('Modal closing...') // Add this
+                            SetIsRequirementModalOpen(false)
+                        }}
+                    />
+                </>
             )}
         </div>
     )

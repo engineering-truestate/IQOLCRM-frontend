@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import type { NoteItem } from '../../../../services/canvas_homes/types'
+import { formatUnixDateTime } from '../../../../components/helper/getUnixDateTime'
 
 interface NotesProps {
     notes: NoteItem[]
@@ -32,30 +33,20 @@ const Notes: React.FC<NotesProps> = ({ notes = [], onAddNote, loading }) => {
     // Convert Firebase notes to display format
     const convertFirebaseNotes = (firebaseNotes: NoteItem[]): Note[] => {
         return firebaseNotes.map((note, index) => ({
-            id: `${note.timestamp}-${index}`,
-            timestamp:
-                new Date(note.timestamp).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                }) +
-                ' | ' +
-                new Date(note.timestamp).toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true,
-                }),
-            content: note.note,
-            agent: note.agentName,
-            taskType: note.taskType,
+            id: `${note?.timestamp}-${index}`,
+            timestamp: formatUnixDateTime(note?.timestamp) || '--',
+            content: note?.note,
+            agent: note?.agentName,
+            taskType: note?.taskType,
         }))
     }
 
     // Group notes by task type
     const groupNotesByTaskType = (firebaseNotes: NoteItem[]) => {
+        console.log('Firebase Notes:', firebaseNotes.length)
         const convertedNotes = convertFirebaseNotes(firebaseNotes)
 
-        console.log('Hare Krishna', convertedNotes)
+        console.log('Hare Krishna', convertedNotes.length)
 
         const sections = [
             { id: 'lead-registration', title: 'Lead Registration', taskTypes: ['lead registration'] },

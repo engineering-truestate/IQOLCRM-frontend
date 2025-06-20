@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { Task } from './types'
+import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 
 class TaskService {
     private collectionName = 'canvashomesTasks'
@@ -167,7 +168,7 @@ class TaskService {
         try {
             const updateData = {
                 ...updates,
-                lastModified: Date.now(),
+                lastModified: getUnixDateTime(),
             }
             await updateDoc(doc(db, this.collectionName, taskId), updateData)
         } catch (error) {

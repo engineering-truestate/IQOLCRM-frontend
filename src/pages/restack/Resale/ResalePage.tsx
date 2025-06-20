@@ -1,125 +1,127 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { useDispatch } from 'react-redux'
-import type { RestackRentalProperty } from '../../../data_types/restack/restack-rental.d'
-import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
+import React from 'react'
+import { useNavigate, useLocation, Link, useParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import Layout from '../../../layout/Layout'
+import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
-import { get99AcresRentalData, getMagicBricksRentalData } from '../../../services/restack/rentalService'
+import type { RestackResaleProperty } from '../../../data_types/restack/restack-resale.d'
+import { get99AcresResaleData, getMagicBricksResaleData } from '../../../services/restack/resaleService'
 
-const RentalPage = () => {
+const ResalePage = () => {
+    const location = useLocation()
+    const navigate = useNavigate()
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
-    const [selectedListedBy, setSelectedListedBy] = useState<'All' | 'Owner' | 'Broker'>('All')
-    const navigate = useNavigate()
-    const { type } = useParams<{ type: string }>()
+    const [paginatedData, setPaginatedData] = useState<RestackResaleProperty[]>([])
+    const [filteredData, setFilteredData] = useState<RestackResaleProperty[]>([])
+    const [listedByFilter, setListedByFilter] = useState<'All' | 'Owner' | 'Broker'>('All')
+    const [loading] = useState(false)
 
-    const [properties, setProperties] = useState<RestackRentalProperty[]>([])
-    const loading = false
+    const { type } = useParams()
+    const resaleType = type
+    console.log('Resale Type:', resaleType)
 
+    // Items per page
     const ITEMS_PER_PAGE = 15
 
-    const [filteredProperties, setFilteredProperties] = useState<RestackRentalProperty[]>([])
-    const [paginatedProperties, setPaginatedProperties] = useState<RestackRentalProperty[]>([])
+    const [properties, setProperties] = useState<RestackResaleProperty[]>([])
 
     useEffect(() => {
         const fetchData = async () => {
-            let data = await get99AcresRentalData()
-            switch (type) {
+            let data: RestackResaleProperty[] = []
+            switch (resaleType) {
                 case '99acres':
-                    data = await get99AcresRentalData()
+                    data = await get99AcresResaleData()
                     break
                 case 'magicbricks':
-                    data = await getMagicBricksRentalData()
+                    data = await getMagicBricksResaleData()
                     break
                 default:
-                    break
+                    console.error('Invalid resale type:', resaleType)
+                    return
             }
-
             setProperties(data)
         }
-        fetchData()
-    }, [])
 
+        fetchData()
+    }, [resaleType])
+
+    // Filter data based on search and listedBy filter
     useEffect(() => {
         let filtered = properties
+
         // Apply search filter
         if (searchValue.trim() !== '') {
             filtered = filtered.filter(
                 (property) =>
-                    property.propertyName.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
                     property.propertyId.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.description.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.address.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.micromarket.toLowerCase().includes(searchValue.toLowerCase()),
+                    property.propertyType.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.status.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    property.developer.toLowerCase().includes(searchValue.toLowerCase()),
             )
         }
 
-        // Apply listedBy filter
-        if (selectedListedBy !== 'All') {
-            filtered = filtered.filter((property) => property.postedBy === selectedListedBy)
-        }
+        // Apply listedBy filter (This filter is not applicable to the new schema)
+        // if (listedByFilter !== 'All') {
+        //     filtered = filtered.filter((property) => property.listedBy === listedByFilter)
+        // }
 
-        setFilteredProperties(filtered)
-        setCurrentPage(1)
-    }, [searchValue, properties, selectedListedBy])
+        setFilteredData(filtered)
+        setCurrentPage(1) // Reset to first page when filtering
+    }, [searchValue, listedByFilter, properties])
+
+    // Calculate total pages
+    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
+
+    // Update paginated data when page changes or filtered data changes
     useEffect(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
         const endIndex = startIndex + ITEMS_PER_PAGE
-        const slicedProperties = filteredProperties.slice(startIndex, endIndex)
-        setPaginatedProperties(slicedProperties)
-    }, [currentPage, filteredProperties])
-
-    const totalPages = Math.ceil(filteredProperties.length / ITEMS_PER_PAGE)
+        setPaginatedData(filteredData.slice(startIndex, endIndex))
+    }, [currentPage, filteredData])
 
     // Handle filter button clicks
     const handleFilterClick = (filterType: 'All' | 'Owner' | 'Broker') => {
-        setSelectedListedBy(filterType)
+        setListedByFilter(filterType)
     }
 
+    // Table columns configuration
     const columns: TableColumn[] = [
         {
-            key: 'propertyName',
+            key: 'projectName',
             header: 'Project Name',
-            render: (value: string, row: RestackRentalProperty) => (
-                <span className='whitespace-nowrap text-sm font-medium text-gray-900'>{value}</span>
-            ),
+            render: (value) => <span className='whitespace-nowrap text-sm font-medium text-gray-900'>{value}</span>,
         },
         {
             key: 'propertyId',
-            header: 'Project ID',
-            render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
+            header: 'Property ID',
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
         },
         {
             key: 'propertyType',
-            header: 'Asset Type',
-            render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
+            header: 'Property Type',
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
         },
         {
-            key: 'postedOn',
-            header: 'Inventory Date',
-            render: (value: number) => (
-                // <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>
-                <span className='whitespace-nowrap text-sm text-gray-600'>{formatUnixDate(value)}</span>
-            ),
-        },
-        {
-            key: 'listingStatus',
+            key: 'status',
             header: 'Status',
-            render: (value: string) => (
-                <span className='whitespace-nowrap text-sm text-gray-800'>{(value || 'available').toUpperCase()}</span>
-            ),
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value?.toLowerCase()}</span>,
         },
         {
-            key: 'actions',
+            key: 'developer',
+            header: 'Developer',
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
+        },
+        {
+            key: 'action',
             header: 'View Details',
-            render: (value: any, row: RestackRentalProperty) => (
+            render: (_, row) => (
                 <button
-                    onClick={() => navigate(`/restack/rental/${type}/${row.propertyId}/details`)}
                     className='bg-black text-white text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
+                    onClick={() => navigate(`/restack/resale/${resaleType}/${row.propertyId}/details`)}
                 >
                     View Details
                 </button>
@@ -134,7 +136,7 @@ const RentalPage = () => {
                     {/* Header */}
                     <div className='mb-2'>
                         <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Rental / 99 Acres</h1>
+                            <h1 className='text-xl font-semibold text-gray-900'>Resale /{type}</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
                                     <StateBaseTextField
@@ -155,7 +157,7 @@ const RentalPage = () => {
                                         }
                                         placeholder='Search here'
                                         value={searchValue}
-                                        onChange={(e: any) => setSearchValue(e.target.value)}
+                                        onChange={(e) => setSearchValue(e.target.value)}
                                         className='h-8'
                                     />
                                 </div>
@@ -167,8 +169,8 @@ const RentalPage = () => {
                             <button
                                 onClick={() => handleFilterClick('Owner')}
                                 className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
-                                    selectedListedBy === 'Owner'
-                                        ? 'bg-gray-800 text-white'
+                                    listedByFilter === 'Owner'
+                                        ? 'bg-blue-600 text-white'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
@@ -177,14 +179,14 @@ const RentalPage = () => {
                             <button
                                 onClick={() => handleFilterClick('Broker')}
                                 className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
-                                    selectedListedBy === 'Broker'
-                                        ? 'bg-gray-800 text-white'
+                                    listedByFilter === 'Broker'
+                                        ? 'bg-blue-600 text-white'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                                 Listed by Broker
                             </button>
-                            {(selectedListedBy === 'Owner' || selectedListedBy === 'Broker') && (
+                            {(listedByFilter === 'Owner' || listedByFilter === 'Broker') && (
                                 <button
                                     onClick={() => handleFilterClick('All')}
                                     className='px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors'
@@ -200,7 +202,7 @@ const RentalPage = () => {
                     <div className='bg-white rounded-lg overflow-hidden'>
                         <div className='h-[80vh] overflow-y-auto'>
                             <FlexibleTable
-                                data={paginatedProperties}
+                                data={paginatedData}
                                 columns={columns}
                                 hoverable={true}
                                 borders={{
@@ -221,8 +223,8 @@ const RentalPage = () => {
                             <div className='flex items-center justify-between py-4 px-6 border-t border-gray-200'>
                                 <div className='text-sm text-gray-500 font-medium'>
                                     Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredProperties.length)} of{' '}
-                                    {filteredProperties.length} properties
+                                    {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} of{' '}
+                                    {filteredData.length} properties
                                     {searchValue && ` (filtered from ${properties.length} total properties)`}
                                 </div>
 
@@ -311,7 +313,7 @@ const RentalPage = () => {
                     </div>
 
                     {/* Empty state */}
-                    {!loading && filteredProperties.length === 0 && (
+                    {!loading && filteredData.length === 0 && (
                         <div className='text-center py-12'>
                             <svg
                                 className='mx-auto h-12 w-12 text-gray-400'
@@ -336,4 +338,4 @@ const RentalPage = () => {
     )
 }
 
-export default RentalPage
+export default ResalePage

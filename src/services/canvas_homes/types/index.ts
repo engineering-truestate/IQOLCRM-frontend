@@ -104,6 +104,7 @@ export interface Task {
     leadAddDate: number
     propertyName: string
     type: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking'
+    eventName?: string
     status: 'open' | 'complete'
     stage: string // e.g., "Initial Contacted"
     leadStatus: string // e.g., "Interested"

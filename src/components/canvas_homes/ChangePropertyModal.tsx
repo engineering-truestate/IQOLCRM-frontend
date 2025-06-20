@@ -1,58 +1,82 @@
 import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
+import type { RootState } from '../../store'
 import { useParams } from 'react-router'
 import { enquiryService } from '../../services/canvas_homes'
-import { leadService } from '../../services/canvas_homes'
-import { taskService } from '../../services/canvas_homes'
+import useAuth from '../../hooks/useAuth'
+import { toast } from 'react-toastify'
+import { getUnixDateTime } from '../helper/getUnixDateTime'
+import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 
 interface ChangePropertyModalProps {
     isOpen: boolean
     onClose: () => void
     onChangeProperty: (formData: any) => void
+    onUpdateTask: (taskId: string, updates: any) => Promise<void>
+    onUpdateLead: (leadId: string, updates: any) => Promise<void>
+    onUpdateEnquiry: (enquiryId: string, updates: any) => Promise<void>
+    onAddNote: (enquiryId: string, note: any) => Promise<void>
+    taskType: string
 }
 
-const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, onChangeProperty }) => {
-    const taskIds: string = useSelector((state: RootState) => state.taskId.taskId)
-    const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId)
-
+const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({
+    isOpen,
+    onClose,
+    onChangeProperty,
+    onUpdateTask,
+    onUpdateLead,
+    onUpdateEnquiry,
+    onAddNote,
+    taskType,
+}) => {
+    const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
+    const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
+    const { user } = useAuth()
     const { leadId } = useParams()
+
+    const agentId = user?.uid || ''
+    const agentName = user?.displayName || ''
+
+    const currentTimestamp = Date.now()
+    const enquiryDateTimestamp = currentTimestamp
+    const { refreshData } = useLeadDetails(leadId)
 
     const [formData, setFormData] = useState({
         reason: '',
         leadId: leadId,
         state: 'open',
-        newProperty: '',
+        propertyId: '',
+        propertyName: '',
+        agentId: agentId,
+        agentName: agentName,
+        tag: 'potential',
+        status: 'complete',
     })
 
     const reasonOptions = [
         { value: '', label: 'Select reason' },
-        { value: 'customer_preference', label: 'Customer Preference' },
-        { value: 'budget_constraints', label: 'Budget Constraints' },
-        { value: 'location_change', label: 'Location Change' },
-        { value: 'size_requirements', label: 'Size Requirements' },
-        { value: 'amenities_mismatch', label: 'Amenities Mismatch' },
+        { value: 'not interested in current property', label: 'Not Interested in Current Property' },
         { value: 'other', label: 'Other' },
     ]
 
     const propertyOptions = [
         { value: '', label: 'Select new property' },
-        { value: 'property_1', label: 'Property 1' },
-        { value: 'property_2', label: 'Property 2' },
-        { value: 'property_3', label: 'Property 3' },
-        { value: 'property_4', label: 'Property 4' },
+        { value: 'prop001|Sunset Villa', label: 'Sunset Villa' },
+        { value: 'prop002|Ocean View Apartment', label: 'Ocean View Apartment' },
+        { value: 'prop003|Downtown Condo', label: 'Downtown Condo' },
+        { value: 'prop004|Garden Heights', label: 'Garden Heights' },
+        { value: 'prop005|Riverside Towers', label: 'Riverside Towers' },
+        { value: 'prop006|Sattva Hills', label: 'Sattva Hills' },
+        { value: 'prop007|Prestige Gardenia', label: 'Prestige Gardenia' },
+        { value: 'prop008|Brigade Cosmopolis', label: 'Brigade Cosmopolis' },
+        { value: 'prop009|Sobha City', label: 'Sobha City' },
+        { value: 'prop010|Embassy Springs', label: 'Embassy Springs' },
+        { value: 'prop011|Mantri Energia', label: 'Mantri Energia' },
     ]
 
-    const taskStatusOptions = [
-        { value: 'Complete', label: 'Complete' },
-        { value: 'Incomplete', label: 'Incomplete' },
-        { value: 'Pending', label: 'Pending' },
-    ]
+    const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
 
-    const leadStatusOptions = [
-        { value: 'Property Changed', label: 'Property Changed' },
-        { value: 'Follow Up', label: 'Follow Up' },
-        { value: 'Connected', label: 'Connected' },
-    ]
+    const leadStatusOptions = [{ value: 'Property Changed', label: 'Property Changed' }]
 
     const tagOptions = [
         { value: 'hot', label: 'Hot' },
@@ -66,69 +90,139 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             ...prev,
             [field]: value,
         }))
+
+        // Set propertyId and propertyName when newProperty is selected
+        if (field === 'newProperty' && value) {
+            const [propertyId, propertyName] = value.split('|')
+            setFormData((prev) => ({
+                ...prev,
+                propertyId: propertyId,
+                propertyName: propertyName,
+            }))
+        }
+    }
+
+    const handleNoteChange = (value: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            note: value,
+        }))
     }
 
     const handleSubmit = async () => {
         if (!formData.reason || !formData.newProperty) {
-            alert('Please select a reason and new property')
+            toast.error('Please select a reason and new property')
             return
         }
 
         try {
             if (enquiryId && leadId && taskIds) {
+                // Update existing enquiry
                 const enqData = {
                     leadStatus: 'Property Changed',
-                }
-                await enquiryService.update(enquiryId, enqData)
-                await enquiryService.create(enqData)
-
-                const data = {
                     stage: null,
-                    state: 'fresh',
-                    status: 'interested',
+                    state: 'open',
+                    lastModified: Date.now(),
                 }
-                await leadService.update(leadId, data)
-                await taskService.update(taskIds, { status: 'complete' })
+                await onUpdateEnquiry(enqData)
+
+                // Create new enquiry
+                const newNote = formData.note
+                    ? {
+                          note: formData.note,
+                          timestamp: getUnixDateTime(),
+                          agentName: formData.agentName,
+                          agentId: formData.agentId,
+                          taskType: taskType,
+                      }
+                    : null
+                onAddNote(enquiryId, newNote)
+
+                const newEnquiry = {
+                    leadId: leadId,
+                    agentId: agentId,
+                    propertyId: formData.propertyId,
+                    propertyName: formData.propertyName,
+                    source: 'Manual',
+                    leadStatus: 'interested', // Default status
+                    stage: null,
+                    agentHistory: [
+                        {
+                            agentId: agentId,
+                            agentName: agentName,
+                            timestamp: currentTimestamp,
+                            lastStage: null,
+                        },
+                    ],
+                    activityHistory: [],
+                    notes: [],
+                    state: 'open',
+                    tag: formData.tag || 'potential',
+                    documents: [],
+                    requirements: [],
+                    added: enquiryDateTimestamp,
+                    lastModified: currentTimestamp,
+                }
+
+                await enquiryService.create(newEnquiry)
+
+                // Update lead
+                const leadData = {
+                    stage: null,
+                    state: 'open',
+                    leadStatus: 'interested',
+                    lastModifie: currentTimestamp,
+                }
+                await onUpdateLead(leadData)
+
+                // Update task
+                await onUpdateTask(taskIds, { status: 'complete', completionDate: currentTimestamp })
+
+                toast.success('Property changed successfully')
+                onClose()
             } else {
-                console.error('enquiryId is undefined')
+                toast.error('Required IDs are missing')
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating enquiry:', error)
-            alert('Failed to update enquiry')
+            toast.error(error.message || 'Failed to update enquiry')
             return
+        } finally {
+            refreshData()
         }
 
         onChangeProperty(formData)
         onClose()
 
         // Reset form
-        setFormData({
-            leadId: leadId,
+        setFormData((prev) => ({
+            ...prev,
             reason: '',
             newProperty: '',
-            taskStatus: 'Complete',
-            leadStatus: 'Property Changed',
-            tag: 'Cold',
+            propertyId: '',
+            propertyName: '',
+            tag: 'potential',
             note: '',
-        })
+        }))
     }
 
     const handleDiscard = () => {
-        setFormData({
+        setFormData((prev) => ({
+            ...prev,
             reason: '',
             newProperty: '',
-            taskStatus: 'Complete',
-            leadStatus: 'Property Changed',
-            tag: 'Cold',
+            propertyId: '',
+            propertyName: '',
+            tag: 'potential',
             note: '',
-        })
+        }))
         onClose()
     }
 
     if (!isOpen) return null
 
     return (
-        <div className='fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50' onClick={onClose}>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50' onClick={onClose}>
             <div className='bg-white rounded-lg shadow-xl w-full max-w-md mx-4' onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className='flex items-center justify-between p-4 border-b border-gray-200'>
@@ -163,7 +257,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     <div>
                         <label className='block text-sm font-medium text-gray-700 mb-1'>Add New Property</label>
                         <select
-                            value={newProperty}
+                            value={formData.newProperty}
                             onChange={(e) => handleInputChange('newProperty', e.target.value)}
                             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50'
                         >
@@ -248,7 +342,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                         <label className='block text-sm font-medium text-gray-700 mb-1'>Add Note (Optional)</label>
                         <textarea
                             value={formData.note}
-                            onChange={(e) => handleInputChange('note', e.target.value)}
+                            onChange={(e) => handleNoteChange(e.target.value)}
                             placeholder='Add your notes here...'
                             rows={4}
                             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none'
