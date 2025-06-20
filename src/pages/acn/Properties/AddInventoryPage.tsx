@@ -638,14 +638,6 @@ const AddEditInventoryPage = () => {
                             {/* Action Buttons */}
                             <div className='flex justify-end gap-4 mt-8 pt-6'>
                                 <Button
-                                    bgColor='bg-gray-200'
-                                    textColor='text-gray-700'
-                                    className='px-4 py-2 border border-gray-300 hover:bg-gray-100 text-base font-medium'
-                                    disabled={loading}
-                                >
-                                    Save as Draft
-                                </Button>
-                                <Button
                                     bgColor={loading ? 'bg-gray-400' : successMessage ? 'bg-green-600' : 'bg-gray-900'}
                                     textColor='text-white'
                                     className='px-4 py-2 hover:bg-gray-800 text-base font-medium'
