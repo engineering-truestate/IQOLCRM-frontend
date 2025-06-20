@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { IInventory, IRequirement } from '../../../data_types/acn/types'
+import { fetchAgentDetails } from '../../../services/acn/agents/agentThunkService'
 
 interface PropertyData {
     inventories: IInventory[]
@@ -39,11 +40,11 @@ const agentsSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            .addCase('agents/fetchAgentDetails/pending', (state) => {
+            .addCase(fetchAgentDetails.pending, (state) => {
                 state.loading = true
                 state.error = null
             })
-            .addCase('agents/fetchAgentDetails/fulfilled', (state, action) => {
+            .addCase(fetchAgentDetails.fulfilled, (state, action) => {
                 state.loading = false
                 const { propertyType } = action.meta.arg
                 const targetState = propertyType === 'Resale' ? state.resale : state.rental
@@ -52,7 +53,7 @@ const agentsSlice = createSlice({
                 targetState.enquiries = action.payload.enquiries
                 state.error = action.payload.error || null
             })
-            .addCase('agents/fetchAgentDetails/rejected', (state, action) => {
+            .addCase(fetchAgentDetails.rejected, (state, action) => {
                 state.loading = false
                 state.error = action.error.message || 'Failed to fetch agent details'
             })

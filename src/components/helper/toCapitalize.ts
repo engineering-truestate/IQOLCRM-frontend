@@ -10,3 +10,13 @@ export function toCapitalizedWords(str: string | null | undefined): string {
 
     return capitalizedWords.join(' ')
 }
+
+export function formatStatus(status: string) {
+    if (typeof status !== 'string') return status
+    // Handle RNR statuses specially
+    if (status.startsWith('rnr')) {
+        return 'RNR' + toCapitalizedWords(status.slice(3))
+    }
+    // Use toCapitalize for all other statuses
+    return toCapitalizedWords(status)
+}

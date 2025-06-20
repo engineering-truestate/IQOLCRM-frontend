@@ -14,6 +14,7 @@ export interface RequirementSearchParams {
 
 export interface RequirementSearchFilters {
     requirementStatus?: string[]
+    internalStatus?: string[]
     assetType?: string[]
     micromarket?: string[]
     configuration?: string[]
@@ -68,6 +69,11 @@ const buildFilterString = (filters: RequirementSearchFilters): string => {
         filterParts.push(`(${statusFilters})`)
     }
 
+    if (filters.internalStatus && filters.internalStatus.length > 0) {
+        const internalStatusFilters = filters.internalStatus.map((status) => `internalStatus:'${status}'`).join(' OR ')
+        filterParts.push(`(${internalStatusFilters})`)
+    }
+
     if (filters.assetType && filters.assetType.length > 0) {
         const assetTypeFilters = filters.assetType.map((type) => `assetType:'${type}'`).join(' OR ')
         filterParts.push(`(${assetTypeFilters})`)
@@ -120,7 +126,7 @@ export const searchRequirements = async (
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: ['micromarket', 'assetType', 'requirementStatus', 'configuration'],
+                    facets: ['micromarket', 'assetType', 'requirementStatus', 'internalStatus', 'configuration'],
                     maxValuesPerFacet: 100,
                     analytics: true,
                 },
@@ -190,7 +196,7 @@ export const getAllFacets = async (
                     indexName,
                     query: '',
                     hitsPerPage: 0,
-                    facets: ['requirementStatus', 'assetType', 'micromarket', 'configuration'],
+                    facets: ['requirementStatus', 'internalStatus', 'assetType', 'micromarket', 'configuration'],
                     maxValuesPerFacet: 100,
                 },
             ],

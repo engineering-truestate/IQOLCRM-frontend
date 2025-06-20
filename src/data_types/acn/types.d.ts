@@ -426,6 +426,7 @@ type RentalInventoryState = {
 // Note interface
 export interface INote {
     id: string
+    email: string
     author: string
     content: string
     timestamp: number

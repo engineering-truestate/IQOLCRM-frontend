@@ -15,7 +15,7 @@ import addinventoryic from '/icons/acn/user-add.svg'
 import shareic from '/icons/acn/share.svg'
 import editicon from '/icons/acn/write.svg'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
-import { AddFilterModal } from '../../../components/acn/Filters'
+import { PropertiesFiltersModal } from '../../../components/acn/PropertiesFiltersModal'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch } from '../../../store'
 import {
@@ -39,6 +39,7 @@ import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import StatusSelectCell from '../../../components/acn/Status'
 import { toast } from 'react-toastify'
 import filter from '/icons/acn/filter.svg'
+import BulkShareModal from '../../../components/acn/BulkShareModal'
 
 type PropertyType = 'Resale' | 'Rental'
 type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'De-listed' | 'Pending QC' | 'Rented'
@@ -213,33 +214,6 @@ const PropertiesPage = () => {
         [searchParams, setSearchParams],
     )
 
-    // Debounced search function with cancel support
-    const debounce = <T extends (...args: any[]) => any>(
-        func: T,
-        wait: number,
-    ): { (...args: Parameters<T>): void; cancel: () => void } => {
-        let timeout: NodeJS.Timeout | null = null
-
-        function debouncedFn(...args: Parameters<T>) {
-            if (timeout) {
-                clearTimeout(timeout)
-            }
-            timeout = setTimeout(() => {
-                timeout = null
-                func(...args)
-            }, wait)
-        }
-
-        debouncedFn.cancel = () => {
-            if (timeout) {
-                clearTimeout(timeout)
-                timeout = null
-            }
-        }
-
-        return debouncedFn
-    }
-
     // Add mounted ref to prevent memory leaks
     const mounted = useRef(true)
     useEffect(() => {
@@ -249,76 +223,126 @@ const PropertiesPage = () => {
         }
     }, [])
 
-    // Memoized search function
-    const searchProperties = useCallback(async () => {
-        if (!mounted.current) return
-        setSearchLoading(true)
-        setSearchError(null)
-        try {
-            const response = await algoliaService.searchProperties({
-                query: urlParams.query,
-                filters: {
-                    status: urlParams.status,
-                    assetType: urlParams.assetType,
-                    micromarket: urlParams.micromarket,
-                    kamName: urlParams.kamName,
-                },
-                page: Math.max(0, urlParams.page - 1),
-                hitsPerPage: ITEMS_PER_PAGE,
-                sortBy: urlParams.sort || undefined,
-                propertyType: activeTab,
-            })
-            if (!mounted.current) return
-            dispatch(
-                setSearchResults({
-                    ...response,
-                    facets: response.facets || {},
-                }),
-            )
-            if (response.facets) {
-                const updatedSearchFacets: Record<string, FacetValue[]> = {}
-                Object.entries(response.facets).forEach(([facetName, facetValues]) => {
-                    updatedSearchFacets[facetName] = Object.entries(facetValues)
-                        .map(([value, count]) => ({ value, count: count as number }))
-                        .sort((a, b) => b.count - a.count)
-                })
-                setSearchResultFacets(updatedSearchFacets)
-            }
-        } catch (err) {
-            console.error('Search error:', err)
-            if (mounted.current) {
-                setSearchError(err instanceof Error ? err.message : 'Search failed')
-                setSearchResultFacets({})
-            }
-        } finally {
-            if (mounted.current) {
-                setSearchLoading(false)
-            }
-        }
-    }, [urlParams, activeTab, dispatch])
+    // Algolia search state
+    const [searchLoading, setSearchLoading] = useState(false)
+    const [searchError, setSearchError] = useState<string | null>(null)
 
-    // Debounced search effect
-    const debouncedSearch = useMemo(() => {
-        const debouncedFn = debounce(() => {
-            if (mounted.current) {
-                searchProperties()
-            }
-        }, 300)
-        return debouncedFn
-    }, [searchProperties])
+    // Filter state
+    const [filters, setFilters] = useState<SearchFilters>({})
+    const [originalFacets, setOriginalFacets] = useState<Record<string, FacetValue[]>>({})
+    const [searchResultFacets, setSearchResultFacets] = useState<Record<string, FacetValue[]>>({})
+    const [isAddFilterModalOpen, setIsAddFilterModalOpen] = useState(false)
 
-    // Single unified effect for search
+    // UI state
+    const [currentPage, setCurrentPage] = useState(0)
+    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const [selectedProperty, setSelectedProperty] = useState<IInventory | null>(null)
+    const [isBulkShareModalOpen, setIsBulkShareModalOpen] = useState(false)
+
+    // Constants
+    const ITEMS_PER_PAGE = 50
+
+    // Initialize facets on component mount
     useEffect(() => {
-        if (urlParams.query) {
-            debouncedSearch()
-        } else {
-            searchProperties()
+        const initializeFacets = async () => {
+            try {
+                const facets = await algoliaService.getAllFacets(activeTab)
+                setOriginalFacets(facets)
+            } catch (error) {
+                console.error('Failed to load facets:', error)
+            }
         }
 
-        return () => {
-            debouncedSearch.cancel()
-        }
-    }, [urlParams, debouncedSearch, searchProperties])
+        initializeFacets()
+    }, [activeTab])
+
+    // Perform Algolia search
+    const performSearch = useCallback(
+        async (query: string, searchFilters: SearchFilters, page: number, sort: string) => {
+            if (!mounted.current) return
+            setSearchLoading(true)
+            setSearchError(null)
+
+            try {
+                const response = await algoliaService.searchProperties({
+                    query: query.trim(),
+                    filters: searchFilters,
+                    page,
+                    hitsPerPage: ITEMS_PER_PAGE,
+                    sortBy: sort || undefined,
+                    propertyType: activeTab,
+                })
+
+                if (!mounted.current) return
+
+                dispatch(
+                    setSearchResults({
+                        ...response,
+                        facets: response.facets || {},
+                    }),
+                )
+
+                // Update search result facets
+                if (response.facets) {
+                    const updatedSearchFacets: Record<string, FacetValue[]> = {}
+                    Object.entries(response.facets).forEach(([facetName, facetValues]) => {
+                        updatedSearchFacets[facetName] = Object.entries(facetValues)
+                            .map(([value, count]) => ({
+                                value,
+                                count: count as number,
+                            }))
+                            .sort((a, b) => b.count - a.count)
+                    })
+                    setSearchResultFacets(updatedSearchFacets)
+                }
+
+                // Track search event
+                algoliaService.trackSearchEvent('property_search', {
+                    query,
+                    filters: searchFilters,
+                    resultsCount: response.nbHits,
+                    page,
+                })
+            } catch (error) {
+                console.error('Search failed:', error)
+                if (mounted.current) {
+                    setSearchError(error instanceof Error ? error.message : 'Search failed')
+                    dispatch(
+                        setSearchResults({
+                            hits: [],
+                            nbHits: 0,
+                            nbPages: 0,
+                            page: 0,
+                            facets: {},
+                            processingTimeMS: 0,
+                        }),
+                    )
+                    setSearchResultFacets({})
+                }
+            } finally {
+                if (mounted.current) {
+                    setSearchLoading(false)
+                }
+            }
+        },
+        [activeTab, dispatch],
+    )
+
+    // Effect to reset selections when the tab changes
+    useEffect(() => {
+        setSelectedRows(new Set())
+    }, [activeTab])
+
+    // Effect to perform search when parameters change
+    useEffect(() => {
+        const debouncedSearch = setTimeout(() => {
+            performSearch(urlParams.query, filters, Math.max(0, urlParams.page - 1), urlParams.sort)
+        }, 300)
+
+        return () => clearTimeout(debouncedSearch)
+    }, [urlParams.query, urlParams.page, urlParams.sort, filters, activeTab, performSearch])
 
     // Update URL handlers
     const handleSearchValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -349,187 +373,15 @@ const PropertiesPage = () => {
     const handleSortChange = useCallback((sort: string) => updateURLParams('sort', sort || null), [updateURLParams])
 
     // Handle page change
-    const handlePageChange = useCallback((page: number) => updateURLParams('page', page.toString()), [updateURLParams])
+    const handlePageChange = useCallback(
+        (page: number) => updateURLParams('page', (page + 1).toString()),
+        [updateURLParams],
+    )
 
     // Reset all filters
     const clearAllFilters = useCallback(() => {
         setSearchParams({})
     }, [setSearchParams])
-
-    // Algolia search state
-    const [searchQuery, setSearchQuery] = useState('')
-    const [searchLoading, setSearchLoading] = useState(false)
-    const [searchError, setSearchError] = useState<string | null>(null)
-
-    // Filter state
-    const [filters, setFilters] = useState<SearchFilters>({})
-    const [originalFacets, setOriginalFacets] = useState<Record<string, FacetValue[]>>({})
-    const [searchResultFacets, setSearchResultFacets] = useState<Record<string, FacetValue[]>>({})
-    const [sortBy, setSortBy] = useState<string>('')
-    const [isAddFilterModalOpen, setIsAddFilterModalOpen] = useState(false)
-
-    // UI state
-    const [currentPage, setCurrentPage] = useState(0)
-    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false)
-    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
-    const [selectedProperty, setSelectedProperty] = useState<IInventory | null>(null)
-
-    // Constants
-    const ITEMS_PER_PAGE = 50
-
-    // Initialize facets on component mount
-    useEffect(() => {
-        const initializeFacets = async () => {
-            try {
-                const facets = await algoliaService.getAllFacets(activeTab)
-                setOriginalFacets(facets)
-            } catch (error) {
-                console.error('Failed to load facets:', error)
-            }
-        }
-
-        initializeFacets()
-    }, [activeTab])
-
-    // Load initial data
-    useEffect(() => {
-        // Perform initial search to load data
-        performSearch('', {}, 0, '')
-    }, [])
-
-    // Perform Algolia search
-    const performSearch = useCallback(
-        async (query: string, searchFilters: SearchFilters, page: number, sort: string) => {
-            setSearchLoading(true)
-            setSearchError(null)
-
-            try {
-                const response = await algoliaService.searchProperties({
-                    query: query.trim(),
-                    filters: searchFilters,
-                    page,
-                    hitsPerPage: ITEMS_PER_PAGE,
-                    sortBy: sort || undefined,
-                    propertyType: activeTab,
-                })
-
-                setSearchResults({
-                    ...response,
-                    facets: response.facets || {},
-                })
-
-                // Update search result facets
-                if (response.facets) {
-                    const updatedSearchFacets: Record<string, FacetValue[]> = {}
-                    Object.entries(response.facets).forEach(([facetName, facetValues]) => {
-                        updatedSearchFacets[facetName] = Object.entries(facetValues)
-                            .map(([value, count]) => ({
-                                value,
-                                count: count as number,
-                            }))
-                            .sort((a, b) => b.count - a.count)
-                    })
-                    setSearchResultFacets(updatedSearchFacets)
-                }
-
-                // Track search event
-                algoliaService.trackSearchEvent('property_search', {
-                    query,
-                    filters: searchFilters,
-                    resultsCount: response.nbHits,
-                    page,
-                })
-            } catch (error) {
-                console.error('Search failed:', error)
-                setSearchError(error instanceof Error ? error.message : 'Search failed')
-                setSearchResults({
-                    hits: [],
-                    nbHits: 0,
-                    nbPages: 0,
-                    page: 0,
-                    facets: {},
-                    processingTimeMS: 0,
-                })
-                setSearchResultFacets({})
-            } finally {
-                setSearchLoading(false)
-            }
-        },
-        [activeTab],
-    )
-
-    // Trigger search when query, filters, or sort changes
-    useEffect(() => {
-        setCurrentPage(0)
-        performSearch(searchQuery, filters, 0, sortBy)
-    }, [searchQuery, filters, sortBy, performSearch])
-
-    // Search when tab changes
-    useEffect(() => {
-        console.log('📋 Tab changed to:', activeTab)
-        setSelectedRows(new Set())
-        performSearch(searchQuery, filters, 0, sortBy)
-    }, [activeTab, searchQuery, filters, sortBy, performSearch])
-
-    // Render from Redux
-    const getCurrentData = (): IInventory[] => {
-        return properties || []
-    }
-
-    const currentData = getCurrentData()
-    const totalItems = nbHits || 0
-    const totalPages = nbPages || 0
-
-    // Helper function to get facet count for a specific value
-    const getFacetCount = (facetName: string, value: string): number => {
-        const facetsToUse = properties ? searchResultFacets : originalFacets
-        const facetValues = facetsToUse[facetName] || []
-        const facetItem = facetValues.find((item) => item.value === value)
-        return facetItem ? facetItem.count : 0
-    }
-
-    // Handle row selection
-    const handleRowSelect = (rowId: string, checked: boolean) => {
-        setSelectedRows((prev) => {
-            const newSet = new Set(prev)
-            if (checked) {
-                newSet.add(rowId)
-            } else {
-                newSet.delete(rowId)
-            }
-            return newSet
-        })
-    }
-
-    // Handle bulk status update
-    const handleBulkStatusUpdate = (status: PropertyStatus, soldPrice?: string) => {
-        const selectedRowIds = Array.from(selectedRows)
-        // Convert old status name to new if needed
-        const updatedStatus = status === 'De-listed' ? 'De-listed' : status
-        console.log('📝 Bulk updating status for:', selectedRowIds, 'to:', updatedStatus, ' ', soldPrice)
-
-        // TODO: Implement actual bulk update API call
-        setSelectedRows(new Set())
-    }
-
-    // Handle property status update
-    const handleUpdatePropertyStatus = useCallback(
-        async (propertyId: string, newStatus: string) => {
-            console.log('😒 Updating property status:', propertyId, newStatus)
-            dispatch(updatePropetiesLocal({ propertyId, updates: { status: newStatus } }))
-            // Optimistically update Redux
-            dispatch(updatePropertyStatusOptimistic({ propertyId, status: newStatus }))
-
-            try {
-                await dispatch(updatePropertyStatus({ propertyId, status: newStatus, activeTab })).unwrap()
-            } catch (error) {
-                // Optionally: revert or re-fetch
-                searchProperties()
-            }
-        },
-        [dispatch, activeTab, searchProperties],
-    )
 
     // Helper function to get status config safely
     const getStatusConfigByValue = (value: string) => {
@@ -1000,7 +852,7 @@ const PropertiesPage = () => {
                 </button>
 
                 {isOpen && (
-                    <div className='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'>
+                    <div className='absolute z-50 mt-1 w-full min-w-fit inline-block whitespace-nowrap bg-white border border-gray-300 rounded-md shadow-lg'>
                         {sortOptions.map((option) => (
                             <div
                                 key={option.value}
@@ -1250,45 +1102,121 @@ const PropertiesPage = () => {
         }
     }, [properties, searchResultFacets, activeTab, nbHits])
 
-    // Loading and error states
-    if (searchLoading && (!properties || properties.length === 0)) {
-        return (
-            <Layout loading={true}>
-                <div className='flex items-center justify-center h-64'>
-                    <div className='text-center'>
-                        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-                        <p className='text-gray-600'>Loading properties...</p>
-                    </div>
-                </div>
-            </Layout>
-        )
+    // Handle filter changes from the modal
+    const handleFiltersChange = useCallback(
+        (newFilters: SearchFilters) => {
+            setFilters(newFilters)
+
+            // Update URL parameters for the new filters
+            const newParams = new URLSearchParams(searchParams)
+
+            // Update status filter
+            if (newFilters.status && newFilters.status.length > 0) {
+                newParams.set('status', newFilters.status.join(','))
+            } else {
+                newParams.delete('status')
+            }
+
+            // Update assetType filter
+            if (newFilters.assetType && newFilters.assetType.length > 0) {
+                newParams.set('assetType', newFilters.assetType.join(','))
+            } else {
+                newParams.delete('assetType')
+            }
+
+            // Update micromarket filter
+            if (newFilters.micromarket && newFilters.micromarket.length > 0) {
+                newParams.set('micromarket', newFilters.micromarket.join(','))
+            } else {
+                newParams.delete('micromarket')
+            }
+
+            // Update kamName filter
+            if (newFilters.kamName && newFilters.kamName.length > 0) {
+                newParams.set('kamName', newFilters.kamName.join(','))
+            } else {
+                newParams.delete('kamName')
+            }
+
+            // Reset page when filters change
+            newParams.set('page', '1')
+
+            setSearchParams(newParams)
+        },
+        [searchParams, setSearchParams],
+    )
+
+    // Handle row selection
+    const handleRowSelect = (rowId: string, checked: boolean) => {
+        setSelectedRows((prev) => {
+            const newSet = new Set(prev)
+            if (checked) {
+                newSet.add(rowId)
+            } else {
+                newSet.delete(rowId)
+            }
+            return newSet
+        })
     }
-    if (searchError && (!properties || properties.length === 0)) {
-        return (
-            <Layout loading={false}>
-                <div className='flex items-center justify-center h-64'>
-                    <div className='text-center'>
-                        <p className='text-red-600 mb-4'>Error loading properties: {searchError}</p>
-                        <Button
-                            bgColor='bg-blue-600'
-                            textColor='text-white'
-                            onClick={() => performSearch(searchQuery, filters, 0, sortBy)}
-                        >
-                            Retry
-                        </Button>
-                    </div>
-                </div>
-            </Layout>
-        )
+
+    // Handle bulk status update
+    const handleBulkStatusUpdate = (status: PropertyStatus, soldPrice?: string) => {
+        const selectedRowIds = Array.from(selectedRows)
+        // Convert old status name to new if needed
+        const updatedStatus = status === 'De-listed' ? 'De-listed' : status
+        console.log('📝 Bulk updating status for:', selectedRowIds, 'to:', updatedStatus, ' ', soldPrice)
+
+        // TODO: Implement actual bulk update API call
+        setSelectedRows(new Set())
+    }
+
+    // Handle property status update
+    const handleUpdatePropertyStatus = useCallback(
+        async (propertyId: string, newStatus: string) => {
+            console.log('😒 Updating property status:', propertyId, newStatus)
+            dispatch(updatePropetiesLocal({ propertyId, updates: { status: newStatus } }))
+            // Optimistically update Redux
+            dispatch(updatePropertyStatusOptimistic({ propertyId, status: newStatus }))
+
+            try {
+                await dispatch(updatePropertyStatus({ propertyId, status: newStatus })).unwrap()
+            } catch (error) {
+                // Optionally: revert or re-fetch
+                performSearch(urlParams.query, filters, 0, urlParams.sort)
+            }
+        },
+        [dispatch, urlParams.query, filters, performSearch],
+    )
+
+    // Render from Redux
+    const getCurrentData = (): IInventory[] => {
+        return properties || []
+    }
+
+    const currentData = getCurrentData()
+    const totalItems = nbHits || 0
+    const totalPages = nbPages || 0
+
+    // Helper function to get facet count for a specific value
+    const getFacetCount = (facetName: string, value: string): number => {
+        const facetsToUse = properties ? searchResultFacets : originalFacets
+        const facetValues = facetsToUse[facetName] || []
+        const facetItem = facetValues.find((item) => item.value === value)
+        return facetItem ? facetItem.count : 0
+    }
+
+    const handleBulkShare = () => {
+        setIsBulkShareModalOpen(true)
     }
 
     return (
-        <Layout loading={searchLoading}>
-            <AddFilterModal
+        <Layout>
+            <PropertiesFiltersModal
                 isOpen={isAddFilterModalOpen}
                 onClose={() => setIsAddFilterModalOpen(false)}
                 filters={filters}
-                onFiltersChange={setFilters}
+                onFiltersChange={handleFiltersChange}
+                propertyType={activeTab}
             />
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
@@ -1402,7 +1330,7 @@ const PropertiesPage = () => {
                                         bgColor='bg-gray-600'
                                         textColor='text-white'
                                         className='px-4 h-8 text-sm'
-                                        onClick={() => console.log('Share selected:', selectedRows)}
+                                        onClick={handleBulkShare}
                                     >
                                         Share Selected ({selectedRows.size})
                                     </Button>
@@ -1424,7 +1352,7 @@ const PropertiesPage = () => {
                             <div className='mb-2 p-3 bg-red-50 border border-red-200 rounded-lg'>
                                 <div className='text-sm text-red-700'>Error: {searchError}</div>
                                 <button
-                                    onClick={() => performSearch(searchQuery, filters, 0, sortBy)}
+                                    onClick={() => performSearch(urlParams.query, filters, 0, urlParams.sort)}
                                     className='mt-2 text-sm text-red-600 hover:text-red-800 font-medium'
                                 >
                                     Retry
@@ -1448,7 +1376,7 @@ const PropertiesPage = () => {
                                         <Button
                                             bgColor='bg-blue-600'
                                             textColor='text-white'
-                                            onClick={() => searchProperties()}
+                                            onClick={() => performSearch(urlParams.query, filters, 0, urlParams.sort)}
                                         >
                                             Retry
                                         </Button>
@@ -1575,6 +1503,12 @@ const PropertiesPage = () => {
                         propertyType={activeTab}
                         selectedCount={selectedRows.size}
                         onUpdate={handleBulkStatusUpdate}
+                    />
+
+                    <BulkShareModal
+                        isOpen={isBulkShareModalOpen}
+                        onClose={() => setIsBulkShareModalOpen(false)}
+                        properties={currentData.filter((item: any) => selectedRows.has(item.propertyId || item.id))}
                     />
                 </div>
             </div>

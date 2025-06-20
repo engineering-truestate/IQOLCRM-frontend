@@ -13,8 +13,16 @@ export const fetchRequirementById = createAsyncThunk(
         try {
             console.log('🔍 Fetching requirement with ID:', requirementId)
 
-            const docRef = doc(db, 'acnRequirements', requirementId)
-            const docSnap = await getDoc(docRef)
+            // Try to find the requirement in both collections
+            let docRef = doc(db, 'acnRequirements', requirementId)
+            let docSnap = await getDoc(docRef)
+
+            if (!docSnap.exists()) {
+                // If not found in acnRequirements, try acnRentalRequirements
+                console.log('🔍 Requirement not found in acnRequirements, trying acnRentalRequirements...')
+                docRef = doc(db, 'acnRentalRequirements', requirementId)
+                docSnap = await getDoc(docRef)
+            }
 
             if (docSnap.exists()) {
                 const data = docSnap.data() as IRequirement
@@ -33,11 +41,29 @@ export const fetchRequirementById = createAsyncThunk(
 
 export const updateRequirement = createAsyncThunk(
     'requirements/update',
-    async ({ id, updates }: { id: string; updates: Partial<IRequirement> }, { rejectWithValue }) => {
+    async (
+        {
+            id,
+            updates,
+            propertyType,
+        }: { id: string; updates: Partial<IRequirement>; propertyType?: 'Resale' | 'Rental' },
+        { rejectWithValue },
+    ) => {
         try {
-            console.log('📝 Updating requirement:', id, updates)
+            console.log('📝 Updating requirement:', id, updates, propertyType)
 
-            const docRef = doc(db, 'acnRequirements', id)
+            // If propertyType is provided, use it; otherwise try to determine from the requirement ID
+            let collectionName = 'acnRequirements' // default
+            if (propertyType) {
+                collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
+            } else {
+                // Try to determine from requirement ID pattern (RNT prefix for rental)
+                if (id.startsWith('RNT')) {
+                    collectionName = 'acnRentalRequirements'
+                }
+            }
+
+            const docRef = doc(db, collectionName, id)
             await updateDoc(docRef, {
                 ...updates,
                 lastModified: getUnixDateTime(),
@@ -59,17 +85,20 @@ export const updateRequirementStatus = createAsyncThunk(
             id,
             status,
             type,
+            propertyType,
         }: {
             id: string
             status: string
             type: 'requirement' | 'internal'
+            propertyType: 'Resale' | 'Rental'
         },
         { rejectWithValue },
     ) => {
         try {
-            console.log('📝 Updating requirement status:', id, status, type)
+            console.log('📝 Updating requirement status:', id, status, type, propertyType)
 
-            const docRef = doc(db, 'acnRequirements', id)
+            const collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
+            const docRef = doc(db, collectionName, id)
             const updateField = type === 'requirement' ? 'requirementStatus' : 'internalStatus'
 
             // Update the document
@@ -107,16 +136,29 @@ export const addNoteToRequirement = createAsyncThunk(
         {
             requirementId,
             note,
+            propertyType,
         }: {
             requirementId: string
             note: Omit<INote, 'id' | 'timestamp'>
+            propertyType?: 'Resale' | 'Rental'
         },
         { rejectWithValue },
     ) => {
         try {
-            console.log('📝 Adding note to requirement:', requirementId, note)
+            console.log('📝 Adding note to requirement:', requirementId, note, propertyType)
 
-            const docRef = doc(db, 'acnRequirements', requirementId)
+            // If propertyType is provided, use it; otherwise try to determine from the requirement ID
+            let collectionName = 'acnRequirements' // default
+            if (propertyType) {
+                collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
+            } else {
+                // Try to determine from requirement ID pattern (RNT prefix for rental)
+                if (requirementId.startsWith('RNT')) {
+                    collectionName = 'acnRentalRequirements'
+                }
+            }
+
+            const docRef = doc(db, collectionName, requirementId)
             const newNote: INote = {
                 ...note,
                 id: `note_${Date.now()}`,
@@ -143,16 +185,29 @@ export const removeNoteFromRequirement = createAsyncThunk(
         {
             requirementId,
             noteId,
+            propertyType,
         }: {
             requirementId: string
             noteId: string
+            propertyType?: 'Resale' | 'Rental'
         },
         { rejectWithValue },
     ) => {
         try {
-            console.log('🗑️ Removing note from requirement:', requirementId, noteId)
+            console.log('🗑️ Removing note from requirement:', requirementId, noteId, propertyType)
 
-            const docRef = doc(db, 'acnRequirements', requirementId)
+            // If propertyType is provided, use it; otherwise try to determine from the requirement ID
+            let collectionName = 'acnRequirements' // default
+            if (propertyType) {
+                collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
+            } else {
+                // Try to determine from requirement ID pattern (RNT prefix for rental)
+                if (requirementId.startsWith('RNT')) {
+                    collectionName = 'acnRentalRequirements'
+                }
+            }
+
+            const docRef = doc(db, collectionName, requirementId)
             const docSnap = await getDoc(docRef)
 
             if (!docSnap.exists()) {
@@ -178,11 +233,29 @@ export const removeNoteFromRequirement = createAsyncThunk(
 
 export const addPropertiesToRequirement = createAsyncThunk(
     'requirements/addMatchingProperties',
-    async ({ requirementId, propertyIds }: { requirementId: string; propertyIds: string[] }, { rejectWithValue }) => {
+    async (
+        {
+            requirementId,
+            propertyIds,
+            propertyType,
+        }: { requirementId: string; propertyIds: string[]; propertyType?: 'Resale' | 'Rental' },
+        { rejectWithValue },
+    ) => {
         try {
-            console.log('🏠 Adding properties to requirement:', requirementId, propertyIds)
+            console.log('🏠 Adding properties to requirement:', requirementId, propertyIds, propertyType)
 
-            const docRef = doc(db, 'acnRequirements', requirementId)
+            // If propertyType is provided, use it; otherwise try to determine from the requirement ID
+            let collectionName = 'acnRequirements' // default
+            if (propertyType) {
+                collectionName = propertyType === 'Resale' ? 'acnRequirements' : 'acnRentalRequirements'
+            } else {
+                // Try to determine from requirement ID pattern (RNT prefix for rental)
+                if (requirementId.startsWith('RNT')) {
+                    collectionName = 'acnRentalRequirements'
+                }
+            }
+
+            const docRef = doc(db, collectionName, requirementId)
 
             // Use arrayUnion to add property IDs without duplicates
             await updateDoc(docRef, {

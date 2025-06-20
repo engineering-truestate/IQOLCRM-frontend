@@ -3,12 +3,15 @@
 import React from 'react'
 import { useNavigate } from 'react-router'
 import { useDispatch } from 'react-redux'
+import type { AppDispatch } from '../../../store'
 import { setSelectedAgent } from '../../../store/slices/agentDetailsSlice'
+import { updateAgentStatusThunk, updateAgentPayStatusThunk } from '../../../services/acn/agents/agentThunkService'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import StatusBadge from '../../../components/design-elements/StatusBadge'
 import NotesModal from '../../../components/acn/NotesModal'
 import CallResultModal from '../../../components/acn/CallModal'
 import VerificationModal from '../../../components/acn/VerificationModal'
@@ -47,55 +50,18 @@ const sampleMetrics = [
     { label: 'App Installed', value: 125 },
 ]
 
-// Custom status badge component with outline design
-const StatusBadge = ({ status, type }: { status: string; type: 'lead' | 'connect' }) => {
-    const getStatusColors = () => {
-        if (type === 'lead') {
-            switch (status) {
-                case 'Interested':
-                    return 'bg-[#E1F6DF] text-black'
-                case 'Not Interested':
-                    return 'text-black'
-                case 'No Contact Yet':
-                    return 'text-black'
-                default:
-                    return 'border-gray-600 text-black'
-            }
-        } else {
-            // Connect status colors matching the design
-            switch (status) {
-                case 'Connected':
-                    return 'border-[#9DE695]'
-                case 'Not Contact':
-                    return 'border-[#CCCBCB]'
-                default:
-                    return 'border-gray-400 text-gray-600 bg-gray-50'
-            }
-        }
-    }
-
-    return (
-        <span
-            className={`inline-flex items-center rounded-full border px-3 py-2 text-xs font-medium whitespace-nowrap ${getStatusColors()}`}
-        >
-            {status}
-        </span>
-    )
-}
-
 // Status dropdown options with colors
 const agentStatusOptions = [
-    { label: 'Active', value: 'active', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Inactive', value: 'inactive', color: '#FEE2E2', textColor: '#000000' },
-    { label: 'Pending', value: 'pending', color: '#FEF3C7', textColor: '#000000' },
-    { label: 'Blocked', value: 'blocked', color: '#F3F4F6', textColor: '#000000' },
+    { label: 'Interested', value: 'interested', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Not Interested', value: 'not interested', color: '#D3D4DD', textColor: '#000000' },
+    { label: 'Not Contacted Yet', value: 'not contact yet', color: '#FEECED', textColor: '#000000' },
 ]
 
 const payStatusOptions = [
-    { label: 'Free', value: 'free', color: '#E0F2FE', textColor: '#000000' },
-    { label: 'Premium', value: 'premium', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Trial', value: 'trial', color: '#FEF3C7', textColor: '#000000' },
-    { label: 'Expired', value: 'expired', color: '#FEE2E2', textColor: '#000000' },
+    { label: 'Paid', value: 'paid', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Paid By Team', value: 'paid by team', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Will Pay', value: 'will pay', color: '#FEECED', textColor: '#000000' },
+    { label: 'Will Not', value: 'will not', color: '#FEECED', textColor: '#000000' },
 ]
 
 // Lead Source component with outlined design and SVG icons
@@ -314,7 +280,7 @@ const useAgentFilters = () => {
 const ITEMS_PER_PAGE = 50
 
 const AgentsPage = () => {
-    const dispatch = useDispatch()
+    const dispatch = useDispatch<AppDispatch>()
     const navigate = useNavigate()
     const [searchValue, setSearchValue] = useState('')
     const {
@@ -366,7 +332,7 @@ const AgentsPage = () => {
     }, [])
 
     // Fetch agents data
-    const fetchAgents = async () => {
+    const fetchAgents = useCallback(async () => {
         try {
             setLoading(true)
             // Convert selectedInventoryStatuses to object format for Algolia
@@ -405,7 +371,18 @@ const AgentsPage = () => {
         } finally {
             setLoading(false)
         }
-    }
+    }, [
+        searchValue,
+        selectedKam,
+        selectedPlan,
+        selectedStatus,
+        selectedLocation,
+        selectedInventoryStatuses,
+        selectedAppInstalled,
+        currentPage,
+        sortBy,
+        modalFilters,
+    ])
 
     // Fetch agents when filters change
     useEffect(() => {
@@ -486,7 +463,12 @@ const AgentsPage = () => {
                 prevData.map((agent) => (agent.objectID === agentId ? { ...agent, [field]: value } : agent)),
             )
 
-            // Update in Algolia
+            // Update in Firebase using thunks
+            if (field === 'agentStatus') {
+                await dispatch(updateAgentStatusThunk({ cpId: agentId, agentStatus: value })).unwrap()
+            } else if (field === 'payStatus') {
+                await dispatch(updateAgentPayStatusThunk({ cpId: agentId, payStatus: value })).unwrap()
+            }
 
             console.log('✅ Agent status updated successfully')
         } catch (error) {
@@ -527,6 +509,11 @@ const AgentsPage = () => {
             ),
         },
         {
+            key: 'activity',
+            header: 'Agent Activity',
+            render: (value) => <StatusBadge status={value} type='agent' />,
+        },
+        {
             key: 'userType',
             header: 'Plan Details',
             render: (value) => (
@@ -536,22 +523,22 @@ const AgentsPage = () => {
         {
             key: 'noOfinventories',
             header: 'Inventories',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
             key: 'noOfrequirements',
             header: 'Requirements',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
             key: 'noOfEnquiries',
             header: 'Enquiries',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
             key: 'noOfleagalLeads',
             header: 'Legal Leads',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
+            render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
             key: 'lastSeen',
@@ -586,7 +573,7 @@ const AgentsPage = () => {
             },
         },
         {
-            key: 'contactHistory[0].contactResult',
+            key: 'contactStatus',
             header: 'Last Connected Status',
             render: (value, row) => {
                 const contactHistory = row.contactHistory
@@ -596,7 +583,7 @@ const AgentsPage = () => {
                 } else if (contactHistory && typeof contactHistory === 'object') {
                     contactResult = contactHistory.contactResult
                 }
-                return <span className='whitespace-nowrap text-sm font-normal w-auto'>{contactResult || 'N/A'}</span>
+                return <StatusBadge status={value || 'N/A'} type='connect' />
             },
         },
         {
@@ -609,39 +596,29 @@ const AgentsPage = () => {
         {
             key: 'agentStatus',
             header: 'Agent Status',
-            render: (_, row) => {
-                const currentOption = agentStatusOptions.find(
-                    (option) => option.value === row.agentStatus?.toLowerCase(),
-                )
-                return (
-                    <Dropdown
-                        options={agentStatusOptions}
-                        placeholder={toCapitalizedWords(row.agentStatus)}
-                        onSelect={(value) => updateAgentStatus(row.objectID, 'agentStatus', value)}
-                        className='relative inline-block'
-                        triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${currentOption ? `bg-[${currentOption.color}] text-[${currentOption.textColor}]` : 'bg-gray-100 text-gray-700'}`}
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                    />
-                )
+            dropdown: {
+                options: agentStatusOptions.map((option) => ({
+                    label: option.label,
+                    value: option.value,
+                    color: option.color,
+                    textColor: option.textColor,
+                })),
+                placeholder: 'Select Status',
+                onChange: (value, row) => updateAgentStatus(row.objectID, 'agentStatus', value),
             },
         },
         {
             key: 'payStatus',
             header: 'Pay Status',
-            render: (_, row) => {
-                const currentOption = payStatusOptions.find((option) => option.value === row.payStatus?.toLowerCase())
-                return (
-                    <Dropdown
-                        options={payStatusOptions}
-                        placeholder={toCapitalizedWords(row.payStatus)}
-                        onSelect={(value) => updateAgentStatus(row.objectID, 'payStatus', value)}
-                        className='relative inline-block'
-                        triggerClassName={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${currentOption ? `bg-[${currentOption.color}] text-[${currentOption.textColor}]` : 'bg-gray-100 text-gray-700'}`}
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                    />
-                )
+            dropdown: {
+                options: payStatusOptions.map((option) => ({
+                    label: option.label,
+                    value: option.value,
+                    color: option.color,
+                    textColor: option.textColor,
+                })),
+                placeholder: 'Select Pay Status',
+                onChange: (value, row) => updateAgentStatus(row.objectID, 'payStatus', value),
             },
         },
         {
@@ -687,12 +664,12 @@ const AgentsPage = () => {
         <Layout>
             <div className='w-full overflow-hidden font-sans'>
                 <div
-                    className='flex flex-col gap-4 py-2 px-6 bg-white min-h-screen'
+                    className='flex flex-col gap-4 py-2 bg-white min-h-screen'
                     style={{ width: 'calc(100vw)', maxWidth: '100%' }}
                 >
                     {/* Header */}
                     <div className=''>
-                        <div className='flex items-center justify-between'>
+                        <div className='flex items-center justify-between px-6'>
                             <h1 className='text-lg font-semibold text-black'>Agents {/*({totalAgents})*/}</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='flex flex-row w-full gap-[10px] items-center'>
@@ -715,49 +692,52 @@ const AgentsPage = () => {
                                 </div>
                             </div>
                         </div>
+                        <div className='border-b-1 border-[#F3F3F3] pt-[6px]'></div>
                     </div>
 
                     {/* Metrics Cards */}
-                    <div className=''>
+                    <div className='px-6'>
                         <MetricsCards metrics={sampleMetrics} />
                     </div>
 
                     {/* Filters */}
-                    <FiltersBar
-                        handleSortChange={handleSortChange}
-                        sortBy={sortBy}
-                        kamOptions={kamOptions}
-                        planOptions={planOptions}
-                        statusOptions={statusOptions}
-                        locationOptions={locationOptions}
-                        appInstalledOptions={appInstalledOptions}
-                        inventoryStatusOptions={inventoryStatusOptions}
-                        selectedKam={selectedKam}
-                        setSelectedKam={setSelectedKam}
-                        selectedPlan={selectedPlan}
-                        setSelectedPlan={setSelectedPlan}
-                        selectedStatus={selectedStatus}
-                        setSelectedStatus={setSelectedStatus}
-                        selectedLocation={selectedLocation}
-                        setSelectedLocation={setSelectedLocation}
-                        selectedAppInstalled={selectedAppInstalled}
-                        setSelectedAppInstalled={setSelectedAppInstalled}
-                        selectedInventoryStatuses={selectedInventoryStatuses}
-                        setSelectedInventoryStatuses={setSelectedInventoryStatuses}
-                        facets={facets}
-                        resetAllFilters={resetAllFilters}
-                        setIsAgentsFiltersModalOpen={setIsAgentsFiltersModalOpen}
-                    />
+                    <div className='px-6'>
+                        <FiltersBar
+                            handleSortChange={handleSortChange}
+                            sortBy={sortBy}
+                            kamOptions={kamOptions}
+                            planOptions={planOptions}
+                            statusOptions={statusOptions}
+                            locationOptions={locationOptions}
+                            appInstalledOptions={appInstalledOptions}
+                            inventoryStatusOptions={inventoryStatusOptions}
+                            selectedKam={selectedKam}
+                            setSelectedKam={setSelectedKam}
+                            selectedPlan={selectedPlan}
+                            setSelectedPlan={setSelectedPlan}
+                            selectedStatus={selectedStatus}
+                            setSelectedStatus={setSelectedStatus}
+                            selectedLocation={selectedLocation}
+                            setSelectedLocation={setSelectedLocation}
+                            selectedAppInstalled={selectedAppInstalled}
+                            setSelectedAppInstalled={setSelectedAppInstalled}
+                            selectedInventoryStatuses={selectedInventoryStatuses}
+                            setSelectedInventoryStatuses={setSelectedInventoryStatuses}
+                            facets={facets}
+                            resetAllFilters={resetAllFilters}
+                            setIsAgentsFiltersModalOpen={setIsAgentsFiltersModalOpen}
+                        />
+                    </div>
 
                     {/* Table with loader overlay */}
                     {loading === true ? (
-                        <div className='relative h-[65vh] overflow-y-auto'>
+                        <div className='relative h-[65vh] overflow-y-auto pl-6'>
                             <div className='absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-60'>
                                 <div className='w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
                             </div>
                         </div>
                     ) : (
-                        <div className='relative h-[65vh] overflow-y-auto'>
+                        <div className='relative h-[65vh] overflow-y-auto pl-6'>
                             <FlexibleTable
                                 data={agentsData}
                                 columns={columns}
@@ -778,7 +758,7 @@ const AgentsPage = () => {
 
                     {/* Pagination */}
                     {totalAgents > ITEMS_PER_PAGE && (
-                        <div className='flex items-center justify-between mt-4'>
+                        <div className='flex items-center justify-between mt-4 px-6'>
                             <div className='text-sm text-gray-500 font-medium'>
                                 Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
                                 {Math.min(currentPage * ITEMS_PER_PAGE, totalAgents)} of {totalAgents.toLocaleString()}{' '}

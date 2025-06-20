@@ -7,7 +7,11 @@ import Button from '../../../components/design-elements/Button'
 import addinventoryic from '/icons/acn/user-add.svg'
 import { useDispatch, useSelector } from 'react-redux'
 import type { IInventory, IRequirement } from '../../../data_types/acn/types'
-import { fetchAgentDetails } from '../../../services/acn/agents/agentThunkService'
+import {
+    fetchAgentDetails,
+    fetchAgentRequirementFilters,
+    updateEnquiryStatusThunk,
+} from '../../../services/acn/agents/agentThunkService'
 import { fetchAgentInfo } from '../../../store/thunks/agentDetailsThunk'
 import type { AppDispatch, RootState } from '../../../store'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
@@ -28,6 +32,8 @@ import { toast } from 'react-toastify'
 import { updateRequirementStatus } from '../../../services/acn/requirements/requirementsService'
 import { formatUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
+import UpdateInventoryStatusModal from '../../../components/acn/UpdateInventoryModal'
+import BulkShareModal from '../../../components/acn/BulkShareModal'
 
 interface PropertyData {
     inventories: IInventory[]
@@ -61,6 +67,14 @@ const AgentDetailsPage = () => {
     const [activePropertyTab, setActivePropertyTab] = useState<'Resale' | 'Rental'>('Resale')
     const [selectedStatus, setSelectedStatus] = useState('')
     const [selectedPropertyType, setSelectedPropertyType] = useState('')
+
+    // Requirement-specific filters
+    const [selectedRequirementStatus, setSelectedRequirementStatus] = useState('')
+    const [selectedInternalStatus, setSelectedInternalStatus] = useState('')
+
+    // Enquiry type switcher
+    const [enquiryType, setEnquiryType] = useState<'Enquired' | 'Received'>('Enquired')
+
     // Get data from Redux store
     const { resale, rental, loading, error } = useSelector((state: RootState) => state.agents)
     const { loading: agentDetailsLoading } = useSelector((state: RootState) => state.agentDetails)
@@ -70,27 +84,36 @@ const AgentDetailsPage = () => {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [selectedProperty, setSelectedProperty] = useState<any>(null)
 
+    // Multiple selection state
+    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const [isBulkShareModalOpen, setIsBulkShareModalOpen] = useState(false)
+
     // Get current property data based on active tab
     const currentPropertyData = activePropertyTab === 'Resale' ? resale : rental
 
     const handleTabClick = (tab: string) => {
         if (tab === 'Resale' || tab === 'Rental') {
             setActivePropertyTab(tab as 'Resale' | 'Rental')
+            setSelectedRows(new Set()) // Clear selection when switching property type
         } else {
             setActiveTab(tab as 'Inventory' | 'Requirement' | 'Enquiry' | 'QC')
+            setSelectedRows(new Set()) // Clear selection when switching tabs
         }
     }
 
     // Initial data fetch and data refresh when property type changes
     useEffect(() => {
-        // console.log("check")
-        if (agentId) {
-            // Fetch agent details
-            dispatch(fetchAgentInfo({ agentId }))
-            // Always fetch both Resale and Rental data
-            dispatch(fetchAgentDetails({ agentId, propertyType: 'Resale' }))
-            dispatch(fetchAgentDetails({ agentId, propertyType: 'Rental' }))
+        const fetchInitialData = async () => {
+            if (agentId) {
+                // Fetch agent details
+                dispatch(fetchAgentInfo({ agentId }))
+                // Always fetch both Resale and Rental data
+                dispatch(fetchAgentDetails({ agentId, propertyType: 'Resale' }))
+                dispatch(fetchAgentDetails({ agentId, propertyType: 'Rental' }))
+            }
         }
+        fetchInitialData()
     }, [dispatch, agentId])
 
     // Fetch agent data from Algolia by ID
@@ -134,17 +157,40 @@ const AgentDetailsPage = () => {
                 }
                 return filtered
             case 'Requirement':
-                return currentPropertyData.requirements.filter(
+                filtered = currentPropertyData.requirements.filter(
                     (req: IRequirement) =>
                         req.propertyName?.toLowerCase().includes(searchLower) ||
                         req.requirementId?.toLowerCase().includes(searchLower),
                 )
-            case 'Enquiry':
-                return currentPropertyData.enquiries.filter(
+                // Apply requirement-specific filters
+                if (selectedRequirementStatus) {
+                    filtered = filtered.filter(
+                        (req: IRequirement) => req.requirementStatus === selectedRequirementStatus,
+                    )
+                }
+                if (selectedInternalStatus) {
+                    filtered = filtered.filter((req: IRequirement) => req.internalStatus === selectedInternalStatus)
+                }
+                return filtered
+            case 'Enquiry': {
+                // Filter based on enquiry type
+                let enquiryData = currentPropertyData.enquiries
+                if (enquiryType === 'Enquired') {
+                    // Filter for enquiries made by the agent (buyerCpId matches agentId)
+                    enquiryData = currentPropertyData.enquiries.filter((enq: any) => enq.buyerCpId === agentId)
+                } else if (enquiryType === 'Received') {
+                    // Filter for enquiries received by the agent (sellerCpId matches agentId)
+                    enquiryData = currentPropertyData.enquiries.filter((enq: any) => enq.sellerCpId === agentId)
+                }
+
+                return enquiryData.filter(
                     (enq: any) =>
-                        enq.propertyName?.toLowerCase().includes(searchLower) ||
-                        enq.enquiryId?.toLowerCase().includes(searchLower),
+                        enq.propertyId?.toLowerCase().includes(searchLower) ||
+                        enq.enquiryId?.toLowerCase().includes(searchLower) ||
+                        enq.buyerName?.toLowerCase().includes(searchLower) ||
+                        enq.sellerName?.toLowerCase().includes(searchLower),
                 )
+            }
             case 'QC':
                 return currentPropertyData.qc.filter(
                     (qc: any) =>
@@ -154,7 +200,17 @@ const AgentDetailsPage = () => {
             default:
                 return []
         }
-    }, [activeTab, currentPropertyData, searchValue, selectedStatus, selectedPropertyType])
+    }, [
+        activeTab,
+        currentPropertyData,
+        searchValue,
+        selectedStatus,
+        selectedPropertyType,
+        enquiryType,
+        selectedRequirementStatus,
+        selectedInternalStatus,
+        agentId,
+    ])
 
     // Get counts for each tab
     const getTabCount = (type: 'Inventory' | 'Requirement' | 'Enquiry' | 'QC') => {
@@ -166,6 +222,12 @@ const AgentDetailsPage = () => {
             case 'Requirement':
                 return currentPropertyData.requirements.length
             case 'Enquiry':
+                // Count enquiries based on current enquiry type
+                if (enquiryType === 'Enquired') {
+                    return currentPropertyData.enquiries.filter((enq: any) => enq.buyerCpId === agentId).length
+                } else if (enquiryType === 'Received') {
+                    return currentPropertyData.enquiries.filter((enq: any) => enq.sellerCpId === agentId).length
+                }
                 return currentPropertyData.enquiries.length
             case 'QC':
                 return currentPropertyData.qc.length
@@ -178,10 +240,12 @@ const AgentDetailsPage = () => {
         return [
             { label: 'All Status', value: '' },
             { label: 'Available', value: 'Available' },
-            { label: 'Sold', value: 'Sold' },
+            {
+                label: activePropertyTab === 'Rental' ? 'Not Available' : 'Sold',
+                value: activePropertyTab === 'Rental' ? 'Not Available' : 'Sold',
+            },
             { label: 'Hold', value: 'Hold' },
-            { label: 'Delisted', value: 'De-Listed' },
-            { label: 'Pending QC', value: 'Pending QC' },
+            { label: 'De-listed', value: 'De-Listed' },
         ]
     }
 
@@ -199,26 +263,33 @@ const AgentDetailsPage = () => {
     // Status dropdown options for inventory status updates
     const statusDropdownOptions = [
         { label: 'Available', value: 'Available', color: '#E1F6DF', textColor: '#000000' },
-        { label: 'Sold', value: 'Sold', color: '#FEE2E2', textColor: '#000000' },
+        {
+            label: activePropertyTab === 'Rental' ? 'Not Available' : 'Sold',
+            value: activePropertyTab === 'Rental' ? 'Not Available' : 'Sold',
+            color: '#FEE2E2',
+            textColor: '#000000',
+        },
         { label: 'Hold', value: 'Hold', color: '#FEF3C7', textColor: '#000000' },
         { label: 'De-Listed', value: 'De-Listed', color: '#F3F4F6', textColor: '#000000' },
-        { label: 'Pending QC', value: 'Pending QC', color: '#E0F2FE', textColor: '#000000' },
     ]
 
     // Requirement status dropdown options with colors
     const requirementStatusOptions = [
         { label: 'Open', value: 'open', color: '#E1F6DF', textColor: '#000000' },
         { label: 'Close', value: 'close', color: '#FEE2E2', textColor: '#000000' },
-        { label: 'Hold', value: 'hold', color: '#FEF3C7', textColor: '#000000' },
-        { label: 'Pending', value: 'pending', color: '#E0F2FE', textColor: '#000000' },
     ]
 
     const internalStatusDropdownOptions = [
-        { label: 'New', value: 'new', color: '#E1F6DF', textColor: '#000000' },
-        { label: 'In Progress', value: 'in_progress', color: '#E0F2FE', textColor: '#000000' },
-        { label: 'On Hold', value: 'on_hold', color: '#FEF3C7', textColor: '#000000' },
-        { label: 'Completed', value: 'completed', color: '#E1F6DF', textColor: '#000000' },
-        { label: 'Cancelled', value: 'cancelled', color: '#FEE2E2', textColor: '#000000' },
+        { label: 'Found', value: 'found', color: '#E1F6DF', textColor: '#000000' },
+        { label: 'Not Found', value: 'not found', color: '#E0F2FE', textColor: '#000000' },
+        { label: 'Pending', value: 'pending', color: '#FEF3C7', textColor: '#000000' },
+    ]
+
+    // Enquiry status dropdown options with colors
+    const enquiryStatusOptions = [
+        { label: 'Site Visit Done', value: 'site visit done', color: '#E1F6DF', textColor: '#000000' },
+        { label: 'Pending', value: 'pending', color: '#FEF3C7', textColor: '#000000' },
+        { label: 'Not Interested', value: 'not interested', color: '#FEE2E2', textColor: '#000000' },
     ]
 
     // Handle property status update
@@ -230,7 +301,6 @@ const AgentDetailsPage = () => {
                 updatePropertyStatus({
                     propertyId,
                     status: newStatus,
-                    activeTab: activePropertyTab,
                 }),
             ).unwrap()
 
@@ -253,6 +323,7 @@ const AgentDetailsPage = () => {
                     id: rowId,
                     status: value,
                     type: field === 'requirementStatus' ? 'requirement' : 'internal',
+                    propertyType: activePropertyTab,
                 }),
             ).unwrap()
 
@@ -268,11 +339,95 @@ const AgentDetailsPage = () => {
         }
     }
 
+    // Helper function to update enquiry status
+    const updateEnquiryStatus = async (enquiryId: string, newStatus: string) => {
+        try {
+            // Dispatch the update thunk and wait for it to complete
+            const result = await dispatch(
+                updateEnquiryStatusThunk({
+                    enquiryId,
+                    status: newStatus,
+                    propertyType: activePropertyTab,
+                }),
+            ).unwrap()
+
+            console.log('✅ Enquiry status updated successfully:', result)
+
+            // Refetch agent details to update the UI
+            if (agentId) {
+                dispatch(fetchAgentDetails({ agentId, propertyType: activePropertyTab }))
+            }
+
+            toast.success(`Enquiry status updated successfully to ${newStatus}`)
+        } catch (error) {
+            console.error('❌ Failed to update enquiry status:', error)
+            toast.error('Failed to update enquiry status')
+        }
+    }
+
+    // Handle row selection for multiple selection
+    const handleRowSelect = (rowId: string, checked: boolean) => {
+        setSelectedRows((prev) => {
+            const newSet = new Set(prev)
+            if (checked) {
+                newSet.add(rowId)
+            } else {
+                newSet.delete(rowId)
+            }
+            return newSet
+        })
+    }
+
+    // Handle bulk status update
+    const handleBulkStatusUpdate = async (status: string, soldPrice?: string) => {
+        const selectedRowIds = Array.from(selectedRows)
+        console.log('📝 Bulk updating status for:', selectedRowIds, 'to:', status, ' ', soldPrice)
+
+        try {
+            // Update each selected property
+            for (const propertyId of selectedRowIds) {
+                await handleUpdatePropertyStatus(propertyId, status)
+            }
+
+            // Clear selection after successful update
+            setSelectedRows(new Set())
+            setIsUpdateModalOpen(false)
+
+            toast.success(`Successfully updated ${selectedRowIds.length} properties to ${status}`)
+        } catch (error) {
+            console.error('❌ Failed to bulk update properties:', error)
+            toast.error('Failed to update some properties')
+        }
+    }
+
+    // Handle bulk share
+    const handleBulkShare = () => {
+        const selectedRowIds = Array.from(selectedRows)
+        console.log('📤 Bulk sharing properties:', selectedRowIds)
+        // Get the selected properties from filtered data
+        const selectedProperties = filteredData.filter((item: any) =>
+            selectedRowIds.includes(item.propertyId || item.id),
+        )
+        setIsBulkShareModalOpen(true)
+    }
+
     // Define columns based on active tab
     const columns = useMemo<TableColumn[]>(() => {
         switch (activeTab) {
             case 'Inventory':
                 return [
+                    {
+                        key: 'select',
+                        header: '',
+                        render: (_, row) => (
+                            <input
+                                type='checkbox'
+                                checked={selectedRows.has(row.propertyId || row.id)}
+                                onChange={(e) => handleRowSelect(row.propertyId || row.id, e.target.checked)}
+                                className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                            />
+                        ),
+                    },
                     {
                         key: 'propertyId',
                         header: 'Property ID',
@@ -547,19 +702,130 @@ const AgentDetailsPage = () => {
                     },
                 ]
             case 'Enquiry':
+                if (enquiryType === 'Enquired') {
+                    return [
+                        {
+                            key: 'propertyId',
+                            header: 'Property ID',
+                            render: (value: any) => (
+                                <span
+                                    onClick={() => navigate(`/acn/properties/${value}/details`)}
+                                    className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
+                                >
+                                    {value}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'propertyName',
+                            header: 'Property Name',
+                            render: (value: any) => (
+                                <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                            ),
+                        },
+                        {
+                            key: 'buyerName',
+                            header: 'Buyer Name',
+                            render: (value: any) => (
+                                <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                            ),
+                        },
+                        {
+                            key: 'buyerNumber',
+                            header: 'Buyer Number',
+                            render: (value: any) => (
+                                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                    {value}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'added',
+                            header: 'Date of Enquiry',
+                            render: (value: any) => (
+                                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                    {formatUnixDate(value)}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'status',
+                            header: 'Status',
+                            dropdown: {
+                                options: enquiryStatusOptions,
+                                placeholder: 'Select Status',
+                                onChange: (value, row) => {
+                                    updateEnquiryStatus(row.enquiryId, value)
+                                },
+                            },
+                        },
+                    ]
+                } else {
+                    return [
+                        {
+                            key: 'propertyId',
+                            header: 'Property ID',
+                            render: (value: any) => (
+                                <span
+                                    onClick={() => navigate(`/acn/properties/${value}/details`)}
+                                    className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
+                                >
+                                    {value}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'propertyName',
+                            header: 'Property Name',
+                            render: (value: any) => (
+                                <span
+                                    onClick={() => navigate(`/acn/properties/${value}/details`)}
+                                    className='whitespace-nowrap text-sm font-semibold w-auto'
+                                >
+                                    {value}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'sellerName',
+                            header: 'Seller Name',
+                            render: (value: any) => (
+                                <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
+                            ),
+                        },
+                        {
+                            key: 'sellerNumber',
+                            header: 'Seller Number',
+                            render: (value: any) => (
+                                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                    {value}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'added',
+                            header: 'Date of Enquiry',
+                            render: (value: any) => (
+                                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
+                                    {formatUnixDate(value)}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'status',
+                            header: 'Status',
+                            dropdown: {
+                                options: enquiryStatusOptions,
+                                placeholder: 'Select Status',
+                                onChange: (value, row) => {
+                                    updateEnquiryStatus(row.enquiryId, value)
+                                },
+                            },
+                        },
+                    ]
+                }
+            case 'QC':
                 return [
-                    {
-                        key: 'enquiryId',
-                        header: 'Enquiry ID',
-                        render: (value) => (
-                            <span
-                                onClick={() => navigate(`/acn/enquiries/${value}/details`)}
-                                className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
-                            >
-                                {value}
-                            </span>
-                        ),
-                    },
                     {
                         key: 'propertyName',
                         header: 'Property Name',
@@ -568,17 +834,15 @@ const AgentDetailsPage = () => {
                         ),
                     },
                     {
-                        key: 'status',
-                        header: 'Status',
+                        key: 'qcId',
+                        header: 'QC ID',
                         render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
-                                {value || 'N/A'}
-                            </span>
+                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
                         ),
                     },
                     {
-                        key: 'createdAt',
-                        header: 'Created On',
+                        key: 'added',
+                        header: 'Date of QC',
                         render: (value) => (
                             <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
                                 {formatUnixDate(value)}
@@ -592,119 +856,16 @@ const AgentDetailsPage = () => {
                         fixedPosition: 'right',
                         render: (_, row) => (
                             <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
-                                <button
-                                    className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                                    onClick={() => navigate(`/acn/enquiries/${row.enquiryId}/details`)}
-                                    title='View Details'
-                                >
-                                    <img
-                                        src='/icons/acn/verify.svg'
-                                        alt='View Icon'
-                                        className='w-7 h-7 flex-shrink-0'
-                                    />
-                                </button>
-                            </div>
-                        ),
-                    },
-                ]
-            case 'QC':
-                return [
-                    {
-                        key: 'qcId',
-                        header: 'QC ID',
-                        render: (value) => (
-                            <span
-                                onClick={() => navigate(`/acn/qc/${value}/details`)}
-                                className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto cursor-pointer hover:text-blue-600'
-                            >
-                                {value}
-                            </span>
-                        ),
-                    },
-                    {
-                        key: 'propertyName',
-                        header: 'Project Name/Location',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
-                        ),
-                    },
-                    {
-                        key: 'kamId',
-                        header: 'Kam',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
-                        ),
-                    },
-                    {
-                        key: 'assetType',
-                        header: 'Asset type',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
-                                {toCapitalizedWords(value)}
-                            </span>
-                        ),
-                    },
-                    {
-                        key: 'cpId',
-                        header: 'Agent',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
-                        ),
-                    },
-                    {
-                        key: 'cpPhone',
-                        header: 'Phone Number',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
-                        ),
-                    },
-                    {
-                        key: 'sbua',
-                        header: 'SBUA',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
-                        ),
-                    },
-                    {
-                        key: 'plotSize',
-                        header: 'Plot Size',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
-                        ),
-                    },
-                    {
-                        key: 'totalAskPrice',
-                        header: 'Price',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
-                        ),
-                    },
-                    {
-                        key: 'micromarket',
-                        header: 'Micromarket',
-                        render: (value) => (
-                            <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>
-                        ),
-                    },
-                    {
-                        key: 'actions',
-                        header: 'Action',
-                        fixed: true,
-                        fixedPosition: 'right',
-                        render: (_, row) => (
-                            <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
-                                <button
-                                    className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                                    onClick={() => {
-                                        navigate(`/acn/qc/${row.qcId}/details`)
-                                    }}
-                                >
-                                    <img
-                                        src='/icons/acn/verify.svg'
-                                        alt='Verify Icon'
-                                        className='w-7 h-7 flex-shrink-0'
-                                    />
-                                </button>
+                                <span onClick={() => navigate(`/acn/qcs/${row.qcId}/details`)}>
+                                    <Button
+                                        bgColor='bg-[#F3F3F3]'
+                                        textColor='text-[#3A3A47]'
+                                        className='px-4 h-8 font-semibold'
+                                        // you can omit onClick since <a> handles navigation
+                                    >
+                                        View Details
+                                    </Button>
+                                </span>
                             </div>
                         ),
                     },
@@ -712,7 +873,29 @@ const AgentDetailsPage = () => {
             default:
                 return []
         }
-    }, [activeTab, navigate, activePropertyTab])
+    }, [
+        activeTab,
+        currentPropertyData,
+        searchValue,
+        selectedStatus,
+        selectedPropertyType,
+        enquiryType,
+        selectedRequirementStatus,
+        selectedInternalStatus,
+        agentId,
+        agentData,
+        navigate,
+        selectedRows,
+        handleRowSelect,
+        handleUpdatePropertyStatus,
+        updateRowData,
+        updateEnquiryStatus,
+        statusDropdownOptions,
+        requirementStatusOptions,
+        internalStatusDropdownOptions,
+        enquiryStatusOptions,
+        activePropertyTab,
+    ])
 
     return (
         <Layout loading={loading || agentDetailsLoading || agentLoading}>
@@ -748,6 +931,7 @@ const AgentDetailsPage = () => {
                                     </Button>
                                 </div>
                             </div>
+                            <div className='border-b-1 border-[#F3F3F3]'></div>
                         </div>
 
                         {/* Error message */}
@@ -808,38 +992,128 @@ const AgentDetailsPage = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Tab-specific filters */}
                                 <div className='flex items-center gap-[10px]'>
-                                    <Dropdown
-                                        className='h-8 font-semibold'
-                                        options={getStatusOptions()}
-                                        onSelect={(value) => setSelectedStatus(value)}
-                                        defaultValue={selectedStatus}
-                                        placeholder='Inventory Status'
-                                        triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                        menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
-                                        optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
-                                    />
-                                    <Dropdown
-                                        className='h-8 font-semibold'
-                                        options={getPropertyTypeOptions()}
-                                        onSelect={(value) => setSelectedPropertyType(value)}
-                                        defaultValue={selectedPropertyType}
-                                        placeholder='Property Type'
-                                        triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                        menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
-                                        optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
-                                    />
+                                    {/* Inventory filters */}
+                                    {activeTab === 'Inventory' && (
+                                        <>
+                                            <Dropdown
+                                                className='h-8 font-semibold'
+                                                options={getStatusOptions()}
+                                                onSelect={(value) => setSelectedStatus(value)}
+                                                defaultValue={selectedStatus}
+                                                placeholder='Inventory Status'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                            />
+                                            <Dropdown
+                                                className='h-8 font-semibold'
+                                                options={getPropertyTypeOptions()}
+                                                onSelect={(value) => setSelectedPropertyType(value)}
+                                                defaultValue={selectedPropertyType}
+                                                placeholder='Property Type'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                            />
+                                        </>
+                                    )}
+
+                                    {/* Requirement filters */}
+                                    {activeTab === 'Requirement' && (
+                                        <>
+                                            <Dropdown
+                                                className='h-8 font-semibold'
+                                                options={[
+                                                    { label: 'All Status', value: '' },
+                                                    { label: 'Open', value: 'open' },
+                                                    { label: 'Close', value: 'close' },
+                                                ]}
+                                                onSelect={(value) => setSelectedRequirementStatus(value)}
+                                                defaultValue={selectedRequirementStatus}
+                                                placeholder='Requirement Status'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                            />
+                                            <Dropdown
+                                                className='h-8 font-semibold'
+                                                options={[
+                                                    { label: 'All Internal Status', value: '' },
+                                                    { label: 'Found', value: 'found' },
+                                                    { label: 'Not Found', value: 'not found' },
+                                                    { label: 'Pending', value: 'pending' },
+                                                ]}
+                                                onSelect={(value) => setSelectedInternalStatus(value)}
+                                                defaultValue={selectedInternalStatus}
+                                                placeholder='Internal Status'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                            />
+                                        </>
+                                    )}
+
+                                    {/* Enquiry type switcher */}
+                                    {activeTab === 'Enquiry' && (
+                                        <div className='flex items-center bg-gray-100 rounded-md mb-1 h-7 w-fit'>
+                                            <button
+                                                onClick={() => setEnquiryType('Enquired')}
+                                                className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                                                    enquiryType === 'Enquired'
+                                                        ? 'bg-white text-black shadow-sm'
+                                                        : 'text-gray-600 shadow-2xl hover:text-black'
+                                                }`}
+                                            >
+                                                Enquired
+                                            </button>
+                                            <button
+                                                onClick={() => setEnquiryType('Received')}
+                                                className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                                                    enquiryType === 'Received'
+                                                        ? 'bg-white text-black shadow-sm'
+                                                        : 'text-gray-600 shadow-2xl hover:text-black'
+                                                }`}
+                                            >
+                                                Received
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {/* Bulk action buttons for Inventory tab */}
+                                {activeTab === 'Inventory' && selectedRows.size > 0 && (
+                                    <div className='flex gap-2 mt-2'>
+                                        <Button
+                                            bgColor='bg-white'
+                                            textColor='text-gray-700'
+                                            className='px-4 h-8 text-sm border border-gray-300'
+                                            onClick={() => setIsUpdateModalOpen(true)}
+                                        >
+                                            Update Status ({selectedRows.size})
+                                        </Button>
+                                        <Button
+                                            bgColor='bg-gray-600'
+                                            textColor='text-white'
+                                            className='px-4 h-8 text-sm'
+                                            onClick={handleBulkShare}
+                                        >
+                                            Share Selected ({selectedRows.size})
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                             {/* agent details dropdown */}
-                            <div className='absolute top-[39px] right-0 border-1 border-[#D3D4DD] max-h-[calc(100vh-39px)] scrollbar-hide overflow-y-auto transition-all duration-200 ease-in-out z-40 w-[500px] bg-white '>
+                            <div className='absolute top-[48px] right-0 border-1 border-[#D3D4DD] max-h-[calc(100vh-48px)] scrollbar-hide overflow-y-auto transition-all duration-200 ease-in-out z-40 w-[500px] bg-white '>
                                 <AgentDetailsDropdown label='Agent Field' agentDetails={agentData} />
                             </div>
                         </div>
                     </div>
 
                     {/* Table */}
-                    <div className='mt-[19px] pl-6'>
+                    <div className={`${activeTab === 'QC' ? 'mt-[51px]' : 'mt-[19px]'} pl-6`}>
                         <FlexibleTable
                             columns={columns}
                             data={filteredData}
@@ -863,6 +1137,22 @@ const AgentDetailsPage = () => {
                         isOpen={isShareModalOpen}
                         onClose={() => setIsShareModalOpen(false)}
                         property={selectedProperty}
+                    />
+
+                    {/* Update Inventory Status Modal */}
+                    <UpdateInventoryStatusModal
+                        isOpen={isUpdateModalOpen}
+                        onClose={() => setIsUpdateModalOpen(false)}
+                        propertyType={activePropertyTab}
+                        selectedCount={selectedRows.size}
+                        onUpdate={handleBulkStatusUpdate}
+                    />
+
+                    {/* Bulk Share Modal */}
+                    <BulkShareModal
+                        isOpen={isBulkShareModalOpen}
+                        onClose={() => setIsBulkShareModalOpen(false)}
+                        properties={filteredData.filter((item: any) => selectedRows.has(item.propertyId || item.id))}
                     />
                 </div>
             </div>

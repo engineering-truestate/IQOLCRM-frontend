@@ -48,6 +48,15 @@ export interface IInventory {
     enquiries?: number
     lastCheck?: number // Unix timestamp in milliseconds
     propertyName?: string
+
+    // Notes functionality
+    notes?: Array<{
+        id: string
+        email: string
+        author: string
+        content: string
+        timestamp: number
+    }>
 }
 
 // === Requirement shape ===

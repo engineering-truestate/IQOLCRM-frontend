@@ -15,10 +15,20 @@ export interface SearchFilters {
     kamName?: string[]
     assetType?: string[]
     micromarket?: string[]
-    priceRange?: {
-        min?: number
-        max?: number
-    }
+    landmark?: string
+    unitType?: string[]
+    noOfBathrooms?: string[]
+    noOfBalcony?: string[]
+    totalAskPrice?: { min?: number; max?: number }
+    askPricePerSqft?: { min?: number; max?: number }
+    sbua?: { min?: number; max?: number }
+    facing?: string[]
+    exactFloor?: string[]
+    area?: string[]
+    carpet?: { min?: number; max?: number }
+    currentStatus?: string[]
+    dateOfStatusLastCheckedFrom?: string
+    dateOfStatusLastCheckedTo?: string
 }
 
 export interface SearchParams {
@@ -86,13 +96,82 @@ const _buildFilterString = (filters: SearchFilters): string => {
         filterParts.push(`(${micromarketFilters})`)
     }
 
-    if (filters.priceRange) {
-        if (filters.priceRange.min !== undefined) {
-            filterParts.push(`price >= ${filters.priceRange.min}`)
+    if (filters.unitType && filters.unitType.length > 0) {
+        const unitTypeFilters = filters.unitType.map((type) => `unitType:'${type}'`).join(' OR ')
+        filterParts.push(`(${unitTypeFilters})`)
+    }
+
+    if (filters.noOfBathrooms && filters.noOfBathrooms.length > 0) {
+        const bathroomFilters = filters.noOfBathrooms.map((val) => `noOfBathrooms = ${val}`).join(' OR ')
+        filterParts.push(`(${bathroomFilters})`)
+    }
+
+    if (filters.noOfBalcony && filters.noOfBalcony.length > 0) {
+        const balconyFilters = filters.noOfBalcony.map((val) => `noOfBalcony = ${val}`).join(' OR ')
+        filterParts.push(`(${balconyFilters})`)
+    }
+
+    if (filters.facing && filters.facing.length > 0) {
+        const facingFilters = filters.facing.map((val) => `facing:'${val}'`).join(' OR ')
+        filterParts.push(`(${facingFilters})`)
+    }
+
+    if (filters.exactFloor && filters.exactFloor.length > 0) {
+        const floorFilters = filters.exactFloor.map((val) => `exactFloor:'${val}'`).join(' OR ')
+        filterParts.push(`(${floorFilters})`)
+    }
+
+    if (filters.area && filters.area.length > 0) {
+        const areaFilters = filters.area.map((val) => `area:'${val}'`).join(' OR ')
+        filterParts.push(`(${areaFilters})`)
+    }
+
+    if (filters.currentStatus && filters.currentStatus.length > 0) {
+        const availabilityFilters = filters.currentStatus.map((val) => `currentStatus:'${val}'`).join(' OR ')
+        filterParts.push(`(${availabilityFilters})`)
+    }
+
+    if (filters.totalAskPrice) {
+        if (filters.totalAskPrice.min !== undefined) {
+            filterParts.push(`totalAskPrice >= ${filters.totalAskPrice.min}`)
         }
-        if (filters.priceRange.max !== undefined) {
-            filterParts.push(`price <= ${filters.priceRange.max}`)
+        if (filters.totalAskPrice.max !== undefined) {
+            filterParts.push(`totalAskPrice <= ${filters.totalAskPrice.max}`)
         }
+    }
+
+    if (filters.askPricePerSqft) {
+        if (filters.askPricePerSqft.min !== undefined) {
+            filterParts.push(`askPricePerSqft >= ${filters.askPricePerSqft.min}`)
+        }
+        if (filters.askPricePerSqft.max !== undefined) {
+            filterParts.push(`askPricePerSqft <= ${filters.askPricePerSqft.max}`)
+        }
+    }
+
+    if (filters.sbua) {
+        if (filters.sbua.min !== undefined) {
+            filterParts.push(`sbua >= ${filters.sbua.min}`)
+        }
+        if (filters.sbua.max !== undefined) {
+            filterParts.push(`sbua <= ${filters.sbua.max}`)
+        }
+    }
+
+    if (filters.carpet) {
+        if (filters.carpet.min !== undefined) {
+            filterParts.push(`carpet >= ${filters.carpet.min}`)
+        }
+        if (filters.carpet.max !== undefined) {
+            filterParts.push(`carpet <= ${filters.carpet.max}`)
+        }
+    }
+
+    if (filters.dateOfStatusLastCheckedFrom) {
+        filterParts.push(`dateOfStatusLastChecked >= ${filters.dateOfStatusLastCheckedFrom}`)
+    }
+    if (filters.dateOfStatusLastCheckedTo) {
+        filterParts.push(`dateOfStatusLastChecked <= ${filters.dateOfStatusLastCheckedTo}`)
     }
 
     return filterParts.join(' AND ')
@@ -141,7 +220,19 @@ export const searchProperties = async (params: SearchParams = {}): Promise<Algol
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: ['micromarket', 'assetType', 'status', 'kamName'],
+                    facets: [
+                        'micromarket',
+                        'assetType',
+                        'status',
+                        'kamName',
+                        'unitType',
+                        'noOfBathrooms',
+                        'noOfBalcony',
+                        'facing',
+                        'exactFloor',
+                        'area',
+                        'currentStatus',
+                    ],
                     maxValuesPerFacet: 100,
                     analytics: true,
                 },
@@ -211,7 +302,20 @@ export const getAllFacets = async (
                     indexName,
                     query: '',
                     hitsPerPage: 0,
-                    facets: ['status', 'kamName', 'assetType', 'micromarket'],
+                    facets: [
+                        'status',
+                        'kamName',
+                        'assetType',
+                        'micromarket',
+                        'unitType',
+                        'noOfBathrooms',
+                        'noOfBalcony',
+                        'facing',
+                        'exactFloor',
+                        'area',
+                        'currentStatus',
+                        'dateOfStatusLastChecked',
+                    ],
                     maxValuesPerFacet: 100,
                 },
             ],
