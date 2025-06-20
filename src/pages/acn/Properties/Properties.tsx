@@ -39,6 +39,7 @@ import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import StatusSelectCell from '../../../components/acn/Status'
 import { toast } from 'react-toastify'
 import filter from '/icons/acn/filter.svg'
+import BulkShareModal from '../../../components/acn/BulkShareModal'
 
 type PropertyType = 'Resale' | 'Rental'
 type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'De-listed' | 'Pending QC' | 'Rented'
@@ -374,6 +375,7 @@ const PropertiesPage = () => {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
     const [selectedProperty, setSelectedProperty] = useState<IInventory | null>(null)
+    const [isBulkShareModalOpen, setIsBulkShareModalOpen] = useState(false)
 
     // Constants
     const ITEMS_PER_PAGE = 50
@@ -522,7 +524,7 @@ const PropertiesPage = () => {
             dispatch(updatePropertyStatusOptimistic({ propertyId, status: newStatus }))
 
             try {
-                await dispatch(updatePropertyStatus({ propertyId, status: newStatus, activeTab })).unwrap()
+                await dispatch(updatePropertyStatus({ propertyId, status: newStatus })).unwrap()
             } catch (error) {
                 // Optionally: revert or re-fetch
                 searchProperties()
@@ -1282,6 +1284,10 @@ const PropertiesPage = () => {
         )
     }
 
+    const handleBulkShare = () => {
+        setIsBulkShareModalOpen(true)
+    }
+
     return (
         <Layout loading={searchLoading}>
             <AddFilterModal
@@ -1402,7 +1408,7 @@ const PropertiesPage = () => {
                                         bgColor='bg-gray-600'
                                         textColor='text-white'
                                         className='px-4 h-8 text-sm'
-                                        onClick={() => console.log('Share selected:', selectedRows)}
+                                        onClick={handleBulkShare}
                                     >
                                         Share Selected ({selectedRows.size})
                                     </Button>
@@ -1575,6 +1581,12 @@ const PropertiesPage = () => {
                         propertyType={activeTab}
                         selectedCount={selectedRows.size}
                         onUpdate={handleBulkStatusUpdate}
+                    />
+
+                    <BulkShareModal
+                        isOpen={isBulkShareModalOpen}
+                        onClose={() => setIsBulkShareModalOpen(false)}
+                        properties={currentData.filter((item: any) => selectedRows.has(item.propertyId || item.id))}
                     />
                 </div>
             </div>

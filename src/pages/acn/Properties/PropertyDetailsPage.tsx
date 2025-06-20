@@ -5,23 +5,34 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../../store/index'
-import { fetchPropertyById } from '../../../services/acn/properties/propertiesService'
+import {
+    fetchPropertyById,
+    updatePropertyStatus,
+    addNoteToProperty,
+    removeNoteFromProperty,
+} from '../../../services/acn/properties/propertiesService'
 import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
 import Layout from '../../../layout/Layout'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
 import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
+import { toast } from 'react-toastify'
+import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import Button from '../../../components/design-elements/Button'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import { formatUnixDateTime } from '../../../components/helper/formatDate'
 
 // Icons
 import shareIcon from '/icons/acn/share.svg'
 import editIcon from '/icons/acn/write.svg'
 import priceDropIcon from '/icons/acn/share.svg'
+import noteIcon from '/icons/acn/note.svg'
 
 interface Note {
     id: string
     author: string
-    date: string
     content: string
+    timestamp: number
 }
 
 const PropertyDetailsPage = () => {
@@ -31,27 +42,20 @@ const PropertyDetailsPage = () => {
 
     // Redux state
     const { currentProperty: property, loading, error } = useSelector((state: RootState) => state.properties)
+    const { user, agentData } = useSelector((state: RootState) => state.user)
 
     // Local state
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [newNote, setNewNote] = useState('')
-    const [notes, setNotes] = useState<Note[]>([
-        {
-            id: '1',
-            author: 'Samarth',
-            date: '25 May',
-            content:
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a",
-        },
-        {
-            id: '2',
-            author: 'Siddharth',
-            date: '25 May',
-            content:
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a",
-        },
-    ])
+    const [localProperty, setLocalProperty] = useState<IInventory | null>(null)
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+
+    // Update local property when Redux property changes
+    useEffect(() => {
+        if (property) {
+            setLocalProperty(property)
+        }
+    }, [property])
 
     // Fetch property data when component mounts
     useEffect(() => {
@@ -67,23 +71,115 @@ const PropertyDetailsPage = () => {
         }
     }, [id, dispatch])
 
+    // Get current user info for notes
+    const getCurrentUserInfo = () => {
+        if (agentData?.name && agentData?.email) {
+            return {
+                name: agentData.name,
+                email: agentData.email,
+            }
+        } else if (user?.displayName && user?.email) {
+            return {
+                name: user.displayName,
+                email: user.email,
+            }
+        } else {
+            return {
+                name: 'Unknown User',
+                email: 'unknown@example.com',
+            }
+        }
+    }
+
+    useEffect(() => {
+        console.log('🔍 User:', user)
+        console.log('🔍 Agent Data:', agentData)
+    }, [user, agentData])
+
     // Handle status change
-    const handleStatusChange = (option: string) => {
+    const handleStatusChange = async (option: string) => {
+        if (!property?.propertyId) {
+            toast.error('Property ID not found')
+            return
+        }
+
         console.log('📝 Status changed to:', option)
-        // TODO: Implement status update API call
+
+        try {
+            await dispatch(
+                updatePropertyStatus({
+                    propertyId: property.propertyId,
+                    status: option,
+                }),
+            ).unwrap()
+
+            // Refetch property details to update the UI
+            if (id) {
+                dispatch(fetchPropertyById(id))
+            }
+
+            toast.success(`Status updated successfully to ${option}`)
+        } catch (error: any) {
+            console.error('Error updating property status:', error)
+            toast.error(error.message || 'Failed to update property status')
+        }
     }
 
     // Handle add note
-    const handleAddNote = () => {
-        if (newNote.trim()) {
-            const note: Note = {
-                id: Date.now().toString(),
-                author: 'Current User',
-                date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    const handleAddNote = async () => {
+        if (newNote.trim() && localProperty?.propertyId) {
+            console.log('📝 Adding new note:', newNote)
+            const newNoteObj = {
+                author: getCurrentUserInfo().name,
+                email: getCurrentUserInfo().email,
                 content: newNote.trim(),
             }
-            setNotes((prev) => [note, ...prev])
-            setNewNote('')
+
+            try {
+                // await dispatch(
+                //     addNoteToProperty({
+                //         propertyId: localProperty.propertyId,
+                //         note: newNoteObj,
+                //     }),
+                // ).unwrap()
+                console.log('🗑️ Adding new note:', newNoteObj)
+
+                // Refetch property details to update the UI
+                if (id) {
+                    dispatch(fetchPropertyById(id))
+                }
+
+                setNewNote('')
+                toast.success('Note added successfully')
+            } catch (error: any) {
+                console.error('Error adding note:', error)
+                toast.error(error.message || 'Failed to add note')
+            }
+        }
+    }
+
+    // Handle removing a note
+    const handleRemoveNote = async (noteId: string) => {
+        if (localProperty?.propertyId) {
+            console.log('🗑️ Removing note:', noteId)
+            try {
+                await dispatch(
+                    removeNoteFromProperty({
+                        propertyId: localProperty.propertyId,
+                        noteId,
+                    }),
+                ).unwrap()
+
+                // Refetch property details to update the UI
+                if (id) {
+                    dispatch(fetchPropertyById(id))
+                }
+
+                toast.success('Note removed successfully')
+            } catch (error: any) {
+                console.error('Error removing note:', error)
+                toast.error(error.message || 'Failed to remove note')
+            }
         }
     }
 
@@ -615,28 +711,28 @@ const PropertyDetailsPage = () => {
                                     <h3 className='text-lg font-semibold text-gray-900'>Notes</h3>
                                     <button
                                         onClick={handleAddNote}
-                                        className='flex items-center gap-1 px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50'
+                                        disabled={!newNote.trim()}
+                                        className={`flex items-center gap-1 px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 ${
+                                            !newNote.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     >
-                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M12 4v16m8-8H4'
-                                            />
-                                        </svg>
+                                        <img src={noteIcon} alt='Add Note' className='w-4 h-4' />
                                         Add Note
                                     </button>
                                 </div>
 
                                 {/* Add Note Input */}
                                 <div className='mb-4'>
-                                    <textarea
+                                    <StateBaseTextField
+                                        placeholder='Add a note...'
                                         value={newNote}
                                         onChange={(e) => setNewNote(e.target.value)}
-                                        placeholder='Add a note...'
-                                        rows={3}
-                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm'
+                                        className='flex-1 text-sm'
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                handleAddNote()
+                                            }
+                                        }}
                                     />
                                 </div>
 
@@ -644,20 +740,32 @@ const PropertyDetailsPage = () => {
                                 <div>
                                     <h4 className='font-medium text-gray-900 mb-3'>Previous Notes</h4>
                                     <div className='space-y-4 max-h-80 overflow-y-auto'>
-                                        {notes.map((note) => (
-                                            <div
-                                                key={note.id}
-                                                className='border-b border-gray-100 pb-3 last:border-b-0'
-                                            >
-                                                <div className='flex items-center gap-2 mb-2'>
-                                                    <span className='font-medium text-sm text-gray-900'>
-                                                        {note.author}
-                                                    </span>
-                                                    <span className='text-xs text-gray-500'>on {note.date}</span>
-                                                </div>
-                                                <p className='text-sm text-gray-600 leading-relaxed'>{note.content}</p>
+                                        {localProperty?.notes && localProperty.notes.length > 0 ? (
+                                            [...localProperty.notes]
+                                                .sort((a, b) => b.timestamp - a.timestamp)
+                                                .map((note: Note) => (
+                                                    <div
+                                                        key={note.id}
+                                                        className='bg-gray-50 rounded-lg p-3 border border-gray-200'
+                                                    >
+                                                        <div className='flex items-center justify-between mb-1'>
+                                                            <span className='text-xs font-medium text-gray-700'>
+                                                                {note.author}
+                                                            </span>
+                                                            <span className='text-xs text-gray-500'>
+                                                                on {formatUnixDateTime(note.timestamp)}
+                                                            </span>
+                                                        </div>
+                                                        <div className='text-sm text-gray-600 leading-relaxed'>
+                                                            {note.content}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                        ) : (
+                                            <div className='text-center py-4 text-gray-500'>
+                                                No notes yet. Add your first note above.
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
                             </div>

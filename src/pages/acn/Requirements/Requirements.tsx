@@ -143,17 +143,29 @@ const RequirementsPage = () => {
     // Helper function to update a specific row's data
     const updateRowData = async (rowId: string, field: keyof IRequirement, value: string) => {
         try {
-            // Update local state optimistically
-            setRequirementsData((prevData) =>
+            // Update local state optimistically first for immediate user feedback
+            setFilteredData((prevData) =>
                 prevData.map((row) => (row.requirementId === rowId ? { ...row, [field]: value } : row)),
             )
 
-            // Dispatch the update action and wait for it to complete
+            // Also update searchResults for consistency
+            setSearchResults((prevResults) => {
+                if (!prevResults) return prevResults
+                return {
+                    ...prevResults,
+                    hits: prevResults.hits.map((row) =>
+                        row.requirementId === rowId ? { ...row, [field]: value } : row,
+                    ),
+                }
+            })
+
+            // Update Firebase in the background
             const result = await dispatch(
                 updateRequirementStatus({
                     id: rowId,
                     status: value,
                     type: field === 'requirementStatus' ? 'requirement' : 'internal',
+                    propertyType: activeTab === 'rental' ? 'Rental' : 'Resale',
                 }),
             ).unwrap()
 
@@ -161,16 +173,36 @@ const RequirementsPage = () => {
         } catch (error) {
             console.error('❌ Failed to update status:', error)
             // Revert local state on error
-            setRequirementsData((prevData) =>
+            setFilteredData((prevData) =>
                 prevData.map((row) => (row.requirementId === rowId ? { ...row, [field]: row[field] } : row)),
             )
+
+            // Also revert searchResults
+            setSearchResults((prevResults) => {
+                if (!prevResults) return prevResults
+                return {
+                    ...prevResults,
+                    hits: prevResults.hits.map((row) =>
+                        row.requirementId === rowId ? { ...row, [field]: row[field] } : row,
+                    ),
+                }
+            })
         }
     }
 
     const requirementStatusOptions = [
-        { label: 'All Status', value: '' },
-        { label: 'Open', value: 'open' },
-        { label: 'Close', value: 'close' },
+        {
+            label: 'Open',
+            value: 'open',
+            color: '#E1F6DF', // Light green background
+            textColor: '#0A0B0A', // Dark green text
+        },
+        {
+            label: 'Close',
+            value: 'close',
+            color: '#FFECE8', // Light red background
+            textColor: '#0A0B0A', // Dark red text
+        },
     ]
 
     const assetTypeOptions = [

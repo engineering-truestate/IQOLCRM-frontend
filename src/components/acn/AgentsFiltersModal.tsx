@@ -216,28 +216,30 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
 
                 {/* App Installed & Pay Status */}
                 <div className='flex gap-4 mb-4'>
-                    <div className='flex-1'>
+                    <div className='flex-1 flex flex-col gap-2'>
+                        <span className='text-[15px] text-semibold text-[#0A0B0A]'>App Installed</span>
                         <AlgoliaFacetMultiSelect
                             options={getFacetOptions('appInstalled')}
                             selectedValues={localFilters.appInstalled ? [localFilters.appInstalled] : []}
                             onSelectionChange={(values) =>
                                 setLocalFilters({ ...localFilters, appInstalled: values[0] })
                             }
-                            placeholder='App Installed'
+                            placeholder='Please Select'
                             label='App Installed'
-                            className='w-full'
-                            triggerClassName='w-full border border-gray-300 rounded px-2 py-1'
+                            className='w-full text-sm text-[#696979]'
+                            triggerClassName='w-full border border-gray-300 rounded p-3'
                         />
                     </div>
-                    <div className='flex-1'>
+                    <div className='flex-1 flex flex-col gap-2'>
+                        <span className='text-[15px] text-semibold text-[#0A0B0A]'>Pay Status</span>
                         <AlgoliaFacetMultiSelect
                             options={getFacetOptions('payStatus')}
                             selectedValues={localFilters.payStatus ? [localFilters.payStatus] : []}
                             onSelectionChange={(values) => setLocalFilters({ ...localFilters, payStatus: values[0] })}
-                            placeholder='Pay Status'
+                            placeholder='Please Select'
                             label='Pay Status'
-                            className='w-full'
-                            triggerClassName='w-full border border-gray-300 rounded px-2 py-1'
+                            className='w-full text-sm text-[#696979]'
+                            triggerClassName='w-full border border-gray-300 rounded p-3'
                         />
                     </div>
                 </div>

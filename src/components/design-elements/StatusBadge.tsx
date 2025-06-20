@@ -11,18 +11,6 @@ interface StatusBadgeProps {
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type, className = '', color }) => {
     const getStatusColors = () => {
         switch (type) {
-            case 'lead':
-                switch (status.toString().toLowerCase()) {
-                    case 'interested':
-                        return 'bg-[#E1F6DF] text-black'
-                    case 'not interested':
-                        return 'text-black'
-                    case 'not contact yet':
-                        return 'text-black'
-                    default:
-                        return 'border-gray-600 text-black'
-                }
-
             case 'connect':
                 switch (status.toString().toLowerCase()) {
                     case 'connected':
@@ -62,24 +50,24 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type, className = '',
                 switch (status.toString().toLowerCase()) {
                     case 'active':
                         return 'border-[#9DE695] text-black'
-                    case 'no activity':
-                        return 'border-[#D01E29] text-black'
                     case 'nudge':
                         return 'border-[#D5A400] text-black'
+                    case 'no activity':
+                        return 'border-[#D01E29] text-black'
                     default:
                         return 'border-gray-600 text-black'
                 }
 
             case 'pay':
                 switch (status.toString().toLowerCase()) {
-                    case 'free':
-                        return 'bg-[#E0F2FE] text-black'
-                    case 'premium':
+                    case 'paid':
                         return 'bg-[#E1F6DF] text-black'
-                    case 'trial':
-                        return 'bg-[#FEF3C7] text-black'
-                    case 'expired':
-                        return 'bg-[#FEE2E2] text-black'
+                    case 'paid by team':
+                        return 'bg-[#E1F6DF] text-black'
+                    case 'will pay':
+                        return 'bg-[#FEECED] text-black'
+                    case 'will not':
+                        return 'bg-[#FEECED] text-black'
                     default:
                         return 'border-gray-600 text-black'
                 }
