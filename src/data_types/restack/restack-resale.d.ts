@@ -11,6 +11,7 @@ export interface RestackResaleProperty {
     totalUnits: number
     carpetArea: string
     reraId: string
+    images?: string[]
     developer: string
     projectSize: string
     ageOfProperty: string
@@ -23,6 +24,7 @@ export interface RestackResaleProperty {
     maplink: string
     lat: number
     long: number
+    listedBy: string
     inventoryDetails: {
         availability: string
         ageOfInventory: string

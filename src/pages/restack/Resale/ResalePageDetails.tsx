@@ -11,7 +11,152 @@ import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 import editic from '/icons/acn/edit.svg'
 import type { ResaleData } from '../../../store/actionTypes/restack/resaleActionTypes'
 import type { RestackResaleProperty } from '../../../data_types/restack/restack-resale'
-import { get99AcresResaleDataById, getMagicBricksResaleDataById } from '../../../services/restack/resaleService'
+import {
+    get99AcresResaleDataById,
+    getMagicBricksResaleDataById,
+    update99AcresResaleDataById,
+    updateMagicBricksResaleDataById,
+} from '../../../services/restack/resaleService'
+import { FlexibleTable } from '../../../components/design-elements/FlexibleTable'
+
+// Property type options
+const propertyTypes = [
+    { label: 'Residential', value: 'Residential' },
+    { label: 'Commercial', value: 'Commercial' },
+    { label: 'Industrial', value: 'Industrial' },
+]
+
+const subTypes = [
+    { label: 'Apartment', value: 'Apartment' },
+    { label: 'Villa', value: 'Villa' },
+    { label: 'Plot', value: 'Plot' },
+    { label: 'Penthouse', value: 'Penthouse' },
+]
+
+const configurations = [
+    { label: '1 BHK', value: '1 BHK' },
+    { label: '2 BHK', value: '2 BHK' },
+    { label: '3 BHK', value: '3 BHK' },
+    { label: '4 BHK', value: '4 BHK' },
+    { label: '5+ BHK', value: '5+ BHK' },
+]
+
+const statusOptions = [
+    { label: 'Ready to Move', value: 'Ready to Move' },
+    { label: 'Under Construction', value: 'Under Construction' },
+    { label: 'Upcoming', value: 'Upcoming' },
+]
+
+const furnishingOptions = [
+    { label: 'Furnished', value: 'Furnished' },
+    { label: 'Semi-Furnished', value: 'Semi-Furnished' },
+    { label: 'Unfurnished', value: 'Unfurnished' },
+]
+
+const facingOptions = [
+    { label: 'North', value: 'North' },
+    { label: 'South', value: 'South' },
+    { label: 'East', value: 'East' },
+    { label: 'West', value: 'West' },
+    { label: 'North-East', value: 'North-East' },
+    { label: 'North-West', value: 'North-West' },
+    { label: 'South-East', value: 'South-East' },
+    { label: 'South-West', value: 'South-West' },
+]
+
+// Image Gallery Component
+const ImageGallery = ({ images }: { images?: any[] }) => {
+    const [selectedImage, setSelectedImage] = useState(0)
+    const [imageError, setImageError] = useState<{ [key: string]: boolean }>({})
+
+    const handleImageError = (imageId: string) => {
+        setImageError((prev) => ({ ...prev, [imageId]: true }))
+    }
+
+    const handleImageLoad = (imageId: string) => {
+        setImageError((prev) => ({ ...prev, [imageId]: false }))
+    }
+
+    if (!images || images.length === 0) {
+        return (
+            <div className='mb-6'>
+                <div className='w-full h-96 bg-gray-200 rounded flex items-center justify-center'>
+                    <span className='text-gray-500'>No images available</span>
+                </div>
+            </div>
+        )
+    }
+
+    const currentImage = images[selectedImage] || images[0]
+
+    return (
+        <div className='mb-6'>
+            {/* Thumbnail Grid - Show all images in two rows */}
+            <div className='grid grid-cols-5 gap-3 mb-4'>
+                {/* First row - show first 5 images */}
+                {images.slice(0, 5).map((image, index) => (
+                    <div
+                        key={image.id || index}
+                        className={`cursor-pointer rounded overflow-hidden border-2 aspect-[4/3] ${
+                            selectedImage === index ? 'border-blue-500' : 'border-gray-200'
+                        }`}
+                        onClick={() => setSelectedImage(index)}
+                    >
+                        <img
+                            src={image.url || image}
+                            alt={image.alt || `Property image ${index + 1}`}
+                            className='w-full h-full object-cover'
+                            onError={() => handleImageError(image.id || index.toString())}
+                        />
+                    </div>
+                ))}
+            </div>
+
+            {/* Second row if more than 5 images */}
+            {images.length > 5 && (
+                <div className='grid grid-cols-5 gap-3 mb-4'>
+                    {images.slice(5, 9).map((image, index) => (
+                        <div
+                            key={image.id || index + 5}
+                            className={`cursor-pointer rounded overflow-hidden border-2 aspect-[4/3] ${
+                                selectedImage === index + 5 ? 'border-blue-500' : 'border-gray-200'
+                            }`}
+                            onClick={() => setSelectedImage(index + 5)}
+                        >
+                            <img
+                                src={image.url || image}
+                                alt={image.alt || `Property image ${index + 6}`}
+                                className='w-full h-full object-cover'
+                                onError={() => handleImageError(image.id || (index + 5).toString())}
+                            />
+                        </div>
+                    ))}
+                    {/* Show +X more overlay if there are more than 9 images */}
+                    {images.length > 9 && (
+                        <div className='relative cursor-pointer rounded overflow-hidden border-2 border-gray-200 aspect-[4/3]'>
+                            <img
+                                src={images[9].url || images[9]}
+                                alt={images[9].alt || 'Property image 10'}
+                                className='w-full h-full object-cover'
+                                onError={() => handleImageError(images[9].id || '9')}
+                            />
+                            <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
+                                <span className='text-white text-sm font-medium'>+{images.length - 9}</span>
+                            </div>
+                        </div>
+                    )}
+                    {/* Add Image Button */}
+                    <div className='flex items-center justify-center border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-gray-400 aspect-[4/3]'>
+                        <div className='text-center'>
+                            <div className='text-gray-400 text-sm mb-1'>✏️</div>
+                            <div className='text-gray-400 text-xs'>Add Image</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
 
 const ResaleDetailsPage = () => {
     const navigate = useNavigate()
@@ -19,18 +164,17 @@ const ResaleDetailsPage = () => {
     const dispatch = useDispatch()
 
     const [propertyDetails, setPropertyDetails] = useState<RestackResaleProperty | null>(null)
-    const [originalDetails, setOriginalDetails] = useState<ResaleData | null>(null)
+    const [originalDetails, setOriginalDetails] = useState<RestackResaleProperty | null>(null)
     const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(false)
     const [isEditingLocation, setIsEditingLocation] = useState(false)
     const [isEditingInventory, setIsEditingInventory] = useState(false)
     const [isEditingAmenities, setIsEditingAmenities] = useState(false)
-    // const resaleData = useSelector((state: any) => state.resale.data)
-    // const loading = useSelector((state: any) => state.resale.loading)
-    // const error = useSelector((state: any) => state.resale.error)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const fetchData = async (): Promise<void> => {
             try {
+                setLoading(true)
                 let data: RestackResaleProperty[] = []
 
                 switch (type) {
@@ -59,28 +203,17 @@ const ResaleDetailsPage = () => {
                 }
 
                 setPropertyDetails(data[0])
+                setOriginalDetails(data[0])
             } catch (error) {
                 console.error('Error fetching property data:', error)
                 setPropertyDetails(null)
+            } finally {
+                setLoading(false)
             }
         }
 
         fetchData()
     }, [type, id])
-
-    // Load property data based on id
-    // useEffect(() => {
-    //     if (id) {
-    //         dispatch(fetchResaleDataRequest(id) as any);
-    //     }
-    // }, [id, dispatch]);
-
-    // useEffect(() => {
-    //     if (resaleData) {
-    //         setPropertyDetails(resaleData);
-    //         setOriginalDetails(resaleData);
-    //     }
-    // }, [resaleData]);
 
     // Handle field updates with types
     const updateField = (field: string, value: string | number | null) => {
@@ -89,9 +222,18 @@ const ResaleDetailsPage = () => {
             const keys = field.split('.')
             const updatedDetails = { ...prev }
 
-            if (keys.length === 2) {
+            if (keys.length === 1) {
+                ;(updatedDetails as any)[keys[0]] = value
+            } else if (keys.length === 2) {
                 const [section, key] = keys
-                ;(updatedDetails as any)[key] = value
+                if ((updatedDetails as any)[section]) {
+                    ;(updatedDetails as any)[section] = {
+                        ...(updatedDetails as any)[section],
+                        [key]: value,
+                    }
+                } else {
+                    ;(updatedDetails as any)[key] = value
+                }
             }
             return updatedDetails
         })
@@ -105,138 +247,109 @@ const ResaleDetailsPage = () => {
     // Generic handle cancel for sections
     const handleCancelSection = (
         setter: React.Dispatch<React.SetStateAction<boolean>>,
-        originalData: ResaleData | null,
+        originalData: RestackResaleProperty | null,
     ) => {
         setter(false)
         setPropertyDetails(originalData)
     }
 
     // Generic handle save for sections
-    const handleSaveSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+    const handleSaveSection = async (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
         setter(false)
         setOriginalDetails(propertyDetails)
-        // Here you would typically make an API call to save the changes
-        console.log('Saving property details:', propertyDetails)
+        switch (type) {
+            case '99acres':
+                await update99AcresResaleDataById(String(id), originalDetails as RestackResaleProperty)
+                break
+
+            case 'magicbricks':
+                await updateMagicBricksResaleDataById(String(id), originalDetails as RestackResaleProperty)
+                break
+
+            default:
+                console.error('Invalid resale type:', type)
+                return
+        }
     }
 
-    // Helper for rendering info rows (same as primary details)
-    const renderInfoRow = (
-        label1: string,
-        value1: string | undefined,
-        label2: string,
-        value2: string | undefined,
-        fieldKey1?: string,
-        fieldKey2?: string,
-        options1?: { label: string; value: string }[],
-        options2?: { label: string; value: string }[],
-        type1: 'text' | 'date' | 'link' | 'number' = 'text',
-        type2: 'text' | 'date' | 'link' | 'number' = 'text',
-        onClick1?: () => void,
-        onClick2?: () => void,
-        classNameOverride?: string,
+    // Helper for rendering info rows
+    const renderField = (
+        label: string,
+        value: string | number | null,
+        fieldKey: string,
+        options?: { label: string; value: string }[],
+        fieldType: 'text' | 'date' | 'number' = 'text',
+        isEditing: boolean = false,
     ) => {
-        const renderField = (
-            label: string,
-            value: string | undefined,
-            fieldKey: string | undefined,
-            options?: { label: string; value: string }[],
-            type: 'text' | 'date' | 'link' | 'number' = 'text',
-            onClick?: () => void,
-        ) => {
-            const displayValue = value || ''
+        if (isEditing) {
+            if (options) {
+                return (
+                    <div>
+                        <label className='text-sm text-black block mb-1'>{label}</label>
+                        <Dropdown
+                            options={options}
+                            onSelect={(selectedValue) => updateField(fieldKey, selectedValue)}
+                            defaultValue={value as string}
+                            placeholder={`Select ${label}`}
+                            className='relative w-full'
+                            triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
+                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                            optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                        />
+                    </div>
+                )
+            } else if (fieldType === 'date') {
+                return (
+                    <DateInput
+                        label={label}
+                        placeholder='Select date'
+                        value={value as number | null}
+                        onChange={(timestamp) => updateField(fieldKey, timestamp)}
+                        minDate={new Date().toISOString().split('T')[0]}
+                        fullWidth
+                    />
+                )
+            } else if (fieldType === 'number') {
+                return (
+                    <NumberInput
+                        label={label}
+                        placeholder={`Enter ${label.toLowerCase()}`}
+                        value={value as number}
+                        onChange={(numValue) => updateField(fieldKey, numValue ?? 0)}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
+                    />
+                )
+            } else {
+                return (
+                    <div>
+                        <label className='text-sm text-black block mb-1'>{label}</label>
+                        <StateBaseTextField
+                            value={value?.toString() ?? ''}
+                            onChange={(e) => updateField(fieldKey, e.target.value)}
+                            className='w-full text-sm'
+                        />
+                    </div>
+                )
+            }
+        } else {
+            let displayValue = value?.toString() ?? ''
+            if (fieldType === 'date' && typeof value === 'number') {
+                displayValue = formatUnixDate(value) ?? ''
+            }
+
             return (
-                <div
-                    className={`flex flex-col gap-1 border-t border-solid border-t-[#d4dbe2] py-4 ${classNameOverride?.includes('pr-') ? '' : 'pr-2'}`}
-                >
-                    <p className='text-[#5c738a] text-sm font-normal leading-normal'>{label}</p>
-                    {fieldKey ? (
-                        options ? (
-                            <Dropdown
-                                options={options}
-                                defaultValue={value || ''}
-                                onSelect={(optionValue: string) => updateField(fieldKey, optionValue)}
-                                className='w-full'
-                                optionClassName='text-base'
-                            />
-                        ) : type === 'date' ? (
-                            <StateBaseTextField
-                                type='date'
-                                value={value || ''}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                    updateField(fieldKey, e.target.value)
-                                }
-                                className='h-9 text-base'
-                            />
-                        ) : type === 'number' ? (
-                            <StateBaseTextField
-                                type='number'
-                                value={value || ''}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                    updateField(fieldKey, e.target.value)
-                                }
-                                className='h-9 text-base'
-                            />
-                        ) : (
-                            <StateBaseTextField
-                                value={value || ''}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                    updateField(fieldKey, e.target.value)
-                                }
-                                className='h-9 text-base'
-                            />
-                        )
-                    ) : type === 'link' &&
-                      value &&
-                      onClick &&
-                      (value.startsWith('http') ||
-                          (value.startsWith('/') && !onClick.toString().includes('navigate'))) ? (
-                        <a
-                            href={value}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            className='text-blue-600 underline text-sm font-medium leading-normal'
-                            onClick={onClick}
-                        >
-                            {displayValue}
-                        </a>
-                    ) : type === 'link' && onClick ? (
-                        <button
-                            onClick={onClick}
-                            className='text-blue-600 underline text-sm font-medium leading-normal text-left cursor-pointer'
-                        >
-                            {displayValue}
-                        </button>
-                    ) : (
-                        <p className='text-[#101418] text-sm font-normal leading-normal'>{displayValue}</p>
-                    )}
+                <div className='flex justify-between border-b border-gray-200 pb-2 mb-4'>
+                    <label className='text-sm text-gray-600 block mb-1'>{label}</label>
+                    <div className='text-sm text-black font-medium'>{displayValue}</div>
                 </div>
             )
         }
-
-        return (
-            <>
-                <div
-                    className={`{classNameOverride && classNameOverride.includes('col-span-2') ? classNameOverride : ''}`}
-                >
-                    {renderField(label1, value1, fieldKey1, options1, type1, onClick1)}
-                </div>
-                {!classNameOverride?.includes('col-span-2') && (
-                    <div className={'pl-2'}>{renderField(label2, value2, fieldKey2, options2, type2, onClick2)}</div>
-                )}
-            </>
-        )
     }
 
-    // if (loading) {
-    //     return <Layout loading={true}>Loading property details...</Layout>;
-    // }
-
-    // if (error) {
-    //     return <Layout loading={false}>Error: {error}</Layout>;
-    // }
-
-    if (!propertyDetails) {
-        return <Layout loading={false}>Property details not found.</Layout>
+    if (loading || !propertyDetails) {
+        return <Layout loading={true}>Loading property details...</Layout>
     }
 
     return (
@@ -252,14 +365,19 @@ const ResaleDetailsPage = () => {
                     <hr className='border-gray-200 mb-4 w-full' />
 
                     {/* Property Status and Price Header */}
-                    <div className='mb-6 p-4 bg-gray-50 rounded-lg'>
-                        <div className='flex items-center gap-2 mb-2'>
+                    <div className='mb-6 p-4  rounded-lg'>
+                        <div className='flex items-center justify-between gap-2 mb-2'>
                             <span className='bg-green-100 text-green-800 text-xs px-2 py-1 rounded'>
                                 {propertyDetails.status}
                             </span>
+                            <span className='text-sm text-gray-600 border-1 rounded-[20px] border-[#0069D0] px-2 py-1'>
+                                Listed by {propertyDetails.listedBy}
+                            </span>
+                        </div>
+                        <div className='flex items-center justify-between mb-2'>
+                            <h2 className='text-xl font-semibold text-black'>{propertyDetails.projectName}</h2>
                             <span className='text-lg font-semibold text-black'>{propertyDetails.price}</span>
                         </div>
-                        <h2 className='text-xl font-semibold text-black'>{propertyDetails.projectName}</h2>
                         <div className='text-sm text-gray-500 mt-1'>
                             <button onClick={() => navigate('/restack/resale')} className='hover:text-gray-700'>
                                 Resale
@@ -270,7 +388,7 @@ const ResaleDetailsPage = () => {
                     </div>
 
                     {/* Property Images */}
-                    {/* <ImageGallery images={propertyDetails.images} /> */}
+                    <ImageGallery images={propertyDetails.images} />
 
                     {/* Property Overview */}
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
@@ -292,121 +410,132 @@ const ResaleDetailsPage = () => {
                                     </Button>
                                 </>
                             ) : (
-                                <Button
-                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
-                                    onClick={() => handleEditSection(setIsEditingBasicInfo)}
-                                >
-                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
-                                    Edit
-                                </Button>
+                                <button className='h-9 w-9' onClick={() => handleEditSection(setIsEditingBasicInfo)}>
+                                    <img src={editic} alt='edit' className='w-6 h-6 mr-2' />
+                                </button>
                             )}
                         </div>
                     </div>
-                    <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
+                    <div className='p-4 grid grid-cols-2 gap-4'>
+                        {renderField(
+                            'Property ID',
+                            propertyDetails.propertyId || '',
+                            'propertyId',
+                            undefined,
+                            'text',
+                            isEditingBasicInfo,
+                        )}
+                        {renderField(
                             'Project Name',
-                            propertyDetails.projectName,
-                            'Property Type',
-                            propertyDetails.propertyType,
+                            propertyDetails.projectName || '',
                             'projectName',
+                            undefined,
+                            'text',
+                            isEditingBasicInfo,
+                        )}
+                        {renderField(
+                            'Property Type',
+                            propertyDetails.propertyType || '',
                             'propertyType',
-                            undefined,
-                            undefined,
+                            propertyTypes,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingBasicInfo,
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Sub Type',
-                            propertyDetails.subType,
-                            'Configuration',
-                            propertyDetails.configuration,
+                            propertyDetails.subType || '',
                             'subType',
-                            'configuration',
-                            undefined,
-                            undefined,
+                            subTypes,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingBasicInfo,
                         )}
-                        {renderInfoRow(
+                        {renderField(
+                            'Configuration',
+                            propertyDetails.configuration || '',
+                            'configuration',
+                            configurations,
+                            'text',
+                            isEditingBasicInfo,
+                        )}
+                        {renderField(
                             'Price',
-                            propertyDetails.price,
-                            'Price per sq ft',
-                            propertyDetails.pricePerSqft?.toString(),
+                            propertyDetails.price?.toString() || '',
                             'price',
+                            undefined,
+                            'text',
+                            isEditingBasicInfo,
+                        )}
+                        {renderField(
+                            'Price per sq ft',
+                            propertyDetails.pricePerSqft?.toString() || '',
                             'pricePerSqft',
                             undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingBasicInfo,
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'RERA ID',
-                            propertyDetails.reraId,
-                            'Project Size',
-                            propertyDetails.projectSize,
+                            propertyDetails.reraId || '',
                             'reraId',
+                            undefined,
+                            'text',
+                            isEditingBasicInfo,
+                        )}
+                        {renderField(
+                            'Project Size',
+                            propertyDetails.projectSize || '',
                             'projectSize',
                             undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingBasicInfo,
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Super Built-up Area',
-                            propertyDetails.superBuiltUpArea?.toString(),
-                            'Carpet Area',
-                            propertyDetails.carpetArea,
+                            propertyDetails.superBuiltUpArea?.toString() || '',
                             'superBuiltUpArea',
+                            undefined,
+                            'text',
+                            isEditingBasicInfo,
+                        )}
+                        {renderField(
+                            'Carpet Area',
+                            propertyDetails.carpetArea || '',
                             'carpetArea',
                             undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingBasicInfo,
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Total Units',
-                            propertyDetails.totalUnits?.toString(),
-                            'Developer',
-                            propertyDetails.developer,
+                            propertyDetails.totalUnits?.toString() || '',
                             'totalUnits',
+                            undefined,
+                            'text',
+                            isEditingBasicInfo,
+                        )}
+                        {renderField(
+                            'Developer',
+                            propertyDetails.developer || '',
                             'developer',
                             undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingBasicInfo,
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Possession',
-                            propertyDetails.handoverDate,
-                            'Age of Property',
-                            propertyDetails.ageOfProperty,
+                            propertyDetails.handoverDate?.toString() || '',
                             'handoverDate',
+                            statusOptions,
+                            'text',
+                            isEditingBasicInfo,
+                        )}
+                        {renderField(
+                            'Age of Property',
+                            propertyDetails.ageOfProperty || '',
                             'ageOfProperty',
                             undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingBasicInfo,
                         )}
                     </div>
 
@@ -430,75 +559,57 @@ const ResaleDetailsPage = () => {
                                     </Button>
                                 </>
                             ) : (
-                                <Button
-                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                <button
+                                    className='h-9 px-4 cursor-pointer '
                                     onClick={() => handleEditSection(setIsEditingLocation)}
                                 >
-                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
-                                    Edit
-                                </Button>
+                                    <img src={editic} alt='edit' className='w-6 h-6 mr-2' />
+                                </button>
                             )}
                         </div>
                     </div>
-                    <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
+                    <div className='p-4 grid grid-cols-2 gap-4'>
+                        {renderField(
                             'Project Address',
-                            propertyDetails.projectAddress,
-                            'Area',
-                            propertyDetails.area,
+                            propertyDetails.projectAddress || '',
                             'projectAddress',
-                            'area',
-                            undefined,
                             undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            'col-span-2 pr-[50%]',
+                            isEditingLocation,
                         )}
-                        {renderInfoRow(
+                        {renderField('Area', propertyDetails.area || '', 'area', undefined, 'text', isEditingLocation)}
+                        {renderField(
                             'Micromarket',
-                            propertyDetails.micromarket,
-                            'Launch Date',
-                            propertyDetails.launchDate,
+                            propertyDetails.micromarket || '',
                             'micromarket',
+                            undefined,
+                            'text',
+                            isEditingLocation,
+                        )}
+                        {renderField(
+                            'Launch Date',
+                            propertyDetails.launchDate?.toString() || '',
                             'launchDate',
                             undefined,
-                            undefined,
-                            'text',
                             'date',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingLocation,
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Handover Date',
-                            propertyDetails.handoverDate,
-                            'Map Link',
-                            'View on Map',
+                            propertyDetails.handoverDate?.toString() || '',
                             'handoverDate',
                             undefined,
-                            undefined,
-                            undefined,
                             'date',
-                            'link',
-                            undefined,
-                            () => window.open(propertyDetails.maplink, '_blank'),
+                            isEditingLocation,
                         )}
-                        {renderInfoRow(
+                        {renderField('Map Link', 'View on Map', 'maplink', undefined, 'text', isEditingLocation)}
+                        {renderField(
                             'Coordinates',
                             `${propertyDetails.lat}, ${propertyDetails.long}`,
-                            '',
-                            '',
                             'coordinates',
                             undefined,
-                            undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            'col-span-2 pr-[50%]',
+                            isEditingLocation,
                         )}
                     </div>
 
@@ -522,46 +633,47 @@ const ResaleDetailsPage = () => {
                                     </Button>
                                 </>
                             ) : (
-                                <Button
-                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                <button
+                                    className='h-9 px-4 cursor-pointer '
                                     onClick={() => handleEditSection(setIsEditingInventory)}
                                 >
-                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
-                                    Edit
-                                </Button>
+                                    <img src={editic} alt='edit' className='w-6 h-6 mr-2' />
+                                </button>
                             )}
                         </div>
                     </div>
-                    <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
+                    <div className='p-4 grid grid-cols-2 gap-4'>
+                        {renderField(
                             'Availability',
-                            propertyDetails.inventoryDetails?.availability,
-                            'Floor Number',
-                            propertyDetails.inventoryDetails?.floorNumber?.toString(),
+                            propertyDetails.inventoryDetails?.availability || '',
                             'inventoryDetails.availability',
+                            undefined,
+                            'text',
+                            isEditingInventory,
+                        )}
+                        {renderField(
+                            'Floor Number',
+                            propertyDetails.inventoryDetails?.floorNumber?.toString() || '',
                             'inventoryDetails.floorNumber',
                             undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingInventory,
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Facing',
-                            propertyDetails.inventoryDetails?.facing,
-                            'Furnishing',
-                            propertyDetails.extraDetails?.furnishing,
+                            propertyDetails.inventoryDetails?.facing || '',
                             'inventoryDetails.facing',
+                            facingOptions,
+                            'text',
+                            isEditingInventory,
+                        )}
+                        {renderField(
+                            'Furnishing',
+                            propertyDetails.extraDetails?.furnishing || '',
                             'extraDetails.furnishing',
-                            undefined,
-                            undefined,
+                            furnishingOptions,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            isEditingInventory,
                         )}
                     </div>
 
@@ -585,18 +697,17 @@ const ResaleDetailsPage = () => {
                                     </Button>
                                 </>
                             ) : (
-                                <Button
-                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                <button
+                                    className='h-9 px-4 cursor-pointer '
                                     onClick={() => handleEditSection(setIsEditingAmenities)}
                                 >
-                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
-                                    Edit
-                                </Button>
+                                    <img src={editic} alt='edit' className='w-6 h-6 mr-2' />
+                                </button>
                             )}
                         </div>
                     </div>
                     {isEditingAmenities ? (
-                        <div className='flex flex-wrap gap-3 p-3 pr-4'>
+                        <div>
                             <textarea
                                 value={propertyDetails?.amenities?.join(', ')}
                                 onChange={(e) =>
@@ -629,55 +740,66 @@ const ResaleDetailsPage = () => {
 
                     {/* About Project */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>About Project</h2>
-                    <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
+                    <div className='p-4 grid grid-cols-2 gap-4'>
+                        {renderField(
                             'Configuration',
-                            propertyDetails.aboutProject?.configuration,
-                            'Towers and Units',
-                            propertyDetails.aboutProject?.towersandunits,
+                            propertyDetails.aboutProject?.configuration || propertyDetails.configuration || '',
                             'aboutProject.configuration',
+                            undefined,
+                            'text',
+                            false,
+                        )}
+                        {renderField(
+                            'Towers and Units',
+                            propertyDetails.aboutProject?.towersandunits || `${propertyDetails.totalUnits} units` || '',
                             'aboutProject.towersandunits',
                             undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
+                            false,
                         )}
                     </div>
                     <div className='p-4'>
                         <div className='border-t border-solid border-t-[#d4dbe2] py-4'>
                             <p className='text-[#5c738a] text-sm font-normal leading-normal mb-2'>Description</p>
                             <p className='text-[#101418] text-sm font-normal leading-normal'>
-                                {propertyDetails.aboutProject?.description}
+                                {propertyDetails.aboutProject?.description || 'No description available'}
                             </p>
                         </div>
                     </div>
 
                     {/* Extra Details */}
-                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Property Features</h2>
+                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Extra Details</h2>
                     <div className='p-4'>
                         <div className='grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-solid border-t-[#d4dbe2] py-4'>
                             <div className='text-center'>
                                 <div className='text-lg font-semibold text-[#101418]'>
-                                    {propertyDetails.extraDetails?.baths}
+                                    {propertyDetails.extraDetails?.baths || 'N/A'}
                                 </div>
                                 <div className='text-sm text-[#5c738a]'>Baths</div>
                             </div>
                             <div className='text-center'>
                                 <div className='text-lg font-semibold text-[#101418]'>
-                                    {propertyDetails.extraDetails?.balconies}
+                                    {propertyDetails.extraDetails?.balconies || 'N/A'}
                                 </div>
                                 <div className='text-sm text-[#5c738a]'>Balconies</div>
                             </div>
                             <div className='text-center'>
                                 <div className='text-lg font-semibold text-[#101418]'>
-                                    {propertyDetails.extraDetails?.furnishing}
+                                    {propertyDetails.extraDetails?.furnishing || 'N/A'}
                                 </div>
                                 <div className='text-sm text-[#5c738a]'>Furnishing</div>
                             </div>
                         </div>
+                    </div>
+                    <div className='p-4'>
+                        <FlexibleTable
+                            data={propertyDetails.priceHistory || []}
+                            columns={[
+                                { key: 'date', header: 'Date' },
+                                { key: 'price', header: 'Price' },
+                            ]}
+                            className='mt-4'
+                        />
                     </div>
                 </div>
             </div>
