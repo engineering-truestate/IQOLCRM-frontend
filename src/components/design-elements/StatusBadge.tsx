@@ -14,6 +14,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type, className = '',
             case 'connect':
                 switch (status.toString().toLowerCase()) {
                     case 'connected':
+                    case 'connnected':
                         return 'border-[#9DE695]'
                     case 'rnr-1':
                         return 'border-[#FCCE74]'

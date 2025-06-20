@@ -12,6 +12,7 @@ export interface AgentSearchFilters {
     kamName?: string
     payStatus?: string
     appInstalled?: string
+    contactStatus?: string
     inventoryStatus?: {
         delisted?: boolean
         hold?: boolean
@@ -67,6 +68,7 @@ const buildAgentFilterString = (filters: AgentSearchFilters): string => {
         { key: 'appInstalled', field: 'appInstalled' },
         { key: 'userType', field: 'userType' },
         { key: 'activity', field: 'activity' },
+        { key: 'contactStatus', field: 'contactStatus' },
     ]
 
     singleValueFilters.forEach(({ key, field }) => {
@@ -185,11 +187,13 @@ export const searchAgents = async (params: AgentSearchParams = {}): Promise<Algo
                         'areaOfOperation',
                         'businessCategory',
                         'contactHistory.timestamp',
+                        'contactStatus',
                         'inventoryStatus.available',
                         'inventoryStatus.delisted',
                         'inventoryStatus.hold',
                         'inventoryStatus.sold',
                         'kamName',
+                        'noOfEnquiries',
                         'payStatus',
                     ],
                     maxValuesPerFacet: 100,
@@ -263,6 +267,7 @@ export const getAllAgentFacets = async (): Promise<Record<string, any>> => {
                         'appInstalled',
                         'areaOfOperation',
                         'businessCategory',
+                        'contactStatus',
                         'contactHistory.timestamp',
                         'inventoryStatus.available',
                         'inventoryStatus.delisted',
