@@ -154,7 +154,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-50 z-40 ' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
             <div
@@ -214,11 +214,13 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                                         onSelect={() => {}}
                                         defaultValue='Complete'
                                         placeholder='Complete'
-                                        className='w-full'
-                                        triggerClassName='w-full px-4 py-1 border bg-gray-50 text-gray-500 border-gray-300 rounded-sm flex items-center justify-between text-left cursor-not-allowed opacity-80'
-                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                        optionClassName='px-4 py-2 text-sm text-gray-700 bg-gray-50 hover:bg-gray-50 cursor-pointer'
-                                        disabled={true}
+                                        className='w-full relative inline-block'
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.label ? '[&>span]:font-medium text-black' : ''
+                                        }`}
+                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
+                                        disabled={isLoading}
                                     />
                                 </div>
                                 <div>

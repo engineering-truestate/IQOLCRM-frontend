@@ -109,7 +109,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     return (
         <div
             onClick={handleCardClick}
-            className='rounded-md border border-gray-300 cursor-pointer transition-all duration-200'
+            className='rounded-md border border-gray-300 cursor-pointer transition-all duration-200 '
         >
             <div
                 className={`grid grid-cols-3 rounded-t-md gap-40 px-3 py-2.5 items-start ${isExpanded ? 'bg-gray-100' : ''}`}
@@ -128,15 +128,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
                 {/* Status Dropdown */}
                 <div>
-                    <div className='text-sm font-medium text-gray-900 mb-1'>Task Status</div>
+                    <div className='text-sm font-medium text-gray-900'>Task Status</div>
                     <Dropdown
                         onSelect={handleStatusChange}
                         disabled={task.status === 'complete' || task.type !== 'lead registration'}
                         options={taskStatusOptions}
                         defaultValue={task.status}
-                        triggerClassName={`flex items-center h-4.5 justify-between px-2 py-1 bg-white border border-gray-300 rounded-sm text-xs text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] ${
-                            task.status === 'complete' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                        }`}
+                        className='w-22'
+                        triggerClassName={`relative w-full h-4.5 px-2 py-1 border border-gray-300 rounded-sm text-xs text-gray-700 bg-white flex items-center justify-between focus:outline-none 
+${
+    task.status === 'complete' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+} ${task.status ? '[&>span]:font-medium text-black capitalize' : ''}`}
+                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                     />
                     {updating && <div className='text-xs text-blue-500 mt-1'>Updating...</div>}
                 </div>
