@@ -340,7 +340,7 @@ const ResaleDetailsPage = () => {
             }
 
             return (
-                <div className='flex justify-between border-b border-gray-200 pb-2 mb-4'>
+                <div className=' border-b border-gray-200 pb-2 mb-4'>
                     <label className='text-sm text-gray-600 block mb-1'>{label}</label>
                     <div className='text-sm text-black font-medium'>{displayValue}</div>
                 </div>

@@ -12,10 +12,10 @@ export interface RestackResaleProperty {
     carpetArea: string
     reraId: string
     images?: string[]
-    developer: string
+    developerName: string
     projectSize: string
     ageOfProperty: string
-    projectAddress: string
+    address: string
     micromarket: string
     area: string
     status: string
@@ -24,7 +24,8 @@ export interface RestackResaleProperty {
     maplink: string
     lat: number
     long: number
-    listedBy: string
+    postedBy: string
+    postedOn: string
     inventoryDetails: {
         availability: string
         ageOfInventory: string
@@ -48,5 +49,8 @@ export interface RestackResaleProperty {
     priceHistory: {
         date: string
         price: number
+        totoalUnits: number
+        availableUnits: number
+        soldOutUnits: number
     }[]
 }
