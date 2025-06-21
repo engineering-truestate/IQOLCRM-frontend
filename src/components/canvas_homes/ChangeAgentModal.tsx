@@ -34,7 +34,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
 
     // Agent options with IDs
     const agentOptions = [
-        { label: 'Select agent name', value: '' },
+        // { label: 'Select agent name', value: '' },
         { label: 'Deepak Goyal', value: 'agent001|Deepak Goyal' },
         { label: 'Rajan Yadav', value: 'agent002|Rajan Yadav' },
         { label: 'Deepak Singh Chauhan', value: 'agent003|Deepak Singh Chauhan' },
@@ -213,7 +213,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[433px] bg-white z-50 rounded-lg shadow-2xl'>
@@ -276,10 +276,12 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
                                     onSelect={handleAgentSelect}
                                     defaultValue={formData.agentId ? `${formData.agentId}|${formData.agentName}` : ''}
                                     placeholder='Select agent name'
-                                    className='w-full'
-                                    triggerClassName='w-full px-4 py-1 border text-gray-500 border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left'
-                                    menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                    optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                    className='w-full relative inline-block'
+                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                        formData.agentName ? '[&>span]:font-medium text-black' : ''
+                                    }`}
+                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                    optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                     disabled={isLoading}
                                 />
                             </div>

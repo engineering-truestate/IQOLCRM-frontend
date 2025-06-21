@@ -54,7 +54,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     const navigate = useNavigate()
 
     const taskOptions = [
-        { label: 'Please select', value: '' },
+        // { label: 'Please select', value: '' },
         { label: 'Lead Registration', value: 'lead registration' },
         { label: 'Initial Contact', value: 'initial contact' },
         { label: 'Site Visit', value: 'site visit' },
@@ -170,7 +170,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     return (
         <>
-            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!isLoading ? onClose : undefined} />
 
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[433px] bg-white z-50 rounded-lg shadow-2xl'>
                 <div className='flex flex-col'>
@@ -221,20 +221,21 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         )}
 
                         {/* Task Dropdown */}
-                        <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Task</label>
-                            <Dropdown
-                                options={taskOptions}
-                                onSelect={(value) => handleInputChange('task', value)}
-                                defaultValue={formData.task}
-                                placeholder='Please select'
-                                className='w-full'
-                                triggerClassName='w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
-                                menuClassName='absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto'
-                                optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
-                                disabled={isLoading}
-                            />
-                        </div>
+
+                        <label className='block text-sm font-medium text-gray-700 mb-2'>Task</label>
+                        <Dropdown
+                            options={taskOptions}
+                            onSelect={(value) => handleInputChange('task', value)}
+                            defaultValue={formData.task}
+                            placeholder='Please select'
+                            className='w-full relative inline-block'
+                            triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                formData.task ? '[&>span]:font-medium text-black' : ''
+                            }`}
+                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                            optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
+                            disabled={isLoading}
+                        />
 
                         {/* Due Date & Time */}
                         <div>
@@ -245,7 +246,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 onChange={(e) => handleInputChange('dueDate', e.target.value)}
                                 min={getCurrentDateTime()}
                                 disabled={isLoading}
-                                className='w-1/2 h-8 px-3 py-2.5 border text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
+                                className='w-[55%] h-8 px-3 py-2.5 border text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
                             />
                         </div>
                     </div>

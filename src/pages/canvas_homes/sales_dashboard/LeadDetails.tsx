@@ -355,7 +355,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     return (
         <Layout loading={false}>
             <div className='w-full'>
-                <div className='bg-white min-h-screen w-full max-w-full'>
+                <div className='bg-whitehttp://localhost:5173/canvas-homes/sales/leaddetails/lead09 min-h-screen w-full max-w-full'>
                     {/* Header with Breadcrumb */}
                     <div className='flex items-center justify-between p-3 border-b border-gray-300'>
                         <div className='flex items-center gap-2 text-sm text-gray-600'>
@@ -394,9 +394,9 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                         {activeTab === 'Task' && (
                                             <button
                                                 onClick={handleCreateTaskClick}
-                                                className='flex items-center gap-2 bg-blue-600 text-white px-2 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap'
+                                                className='flex items-center gap-2 bg-[#1C6CED] text-white px-2 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap'
                                             >
-                                                <svg width='16' height='16' viewBox='0 0 16 16' fill='none'>
+                                                <svg width='12' height='12' viewBox='0 0 16 16' fill='none'>
                                                     <path
                                                         d='M8 1V15M1 8H15'
                                                         stroke='currentColor'

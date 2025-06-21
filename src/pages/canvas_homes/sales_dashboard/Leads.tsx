@@ -298,7 +298,7 @@ const Leads = () => {
 
     const handleRowClick = (row: any) => {
         console.log('Row clicked:', row)
-        window.location.href = `/sales/leaddetails/${row.objectId || row.id}`
+        navigate(`leaddetails/${row.leadId}`)
     }
 
     // Status cards data with dynamic counts
@@ -318,7 +318,7 @@ const Leads = () => {
             key: 'name',
             header: 'Name',
             render: (value, row) => (
-                <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
+                <div className='whitespace-nowrap'>
                     <div
                         className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-semibold text-gray-900'
                         title={value || row.property || '-'} // optional: full text on hover
@@ -337,7 +337,6 @@ const Leads = () => {
             render: (value, row) => (
                 <div
                     className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    onClick={() => navigate(`leaddetails/${row.leadId}`)}
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {capitalizeFirst(value || row.property || '-')}
@@ -365,11 +364,7 @@ const Leads = () => {
         {
             key: 'phoneNumber',
             header: 'Contact',
-            render: (value, row) => (
-                <span className='text-sm font-normal' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
-                    {value || row.contact || '-'}
-                </span>
-            ),
+            render: (value, row) => <span className='text-sm font-normal'>{value || row.contact || '-'}</span>,
         },
         {
             key: 'agentName',
@@ -377,7 +372,6 @@ const Leads = () => {
             render: (value, row) => (
                 <div
                     className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    onClick={() => navigate(`leaddetails/${row.leadId}`)}
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {capitalizeFirst(value || row.agent || '-')}
@@ -390,7 +384,6 @@ const Leads = () => {
             render: (value, row) => (
                 <div
                     className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    onClick={() => navigate(`leaddetails/${row.leadId}`)}
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {capitalizeFirst(value || row.leadStage || '-')}
@@ -437,10 +430,7 @@ const Leads = () => {
                 }
 
                 return (
-                    <span
-                        className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'
-                        onClick={() => navigate(`leaddetails/${row.leadId}`)}
-                    >
+                    <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
                         {daysDifference || 0} days
                     </span>
                 )
@@ -472,7 +462,7 @@ const Leads = () => {
                     : ''
 
                 return (
-                    <div className='flex items-center gap-3' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
+                    <div className='flex items-center gap-3'>
                         <div>
                             <div className='text-sm font-medium text-gray-900'>{taskType}</div>
                             <div className='text-xs text-gray-500'>
@@ -675,7 +665,7 @@ const Leads = () => {
                     headerClassName='font-normal text-left'
                     cellClassName='text-left'
                     onRowSelect={handleRowSelect}
-                    // onRowClick={handleRowClick}
+                    onRowClick={handleRowClick}
                     className='rounded-lg'
                     stickyHeader={true}
                     hoverable={true}

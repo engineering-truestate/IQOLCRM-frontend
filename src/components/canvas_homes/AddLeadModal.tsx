@@ -279,7 +279,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
     return (
         <>
-            <div className='fixed top-0 left-0 w-[75%] h-full bg-black opacity-50 z-40' onClick={onClose} />
+            <div className='fixed top-0 left-0 w-[75%] h-full bg-black opacity-66 z-40' onClick={onClose} />
             <div className='fixed top-0 right-0 h-full w-[25%] bg-white z-50 shadow-2xl border-l border-gray-200'>
                 <div className='flex flex-col h-full'>
                     <div className='flex items-center justify-between p-6 pb-0'>
