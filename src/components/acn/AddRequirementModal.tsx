@@ -170,9 +170,7 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                                     placeholder='Type'
                                     className='w-full p-1 border-2 border-gray-300 rounded text-[14px] text-black placeholder-gray-400'
                                 />
-                                <span className='absolute right-3 top-1/2 transform -translate-y-1/2 text-sm px-3'>
-                                    Sq ft
-                                </span>
+                                <span className='absolute right-3 top-1/5 transform text-sm px-3'>Sq ft</span>
                             </div>
                         </div>
 
@@ -188,9 +186,7 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                                     placeholder='Type'
                                     className='w-full p-1 border-2 border-gray-300 rounded text-[14px] text-black placeholder-gray-400'
                                 />
-                                <span className='absolute right-3 top-1/2 transform -translate-y-1/2 text-sm px-3'>
-                                    Sq ft
-                                </span>
+                                <span className='absolute right-3 top-1/5 transform text-sm px-3'>Sq ft</span>
                             </div>
                         </div>
                     </div>
