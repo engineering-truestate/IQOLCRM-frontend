@@ -94,7 +94,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
     }
 
     const getScheduledInfo = (task: Task): string => {
-        switch (task.type.toLowerCase()) {
+        switch (task.taskType.toLowerCase()) {
             case 'lead registration':
                 return 'Registration scheduled'
             case 'initial contact':

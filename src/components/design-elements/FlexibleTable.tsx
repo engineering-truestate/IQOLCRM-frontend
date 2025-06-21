@@ -80,6 +80,7 @@ export interface FlexibleTableProps {
     enableMultiRowSelection?: boolean
     enableColumnResizing?: boolean
     enableSorting?: boolean
+    onRowClick?: (row: any) => void
 }
 
 // Custom Checkbox Component
@@ -262,6 +263,7 @@ export function FlexibleTable({
     maxHeight,
     stickyHeader = false,
     verticalScroll = false,
+    onRowClick,
 }: FlexibleTableProps) {
     const allSelected = data.length > 0 && selectedRows.length === data.length
     const someSelected = selectedRows.length > 0 && selectedRows.length < data.length
@@ -438,7 +440,11 @@ export function FlexibleTable({
                                     .join(' ')
 
                                 return (
-                                    <tr key={row.id || index} className={rowClasses}>
+                                    <tr
+                                        key={row.id || index}
+                                        onClick={onRowClick ? () => onRowClick(row) : undefined}
+                                        className={`${rowClasses} ${onRowClick ? 'cursor-pointer' : ''}`}
+                                    >
                                         {showCheckboxes && (
                                             <td
                                                 className={`py-2 px-4 text-center items-center mx-auto bg-white ${hasLeftFixedColumns ? 'sticky left-0 z-10' : ''} ${getCellBorderClasses()}`}
