@@ -42,9 +42,9 @@ import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
 import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
-import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
-import ResalePage from './pages/restack/resale/ResalePage'
-import Resale from './pages/restack/resale/Resale'
+// import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
+// import ResalePage from './pages/restack/resale/ResalePage'
+// import Resale from './pages/restack/resale/Resale'
 import Rental from './pages/restack/rental/Rental'
 import PropertiesPage from './pages/acn/Properties/Properties'
 import SalesDashboard from './pages/canvas_homes/sales_dashboard/Sales'
@@ -151,10 +151,10 @@ export const protectedRoutes: RouteObject[] = [
         path: '/restack/primary',
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryPage, null)),
     },
-    {
-        path: '/restack/resale/:type/:id/details',
-        element: React.createElement(React.Suspense, null, React.createElement(ResaleDetailsPage, null)),
-    },
+    // {
+    //     path: '/restack/resale/:type/:id/details',
+    //     element: React.createElement(React.Suspense, null, React.createElement(ResaleDetailsPage, null)),
+    // },
     {
         path: '/restack/primary/:id',
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
@@ -237,14 +237,14 @@ export const protectedRoutes: RouteObject[] = [
         path: '/restack/stock/pre-rera/:id/edit',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
     },
-    {
-        path: '/restack/resale/:type',
-        element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
-    },
-    {
-        path: '/restack/resale',
-        element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
-    },
+    // {
+    //     path: '/restack/resale/:type',
+    //     element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
+    // },
+    // {
+    //     path: '/restack/resale',
+    //     element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
+    // },
     {
         path: '/acn/properties',
         element: React.createElement(
