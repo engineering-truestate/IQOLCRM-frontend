@@ -6,7 +6,10 @@ import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import type { Lead, User, Enquiry } from '../../services/canvas_homes/types'
 import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'react-toastify'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch, RootState } from '../../store'
+import { useSelector } from 'react-redux'
+import { fetchPreLaunchProperties, getPreLaunchAllPropertyName } from '../../store/actions/restack/preLaunchActions'
 
 interface AddLeadModalProps {
     isOpen: boolean
@@ -24,26 +27,58 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
         agentName: '',
     })
 
+    const dispatch = useDispatch<AppDispatch>()
+
+    const { properties } = useSelector((state: RootState) => state.preLaunch)
+
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const navigate = useNavigate()
 
+    const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
+
+    useEffect(() => {
+        // Reset form data when modal opens
+        const loadProperty = async () => {
+            if (!properties || properties.length === 0) {
+                await dispatch(fetchPreLaunchProperties())
+            }
+            console.log('Properties loaded:', properties)
+            return properties.map((property) => ({
+                label: property.projectName,
+                value: `${property.projectId}|${property.projectName}`,
+            }))
+        }
+        loadProperty()
+    }, [dispatch, properties, isOpen])
+
+    useEffect(() => {
+        // Set property options when properties are loaded
+        if (properties && properties.length > 0) {
+            const options = properties.map((property) => ({
+                label: property.projectName,
+                value: `${property.projectId}|${property.projectName}`,
+            }))
+            setPropertyOptions(options)
+        }
+    }, [properties])
+
     // Property options
-    const propertyOptions = [
-        { label: 'Select property name', value: '' },
-        { label: 'Sunset Villa', value: 'prop001|Sunset Villa' },
-        { label: 'Ocean View Apartment', value: 'prop002|Ocean View Apartment' },
-        { label: 'Downtown Condo', value: 'prop003|Downtown Condo' },
-        { label: 'Garden Heights', value: 'prop004|Garden Heights' },
-        { label: 'Riverside Towers', value: 'prop005|Riverside Towers' },
-        { label: 'Sattva Hills', value: 'prop006|Sattva Hills' },
-        { label: 'Prestige Gardenia', value: 'prop007|Prestige Gardenia' },
-        { label: 'Brigade Cosmopolis', value: 'prop008|Brigade Cosmopolis' },
-        { label: 'Sobha City', value: 'prop009|Sobha City' },
-        { label: 'Embassy Springs', value: 'prop010|Embassy Springs' },
-        { label: 'Mantri Energia', value: 'prop011|Mantri Energia' },
-    ]
+    // const propertyOptions = [
+    //     { label: 'Select property name', value: '' },
+    //     { label: 'Sunset Villa', value: 'prop001|Sunset Villa' },
+    //     { label: 'Ocean View Apartment', value: 'prop002|Ocean View Apartment' },
+    //     { label: 'Downtown Condo', value: 'prop003|Downtown Condo' },
+    //     { label: 'Garden Heights', value: 'prop004|Garden Heights' },
+    //     { label: 'Riverside Towers', value: 'prop005|Riverside Towers' },
+    //     { label: 'Sattva Hills', value: 'prop006|Sattva Hills' },
+    //     { label: 'Prestige Gardenia', value: 'prop007|Prestige Gardenia' },
+    //     { label: 'Brigade Cosmopolis', value: 'prop008|Brigade Cosmopolis' },
+    //     { label: 'Sobha City', value: 'prop009|Sobha City' },
+    //     { label: 'Embassy Springs', value: 'prop010|Embassy Springs' },
+    //     { label: 'Mantri Energia', value: 'prop011|Mantri Energia' },
+    // ]
 
     // Source options
     const sourceOptions = [
