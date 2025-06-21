@@ -113,8 +113,8 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                 <Dropdown
                     options={interestedOptions}
                     onSelect={handleSelect}
-                    triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
-                    nestedOptionClassName='ml-4 border-l border-gray-200 bg-gray-50 rounded-md'
+                    triggerClassName='flex items-center h-8 w-full justify-between p-2  rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
+                    nestedOptionClassName='ml-2 border-l w-fit border-gray-200 bg-gray- rounded-md'
                     placeholder='Connected'
                     defaultValue=''
                 />
@@ -122,7 +122,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                 <Dropdown
                     options={notConnectedOptions}
                     onSelect={handleSelect}
-                    triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center h-8 w-full justify-between p-2 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     placeholder='Not Connected'
                     defaultValue=''
                 />
@@ -152,9 +152,9 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
             <TaskCompleteModal
                 isOpen={isTaskCompleteModalOpen}
                 onClose={() => setIsTaskCompleteModalOpen(false)}
-                title='Initial Contacted'
-                leadStatus='Interested'
-                stage='Initial Contacted'
+                title='initial contacted'
+                leadStatus='interested'
+                stage='initial contacted'
                 state='open'
                 taskType='initial contact'
             />

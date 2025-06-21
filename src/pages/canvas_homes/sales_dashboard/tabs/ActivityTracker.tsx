@@ -104,14 +104,14 @@ const ActivityTracker: React.FC = (enquiryId) => {
                 return <TaskExecutionCard key={index} activity={activity} />
             case 'task created':
                 return <TaskCreatedCard key={index} activity={activity} />
-            case 'Agent Transfer':
+            case 'agent transfer':
                 return <ChangeAgentCard key={index} activity={activity} />
             case 'New Enquiry':
                 return <NewEnquiryCard key={index} activity={activity} />
             case 'Property Change':
             case 'property change':
                 return <PropertyChangeCard key={index} activity={activity} />
-            case 'Lead Closed':
+            case 'lead closed':
                 return <LeadStateCard key={index} activity={activity} />
             case 'lead added':
                 return <LeadAddedCard key={index} activity={activity} />

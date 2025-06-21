@@ -123,7 +123,7 @@ export const useLeadDetails = (leadId: string) => {
 
     // Actions
     const updateTaskStatus = useCallback(
-        async (taskId: string, status: string, taskResult?: any) => {
+        async (taskId: string, status: 'open' | 'complete', taskResult?: any) => {
             if (!taskId) throw new Error('Invalid taskId provided')
             try {
                 await taskService.updateStatus(taskId.trim(), status, taskResult)
@@ -151,7 +151,12 @@ export const useLeadDetails = (leadId: string) => {
     )
 
     const addActivity = useCallback(
-        async (activityData: { activityType: string; agentName: string; data: Record<string, any> }) => {
+        async (activityData: {
+            activityType: string
+            agentName: string
+            timestamp: number
+            data: Record<string, any>
+        }) => {
             if (!selectedEnquiryId) throw new Error('No valid enquiry selected')
             try {
                 await enquiryService.addActivity(selectedEnquiryId.trim(), activityData)
@@ -182,21 +187,6 @@ export const useLeadDetails = (leadId: string) => {
             setLoading((prev) => ({ ...prev, activities: false }))
         }
     }, [selectedEnquiryId])
-
-    const getActivityByType = useCallback(
-        async (activityType: string): Promise<ActivityHistoryItem[]> => {
-            if (!selectedEnquiryId) return []
-
-            try {
-                const activities = await enquiryService.getActivityByType(selectedEnquiryId.trim(), activityType)
-                return activities
-            } catch (error) {
-                console.error('Failed to get activity by type:', error)
-                throw error
-            }
-        },
-        [selectedEnquiryId],
-    )
 
     const createNewTask = useCallback(
         async (taskData: Omit<Task, 'taskId' | 'added' | 'lastModified'>) => {
@@ -260,19 +250,6 @@ export const useLeadDetails = (leadId: string) => {
         }
     }, [loadLeadData, loadEnquiriesData, loadTasksData, leadId, selectedEnquiryId])
 
-    // Real-time subscription for activity history
-    const subscribeToActivityHistory = useCallback(
-        (callback: (activities: ActivityHistoryItem[]) => void) => {
-            if (!selectedEnquiryId) {
-                callback([])
-                return () => {}
-            }
-
-            return enquiryService.subscribeToActivityHistory(selectedEnquiryId.trim(), callback)
-        },
-        [selectedEnquiryId],
-    )
-
     // Effects
     useEffect(() => {
         if (leadId) {
@@ -319,7 +296,5 @@ export const useLeadDetails = (leadId: string) => {
 
         // Activity History Methods
         getActivityHistory,
-        getActivityByType,
-        subscribeToActivityHistory,
     }
 }

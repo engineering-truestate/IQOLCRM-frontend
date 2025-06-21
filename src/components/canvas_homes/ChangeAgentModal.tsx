@@ -2,20 +2,21 @@ import React, { useState, useEffect } from 'react'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { taskService } from '../../services/canvas_homes/taskService'
-import Dropdown from '../design-elements/Dropdown' // Updated path to match other components
-import { formatProdErrorMessage } from '@reduxjs/toolkit'
+import Dropdown from '../design-elements/Dropdown'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
+import { toast } from 'react-toastify'
 
 interface ChangeAgentModalProps {
     isOpen: boolean
     onClose: () => void
     leadId: string
     enquiryId: string
-    onDetailsAdded?: () => void // Renamed from onEnquiryAdded to match parent component
+    onDetailsAdded?: () => void
+    agentName?: string
 }
 
 const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
-    agentName,
+    agentName = '',
     isOpen,
     onClose,
     leadId,
@@ -33,7 +34,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
 
     // Agent options with IDs
     const agentOptions = [
-        { label: 'Select Agent', value: '' },
+        { label: 'Select agent name', value: '' },
         { label: 'Deepak Goyal', value: 'agent001|Deepak Goyal' },
         { label: 'Rajan Yadav', value: 'agent002|Rajan Yadav' },
         { label: 'Deepak Singh Chauhan', value: 'agent003|Deepak Singh Chauhan' },
@@ -121,11 +122,11 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
 
             // Create new agent history entry
             const newAgentHistoryEntry = {
-                timestamp: Date.now(),
+                timestamp: getUnixDateTime(),
                 agentId: formData.agentId,
                 agentName: formData.agentName,
                 lastStage: currentEnquiry?.stage,
-                assignedAt: Date.now(),
+                assignedAt: getUnixDateTime(),
             }
 
             // Prepare updated agent history
@@ -139,7 +140,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
                 lastModified: currentTimestamp,
             }
             await enquiryService.addActivity(enquiryId, {
-                activityType: 'Agent Transfer',
+                activityType: 'agent transfer',
                 timestamp: currentTimestamp,
                 agentName: agentName,
                 data: {
@@ -155,21 +156,21 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
             const leadUpdateData = {
                 agentId: formData.agentId,
                 agentName: formData.agentName,
-                lastModified: Date.now(),
+                lastModified: getUnixDateTime(),
             }
 
             await leadService.update(leadId, leadUpdateData)
 
             // After updating enquiry and lead
             try {
-                const allTasks = await taskService.getByEnquiryId(enquiryId) // You may need to use getByEnquiryId(enquiryId) if relevant
+                const allTasks = await taskService.getByEnquiryId(enquiryId)
                 const openTasks = allTasks.filter((task) => task.status === 'open')
 
                 const updatePromises = openTasks.map((task) => {
                     return taskService.update(task.taskId, {
                         agentId: formData.agentId,
                         agentName: formData.agentName,
-                        lastModified: Date.now(),
+                        lastModified: getUnixDateTime(),
                     })
                 })
 
@@ -185,13 +186,14 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
             }
 
             // Show success message
-            alert('Agent changed successfully!')
+            toast.success('Agent changed successfully!')
 
             // Reset form and close modal
             handleDiscard()
         } catch (error) {
             console.error('Error changing agent:', error)
             setError('Failed to change agent. Please try again.')
+            toast.error('Failed to change agent')
         } finally {
             setIsLoading(false)
         }
@@ -211,31 +213,44 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={onClose} />
+            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
-            <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 bg-white z-50 rounded-lg shadow-lg'>
+            <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[433px] bg-white z-50 rounded-lg shadow-2xl'>
                 <div className='flex flex-col'>
                     {/* Modal Header */}
-                    <div className='flex items-center justify-between p-6 pb-4 border-b border-gray-100'>
-                        <h2 className='text-lg font-semibold text-black'>Change Agent</h2>
+                    <div className='flex items-center justify-between p-6'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Change Agent</h2>
                         <button
                             onClick={onClose}
-                            className='p-1 hover:bg-gray-100 rounded-md'
                             disabled={isLoading}
-                            aria-label='Close'
+                            className='p-1 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50'
                         >
                             <svg
-                                width='16'
-                                height='16'
-                                viewBox='0 0 20 20'
+                                width='20'
+                                height='21'
+                                viewBox='0 0 20 21'
                                 fill='none'
                                 xmlns='http://www.w3.org/2000/svg'
                             >
                                 <path
-                                    d='M15 5L5 15M5 5L15 15'
-                                    stroke='#6B7280'
-                                    strokeWidth='2'
+                                    d='M10.0013 18.8337C14.5846 18.8337 18.3346 15.0837 18.3346 10.5003C18.3346 5.91699 14.5846 2.16699 10.0013 2.16699C5.41797 2.16699 1.66797 5.91699 1.66797 10.5003C1.66797 15.0837 5.41797 18.8337 10.0013 18.8337Z'
+                                    stroke='#515162'
+                                    strokeWidth='1.5'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                />
+                                <path
+                                    d='M7.64062 12.8583L12.3573 8.1416'
+                                    stroke='#515162'
+                                    strokeWidth='1.5'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                />
+                                <path
+                                    d='M12.3573 12.8583L7.64062 8.1416'
+                                    stroke='#515162'
+                                    strokeWidth='1.5'
                                     strokeLinecap='round'
                                     strokeLinejoin='round'
                                 />
@@ -244,7 +259,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
                     </div>
 
                     {/* Modal Content */}
-                    <div className='p-6 space-y-4'>
+                    <div className='px-6 pt-0'>
                         {/* Error Message */}
                         {error && (
                             <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm'>
@@ -252,39 +267,38 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
                             </div>
                         )}
 
-                        {/* Agent Name */}
-                        <div>
-                            <label htmlFor='agent' className='block text-sm font-medium mb-2 text-gray-700'>
-                                Agent Name <span className='text-red-500'>*</span>
-                            </label>
-                            <Dropdown
-                                id='agent'
-                                options={agentOptions}
-                                onSelect={handleAgentSelect}
-                                defaultValue={formData.agentId ? `${formData.agentId}|${formData.agentName}` : ''}
-                                placeholder='Select Agent'
-                                className='w-full'
-                                triggerClassName='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left'
-                                menuClassName='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
-                                disabled={isLoading}
-                            />
+                        <div className='space-y-6'>
+                            {/* Agent Name */}
+                            <div>
+                                <label className='block text-sm font-medium text-gray-700 mb-2'>Agent Name</label>
+                                <Dropdown
+                                    options={agentOptions}
+                                    onSelect={handleAgentSelect}
+                                    defaultValue={formData.agentId ? `${formData.agentId}|${formData.agentName}` : ''}
+                                    placeholder='Select agent name'
+                                    className='w-full'
+                                    triggerClassName='w-full px-4 py-1 border text-gray-500 border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left'
+                                    menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
+                                    optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                    disabled={isLoading}
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Modal Footer - Centered Buttons */}
-                    <div className='flex items-center justify-center gap-4 p-6 pt-4 border-t border-gray-100'>
+                    {/* Modal Footer */}
+                    <div className='p-4 mt-10 flex items-center justify-center gap-4'>
                         <button
                             onClick={handleDiscard}
                             disabled={isLoading}
-                            className='px-5 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                            className='px-6 py-2 w-30 text-gray-600 bg-gray-200 rounded-sm hover:text-gray-800 hover:bg-gray-300 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                         >
                             Discard
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={isLoading}
-                            className='px-5 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[80px]'
+                            className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>

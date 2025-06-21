@@ -32,7 +32,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
     // State management
     const [selectedTag, setSelectedTag] = useState<string>('potential')
     const [note, setNote] = useState<string>('')
-    const [isSaving, setIsSaving] = useState<boolean>(false)
+    const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
     const navigate = useNavigate()
 
@@ -54,7 +54,6 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
     const currentTaskType = taskType || taskState || ''
-    const isLoading = isSaving || !isOpen
 
     useEffect(() => {
         if (isOpen) {
@@ -65,11 +64,13 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
         }
     }, [isOpen, leadData?.tag])
 
+    const taskStatusOptions = [{ label: 'Complete', value: 'complete' }]
+
     const tagOptions = [
         { label: 'Potential', value: 'potential' },
         { label: 'Hot', value: 'hot' },
         { label: 'Super Hot', value: 'super hot' },
-        { label: 'Fresh', value: 'fresh' },
+        { label: 'Cold', value: 'cold' },
     ]
 
     const handleSave = async () => {
@@ -89,7 +90,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
         }
 
         try {
-            setIsSaving(true)
+            setIsLoading(true)
             setError(null)
 
             const currentTimestamp = getUnixDateTime()
@@ -132,16 +133,13 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
 
             // 4. Add Task Execution activity to enquiry
             await enquiryService.addActivity(enquiryId, {
-                activityType: 'Task Execution',
+                activityType: 'task execution',
                 timestamp: currentTimestamp,
                 agentName: agentName,
                 data: {
                     taskType: currentTaskType,
                     leadStatus: 'Requirement Collected',
-                    tag:
-                        leadData.tag?.toLowerCase() !== selectedTag?.toLowerCase()
-                            ? [leadData.tag?.toLowerCase(), selectedTag?.toLowerCase()]
-                            : [selectedTag?.toLowerCase()],
+                    tag: leadData.tag !== selectedTag ? [leadData.tag, selectedTag] : [selectedTag],
                     note: note.trim() || '',
                 },
             })
@@ -167,7 +165,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
             })
 
             // 7. Refresh data and clean up
-            await refreshData()
+
             dispatch(clearTaskId())
             navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
 
@@ -179,36 +177,56 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
             toast.error('Error saving requirement: ' + (err instanceof Error ? err.message : String(err)))
             setError('Failed to save. Please try again.')
         } finally {
-            setIsSaving(false)
+            setIsLoading(false)
         }
     }
 
     if (!isOpen) return null
 
     return (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50' onClick={onClose}>
-            <div className='w-96 bg-white rounded-lg shadow-lg' onClick={(e) => e.stopPropagation()}>
+        <>
+            {/* Modal Overlay */}
+            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={!isLoading ? onClose : undefined} />
+
+            {/* Modal Container */}
+            <div
+                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-lg shadow-2xl'
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className='flex flex-col'>
                     {/* Modal Header */}
-                    <div className='flex items-center justify-between p-6 pb-4 border-b border-gray-100'>
-                        <h2 className='text-lg font-semibold text-black'>Requirement Collected</h2>
+                    <div className='flex items-center justify-between p-6'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Requirement Collected</h2>
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className='p-1 hover:bg-gray-100 rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
-                            aria-label='Close'
+                            className='p-1 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50'
                         >
                             <svg
-                                width='16'
-                                height='16'
-                                viewBox='0 0 20 20'
+                                width='20'
+                                height='21'
+                                viewBox='0 0 20 21'
                                 fill='none'
                                 xmlns='http://www.w3.org/2000/svg'
                             >
                                 <path
-                                    d='M15 5L5 15M5 5L15 15'
-                                    stroke='#6B7280'
-                                    strokeWidth='2'
+                                    d='M10.0013 18.8337C14.5846 18.8337 18.3346 15.0837 18.3346 10.5003C18.3346 5.91699 14.5846 2.16699 10.0013 2.16699C5.41797 2.16699 1.66797 5.91699 1.66797 10.5003C1.66797 15.0837 5.41797 18.8337 10.0013 18.8337Z'
+                                    stroke='#515162'
+                                    strokeWidth='1.5'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                />
+                                <path
+                                    d='M7.64062 12.8583L12.3573 8.1416'
+                                    stroke='#515162'
+                                    strokeWidth='1.5'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                />
+                                <path
+                                    d='M12.3573 12.8583L7.64062 8.1416'
+                                    stroke='#515162'
+                                    strokeWidth='1.5'
                                     strokeLinecap='round'
                                     strokeLinejoin='round'
                                 />
@@ -217,96 +235,100 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
                     </div>
 
                     {/* Modal Content */}
-                    <div className='p-6 space-y-4'>
-                        {/* Loading indicator */}
-                        {isSaving && (
-                            <div className='bg-blue-50 border border-blue-200 p-3 rounded-md'>
-                                <div className='flex items-center gap-2 text-blue-700'>
-                                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
-                                    <span className='text-sm font-medium'>Saving requirements...</span>
+                    <div className='px-6 pt-0'>
+                        <div className='space-y-4'>
+                            {/* Error Message */}
+                            {error && (
+                                <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm'>
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Status and Tag Row */}
+                            <div className='grid grid-cols-3 gap-4'>
+                                {/* Task Status */}
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Task Status</label>
+                                    <Dropdown
+                                        options={taskStatusOptions}
+                                        onSelect={() => {}}
+                                        defaultValue='complete'
+                                        placeholder='Complete'
+                                        className='w-full'
+                                        triggerClassName='w-full px-4 py-1 border bg-gray-50 text-gray-500 border-gray-300 rounded-sm flex items-center justify-between text-left cursor-not-allowed opacity-80'
+                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
+                                        optionClassName='px-4 py-2 text-sm text-gray-700 bg-gray-50 hover:bg-gray-50 cursor-pointer'
+                                        disabled={true}
+                                    />
+                                </div>
+
+                                {/* Lead Status */}
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Lead Status</label>
+                                    <input
+                                        type='text'
+                                        value='Requirement Collected'
+                                        disabled
+                                        className='w-full px-4 py-1 border border-gray-300 rounded-sm bg-gray-50 text-gray-500'
+                                    />
+                                </div>
+
+                                {/* Tag */}
+                                <div>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Tag</label>
+                                    <Dropdown
+                                        options={tagOptions}
+                                        onSelect={setSelectedTag}
+                                        defaultValue={selectedTag}
+                                        placeholder='Select Tag'
+                                        className='w-full'
+                                        triggerClassName='w-full px-4 py-1 border border-gray-300 text-gray-500 rounded-sm bg-white flex items-center justify-between text-left'
+                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
+                                        optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                        disabled={isLoading}
+                                    />
                                 </div>
                             </div>
-                        )}
 
-                        {error && (
-                            <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm'>
-                                {error}
+                            {/* Note Textarea */}
+                            <div>
+                                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                    Add Note (Optional)
+                                </label>
+                                <textarea
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                    rows={4}
+                                    disabled={isLoading}
+                                    className='w-full px-4 py-2 border border-gray-300 rounded-lg resize-none'
+                                ></textarea>
                             </div>
-                        )}
-
-                        {/* Task Status - Read-only */}
-                        <div>
-                            <label className='block text-sm font-medium mb-2 text-gray-700'>Task Status</label>
-                            <div className='w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700 cursor-not-allowed text-sm'>
-                                Complete
-                            </div>
-                        </div>
-
-                        {/* Lead Status - Read-only */}
-                        <div>
-                            <label className='block text-sm font-medium mb-2 text-gray-700'>Lead Status</label>
-                            <div className='w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700 cursor-not-allowed text-sm'>
-                                Requirement Collected
-                            </div>
-                        </div>
-
-                        {/* Tag - Editable */}
-                        <div>
-                            <label className='block text-sm font-medium mb-2 text-gray-700'>Tag</label>
-                            <Dropdown
-                                options={tagOptions}
-                                onSelect={setSelectedTag}
-                                defaultValue={selectedTag}
-                                placeholder='Select Tag'
-                                className='w-full'
-                                triggerClassName='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left disabled:opacity-50 disabled:cursor-not-allowed'
-                                menuClassName='absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm'
-                                optionClassName='cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-blue-50 text-sm'
-                                disabled={isLoading}
-                            />
-                        </div>
-
-                        {/* Note */}
-                        <div>
-                            <label className='block text-sm font-medium mb-2 text-gray-700'>Add Note (Optional)</label>
-                            <textarea
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                                rows={4}
-                                placeholder='Enter notes here...'
-                                disabled={isLoading}
-                            />
                         </div>
                     </div>
 
                     {/* Modal Footer */}
-                    <div className='flex items-center justify-center gap-4 p-6 pt-4 border-t border-gray-100'>
+                    <div className='p-6 mt-4 flex items-center justify-center gap-4'>
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className='px-5 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                            className='px-6 py-2 w-30 text-gray-600 bg-gray-200 rounded-sm hover:text-gray-800 hover:bg-gray-300 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                         >
                             Discard
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={isLoading}
-                            className='px-5 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[80px]'
+                            className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
-                            {isLoading ? (
-                                <>
-                                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-                                    <span>Saving...</span>
-                                </>
-                            ) : (
-                                'Save'
+                            {isLoading && (
+                                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
                             )}
+                            {isLoading ? 'Saving...' : 'Close Lead'}
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 }
 

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLeadDetails } from '../../../hooks/canvas_homes/useLeadDetails'
 import Layout from '../../../layout/Layout'
+import cold from '/icons/canvas_homes/coldicon.svg'
+import linkedin from '/icons/canvas_homes/linkedin.svg'
+import meta from '/icons/canvas_homes/meta.svg'
 import Documents from './tabs/Documents'
 import Notes from './tabs/Notes'
 import Requirements from './tabs/Requirements'
@@ -17,12 +20,16 @@ import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../store'
 import ActivityTracker from './tabs/ActivityTracker'
 
-// Helper function to handle null/undefined values
+// Helper function to handle null/undefined values and capitalize first letter of each word
 const formatValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
         return '-'
     }
+    // Capitalize first letter of each word
     return String(value)
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
 }
 
 // Update the interface to make leadId optional since we'll get it from URL
@@ -91,7 +98,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
     const handleCloseCreateTaskModal = () => {
         setIsCreateTaskModalOpen(false)
-        refreshData()
     }
 
     // Add Details Modal Handlers
@@ -118,7 +124,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     // Format date helpers
     const formatDate = (timestamp: number | null | undefined) => {
         if (!timestamp) return '-'
-        return new Date(timestamp).toLocaleDateString('en-US', {
+        return new Date(timestamp * 1000).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -250,6 +256,56 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                     </div>
                 </div>
             </Layout>
+        )
+    }
+
+    // Source Icon Component
+    const SourceIcon = ({ source }: { source: string | null | undefined }) => {
+        if (!source) return null
+
+        const sourceType = String(source).toLowerCase()
+
+        if (sourceType === 'google') {
+            return <img src={google} alt='Google' className='w-4 h-4' />
+        } else if (sourceType === 'meta' || sourceType === 'facebook') {
+            return <img src={meta} alt='Meta' className='w-4 h-4' />
+        } else if (sourceType === 'linkedin') {
+            return <img src={linkedin} alt='linkedIn' className='w-4 h-4' />
+        } else {
+            return (
+                <div className='w-4 h-4 bg-gray-500 rounded-full flex items-center justify-center'>
+                    <span className='text-white text-xs font-bold'>
+                        {source ? source.charAt(0).toUpperCase() : '-'}
+                    </span>
+                </div>
+            )
+        }
+    }
+
+    // Tag Badge Component
+    const TagBadge = ({ tag }: { tag: string | null | undefined }) => {
+        if (!tag) return <span className='text-[13px] text-gray-500'>-</span>
+
+        const tagType = String(tag).toLowerCase()
+        let badgeClasses = 'inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-medium'
+
+        if (tagType === 'hot') {
+            badgeClasses += ' bg-[#FFDDDE] text-[#F02532]'
+        } else if (tagType === 'super hot') {
+            badgeClasses += ' bg-[#FAC8C9] text-[#A4151E]'
+        } else if (tagType === 'potential') {
+            badgeClasses += ' bg-[#E1F6DF] text-[#2E8E16]'
+        } else if (tagType === 'cold') {
+            badgeClasses += ' bg-[#E2F4FF] text-[#1C6CED]'
+        }
+
+        return (
+            <div className={badgeClasses}>
+                <svg width='12' height='12' viewBox='0 0 12 12' fill='none'>
+                    <img src={cold} />
+                </svg>
+                <span>{formatValue(tag)}</span>
+            </div>
         )
     }
 
@@ -498,63 +554,14 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                     <div className='flex justify-between items-center'>
                                                         <span className='text-sm w-[60%] text-gray-600'>Source</span>
                                                         <div className='w-[40%] flex items-center gap-2 text-left'>
-                                                            {currentEnquiry?.source === 'Google' ? (
-                                                                <img src={google} alt='Google' className='w-4 h-4' />
-                                                            ) : currentEnquiry.source === 'META' ||
-                                                              currentEnquiry.source === 'Facebook' ? (
-                                                                <div className='w-4 h-4 bg-blue-600 rounded flex items-center justify-center'>
-                                                                    <span className='text-white text-xs font-bold'>
-                                                                        F
-                                                                    </span>
-                                                                </div>
-                                                            ) : (
-                                                                <div className='w-4 h-4 bg-gray-500 rounded-full flex items-center justify-center'>
-                                                                    <span className='text-white text-xs font-bold'>
-                                                                        {currentEnquiry?.source
-                                                                            ? currentEnquiry.source
-                                                                                  .charAt(0)
-                                                                                  .toUpperCase()
-                                                                            : '-'}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            <span className='text-xs text-gray-600'>
-                                                                {formatValue(currentEnquiry.source)}
-                                                            </span>
+                                                            <SourceIcon source={currentEnquiry.source} />
                                                         </div>
                                                     </div>
 
                                                     <div className='flex justify-between items-center'>
                                                         <span className='text-sm w-[60%] text-gray-600'>Tag</span>
                                                         <div className='w-[40%] text-left'>
-                                                            {currentEnquiry.tag ? (
-                                                                <div
-                                                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                                                                        currentEnquiry.tag === 'hot'
-                                                                            ? 'bg-red-100 text-red-800'
-                                                                            : currentEnquiry.tag === 'super hot'
-                                                                              ? 'bg-red-200 text-red-900'
-                                                                              : currentEnquiry.tag === 'potential'
-                                                                                ? 'bg-yellow-100 text-yellow-800'
-                                                                                : 'bg-blue-100 text-blue-800'
-                                                                    }`}
-                                                                >
-                                                                    <svg
-                                                                        width='12'
-                                                                        height='12'
-                                                                        viewBox='0 0 12 12'
-                                                                        fill='none'
-                                                                    >
-                                                                        <path
-                                                                            d='M6 1L7.5 4.5L11 5L8.5 7.5L9 11L6 9L3 11L3.5 7.5L1 5L4.5 4.5L6 1Z'
-                                                                            fill='currentColor'
-                                                                        />
-                                                                    </svg>
-                                                                    <span>{currentEnquiry.tag}</span>
-                                                                </div>
-                                                            ) : (
-                                                                <span className='text-[13px] text-gray-500'>-</span>
-                                                            )}
+                                                            <TagBadge tag={currentEnquiry.tag} />
                                                         </div>
                                                     </div>
                                                 </div>

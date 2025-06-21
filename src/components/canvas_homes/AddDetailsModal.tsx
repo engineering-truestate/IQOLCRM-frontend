@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import Dropdown from '../design-elements/Dropdown'
 import { leadService } from '../../services/canvas_homes/leadService' // Adjust path as needed
 import { userService } from '../../services/canvas_homes/userService' // Adjust path as needed
+import { toast } from 'react-toastify'
+import { getUnixDateTime } from '../helper/getUnixDateTime'
 
 interface AddDetailsModalProps {
     isOpen: boolean
@@ -22,14 +24,14 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
     isOpen,
     onClose,
     onDetailsAdded,
-    leadId,
-    userId,
+    leadId = '',
+    userId = '',
     currentPhoneNumber = '',
     currentLabel = 'call',
     additionalPhoneNumbers = [],
 }) => {
     const [formData, setFormData] = useState({
-        phoneNumber: '',
+        phoneNumber: '+91',
         label: 'whatsapp' as 'whatsapp' | 'call',
         emailAddress: '',
     })
@@ -44,6 +46,22 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
     ]
 
     const handleInputChange = (field: keyof typeof formData, value: string) => {
+        // For phone number, ensure it's formatted properly while typing
+        if (field === 'phoneNumber') {
+            // If user deletes everything, reset to +91
+            if (!value || value.length === 0) {
+                value = '+91'
+            }
+            // If they delete the +91 prefix, add it back
+            else if (!value.startsWith('+')) {
+                value = '+91' + value.replace(/[^\d]/g, '')
+            }
+            // If they have +91 and try to edit it, preserve the +91
+            else if (value.startsWith('+') && !value.startsWith('+91')) {
+                value = '+91' + value.substring(1).replace(/[^\d]/g, '')
+            }
+        }
+
         setFormData((prev) => ({
             ...prev,
             [field]: value,
@@ -54,14 +72,21 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
     }
 
     const formatPhoneNumber = (number: string): string => {
-        const cleanNumber = number.replace(/[^\d+]/g, '') // Remove non-digit characters except +
+        // First, remove any non-digit characters except the plus sign
+        const cleanNumber = number.replace(/[^\d+]/g, '')
 
-        // If it's an Indian number without country code, add +91
+        // If the number has a +91 prefix followed by 10 digits, format it nicely
+        if (cleanNumber.startsWith('+91') && cleanNumber.length >= 13) {
+            const digits = cleanNumber.substring(3) // Get digits after +91
+            return `+91 ${digits}`
+        }
+
+        // If it's just 10 digits without country code, add the +91 prefix
         if (cleanNumber.length === 10 && /^\d{10}$/.test(cleanNumber)) {
             return `+91 ${cleanNumber}`
         }
 
-        // If it already has a plus, ensure there's a space after the country code
+        // If it starts with + but isn't properly formatted yet
         if (cleanNumber.startsWith('+')) {
             // Find the country code (1-3 digits after +)
             const countryCodeMatch = cleanNumber.match(/^\+(\d{1,3})/)
@@ -72,20 +97,21 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             }
         }
 
+        // If all else fails, return the cleaned number
         return cleanNumber
     }
 
     const validateForm = (): boolean => {
-        // Phone number is required
-        if (!formData.phoneNumber.trim()) {
+        // Phone number is required and must be more than just "+91"
+        if (!formData.phoneNumber.trim() || formData.phoneNumber.trim() === '+91') {
             setError('Phone Number is required')
             return false
         }
 
-        // Basic phone number validation
-        const phoneRegex = /^\+?[\d\s\-()]{10,15}$/
-        if (!phoneRegex.test(formData.phoneNumber.trim())) {
-            setError('Please enter a valid phone number (e.g., +91 9999999999)')
+        // Basic phone number validation - must be +91 followed by 10 digits
+        const phoneRegex = /^\+91\s?\d{10}$/
+        if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
+            setError('Please enter a valid 10-digit phone number with +91 prefix')
             return false
         }
 
@@ -138,12 +164,12 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             const newPhoneEntry = {
                 number: formattedPhoneNumber,
                 label: formData.label,
-                addedAt: Date.now(),
+                addedAt: getUnixDateTime(),
             }
 
             // Prepare update data
             const updateData: any = {
-                lastModified: Date.now(),
+                lastModified: getUnixDateTime(),
             }
 
             // Add email if provided
@@ -152,7 +178,7 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             }
 
             // Handle phone numbers
-            if (additionalPhoneNumbers.length > 0) {
+            if (additionalPhoneNumbers.length > 0 || currentPhoneNumber) {
                 // Already have additional numbers, add to the array
                 updateData.phoneNumbers = [...additionalPhoneNumbers, newPhoneEntry]
             } else {
@@ -174,13 +200,14 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             }
 
             // Show success message
-            alert('Details added successfully!')
+            toast.success('Details added successfully!')
 
             // Reset form and close modal
             handleDiscard()
         } catch (error) {
             console.error('Error updating lead:', error)
             setError('Failed to add details. Please try again.')
+            toast.error('Failed to add details')
         } finally {
             setIsLoading(false)
         }
@@ -188,7 +215,7 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
 
     const handleDiscard = () => {
         setFormData({
-            phoneNumber: '',
+            phoneNumber: '+91',
             label: 'whatsapp',
             emailAddress: '',
         })
@@ -201,31 +228,44 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={onClose} />
+            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
-            <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 bg-white z-50 rounded-lg shadow-2xl'>
+            <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[433px] bg-white z-50 rounded-lg shadow-2xl'>
                 <div className='flex flex-col'>
                     {/* Modal Header */}
-                    <div className='flex items-center justify-between p-6 pb-4 border-b border-gray-100'>
-                        <h2 className='text-lg font-semibold text-black'>Add Details</h2>
+                    <div className='flex items-center justify-between p-6'>
+                        <h2 className='text-xl font-semibold text-gray-900'>Add Details</h2>
                         <button
                             onClick={onClose}
-                            className='p-1 hover:bg-gray-100 rounded-md'
                             disabled={isLoading}
-                            aria-label='Close'
+                            className='p-1 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50'
                         >
                             <svg
-                                width='16'
-                                height='16'
-                                viewBox='0 0 20 20'
+                                width='20'
+                                height='21'
+                                viewBox='0 0 20 21'
                                 fill='none'
                                 xmlns='http://www.w3.org/2000/svg'
                             >
                                 <path
-                                    d='M15 5L5 15M5 5L15 15'
-                                    stroke='#6B7280'
-                                    strokeWidth='2'
+                                    d='M10.0013 18.8337C14.5846 18.8337 18.3346 15.0837 18.3346 10.5003C18.3346 5.91699 14.5846 2.16699 10.0013 2.16699C5.41797 2.16699 1.66797 5.91699 1.66797 10.5003C1.66797 15.0837 5.41797 18.8337 10.0013 18.8337Z'
+                                    stroke='#515162'
+                                    strokeWidth='1.5'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                />
+                                <path
+                                    d='M7.64062 12.8583L12.3573 8.1416'
+                                    stroke='#515162'
+                                    strokeWidth='1.5'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                />
+                                <path
+                                    d='M12.3573 12.8583L7.64062 8.1416'
+                                    stroke='#515162'
+                                    strokeWidth='1.5'
                                     strokeLinecap='round'
                                     strokeLinejoin='round'
                                 />
@@ -234,7 +274,7 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
                     </div>
 
                     {/* Modal Content */}
-                    <div className='p-6'>
+                    <div className='px-6 pt-0'>
                         {/* Error Message */}
                         {error && (
                             <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm'>
@@ -242,47 +282,33 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
                             </div>
                         )}
 
-                        <div className='space-y-4'>
-                            {/* Phone Number and Label Section */}
+                        <div className='space-y-6'>
                             <div className='grid grid-cols-2 gap-3'>
                                 {/* Phone Number Input */}
                                 <div>
-                                    <label
-                                        htmlFor='phoneNumber'
-                                        className='block text-sm font-medium mb-2 text-gray-700'
-                                    >
-                                        Phone No. <span className='text-red-500'>*</span>
-                                    </label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Phone No.</label>
                                     <input
-                                        id='phoneNumber'
                                         type='tel'
                                         value={formData.phoneNumber}
                                         onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                                        placeholder='+91'
-                                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                                        placeholder='+91 '
+                                        className='w-full px-4 py-1 border font-normal text-gray-500 border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm'
                                         disabled={isLoading}
-                                        required
                                     />
                                 </div>
 
                                 {/* Label Dropdown */}
                                 <div>
-                                    <label
-                                        htmlFor='phoneLabel'
-                                        className='block text-sm font-medium mb-2 text-gray-700'
-                                    >
-                                        Label <span className='text-red-500'>*</span>
-                                    </label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Label</label>
                                     <Dropdown
-                                        id='phoneLabel'
                                         options={labelOptions}
                                         onSelect={(value) => handleInputChange('label', value as 'whatsapp' | 'call')}
                                         defaultValue={formData.label}
                                         placeholder='Select'
                                         className='w-full'
-                                        triggerClassName='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left'
-                                        menuClassName='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg'
-                                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                        triggerClassName='w-full px-4 py-1 font-normal text-gray-500 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left'
+                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
+                                        optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -290,35 +316,32 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
 
                             {/* Email Input */}
                             <div>
-                                <label htmlFor='emailAddress' className='block text-sm font-medium mb-2 text-gray-700'>
-                                    Email Id
-                                </label>
+                                <label className='block text-sm font-medium text-gray-700 mb-2'>Email id</label>
                                 <input
-                                    id='emailAddress'
                                     type='email'
                                     value={formData.emailAddress}
                                     onChange={(e) => handleInputChange('emailAddress', e.target.value)}
                                     placeholder='Enter email address'
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                                    className='w-full px-2 py-1 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-sm'
                                     disabled={isLoading}
                                 />
                             </div>
                         </div>
                     </div>
 
-                    {/* Modal Footer - Centered Buttons */}
-                    <div className='flex items-center justify-center gap-4 p-6 pt-4 border-t border-gray-100'>
+                    {/* Modal Footer */}
+                    <div className='p-6 mt-6 flex items-center justify-center gap-4'>
                         <button
                             onClick={handleDiscard}
                             disabled={isLoading}
-                            className='px-5 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                            className='px-6 py-2 w-30 text-gray-600 bg-gray-200 rounded-sm hover:text-gray-800 hover:bg-gray-300 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                         >
                             Discard
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={isLoading}
-                            className='px-5 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[80px]'
+                            className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>

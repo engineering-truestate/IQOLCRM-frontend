@@ -16,6 +16,7 @@ interface DropdownProps {
     triggerClassName?: string
     menuClassName?: string
     optionClassName?: string
+    disabled?: boolean
 }
 
 const Dropdown = ({
@@ -27,6 +28,7 @@ const Dropdown = ({
     triggerClassName,
     menuClassName,
     optionClassName,
+    disabled = false,
 }: DropdownProps) => {
     const [isOpen, setIsOpen] = useState(false)
     const [selected, setSelected] = useState<string>(defaultValue || '')
@@ -63,6 +65,9 @@ const Dropdown = ({
     const selectedLabel = selected ? selectedOption?.label : placeholder
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (disabled) {
+            setIsOpen(false)
+        }
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             setIsOpen((open) => !open)
@@ -73,6 +78,9 @@ const Dropdown = ({
     }
 
     const handleSelect = (option: Option) => {
+        if (disabled) {
+            setIsOpen(false)
+        }
         setSelected(option.value)
         onSelect(option.value)
         setIsOpen(false)
@@ -106,7 +114,7 @@ const Dropdown = ({
             </div>
 
             {/* Menu */}
-            {isOpen && (
+            {isOpen && !disabled && (
                 <div
                     className={menuClassName || defaultMenuClass}
                     style={{ minWidth: `${triggerWidth}px` }}

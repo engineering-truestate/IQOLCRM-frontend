@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { Enquiry, NoteItem, ActivityHistoryItem } from './types'
+import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 
 class EnquiryService {
     private collectionName = 'canvashomesEnquiries'
@@ -63,7 +64,7 @@ class EnquiryService {
                 nextEnquiryId = `enq${newNumber.toString().padStart(2, '0')}`
             }
 
-            const timestamp = Date.now()
+            const timestamp = getUnixDateTime()
             const newEnquiry: Enquiry = {
                 ...enquiryData,
                 enquiryId: nextEnquiryId,
@@ -86,7 +87,7 @@ class EnquiryService {
         try {
             const updateData = {
                 ...updates,
-                lastModified: Date.now(),
+                lastModified: getUnixDateTime(),
             }
             await updateDoc(doc(db, this.collectionName, enquiryId), updateData)
         } catch (error) {
@@ -103,7 +104,7 @@ class EnquiryService {
             if (enquiryDoc.exists()) {
                 const currentData = enquiryDoc.data() as Enquiry
                 const newNote: NoteItem = {
-                    timestamp: noteData.timestamp || Date.now(),
+                    timestamp: noteData.timestamp || getUnixDateTime(),
                     ...noteData,
                 }
 
@@ -111,7 +112,7 @@ class EnquiryService {
 
                 await updateDoc(enquiryRef, {
                     notes: updatedNotes,
-                    lastModified: Date.now(),
+                    lastModified: getUnixDateTime(),
                 })
             }
         } catch (error) {
@@ -138,7 +139,7 @@ class EnquiryService {
 
                 await updateDoc(enquiryRef, {
                     activityHistory: updatedActivity,
-                    lastModified: Date.now(),
+                    lastModified: getUnixDateTime(),
                 })
             }
         } catch (error) {

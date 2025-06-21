@@ -72,12 +72,12 @@ const Dropdown = ({
     // Default Styles (unchanged)
     const defaultTriggerStyles =
         'flex items-center justify-between px-2 py-1 border border-gray-300 rounded-sm bg-gray-100 text-xs text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
-    const defaultMenuStyles = 'absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+    const defaultMenuStyles = 'absolute z-50 mt-1 w-fit bg-white border border-gray-300 rounded-md shadow-lg'
     const defaultOptionStyles =
         'px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
 
     return (
-        <div ref={dropdownRef} className={`relative inline-block ${className}`}>
+        <div ref={dropdownRef} className={`relative inline-block ${className} bg red`}>
             {/* Trigger Button */}
             <button onClick={handleToggle} className={`${triggerClassName || defaultTriggerStyles} whitespace-nowrap`}>
                 {selected || placeholder}
@@ -90,7 +90,7 @@ const Dropdown = ({
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className={`${menuClassName || defaultMenuStyles}`}>
+                <div className={`${menuClassName || defaultMenuStyles} `}>
                     {options.map((option, index) => (
                         <div key={option.value}>
                             {/* Main Option */}
@@ -99,13 +99,13 @@ const Dropdown = ({
                                     e.stopPropagation()
                                     handleOptionClick(option, index)
                                 }}
-                                className={`${optionClassName || defaultOptionStyles} whitespace-nowrap`}
+                                className={`${optionClassName || defaultOptionStyles} whitespace-nowrap flex flex-row bg-red`}
                             >
                                 {option.label}
                                 {option.subOptions && (
-                                    <span className='ml-1'>
+                                    <span>
                                         <svg
-                                            className='w-4 h-4 ml-2'
+                                            className='w-4 h-4 ml-1 mt-1'
                                             fill='none'
                                             stroke='currentColor'
                                             viewBox='0 0 24 24'
@@ -124,7 +124,7 @@ const Dropdown = ({
                             {/* Sub Options */}
                             {option.subOptions && nestedOpen === index && (
                                 <div
-                                    className={`absolute left-full top-0 mt-1 w-40 bg-white border border-gray-300 rounded-md shadow-lg ${nestedOptionClassName}`}
+                                    className={`absolute left-full top-0 mt-10 w-fit bg-white border border-gray-300 rounded-md shadow-lg ${nestedOptionClassName} w-fit`}
                                 >
                                     {option.subOptions.map((subOption) => (
                                         <div

@@ -3,6 +3,8 @@ import Dropdown from '../../components/design-elements/Dropdown'
 import { leadService } from '../../services/canvas_homes'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
+import { toast } from 'react-toastify'
+import { useNavigate } from 'react-router-dom'
 
 interface CreateTaskModalProps {
     isOpen: boolean
@@ -35,12 +37,21 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     stage,
     tag,
 }) => {
+    const getCurrentDateTime = () => {
+        const now = new Date()
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+        return now.toISOString().slice(0, 16)
+    }
+
     const [formData, setFormData] = useState({
         task: '',
-        dueDate: '',
+        dueDate: getCurrentDateTime(),
     })
 
-    const [saving, setSaving] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const navigate = useNavigate()
 
     const taskOptions = [
         { label: 'Please select', value: '' },
@@ -56,25 +67,36 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             ...prev,
             [field]: value,
         }))
+        if (error) setError(null)
+    }
+
+    const validateForm = (): boolean => {
+        if (!formData.task) {
+            setError('Please select a task type')
+            return false
+        }
+        if (!formData.dueDate) {
+            setError('Please select a date and time')
+            return false
+        }
+        if (!enquiryId) {
+            setError('No enquiry selected. Please select an enquiry first.')
+            return false
+        }
+        if (!onTaskCreated) {
+            setError('Task creation handler not provided.')
+            return false
+        }
+        return true
     }
 
     const handleSave = async () => {
-        if (!formData.task || !formData.dueDate) {
-            alert('Please fill in all required fields (Task, Due Date)')
+        setError(null)
+        if (!validateForm()) {
             return
         }
 
-        if (!enquiryId) {
-            alert('No enquiry selected. Please select an enquiry first.')
-            return
-        }
-
-        if (!onTaskCreated) {
-            alert('Task creation handler not provided.')
-            return
-        }
-
-        setSaving(true)
+        setIsLoading(true)
 
         try {
             const scheduledDate = new Date(formData.dueDate)
@@ -91,7 +113,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 stage: stage,
                 leadStatus: leadStatus,
                 tag: tag,
-                scheduledDate: scheduledDate.getTime(),
+                scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
                 added: getUnixDateTime(),
                 completionDate: null,
                 lastModified: getUnixDateTime(),
@@ -111,7 +133,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 await enquiryService.addActivity(enquiryId, {
                     activityType: 'task created',
                     timestamp: getUnixDateTime(),
-                    agentName: agentName,
+                    agentName: agentName || null,
                     data: {
                         taskType: formData.task.toLowerCase(),
                         scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
@@ -120,37 +142,35 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             }
 
             // Create the task
-            await onTaskCreated(taskData)
-
-            alert('Task created successfully!')
+            if (onTaskCreated) {
+                await onTaskCreated(taskData)
+            }
+            toast.success('Task Created Successfully')
             handleDiscard()
+            navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
         } catch (error) {
             console.error('Error creating task:', error)
-            alert('Failed to create task. Please try again.')
+            setError('Failed to create task. Please try again.')
+            toast.error('Failed to Create Task')
         } finally {
-            setSaving(false)
+            setIsLoading(false)
         }
     }
 
     const handleDiscard = () => {
         setFormData({
             task: '',
-            dueDate: '',
+            dueDate: getCurrentDateTime(),
         })
+        setError(null)
         onClose()
-    }
-
-    const getCurrentDateTime = () => {
-        const now = new Date()
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-        return now.toISOString().slice(0, 16)
     }
 
     if (!isOpen) return null
 
     return (
         <>
-            <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!saving ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={!isLoading ? onClose : undefined} />
 
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[433px] bg-white z-50 rounded-lg shadow-2xl'>
                 <div className='flex flex-col'>
@@ -158,7 +178,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         <h2 className='text-xl font-semibold text-gray-900'>Create Task</h2>
                         <button
                             onClick={onClose}
-                            disabled={saving}
+                            disabled={isLoading}
                             className='p-1 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50'
                         >
                             <svg
@@ -194,6 +214,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     </div>
 
                     <div className='p-6 pt-0 space-y-4'>
+                        {error && (
+                            <div className='mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm'>
+                                {error}
+                            </div>
+                        )}
+
                         {/* Task Dropdown */}
                         <div>
                             <label className='block text-sm font-medium text-gray-700 mb-2'>Task</label>
@@ -206,17 +232,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 triggerClassName='w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
                                 menuClassName='absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto'
                                 optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                disabled={isLoading}
                             />
                         </div>
 
                         {/* Due Date & Time */}
                         <div>
+                            <label className='block text-sm font-medium text-gray-700 mb-2'>Date and Time</label>
                             <input
                                 type='datetime-local'
                                 value={formData.dueDate}
                                 onChange={(e) => handleInputChange('dueDate', e.target.value)}
                                 min={getCurrentDateTime()}
-                                disabled={saving}
+                                disabled={isLoading}
                                 className='w-1/2 h-8 px-3 py-2.5 border text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
                             />
                         </div>
@@ -226,20 +254,20 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         <div className='flex items-center gap-3'>
                             <button
                                 onClick={handleDiscard}
-                                disabled={saving}
-                                className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50'
+                                disabled={isLoading}
+                                className='px-6 py-2 w-30 text-gray-600 bg-gray-200 rounded-sm hover:text-gray-800 hover:bg-gray-300 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                             >
                                 Discard
                             </button>
                             <button
                                 onClick={handleSave}
-                                disabled={saving || !formData.task || !formData.dueDate}
-                                className='px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 flex items-center gap-2'
+                                disabled={isLoading}
+                                className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                             >
-                                {saving && (
+                                {isLoading && (
                                     <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
                                 )}
-                                {saving ? 'Creating...' : 'Save'}
+                                {isLoading ? 'Saving...' : 'Save'}
                             </button>
                         </div>
                     </div>
