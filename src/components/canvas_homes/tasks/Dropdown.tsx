@@ -80,7 +80,7 @@ const Dropdown = ({
         <div ref={dropdownRef} className={`relative inline-block ${className} bg red`}>
             {/* Trigger Button */}
             <button onClick={handleToggle} className={`${triggerClassName || defaultTriggerStyles} whitespace-nowrap`}>
-                {selected || placeholder}
+                {selected === 'open' || selected === 'complete' ? selected : placeholder}
                 <span className='ml-1'>
                     <svg className='w-4 h-4 ml-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                         <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
@@ -103,18 +103,21 @@ const Dropdown = ({
                             >
                                 {option.label}
                                 {option.subOptions && (
-                                    <span>
+                                    <span className='mt-0.5 ml-1'>
                                         <svg
-                                            className='w-4 h-4 ml-1 mt-1'
+                                            width='16'
+                                            height='16'
+                                            viewBox='0 0 16 16'
                                             fill='none'
-                                            stroke='currentColor'
-                                            viewBox='0 0 24 24'
+                                            xmlns='http://www.w3.org/2000/svg'
                                         >
                                             <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M19 9l-7 7-7-7'
+                                                d='M5.96484 2.72003L10.3115 7.0667C10.8248 7.58003 10.8248 8.42003 10.3115 8.93336L5.96484 13.28'
+                                                stroke='#606060'
+                                                stroke-width='1.5'
+                                                stroke-miterlimit='10'
+                                                stroke-linecap='round'
+                                                stroke-linejoin='round'
                                             />
                                         </svg>
                                     </span>
@@ -124,7 +127,7 @@ const Dropdown = ({
                             {/* Sub Options */}
                             {option.subOptions && nestedOpen === index && (
                                 <div
-                                    className={`absolute left-full top-0 mt-10 w-fit bg-white border border-gray-300 rounded-md shadow-lg ${nestedOptionClassName} w-fit`}
+                                    className={`absolute left-full top-0 mt-10 w-fit bg-white border border-gray-300 rounded-md shadow-lg ${nestedOptionClassName} w-full min-w-[160px]`}
                                 >
                                     {option.subOptions.map((subOption) => (
                                         <div

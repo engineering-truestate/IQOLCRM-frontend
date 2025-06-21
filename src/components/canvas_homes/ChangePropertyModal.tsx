@@ -15,11 +15,10 @@ import Dropdown from '../design-elements/Dropdown'
 interface ChangePropertyModalProps {
     isOpen: boolean
     onClose: () => void
-    onChangeProperty: (formData: any) => void
     taskType: string
 }
 
-const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, onChangeProperty, taskType }) => {
+const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, taskType }) => {
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
@@ -134,7 +133,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
                 // Add Property Change activity to old enquiry
                 await enquiryService.addActivity(enquiryId, {
-                    activityType: 'Property Change',
+                    activityType: 'property change',
                     timestamp: currentTimestamp,
                     agentName: agentName,
                     data: {
@@ -177,7 +176,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     ],
                     activityHistory: [
                         {
-                            activityType: 'New Enquiry',
+                            activityType: 'new enquiry',
                             timestamp: currentTimestamp,
                             agentName: agentName,
                             data: {
@@ -217,8 +216,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                 })
 
                 toast.success('Property changed successfully')
-                onChangeProperty(formData)
-                refreshData()
+
                 onClose()
 
                 navigate(`/canvas-homes/sales/leaddetails/${leadId}`)

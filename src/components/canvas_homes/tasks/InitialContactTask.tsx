@@ -102,11 +102,6 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
         console.log('Selected value:', value)
     }
 
-    const handleChangeProperty = (formData: any) => {
-        console.log('Change property form data:', formData)
-        setIsChangePropertyModalOpen(false) // Close the modal after submitting
-    }
-
     return (
         <div>
             <div className='flex gap-3'>
@@ -114,7 +109,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                     options={interestedOptions}
                     onSelect={handleSelect}
                     triggerClassName='flex items-center h-8 w-full justify-between p-2  rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
-                    nestedOptionClassName='ml-2 border-l w-fit border-gray-200 bg-gray- rounded-md'
+                    nestedOptionClassName='ml-2 border-l w-fit border-gray-200 bg-gray- rounded-md text-[13px]'
                     placeholder='Connected'
                     defaultValue=''
                 />
@@ -131,7 +126,6 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                 <ChangePropertyModal
                     isOpen={isChangePropertyModalOpen}
                     onClose={() => setIsChangePropertyModalOpen(false)}
-                    onChangeProperty={handleChangeProperty}
                     taskType='initial contact'
                 />
             )}

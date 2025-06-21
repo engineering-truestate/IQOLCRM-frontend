@@ -3,12 +3,14 @@ import Dropdown from './Dropdown'
 import CloseLeadModal from '../CloseLeadModal'
 import type { AppDispatch } from '../../../store'
 import { useDispatch } from 'react-redux'
-import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
+import { clearTaskId, setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
 import RescheduleEventModal from '../RescheduleEventModal'
 import ChangePropertyModal from '../ChangePropertyModal'
 import TaskCompleteModal from '../TaskCompleteModal'
 import { taskService } from '../../../services/canvas_homes/taskService'
 import { getUnixDateTime } from '../../helper/getUnixDateTime'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../../store'
 
 interface CollectEOITaskProps {
     updateTaskState: (taskId: string, key: string, value: any) => void
@@ -28,6 +30,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
     taskStatusOptions,
 }) => {
     const dispatch = useDispatch<AppDispatch>()
+    const taskId: string = useSelector((state: RootState) => state.taskId.taskId || '')
     const [showRescheduleEventModal, setShowRescheduleEventModal] = useState(false)
     const [showCloseLeadModal, setShowCloseLeadModal] = useState(false)
     const [showChangePropertyModal, setShowChangePropertyModal] = useState(false)
@@ -117,6 +120,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
 
             // Open task complete modal
             setShowTaskCompleteModal(true)
+            clearTaskId()
         } catch (error) {
             console.error('Error updating task:', error)
             setValidationError('Failed to update task. Please try again.')
@@ -190,30 +194,18 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                 </div>
             )}
 
-            {isReadOnly ? (
-                // Read-only mode - display existing EOI entries without editing capability
-                <div className='space-y-3'>
-                    <h3 className='text-md font-medium text-gray-800'>EOI Details</h3>
-                    {eoiEntries.map((entry, index) => (
-                        <div key={index} className='flex flex-row gap-2 mb-2 border p-3 rounded-md bg-gray-50'>
-                            <div className='w-[207px]'>
-                                <label className='block text-xs font-medium text-gray-600 mb-1'>Type of Check</label>
-                                <div className='text-sm text-gray-800'>{getEoiTypeDisplay(entry.type)}</div>
-                            </div>
-                            <div className='w-[207px]'>
-                                <label className='block text-xs font-medium text-gray-600 mb-1'>Amount of EOI</label>
-                                <div className='text-sm text-gray-800'>{entry.amount}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                // Edit mode - allow adding/removing/editing EOI entries
-                <>
-                    {eoiEntries.map((entry, index) => (
-                        <div key={index} className='flex flex-row gap-2 mb-2'>
-                            <div className='w-[207px]'>
-                                <label className='block text-sm font-medium text-gray-700 mb-2'>Type of Check</label>
+            <div className='space-y-3'>
+                {isReadOnly && <h3 className='text-md font-medium text-gray-800'>EOI Details</h3>}
+
+                {eoiEntries.map((entry, index) => (
+                    <div key={index} className='flex flex-row gap-2 mb-2'>
+                        <div className='w-[207px]'>
+                            <label className='block text-sm font-medium text-gray-700 mb-2'>Type of Check</label>
+                            {isReadOnly ? (
+                                <div className='w-full h-8 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-xs'>
+                                    {getEoiTypeDisplay(entry.type)}
+                                </div>
+                            ) : (
                                 <Dropdown
                                     options={eoiTypeOptions}
                                     defaultValue={entry.type}
@@ -222,20 +214,27 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                                     placeholder='Select Type'
                                     disabled={updating}
                                 />
-                            </div>
-                            <div className='w-[207px]'>
-                                <label className='block text-sm font-medium text-gray-700 mb-2'>Amount of EOI</label>
-                                <div className='relative'>
-                                    <input
-                                        type='text'
-                                        placeholder='Text here'
-                                        value={entry.amount}
-                                        onChange={(e) => handleAmountChange(index, e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                        disabled={updating}
-                                        className='w-full h-8 px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
-                                    />
-                                    {index === eoiEntries.length - 1 ? (
+                            )}
+                        </div>
+                        <div className='w-[207px]'>
+                            <label className='block text-sm font-medium text-gray-700 mb-2'>Amount of EOI</label>
+                            <div className='relative'>
+                                <input
+                                    type='text'
+                                    placeholder='Text here'
+                                    value={entry.amount}
+                                    onChange={(e) => handleAmountChange(index, e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    disabled={isReadOnly || updating}
+                                    readOnly={isReadOnly}
+                                    className={`w-full h-8 px-3 py-2 pr-8 border border-gray-300 rounded-md ${
+                                        isReadOnly
+                                            ? 'bg-gray-50'
+                                            : 'focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                />
+                                {!isReadOnly &&
+                                    (index === eoiEntries.length - 1 ? (
                                         <span
                                             className={`absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer ${updating ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             onClick={updating ? undefined : handleAddEoiEntry}
@@ -249,12 +248,15 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                                         >
                                             -
                                         </span>
-                                    )}
-                                </div>
+                                    ))}
                             </div>
                         </div>
-                    ))}
+                    </div>
+                ))}
+            </div>
 
+            {!isReadOnly && (
+                <>
                     {validationError && <div className='text-red-500 text-sm'>{validationError}</div>}
 
                     <button

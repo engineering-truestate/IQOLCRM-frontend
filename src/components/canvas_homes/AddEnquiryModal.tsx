@@ -171,7 +171,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                 ],
                 activityHistory: [
                     {
-                        activityType: 'New Enquiry',
+                        activityType: 'new enquiry',
                         timestamp: currentTimestamp,
                         agentName: agentName,
                         data: {

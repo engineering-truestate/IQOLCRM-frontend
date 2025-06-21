@@ -4,15 +4,45 @@ import { useDispatch } from 'react-redux'
 import { setEnquiryId, setTaskId } from '../../../store/reducers/canvas-homes/taskIdReducer'
 import type { AppDispatch } from '../../../store'
 import { formatUnixDateTime } from '../../helper/getUnixDateTime'
+
+// Define proper type for the task object
+interface Task {
+    id: string
+    enquiryId: string
+    title: string
+    date: string | number // Could be string or timestamp
+    status: string
+    type: string
+    scheduledInfo: string
+    firebaseTask: {
+        scheduledDate: number
+        completionDate?: number // Optional completion date
+        // Add other properties from firebaseTask if needed
+    }
+    // Add other properties as needed
+}
+
 interface TaskCardProps {
-    task: any
+    task: Task
     index: number
     isExpanded: boolean
     onToggleExpansion: (taskId: string) => void
-    taskStatusOptions: { label: string; value: string }[] // Status options for the dropdown
-    onStatusUpdate: (taskId: string, selectedStatus: string) => void // Status update function passed from parent
-    updating?: boolean // Whether the task is currently being updated
+    taskStatusOptions: { label: string; value: string }[]
+    onStatusUpdate: (taskId: string, selectedStatus: string) => void
+    updating?: boolean
     children: React.ReactNode
+}
+
+// Helper function to format values for display
+const formatValue = (value: any): string => {
+    if (value === null || value === undefined || value === '') {
+        return 'Not Available'
+    }
+    // Capitalize first letter of each word
+    return String(value)
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({
@@ -26,22 +56,54 @@ const TaskCard: React.FC<TaskCardProps> = ({
     children,
 }) => {
     const dispatch = useDispatch<AppDispatch>()
+
     // Handle task card click to toggle expansion (if the task isn't complete)
     const handleCardClick = () => {
         if (task.status !== 'complete') {
             dispatch(setTaskId(task.id))
             dispatch(setEnquiryId(task.enquiryId))
-            onToggleExpansion(task.id) // task.id assumes you have an 'id' in your task object from Firebase
+            onToggleExpansion(task.id)
         }
     }
 
-    console.log('TaskCard task:', task)
     // Handle the status change and update the task status in the parent component
     const handleStatusChange = (selectedStatus: string) => {
         // Only update status if it's different from the current one
         if (selectedStatus !== task.status) {
-            onStatusUpdate(task.id, selectedStatus) // Update task status by passing taskId and new status
+            onStatusUpdate(task.id, selectedStatus)
         }
+    }
+
+    // Safely format the date (either completion or scheduled)
+    const getFormattedDate = () => {
+        try {
+            if (!task.firebaseTask) return 'Not Available'
+
+            // If task is complete and has a completion date, show that instead
+            if (task.status === 'complete' && task.firebaseTask.completionDate) {
+                // Use the timestamp directly as it's already in seconds
+                return formatUnixDateTime(task.firebaseTask.completionDate) || 'Completion date not available'
+            }
+
+            // Otherwise show scheduled date if available
+            if (task.firebaseTask.scheduledDate) {
+                // Use the timestamp directly as it's already in seconds
+                return formatUnixDateTime(task.firebaseTask.scheduledDate) || 'Not Scheduled'
+            }
+
+            return 'Not Scheduled'
+        } catch (error) {
+            console.error('Error formatting date:', error)
+            return 'Date not available'
+        }
+    }
+
+    // Get appropriate label for the date field
+    const getDateLabel = () => {
+        if (task.status === 'complete' && task.firebaseTask?.completionDate) {
+            return 'Completed On:'
+        }
+        return 'Scheduled For:'
     }
 
     return (
@@ -56,10 +118,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <div className='flex items-center justify-between'>
                     <div>
                         <div className='text-sm font-medium text-gray-900 mb-1'>
-                            Task {index + 1}: {task.title || 'No Title'} {/* Ensure task has a title */}
+                            Task {index + 1}: {formatValue(task.title)}
                         </div>
-                        <div className='text-xs text-gray-500'>Date: {task.date || 'Not Available'}</div>{' '}
-                        {/* Ensure date is available */}
+                        <div className='text-xs text-gray-500'>
+                            Date: {task.date ? formatUnixDateTime(task.date) : 'Not Available'}
+                        </div>
                     </div>
                 </div>
 
@@ -67,10 +130,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <div>
                     <div className='text-sm font-medium text-gray-900 mb-1'>Task Status</div>
                     <Dropdown
-                        onSelect={handleStatusChange} // Call handleStatusChange when the user selects a new status
-                        disabled={task.status === 'complete' || task.type !== 'lead registration'} // Disable dropdown if task is complete
-                        options={taskStatusOptions} // Status options for the dropdown
-                        defaultValue={task.status} // Set the current status as default value
+                        onSelect={handleStatusChange}
+                        disabled={task.status === 'complete' || task.type !== 'lead registration'}
+                        options={taskStatusOptions}
+                        defaultValue={task.status}
                         triggerClassName={`flex items-center h-4.5 justify-between px-2 py-1 bg-white border border-gray-300 rounded-sm text-xs text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] ${
                             task.status === 'complete' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                         }`}
@@ -80,12 +143,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
                 {/* Scheduled Info */}
                 <div>
-                    <div className='font-medium text-sm text-gray-900 mb-1'>{task.scheduledInfo || 'No Info'}</div>{' '}
-                    {/* Ensure scheduledInfo exists */}
-                    <div className='text-xs text-gray-500'>
-                        {formatUnixDateTime(task.firebaseTask.scheduledDate / 1000) || 'Not Scheduled'}
-                    </div>{' '}
-                    {/* Ensure scheduledDate exists */}
+                    <div className='font-medium text-sm text-gray-900 mb-1'>{formatValue(task.scheduledInfo)}</div>
+                    <div className='text-xs text-gray-500'>{getFormattedDate()}</div>
                 </div>
             </div>
 

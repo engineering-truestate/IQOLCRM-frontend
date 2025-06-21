@@ -44,9 +44,9 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                 enquiryId: firebaseTask.enquiryId,
                 type: firebaseTask.taskType,
                 title: getTaskTitle(firebaseTask.taskType),
-                date: formatDateTime(firebaseTask.added),
+                date: firebaseTask.added,
                 scheduledInfo: firebaseTask?.eventName ? firebaseTask.eventName : getScheduledInfo(firebaseTask),
-                scheduledDate: formatDateTime(firebaseTask.scheduledDate),
+                scheduledDate: firebaseTask.scheduledDate,
                 status: firebaseTask.status,
                 firebaseTask: firebaseTask,
                 eoiEntries: firebaseTask.eoiEntries || [],
@@ -94,7 +94,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
     }
 
     const getScheduledInfo = (task: Task): string => {
-        switch (task.type.toLowerCase()) {
+        switch (task.taskType.toLowerCase()) {
             case 'lead registration':
                 return 'Registration scheduled'
             case 'initial contact':
@@ -213,37 +213,24 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
             updateTaskState,
             getTaskState,
             updating: updatingTasks[task.id] || false,
+            taskStatusOptions: { taskStatusOptions },
         }
 
         switch (task.type?.toLowerCase()) {
             case 'lead registration':
                 return <LeadRegistrationTask propertyLink={task.firebaseTask.propertyLink || '#'} />
             case 'initial contact':
-                return (
-                    <InitialContactTask
-                        {...commonProps}
-                        setActiveTab={setActiveTab}
-                        taskStatusOptions={taskStatusOptions}
-                    />
-                )
+                return <InitialContactTask {...commonProps} setActiveTab={setActiveTab} />
             case 'site visit':
                 return (
                     <SiteVisitTask {...commonProps} setActiveTab={setActiveTab} taskStatusOptions={taskStatusOptions} />
                 )
             case 'eoi collection':
-                return (
-                    <CollectEOITask
-                        {...commonProps}
-                        setActiveTab={setActiveTab}
-                        taskStatusOptions={taskStatusOptions}
-                        eoiEntries={task.eoiEntries}
-                    />
-                )
+                return <CollectEOITask {...commonProps} setActiveTab={setActiveTab} eoiEntries={task.eoiEntries} />
             case 'booking':
                 return (
                     <BookingAmountTask
                         {...commonProps}
-                        taskStatusOptions={taskStatusOptions}
                         setActiveTab={setActiveTab}
                         agentId={agentId}
                         agentName={agentName}
