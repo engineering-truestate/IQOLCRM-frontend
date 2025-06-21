@@ -484,14 +484,16 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                     </div>
                                                 </div>
                                             ))}
-                                        <div className='flex justify-between'>
-                                            <span className='text-[13px] w-[60%] text-gray-600'>Email Id</span>
-                                            <div className='w-[40%] text-left'>
-                                                <span className='text-[13px] text-gray-900'>
-                                                    {formatValue(userData?.emailAddress)}
-                                                </span>
+                                        {userData?.emailAddress && (
+                                            <div className='flex justify-between'>
+                                                <span className='text-[13px] w-[60%] text-gray-600'>Email Id</span>
+                                                <div className='w-[40%] text-left'>
+                                                    <span className='text-[13px] text-gray-900'>
+                                                        {formatValue(userData?.emailAddress)}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
 
                                         <div className='mt-3'>
                                             <button className='w-full h-6 text-sm border border-gray-700 rounded-md pb-1 bg-gray-100 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors'>
@@ -503,7 +505,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                                 {/* Enquiry Details Section */}
                                 <div className='flex-shrink-0'>
-                                    <div className='flex items-center justify-between mb-3'>
+                                    <div className='flex items-center justify-between'>
                                         <h3 className='font-medium text-sm text-gray-900'>Enquiry Details</h3>
                                         <button
                                             className='bg-gray-200 h-8 w-26 text-gray-700 p-2 rounded text-xs font-medium hover:bg-gray-300 transition-colors'
@@ -521,7 +523,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                             <span className='ml-2 text-sm text-gray-600'>Loading enquiries...</span>
                                         </div>
                                     ) : enquiries.length > 0 ? (
-                                        <div className='space-y-3'>
+                                        <div className='space-y-[11px]'>
                                             {/* Enquiry Tabs */}
                                             <div className='flex gap-4 md:gap-8 mb-3.5 border-b border-gray-200 overflow-x-auto scrollbar-hide'>
                                                 {[...enquiries].map((enquiry, index) => {
@@ -544,7 +546,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                                             {/* Current Enquiry Details */}
                                             {currentEnquiry && (
-                                                <div className='space-y-3'>
+                                                <div className='space-y-[11px]'>
                                                     <div className='flex justify-between'>
                                                         <span className='text-[13px] w-[60%] text-gray-600 font-normal'>
                                                             Property Name

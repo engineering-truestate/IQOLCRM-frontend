@@ -3,6 +3,9 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import { useParams } from 'react-router'
 import useAuth from '../../hooks/useAuth'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch } from '../../store'
+import { clearTaskId, setTaskState } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
@@ -32,6 +35,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     leadStatus = 'Interested',
     taskType,
 }) => {
+    const dispatch = useDispatch<AppDispatch>()
     const taskId = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
@@ -130,6 +134,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
             })
             toast.success('Task completed successfully!')
             onClose()
+            dispatch(clearTaskId())
             window.location.href = `/canvas-homes/sales/leadDetails/${leadId}`
         } catch (error: any) {
             console.error('Error completing task:', error)
