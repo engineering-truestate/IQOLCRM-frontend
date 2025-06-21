@@ -5,11 +5,45 @@ import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import DateRangePicker from '../../../components/design-elements/DateRangePicker'
 import { searchTasks, type TaskSearchFilters } from '../../../services/canvas_homes/taskAlgoliaService'
-import google from '/icons/canvas_homes/google.svg'
 import hot from '/icons/canvas_homes/hoticon.svg'
-import linkedin from '/icons/canvas_homes/linkedin.svg'
-import meta from '/icons/canvas_homes/meta.svg'
+import cold from '/icons/canvas_homes/coldicon.svg'
+import superhot from '/icons/canvas_homes/supericon.svg'
+import potential from '/icons/canvas_homes/potential.svg'
+//import linkedin from '/icons/canvas_homes/linkedin.svg'
+//import meta from '/icons/canvas_homes/meta.svg'
 import { useNavigate } from 'react-router-dom'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import { getUnixDateTime, formatUnixDateTime } from '../../../components/helper/getUnixDateTime'
+
+const capitalizeFirst = (text: string) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : '')
+
+// Task data type
+type SalesTask = {
+    id: string
+    name: string
+    addedDate: string
+    added?: number | string
+    property: string
+    propertyName?: string
+    leadStage: string
+    stage?: string
+    leadStatus: string
+    tag: string
+    scheduleTask: {
+        type: string
+        date: string
+        time: string
+        avatar: string
+    }
+    scheduledDate?: number | string
+    taskType?: string
+    dueDays: number
+    taskStatus: 'complete' | 'open'
+    status?: string
+    completionDate: string
+    leadId?: string
+    agentName?: string
+}
 
 // Status card component
 const StatusCard = ({
@@ -51,19 +85,23 @@ const Tasks = () => {
     const [selectedTag, setSelectedTag] = useState('')
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
     const [selectedAgent, setSelectedAgent] = useState('')
-    const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
+    const [customDateRange, setCustomDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
+        startDate: null,
+        endDate: null,
+    })
     const navigate = useNavigate()
 
     // Task data state
-    const [allTasksData, setAllTasksData] = useState<any[]>([])
+    const [allTasksData, setAllTasksData] = useState<SalesTask[]>([])
     const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
+    const [loading, setLoading] = useState(false)
 
     // ✅ FIXED: Properly typed debounce function
     const debounce = useCallback(<T extends (...args: any[]) => any>(func: T, delay: number) => {
         let timeoutId: NodeJS.Timeout
         return (...args: Parameters<T>) => {
             clearTimeout(timeoutId)
-            timeoutId = setTimeout(() => func(...args), delay) // ✅ Use spread operator instead of .apply()
+            timeoutId = setTimeout(() => func(...args), delay)
         }
     }, [])
 
@@ -93,26 +131,84 @@ const Tasks = () => {
     // Task search function
     const performSearch = useCallback(async () => {
         try {
+            setLoading(true)
             const filters = createTaskFilters()
-            console.log('Searching with filters:', filters) // Debug log
+            console.log('Searching with filters:', filters)
 
-            // Mock the search function to set allTasksData
-            // You would replace this with the actual Algolia search.
             const result = await searchTasks({
                 query: searchValue,
                 filters,
                 page: 0,
-                hitsPerPage: 1000, // Get all results for now
+                hitsPerPage: 1000,
             })
 
-            console.log('Search result:', result) // Debug log
-            setAllTasksData(result.hits)
+            console.log('Search result:', result)
+
+            // Transform backend data to match the expected format with capitalization
+            const transformedData = result.hits.map((task: any) => ({
+                ...task,
+                // Map backend fields to frontend fields with capitalization
+                name: toCapitalizedWords(task.name || ''),
+                property: toCapitalizedWords(task.propertyName || task.property || '-'),
+                leadStage: toCapitalizedWords(task.stage || task.leadStage || '-'),
+                leadStatus: toCapitalizedWords(task.leadStatus || '-'),
+                tag: task.tag || '-', // Tags handled specially in render function
+                agentName: toCapitalizedWords(task.agentName || '-'),
+                addedDate: task.added ? formatAddedDate(task.added) : '-',
+                scheduleTask: {
+                    type: toCapitalizedWords(task.taskType || task.scheduleTask?.type || '-'),
+                    date: task.scheduledDate ? formatScheduleDate(task.scheduledDate) : task.scheduleTask?.date || '-',
+                    time: task.scheduleTask?.time || '',
+                    avatar: task.scheduleTask?.avatar || task.name?.charAt(0) || 'U',
+                },
+                taskType: toCapitalizedWords(task.taskType || '-'),
+                taskStatus: determineTaskStatus(task),
+                dueDays: calculateDueDays(task.scheduledDate),
+            }))
+
+            setAllTasksData(transformedData)
             setFacets(result.facets || {})
         } catch (error) {
             console.error('Search error:', error)
-            setAllTasksData([]) // Reset data on error
+            setAllTasksData([])
+        } finally {
+            setLoading(false)
         }
     }, [searchValue, createTaskFilters])
+
+    // Helper functions for data transformation
+    const formatAddedDate = (timestamp: number | string) => {
+        const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp
+        const date = new Date(String(ts).length === 10 ? ts * 1000 : ts)
+        return `Added ${date.toLocaleDateString()}`
+    }
+
+    const formatScheduleDate = (timestamp: number | string) => {
+        const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp
+        const date = new Date(String(ts).length === 10 ? ts * 1000 : ts)
+        return date.toLocaleDateString()
+    }
+
+    const calculateDueDays = (scheduledDate: number | string | undefined): number => {
+        if (!scheduledDate) return 0
+
+        const ts = typeof scheduledDate === 'string' ? parseInt(scheduledDate) : scheduledDate
+        const scheduleDate = new Date(String(ts).length === 10 ? ts * 1000 : ts)
+        const today = new Date()
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+
+        const diffTime = scheduleDate.getTime() - todayStart.getTime()
+        return Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    }
+
+    const determineTaskStatus = (task: any): 'Complete' | 'Open' | 'Overdue' | 'Upcoming' => {
+        if (task.status === 'Complete' || task.taskStatus === 'Complete') return 'Complete'
+
+        const dueDays = calculateDueDays(task.scheduledDate)
+        if (dueDays < 0) return 'Overdue'
+        if (dueDays === 0) return 'Open'
+        return 'Upcoming'
+    }
 
     // Debounced search for tasks
     const debouncedSearch = useMemo(() => debounce(performSearch, 300), [performSearch, debounce])
@@ -135,7 +231,7 @@ const Tasks = () => {
         debouncedSearch()
     }, [searchValue, debouncedSearch])
 
-    // Calculate the status counts manually (e.g., "Fresh", "Open", "Closed")
+    // Calculate the status counts manually
     const statusCounts = useMemo(() => {
         const counts = {
             All: allTasksData.length,
@@ -177,7 +273,6 @@ const Tasks = () => {
 
     const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
         setCustomDateRange({ startDate, endDate })
-        // Clear preset selection when using custom range
         if (startDate || endDate) {
             setSelectedDateRange('')
         }
@@ -186,7 +281,9 @@ const Tasks = () => {
     // Handle row click
     const handleRowClick = (row: any) => {
         console.log('Row clicked:', row)
-        window.location.href = `/sales/taskdetails/${row.leadId || row.id}`
+        if (row.leadId || row.id) {
+            navigate(`/sales/taskdetails/${row.leadId || row.id}`)
+        }
     }
 
     // Status cards data with dynamic counts
@@ -196,7 +293,7 @@ const Tasks = () => {
         { title: 'Missed', count: statusCounts.Missed },
     ]
 
-    // Generate dropdown options dynamically from facets
+    // Generate dropdown options dynamically from facets with capitalization
     const generateDropdownOptions = (facetKey: string, defaultLabel: string) => {
         const facetData = facets[facetKey] || {}
         const options = [{ label: defaultLabel, value: '' }]
@@ -206,125 +303,167 @@ const Tasks = () => {
             .forEach(([key, count]) => {
                 if (count > 0) {
                     options.push({
-                        label: `${key} (${count})`,
-                        value: key, // Use actual facet value, not transformed
+                        label: `${toCapitalizedWords(key)} (${count})`,
+                        value: key,
                     })
                 }
             })
 
         return options
     }
+
+    // Helper function to get task status badge color
+    const getTaskStatusColor = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'complete':
+                return 'bg-[#E1F6DF] text-[#2E8E16]'
+            case 'open':
+                return 'bg-[#DADAE2] text-gray-700'
+
+            default:
+                return 'bg-gray-100 text-gray-700'
+        }
+    }
+
+    // Table columns
     const columns: TableColumn[] = [
         {
             key: 'name',
             header: 'Name',
-            render: (value, row) => {
-                const addedDate = row.added
-                const formattedDate = addedDate
-                    ? new Date(String(addedDate).length === 10 ? addedDate * 1000 : addedDate).toLocaleDateString()
-                    : '-'
-
-                return (
-                    <div className='whitespace-nowrap'>
-                        <div className='text-sm font-medium text-gray-900'>{value || '-'}</div>
-                        <div className='text-xs text-gray-500 font-normal'>{formattedDate}</div>
-                    </div>
-                )
-            },
-        },
-        {
-            key: 'propertyName',
-            header: 'Property',
-            render: (value) => <span className='text-sm font-normal text-gray-900'>{value || '-'}</span>,
-        },
-        {
-            key: 'stage',
-            header: 'Lead Stage',
-            render: (value) => <span className='text-sm text-gray-900'>{value || '-'}</span>,
-        },
-        {
-            key: 'leadStatus',
-            header: 'Lead Status',
-            render: (value) => <span className='text-sm text-gray-900'>{value || '-'}</span>,
-        },
-        {
-            key: 'tag',
-            header: 'Tag',
-            render: (value) => (
-                <div className='inline-flex items-center w-17 h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-gray-100 text-gray-800'>
-                    <img src={hot} alt='Tag' className='w-3 h-3 object-contain' />
-                    <span className='text-sm font-normal'>{value || '-'}</span>
+            render: (value, row) => (
+                <div className='whitespace-nowrap'>
+                    <div className='max-w-[100px] text-sm font-medium text-gray-900'>{value || '-'}</div>
+                    <div className='max-w-[100px] text-xs text-gray-500 font-normal'>{row.addedDate}</div>
                 </div>
             ),
         },
         {
+            key: 'property',
+            header: 'Property',
+            render: (value) => (
+                <span className='max-w-[100px] text-[14px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'>
+                    {value || '-'}
+                </span>
+            ),
+        },
+        {
+            key: 'leadStage',
+            header: 'Lead Stage',
+            render: (value) => (
+                <span
+                    className='inline-block max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    title={value}
+                >
+                    {value || '-'}
+                </span>
+            ),
+        },
+        {
+            key: 'tag',
+            header: 'Tag',
+            render: (value) => {
+                const tagValue = (value || '').toLowerCase()
+
+                if (tagValue === 'hot') {
+                    return (
+                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFDDDE] text-[#F02532]'>
+                            <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
+                            <span className='text-sm font-normal'>{toCapitalizedWords(value)}</span>
+                        </div>
+                    )
+                } else if (tagValue === 'cold') {
+                    return (
+                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#DBEAFE] text-[#1E3A8A]'>
+                            <img src={cold} alt='Cold' className='w-3 h-3 object-contain' />
+                            <span className='text-sm font-normal'>{toCapitalizedWords(value)}</span>
+                        </div>
+                    )
+                } else if (tagValue === 'potential') {
+                    return (
+                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#E1F6DF] text-[#2E8E16]'>
+                            <img src={potential} alt='Potential' className='w-3 h-3 object-contain' />
+                            <span className='text-sm font-normal'>{toCapitalizedWords(value)}</span>
+                        </div>
+                    )
+                } else if (tagValue === 'warm') {
+                    return (
+                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FAC8C9] text-[#A4151E]'>
+                            <img src={superhot} alt='Warm' className='w-3 h-3 object-contain' />
+                            <span className='text-sm font-normal'>{toCapitalizedWords(value)}</span>
+                        </div>
+                    )
+                } else {
+                    return (
+                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-gray-100 text-gray-600'>
+                            <span className='text-sm font-normal'>{toCapitalizedWords(value || '-')}</span>
+                        </div>
+                    )
+                }
+            },
+        },
+        {
             key: 'scheduleTask',
             header: 'Schedule Task',
-            render: (value, row) => {
-                const rawDate = value?.date
-                const rawTime = value?.time || ''
-                let formattedDate = '-'
-
-                if (rawDate) {
-                    const ts = typeof rawDate === 'string' ? parseInt(rawDate) : rawDate
-                    if (!isNaN(ts)) {
-                        formattedDate = new Date(String(ts).length === 10 ? ts * 1000 : ts).toLocaleDateString()
-                    }
-                }
-
-                return (
-                    <div className='flex items-center gap-3'>
-                        <div>
-                            <div className='text-sm font-medium text-gray-900'>{row.taskType || '-'}</div>
-                            <div className='text-xs text-gray-500'>
-                                {formattedDate} {rawTime ? `| ${rawTime}` : ''}
-                            </div>
+            render: (value, row) => (
+                <div className='flex items-center gap-3'>
+                    <div>
+                        <div className='text-sm font-medium text-gray-900'>
+                            {value?.type || toCapitalizedWords(row.taskType) || '-'}
+                        </div>
+                        <div className='text-xs text-gray-500'>
+                            {value?.date || '-'} {value?.time ? `| ${value.time}` : ''}
                         </div>
                     </div>
-                )
-            },
+                </div>
+            ),
         },
         {
             key: 'dueDays',
             header: 'Due Days',
-            render: (value, row) => {
-                const scheduleDateRaw = row.scheduledDate
-                const now = new Date()
-                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
-                if (!scheduleDateRaw) {
-                    return <span className='text-sm font-medium text-gray-400'>-</span>
-                }
-
-                const ts = typeof scheduleDateRaw === 'string' ? parseInt(scheduleDateRaw) : scheduleDateRaw
-                const scheduleDate = new Date(String(ts).length === 10 ? ts * 1000 : ts)
-
-                const diffTime = scheduleDate.getTime() - todayStart.getTime()
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-                const color = diffDays < 0 ? 'text-red-600' : diffDays === 0 ? 'text-yellow-600' : 'text-gray-900'
+            render: (value) => {
+                const displayValue = Math.abs(value) < 10 ? `0${Math.abs(value)}` : `${Math.abs(value)}`
+                const textColor = value < 0 ? 'text-red-600' : value === 0 ? 'text-black' : 'text-gray-900'
 
                 return (
-                    <span className={`text-sm font-medium ${color}`}>
-                        {diffDays < 0 ? `${Math.abs(diffDays)} overdue` : diffDays === 0 ? 'Today' : `${diffDays} days`}
+                    <span className={`text-sm max-w-[97px] font-medium ${textColor}`}>
+                        {value === 0 ? '00' : displayValue}
                     </span>
                 )
             },
         },
         {
-            key: 'status',
+            key: 'taskStatus',
             header: 'Task Status',
-            render: (value) => <div className={`p-2 rounded-sm h-7 w-22.5 text-xs font-medium`}>{value || '-'}</div>,
+            render: (value) => (
+                <div className={`p-2 rounded-sm h-7 w-22.5 text-xs font-medium ${getTaskStatusColor(value)}`}>
+                    {toCapitalizedWords(value) || '-'}
+                </div>
+            ),
         },
+        // {
+        //     key: 'completionDate',
+        //     header: 'Completion Date',
+        //     render: (value, row) => {
+        //         const rawDate = value || row.completionDate
+        //         if (!rawDate || rawDate === '-') return <span className='text-[14px] text-gray-900'>-</span>
+
+        //         const ts = typeof rawDate === 'string' ? parseInt(rawDate) : rawDate
+        //         const formatted = !isNaN(ts) ? new Date(String(ts).length === 10 ? ts * 1000 : ts).toLocaleDateString() : rawDate
+
+        //         return <span className='text-[14px] text-gray-900'>{formatted}</span>
+        //     },
+        // },
         {
             key: 'completionDate',
             header: 'Completion Date',
-            render: (value) => {
-                const ts = typeof value === 'string' ? parseInt(value) : value
-                const formatted =
-                    value && !isNaN(ts) ? new Date(String(ts).length === 10 ? ts * 1000 : ts).toLocaleDateString() : '-'
+            render: (value, row) => {
+                const rawDate = value || row.completionDate
+                if (!rawDate || rawDate === '-') {
+                    return <span className='text-[14px] text-gray-900'>-</span>
+                }
 
-                return <span className='text-sm text-gray-900'>{formatted}</span>
+                const formatted = formatUnixDateTime(rawDate)
+                return <span className='text-[14px] text-gray-900'>{formatted}</span>
             },
         },
     ]
@@ -363,10 +502,9 @@ const Tasks = () => {
                     placeholder='Search name and number'
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className='h-7 w-68'
+                    className='h-7 w-[240px] h-[28px]'
                 />
 
-                {/* Date Range Filter */}
                 <DateRangePicker
                     onDateRangeChange={handleDateRangeChange}
                     placeholder='Date Range'
@@ -398,10 +536,10 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('tag', 'Tag')}
-                    onSelect={setSelectedTag}
-                    defaultValue={selectedTag}
-                    placeholder='Tag'
+                    options={generateDropdownOptions('taskType', 'Task')}
+                    onSelect={setSelectedTask}
+                    defaultValue={selectedTask}
+                    placeholder='Task'
                     className='relative inline-block w-full sm:w-auto'
                     triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
@@ -409,10 +547,10 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('taskType', 'Task')}
-                    onSelect={setSelectedTask}
-                    defaultValue={selectedTask}
-                    placeholder='Task'
+                    options={generateDropdownOptions('tag', 'Tag')}
+                    onSelect={setSelectedTag}
+                    defaultValue={selectedTag}
+                    placeholder='Tag'
                     className='relative inline-block w-full sm:w-auto'
                     triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
@@ -425,10 +563,11 @@ const Tasks = () => {
                     defaultValue={selectedLeadStatus}
                     placeholder='Lead Status'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
+
                 <Dropdown
                     options={generateDropdownOptions('agentName', 'Agent')}
                     onSelect={setSelectedAgent}
@@ -458,22 +597,29 @@ const Tasks = () => {
 
             {/* Table */}
             <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[63vh]'>
-                <FlexibleTable
-                    data={allTasksData}
-                    columns={columns}
-                    borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
-                    selectedRows={selectedRows}
-                    headerClassName='font-normal'
-                    onRowSelect={handleRowSelect}
-                    onRowClick={handleRowClick}
-                    className='rounded-lg'
-                    stickyHeader={true}
-                    hoverable={true}
-                    maxHeight='63vh'
-                />
+                {loading ? (
+                    <div className='flex items-center justify-center h-full'>
+                        <div className='text-gray-500'>Loading...</div>
+                    </div>
+                ) : (
+                    <FlexibleTable
+                        data={allTasksData}
+                        columns={columns}
+                        borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
+                        selectedRows={selectedRows}
+                        headerClassName='font-normal text-left px-0'
+                        cellClassName='text-left'
+                        onRowSelect={handleRowSelect}
+                        //onRowClick={handleRowClick}
+                        className='rounded-lg'
+                        stickyHeader={true}
+                        hoverable={true}
+                        maxHeight='63vh'
+                        showCheckboxes={true}
+                    />
+                )}
             </div>
         </div>
     )
 }
-
 export default Tasks

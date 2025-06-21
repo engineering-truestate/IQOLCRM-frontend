@@ -536,7 +536,7 @@ const Leads = () => {
                     selectedRows={selectedRows}
                     headerClassName='font-normal'
                     onRowSelect={handleRowSelect}
-                    onRowClick={handleRowClick}
+                    //onRowClick={handleRowClick}
                     className='rounded-lg'
                     stickyHeader={true}
                     hoverable={true}
