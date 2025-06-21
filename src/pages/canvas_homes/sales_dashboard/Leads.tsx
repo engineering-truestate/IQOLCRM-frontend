@@ -12,6 +12,10 @@ import meta from '/icons/canvas_homes/meta.svg'
 import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
 import { useNavigate } from 'react-router-dom'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import potentialIcon from '/icons/canvas_homes/potential-bulb.svg'
+import hotIcon from '/icons/canvas_homes/hoticon.svg'
+import superHotIcon from '/icons/canvas_homes/super-hot.svg'
+import coldIcon from '/icons/canvas_homes/coldicon.svg'
 
 // Status card component
 const StatusCard = ({
@@ -42,6 +46,36 @@ const StatusCard = ({
     )
 }
 
+const tagStyles: Record<
+    string,
+    {
+        icon: string
+        bg: string
+        text: string
+    }
+> = {
+    potential: {
+        icon: potentialIcon, // e.g. /icons/potential.svg
+        bg: 'bg-[#DCFCE7]',
+        text: 'text-[#15803D]',
+    },
+    hot: {
+        icon: hotIcon,
+        bg: 'bg-[#FFEDD5]',
+        text: 'text-[#9A3412]',
+    },
+    superhot: {
+        icon: superHotIcon,
+        bg: 'bg-[#FECACA]',
+        text: 'text-[#991B1B]',
+    },
+    cold: {
+        icon: coldIcon,
+        bg: 'bg-[#DBEAFE]',
+        text: 'text-[#1D4ED8]',
+    },
+}
+
 const Leads = () => {
     const [activeStatusCard, setActiveStatusCard] = useState('All')
     const [selectedRows, setSelectedRows] = useState<string[]>([])
@@ -60,6 +94,21 @@ const Leads = () => {
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
     const navigate = useNavigate()
+    const activeFilters = [
+        selectedDateRange && { label: selectedDateRange, onClear: () => setSelectedDateRange('') },
+        customDateRange.startDate &&
+            customDateRange.endDate && {
+                label: `${customDateRange.startDate} to ${customDateRange.endDate}`,
+                onClear: () => setCustomDateRange({ startDate: null, endDate: null }),
+            },
+        selectedProperty && { label: selectedProperty, onClear: () => setSelectedProperty('') },
+        selectedAgent && { label: selectedAgent, onClear: () => setSelectedAgent('') },
+        selectedSource && { label: selectedSource, onClear: () => setSelectedSource('') },
+        selectedLeadStage && { label: selectedLeadStage, onClear: () => setSelectedLeadStage('') },
+        selectedTag && { label: selectedTag, onClear: () => setSelectedTag('') },
+        selectedTask && { label: selectedTask, onClear: () => setSelectedTask('') },
+        selectedLeadStatus && { label: selectedLeadStatus, onClear: () => setSelectedLeadStatus('') },
+    ].filter(Boolean) // remove falsy values
 
     // Algolia state
     const [allLeadsData, setAllLeadsData] = useState<any[]>([])
@@ -257,62 +306,84 @@ const Leads = () => {
         {
             key: 'name',
             header: 'Name',
-            render: (value, row) => {
-                const added = row.added || row.addedDate
-                const addedDateFormatted = added ? new Date(added * 1000).toLocaleDateString() : 'Unknown'
-
-                return (
-                    <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
-                        <div className='text-sm font-medium text-gray-900'>
-                            {capitalizeFirst(value || row.name || '-')}
-                        </div>
-                        <div className='text-xs text-gray-500 font-normal'>Added {addedDateFormatted}</div>
+            render: (value, row) => (
+                <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
+                    <div
+                        className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-semibold text-gray-900'
+                        title={value || row.property || '-'} // optional: full text on hover
+                    >
+                        {capitalizeFirst(value || row.name || '-')}
                     </div>
-                )
-            },
+                    <div className='text-xs text-gray-500 font-normal'>
+                        {row.addedDate || `Added ${new Date(row.added).toLocaleDateString()}`}
+                    </div>
+                </div>
+            ),
         },
         {
             key: 'propertyName',
             header: 'Property',
             render: (value, row) => (
-                <span className='text-sm font-normal text-gray-900'>
+                <div
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    onClick={() => navigate(`leaddetails/${row.leadId}`)}
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
                     {capitalizeFirst(value || row.property || '-')}
-                </span>
+                </div>
             ),
         },
         {
             key: 'source',
             header: 'Source',
             render: (value) => (
-                <div className='w-full h-full flex items-center justify-center'>
-                    {value === 'Google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
-                    {value === 'LinkedIn' && <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />}
-                    {value === 'META' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
-                    {!['Google', 'LinkedIn', 'META'].includes(value) && (
-                        <span className='text-xs font-medium px-2 py-1 bg-gray-100 rounded'>
-                            {capitalizeFirst(value || '-')}
-                        </span>
-                    )}
+                <div className='flex justify-start'>
+                    <div className='inline-flex items-center min-w-max rounded-[20px] gap-[6px] h-8 px-2 whitespace-nowrap border border-gray-300 w-fit'>
+                        {value === 'google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
+                        {value === 'linkedin' && (
+                            <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />
+                        )}
+                        {value === 'meta' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
+                        {!['Google', 'LinkedIn', 'META'].includes(value) && (
+                            <span className='text-sm font-norma'>{capitalizeFirst(value || '-')}</span>
+                        )}
+                    </div>
                 </div>
             ),
         },
         {
             key: 'phoneNumber',
             header: 'Contact',
-            render: (value, row) => <span className='text-sm font-normal'>{value || row.contact || '-'}</span>,
+            render: (value, row) => (
+                <span className='text-sm font-normal' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
+                    {value || row.contact || '-'}
+                </span>
+            ),
         },
         {
             key: 'agentName',
             header: 'Agent',
             render: (value, row) => (
-                <span className='text-sm font-normal'>{capitalizeFirst(value || row.agent || '-')}</span>
+                <div
+                    className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    onClick={() => navigate(`leaddetails/${row.leadId}`)}
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
+                    {capitalizeFirst(value || row.agent || '-')}
+                </div>
             ),
         },
         {
             key: 'stage',
             header: 'Lead Stage',
             render: (value, row) => (
-                <span className='text-sm text-gray-900'>{capitalizeFirst(value || row.stage || '-')}</span>
+                <div
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    onClick={() => navigate(`leaddetails/${row.leadId}`)}
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
+                    {capitalizeFirst(value || row.leadStage || '-')}
+                </div>
             ),
         },
         {
@@ -323,15 +394,24 @@ const Leads = () => {
         {
             key: 'tag',
             header: 'Tag',
-            render: (value) =>
-                value ? (
-                    <div className='inline-flex items-center min-w-[68px] w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFEDD5] text-[#9A3412]'>
-                        <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
-                        <span className='text-xs font-normal'>{capitalizeFirst(value)}</span>
+            render: (value: string) => {
+                const key = value?.toLowerCase().replace(/\s+/g, '')
+                const style = tagStyles[key]
+                const capitalizeWords = (str: string) => str.replace(/\b\w/g, (char) => char.toUpperCase())
+
+                if (!style) return <div>-</div>
+
+                return (
+                    <div className='flex justify-start'>
+                        <div
+                            className={`inline-flex items-center min-w-max h-6 gap-1.5 px-2 py-1 rounded-[4px] text-xs font-medium ${style.bg} ${style.text}`}
+                        >
+                            <img src={style.icon} alt={value} className='w-3 h-3 object-contain' />
+                            <span className='text-xs font-medium'>{capitalizeWords(value || '-')}</span>
+                        </div>
                     </div>
-                ) : (
-                    <div>-</div>
-                ),
+                )
+            },
         },
         {
             key: 'lastModified',
@@ -346,8 +426,11 @@ const Leads = () => {
                 }
 
                 return (
-                    <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {daysDifference} days
+                    <span
+                        className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'
+                        onClick={() => navigate(`leaddetails/${row.leadId}`)}
+                    >
+                        {daysDifference || 0} days
                     </span>
                 )
             },
@@ -368,11 +451,25 @@ const Leads = () => {
                 const time = row.scheduleTask?.time || ''
 
                 return (
-                    <div className='flex items-center gap-3'>
+                    <div className='flex items-center gap-3' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
                         <div>
                             <div className='text-sm font-medium text-gray-900'>{taskType}</div>
                             <div className='text-xs text-gray-500'>
-                                {date || time ? `${date}${date && time ? ' | ' : ''}${time}` : '-'}
+                                {date || time ? (
+                                    <>
+                                        {date
+                                            ? new Date(date).toLocaleDateString('en-US', {
+                                                  year: 'numeric',
+                                                  month: 'short',
+                                                  day: 'numeric',
+                                              })
+                                            : ''}
+                                        {date && time ? ' | ' : ''}
+                                        {time || ''}
+                                    </>
+                                ) : (
+                                    ''
+                                )}
                             </div>
                         </div>
                     </div>
@@ -415,14 +512,14 @@ const Leads = () => {
                     placeholder='Search name and number'
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className='h-7 w-full sm:w-68'
+                    className='h-7 w-full sm:w-68 bg-gray-300'
                 />
 
                 <DateRangePicker
                     onDateRangeChange={handleDateRangeChange}
                     placeholder='Date Range'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName='w-[130px] flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer truncate'
                     menuClassName='absolute z-50 mt-1 w-full min-w-[160px] bg-white border border-gray-300 rounded-md shadow-lg'
                 />
 
@@ -430,9 +527,12 @@ const Leads = () => {
                     options={generateDropdownOptions('propertyName', 'Property')}
                     onSelect={setSelectedProperty}
                     defaultValue={selectedProperty}
+                    value={selectedProperty}
+                    forcePlaceholderAlways
                     placeholder='Property'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
+    ${selectedProperty ? 'border-black' : 'border-gray-300'}`}
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -441,9 +541,12 @@ const Leads = () => {
                     options={generateDropdownOptions('agentName', 'Agent')}
                     onSelect={setSelectedAgent}
                     defaultValue={selectedAgent}
+                    value={selectedAgent}
+                    forcePlaceholderAlways
                     placeholder='Agent'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
+    ${selectedAgent ? 'border-black' : 'border-gray-300'}`}
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -452,9 +555,12 @@ const Leads = () => {
                     options={generateDropdownOptions('source', 'Source')}
                     onSelect={setSelectedSource}
                     defaultValue={selectedSource}
+                    value={selectedSource}
+                    forcePlaceholderAlways
                     placeholder='Source'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
+    ${selectedSource ? 'border-black' : 'border-gray-300'}`}
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -463,9 +569,12 @@ const Leads = () => {
                     options={generateDropdownOptions('stage', 'Lead Stage')}
                     onSelect={setSelectedLeadStage}
                     defaultValue={selectedLeadStage}
+                    value={selectedLeadStage}
+                    forcePlaceholderAlways
                     placeholder='Lead Stage'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
+    ${selectedLeadStage ? 'border-black' : 'border-gray-300'}`}
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -474,9 +583,12 @@ const Leads = () => {
                     options={generateDropdownOptions('tag', 'Tag')}
                     onSelect={setSelectedTag}
                     defaultValue={selectedTag}
+                    value={selectedTag}
+                    forcePlaceholderAlways
                     placeholder='Tag'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
+    ${selectedTag ? 'border-black' : 'border-gray-300'}`}
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -485,9 +597,12 @@ const Leads = () => {
                     options={generateDropdownOptions('taskType', 'Task')}
                     onSelect={setSelectedTask}
                     defaultValue={selectedTask}
+                    value={selectedTask}
+                    forcePlaceholderAlways
                     placeholder='Task'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
+    ${selectedTask ? 'border-black' : 'border-gray-300'}`}
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -496,16 +611,19 @@ const Leads = () => {
                     options={generateDropdownOptions('leadStatus', 'Lead Status')}
                     onSelect={setSelectedLeadStatus}
                     defaultValue={selectedLeadStatus}
+                    value={selectedLeadStatus}
+                    forcePlaceholderAlways
                     placeholder='Lead Status'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
+    ${selectedLeadStatus ? 'border-black' : 'border-gray-300'}`}
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
             </div>
 
             {/* Status Cards */}
-            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
                 <div className='grid grid-cols-2 sm:flex sm:gap-2'>
                     {statusCards.map((card) => (
                         <StatusCard
@@ -526,17 +644,56 @@ const Leads = () => {
                     <span>+ Add Lead</span>
                 </Button>
             </div>
+            {activeFilters.length > 0 && (
+                <div className='flex flex-wrap items-center gap-2 mb-4'>
+                    {activeFilters.map((filter, index) =>
+                        filter ? (
+                            <div
+                                key={index}
+                                className='flex items-center bg-gray-100 text-xs font-medium text-gray-700 px-3 py-1.5 rounded-full'
+                            >
+                                {filter.label}
+                                <button
+                                    onClick={filter.onClear}
+                                    className='ml-2 text-gray-500 hover:text-red-500 focus:outline-none'
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : null,
+                    )}
+
+                    <button
+                        onClick={() => {
+                            setSelectedDateRange('')
+                            setCustomDateRange({ startDate: null, endDate: null })
+                            setSelectedProperty('')
+                            setSelectedAgent('')
+                            setSelectedSource('')
+                            setSelectedLeadStage('')
+                            setSelectedTag('')
+                            setSelectedTask('')
+                            setSelectedLeadStatus('')
+                        }}
+                        className='text-xs bg-red-100 ml-2 p-1.5 rounded-full text-red-600 focus:outline-none cursor-pointer'
+                    >
+                        Clear All
+                    </button>
+                </div>
+            )}
 
             {/* Table */}
             <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[63vh]'>
                 <FlexibleTable
+                    showCheckboxes={true}
                     data={filteredLeadsData}
                     columns={columns}
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                     selectedRows={selectedRows}
-                    headerClassName='font-normal'
+                    headerClassName='font-normal text-left'
+                    cellClassName='text-left'
                     onRowSelect={handleRowSelect}
-                    //onRowClick={handleRowClick}
+                    // onRowClick={handleRowClick}
                     className='rounded-lg'
                     stickyHeader={true}
                     hoverable={true}

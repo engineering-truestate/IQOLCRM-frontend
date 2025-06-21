@@ -33,64 +33,36 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [isRefreshingAlgolia, setIsRefreshingAlgolia] = useState(false)
+    const [phoneError, setPhoneError] = useState('')
 
-    const navigate = useNavigate()
-
-    const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
-
-    useEffect(() => {
-        // Reset form data when modal opens
-        const loadProperty = async () => {
-            if (!properties || properties.length === 0) {
-                await dispatch(fetchPreLaunchProperties())
-            }
-            console.log('Properties loaded:', properties)
-            return properties.map((property) => ({
-                label: property.projectName,
-                value: `${property.projectId}|${property.projectName}`,
-            }))
-        }
-        loadProperty()
-    }, [dispatch, properties, isOpen])
-
-    useEffect(() => {
-        // Set property options when properties are loaded
-        if (properties && properties.length > 0) {
-            const options = properties.map((property) => ({
-                label: property.projectName,
-                value: `${property.projectId}|${property.projectName}`,
-            }))
-            setPropertyOptions(options)
-        }
-    }, [properties])
-
-    // Property options
-    // const propertyOptions = [
-    //     { label: 'Select property name', value: '' },
-    //     { label: 'Sunset Villa', value: 'prop001|Sunset Villa' },
-    //     { label: 'Ocean View Apartment', value: 'prop002|Ocean View Apartment' },
-    //     { label: 'Downtown Condo', value: 'prop003|Downtown Condo' },
-    //     { label: 'Garden Heights', value: 'prop004|Garden Heights' },
-    //     { label: 'Riverside Towers', value: 'prop005|Riverside Towers' },
-    //     { label: 'Sattva Hills', value: 'prop006|Sattva Hills' },
-    //     { label: 'Prestige Gardenia', value: 'prop007|Prestige Gardenia' },
-    //     { label: 'Brigade Cosmopolis', value: 'prop008|Brigade Cosmopolis' },
-    //     { label: 'Sobha City', value: 'prop009|Sobha City' },
-    //     { label: 'Embassy Springs', value: 'prop010|Embassy Springs' },
-    //     { label: 'Mantri Energia', value: 'prop011|Mantri Energia' },
-    // ]
+    // Property options with IDs
+    const propertyOptions = [
+        // { label: 'Select property name', value: '' },
+        { label: 'Sunset Villa', value: 'prop001|Sunset Villa' },
+        { label: 'Ocean View Apartment', value: 'prop002|Ocean View Apartment' },
+        { label: 'Downtown Condo', value: 'prop003|Downtown Condo' },
+        { label: 'Garden Heights', value: 'prop004|Garden Heights' },
+        { label: 'Riverside Towers', value: 'prop005|Riverside Towers' },
+        { label: 'Sattva Hills', value: 'prop006|Sattva Hills' },
+        { label: 'Prestige Gardenia', value: 'prop007|Prestige Gardenia' },
+        { label: 'Brigade Cosmopolis', value: 'prop008|Brigade Cosmopolis' },
+        { label: 'Sobha City', value: 'prop009|Sobha City' },
+        { label: 'Embassy Springs', value: 'prop010|Embassy Springs' },
+        { label: 'Mantri Energia', value: 'prop011|Mantri Energia' },
+    ]
 
     // Source options
     const sourceOptions = [
-        { label: 'Select Source', value: '' },
-        { label: 'Google', value: 'google' },
-        { label: 'LinkedIn', value: 'linkedin' },
-        { label: 'Meta', value: 'meta' },
+        // { label: 'Select Source', value: '' },
+        { label: 'Google', value: 'Google' },
+        { label: 'LinkedIn', value: 'LinkedIn' },
+        { label: 'Meta', value: 'META' },
     ]
 
     // Agent options
     const agentOptions = [
-        { label: 'Select Agent', value: '' },
+        // { label: 'Select Agent', value: '' },
         { label: 'Deepak Goyal', value: 'agent001|Deepak Goyal' },
         { label: 'Rajan Yadav', value: 'agent002|Rajan Yadav' },
         { label: 'Deepak Singh Chauhan', value: 'agent003|Deepak Singh Chauhan' },
@@ -298,6 +270,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
             agentId: '',
             agentName: '',
         })
+        setPhoneError('')
         setError(null)
         onClose()
     }
@@ -313,8 +286,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                         <h2 className='text-xl font-semibold text-black'>Add Lead</h2>
                         <button
                             onClick={onClose}
-                            className='p-1 hover:bg-gray-100 rounded-md'
-                            disabled={isLoading}
+                            className='p-1  rounded-md cursor-pointer'
+                            disabled={isLoading || isRefreshingAlgolia}
                             aria-label='Close'
                         >
                             <svg
@@ -360,35 +333,65 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                 <label htmlFor='phoneNumber' className='block text-sm font-medium mb-2'>
                                     Phone No. <span className='text-red-500'>*</span>
                                 </label>
-                                <input
-                                    type='tel'
-                                    value={formData.phoneNumber}
-                                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                                    placeholder='Enter phone no. (e.g., +91 9999999999)'
-                                    className='w-full px-4 py-2.5 border font-medium border-gray-300 rounded-lg focus:outline-none focus:border-black text-xs'
-                                    disabled={isLoading}
-                                    required
-                                    maxLength={15}
-                                />
+
+                                <div className='relative w-full'>
+                                    <div className='absolute inset-y-0 left-0 flex items-center pl-2 text-xs font-medium'>
+                                        +91
+                                    </div>
+                                    <input
+                                        type='tel'
+                                        inputMode='numeric'
+                                        pattern='[0-9]*'
+                                        value={formData.phoneNumber}
+                                        onChange={(e) => {
+                                            const numericValue = e.target.value.replace(/\D/g, '')
+
+                                            if (numericValue.length > 10) {
+                                                setPhoneError('Phone number cannot exceed 10 digits')
+                                            } else {
+                                                setPhoneError('')
+                                                handleInputChange('phoneNumber', numericValue)
+                                            }
+                                        }}
+                                        onBlur={() => {
+                                            const length = formData.phoneNumber.length
+                                            if (length > 0 && length !== 10) {
+                                                setPhoneError('Phone number must be exactly 10 digits')
+                                            } else {
+                                                setPhoneError('')
+                                            }
+                                        }}
+                                        placeholder='Enter phone no.'
+                                        className={`w-full pl-10 pr-4 py-2.5 border font-medium ${
+                                            phoneError ? 'border-red-500' : 'border-gray-300'
+                                        } rounded-lg focus:outline-none focus:border-black text-xs`}
+                                        disabled={isLoading || isRefreshingAlgolia}
+                                        required
+                                    />
+                                </div>
+
+                                {phoneError && <p className='mt-1 text-xs text-red-500'>{phoneError}</p>}
                             </div>
 
                             <div>
                                 <label htmlFor='property' className='block text-sm font-medium mb-2'>
                                     Property <span className='text-red-500'>*</span>
                                 </label>
-                                <Dropdown
-                                    options={propertyOptions}
-                                    onSelect={handlePropertySelect}
-                                    defaultValue={
-                                        formData.propertyId ? `${formData.propertyId}|${formData.propertyName}` : ''
-                                    }
-                                    placeholder='Select property name'
-                                    className='w-full'
-                                    triggerClassName='w-full px-4 py-2.5 border text-gray-500 font-medium text-xs border-gray-300 rounded-lg focus:outline-none focus:border-black appearance-none bg-white flex items-center justify-between text-left'
-                                    menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
-                                    optionClassName='w-full px-4 py-2.5 text-left hover:bg-gray-100 focus:outline-none focus:bg-gray-50 text-sm'
-                                    disabled={isLoading}
-                                />
+                                <div className='relative w-full'>
+                                    <Dropdown
+                                        options={propertyOptions}
+                                        onSelect={handlePropertySelect}
+                                        defaultValue={
+                                            formData.propertyId ? `${formData.propertyId}|${formData.propertyName}` : ''
+                                        }
+                                        placeholder='Select property name'
+                                        className='w-full' // No 'relative' here
+                                        triggerClassName='w-full px-4 py-2.5 border text-gray-500 font-medium text-xs border-gray-300 rounded-lg focus:outline-none focus:border-black appearance-none bg-white flex items-center justify-between text-left'
+                                        menuClassName='absolute z-10 top-full mt-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
+                                        optionClassName='w-full px-4 py-2.5 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 text-xs'
+                                        disabled={isLoading || isRefreshingAlgolia}
+                                    />
+                                </div>
                             </div>
 
                             <div className='grid grid-cols-2 gap-4'>
@@ -401,11 +404,11 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                         onSelect={(value) => handleInputChange('source', value)}
                                         defaultValue={formData.source}
                                         placeholder='Select Source'
-                                        className='w-full'
-                                        triggerClassName='px-4 py-2.5 border border-gray-300 text-gray-500 font-medium rounded-lg focus:outline-none focus:border-black text-xs appearance-none bg-white flex items-center justify-between text-left'
-                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
-                                        optionClassName='w-full px-3 py-2 text-left hover:bg-gray-100 focus:outline-none focus:bg-gray-50 text-sm'
-                                        disabled={isLoading}
+                                        className='w-full relative'
+                                        triggerClassName='w-full px-4 py-2.5 border text-gray-500 font-medium text-xs border-gray-300 rounded-lg focus:outline-none focus:border-black appearance-none bg-white flex items-center justify-between text-left'
+                                        menuClassName='absolute z-10 top-full mt-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
+                                        optionClassName='w-full px-4 py-2.5 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 text-xs'
+                                        disabled={isLoading || isRefreshingAlgolia}
                                     />
                                 </div>
 
@@ -420,11 +423,11 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                             formData.agentId ? `${formData.agentId}|${formData.agentName}` : ''
                                         }
                                         placeholder='Select Agent'
-                                        className='w-full'
-                                        triggerClassName='px-4 py-2.5 border border-gray-300 text-gray-500 rounded-lg focus:outline-none focus:border-black text-xs font-medium appearance-none bg-white flex items-center justify-between text-left'
-                                        menuClassName='absolute z-50 mt-1 w-fit bg-white border border-gray-300 rounded-md shadow-lg'
-                                        optionClassName='px-3 py-2 w-full text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                                        disabled={isLoading}
+                                        className='w-full relative'
+                                        triggerClassName='w-full px-4 py-2.5 border text-gray-500 font-medium text-xs border-gray-300 rounded-lg focus:outline-none focus:border-black appearance-none bg-white flex items-center justify-between text-left'
+                                        menuClassName='absolute z-10 top-full mt-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
+                                        optionClassName='w-full px-4 py-2.5 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 text-xs'
+                                        disabled={isLoading || isRefreshingAlgolia}
                                     />
                                 </div>
                             </div>
@@ -435,8 +438,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                         <div className='flex items-center justify-center gap-6'>
                             <button
                                 onClick={handleDiscard}
-                                disabled={isLoading}
-                                className='px-6 py-2 w-30 text-gray-600 bg-gray-200 rounded-sm hover:text-gray-800 hover:bg-gray-300 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                                disabled={isLoading || isRefreshingAlgolia}
+                                className='px-6 py-2 w-30 text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-sm  text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                             >
                                 Discard
                             </button>

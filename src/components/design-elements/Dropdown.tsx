@@ -10,25 +10,29 @@ interface Option {
 interface DropdownProps {
     options: Option[]
     onSelect: (option: string) => void
+    value?: string
     defaultValue?: string
     placeholder?: string
     className?: string
     triggerClassName?: string
     menuClassName?: string
     optionClassName?: string
-    disabled?: boolean
+    forcePlaceholderAlways?: boolean
+    disabled?: boolean // ✅ Add this line
 }
 
 const Dropdown = ({
     options,
     onSelect,
+    value,
     defaultValue,
     placeholder = 'Select an option',
     className,
     triggerClassName,
     menuClassName,
     optionClassName,
-    disabled = false,
+    forcePlaceholderAlways,
+    disabled = false, // ✅ Default to false
 }: DropdownProps) => {
     const [isOpen, setIsOpen] = useState(false)
     const [selected, setSelected] = useState<string>(defaultValue || '')
@@ -46,7 +50,6 @@ const Dropdown = ({
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    // Measure trigger width when component mounts or window resizes
     useEffect(() => {
         const measureTriggerWidth = () => {
             if (triggerRef.current) {
@@ -59,10 +62,9 @@ const Dropdown = ({
         return () => window.removeEventListener('resize', measureTriggerWidth)
     }, [])
 
-    // Find the selected option object
-    const selectedOption = options.find((opt) => opt.value === selected)
-
-    const selectedLabel = selected ? selectedOption?.label : placeholder
+    const selectedValue = value !== undefined ? value : selected
+    const selectedOption = options.find((opt) => opt.value === selectedValue)
+    const selectedLabel = forcePlaceholderAlways ? placeholder : selectedValue ? selectedOption?.label : placeholder
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (disabled) {
@@ -78,10 +80,9 @@ const Dropdown = ({
     }
 
     const handleSelect = (option: Option) => {
-        if (disabled) {
-            setIsOpen(false)
+        if (value === undefined) {
+            setSelected(option.value) // only update internal state if uncontrolled
         }
-        setSelected(option.value)
         onSelect(option.value)
         setIsOpen(false)
     }
@@ -113,7 +114,12 @@ const Dropdown = ({
                 aria-expanded={isOpen}
             >
                 <span>{selectedLabel}</span>
-                <svg className='w-4 h-4 ml-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <svg
+                    className={`w-4 h-4 ml-2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                >
                     <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
                 </svg>
             </div>
@@ -125,8 +131,7 @@ const Dropdown = ({
                     role='listbox'
                 >
                     {options.map((option) => {
-                        const isSelected = selected === option.value
-                        // Apply selected styling if matches
+                        const isSelected = selectedValue === option.value
                         const style = option.color
                             ? { backgroundColor: option.color, color: option.textColor }
                             : undefined
