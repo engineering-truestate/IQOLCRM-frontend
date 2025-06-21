@@ -1,68 +1,157 @@
-// store/services/qcService.ts
+// services/acn/qc/qcService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { doc, getDoc, updateDoc, setDoc, runTransaction } from 'firebase/firestore'
+import {
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    query,
+    where,
+    orderBy,
+    limit,
+    updateDoc,
+    arrayUnion,
+    serverTimestamp,
+    Timestamp,
+    setDoc,
+} from 'firebase/firestore'
 import { db } from '../../../firebase'
 import type {
     IQCInventory,
-    BaseQCInventory,
     UpdateQCStatusParams,
-    UpdateStatusResponse,
+    UpdateKAMStatusParams,
+    UpdateDataTeamStatusParams,
     AddNoteParams,
+    UpdateStatusResponse,
     AddNoteResponse,
+    QCNote,
+    QCHistoryItem,
+    ReviewDetails,
 } from '../../../data_types/acn/types'
 
-// Helper function to get current Unix timestamp
-const getCurrentTimestamp = () => Date.now()
-
-// Generate unique Property ID for approved QC items
-const generateUniquePropertyId = async (): Promise<string> => {
-    return await runTransaction(db, async (transaction) => {
-        const adminDocRef = doc(db, 'acn-admin', 'lastPropId')
-        const adminDoc = await transaction.get(adminDocRef)
-
-        if (!adminDoc.exists()) {
-            const initialData = {
-                count: 5269,
-                label: 'P',
-                prefix: 'A',
-            }
-            transaction.set(adminDocRef, initialData)
-            const newPropertyId = `${initialData.label}${initialData.prefix}${initialData.count + 1}`
-            return newPropertyId
-        }
-
-        const adminData = adminDoc.data()
-        const currentCount = adminData.count || 5269
-        const label = adminData.label || 'P'
-        const prefix = adminData.prefix || 'A'
-
-        const newCount = currentCount + 1
-        const newPropertyId = `${label}${prefix}${newCount}`
-
-        transaction.update(adminDocRef, { count: newCount })
-
-        return newPropertyId
-    })
+// Helper function to get current timestamp
+const getCurrentTimestamp = (): number => {
+    return Date.now()
 }
 
-// Fetch QC Inventory by ID
+// Helper function to get next QC ID
+const getNextQcId = async (): Promise<string> => {
+    const lastQcIdRef = doc(db, 'acn-admin', 'lastQcId')
+    const lastQcIdSnap = await getDoc(lastQcIdRef)
+
+    if (!lastQcIdSnap.exists()) {
+        throw new Error('lastQcId document does not exist in acn-admin collection')
+    }
+
+    const data = lastQcIdSnap.data()
+    const count = data.count
+    const label = data.label
+    const prefix = data.prefix
+
+    const nextId = `${label}${prefix}${count}`
+
+    // Update count
+    await updateDoc(lastQcIdRef, { count: count + 1 })
+
+    return nextId
+}
+
+// Add QC Inventory
+export const addQCInventory = createAsyncThunk<IQCInventory, Partial<IQCInventory>, { rejectValue: string }>(
+    'qc/addQCInventory',
+    async (qcData, { rejectWithValue }) => {
+        try {
+            console.log('🔄 Adding new QC inventory')
+
+            const nextId = await getNextQcId()
+            const qcCollection = collection(db, 'acnQCInventories')
+            const currentTime = getCurrentTimestamp()
+
+            const newQcData: Partial<IQCInventory> = {
+                ...qcData,
+                propertyId: nextId,
+                dateOfInventoryAdded: currentTime,
+                dateOfStatusLastChecked: currentTime,
+                lastModified: currentTime,
+                ageOfInventory: 0,
+                ageOfStatus: 0,
+                stage: 'kam',
+                qcStatus: 'pending',
+                kamStatus: 'pending',
+                qcHistory: [],
+                notes: [],
+                noOfEnquiries: 0,
+                _geoloc: qcData._geoloc || { lat: 0, lng: 0 },
+            }
+
+            const qcDocRef = doc(db, 'acnQCInventories', nextId)
+            await setDoc(qcDocRef, newQcData)
+            const result = { ...newQcData, id: nextId } as IQCInventory
+
+            console.log('✅ QC inventory added successfully:', result.propertyId)
+            return result
+        } catch (error: any) {
+            console.error('❌ Error adding QC inventory:', error)
+            return rejectWithValue(error.message || 'Failed to add QC inventory')
+        }
+    },
+)
+
+// Update QC Inventory
+export const updateQCInventory = createAsyncThunk<
+    IQCInventory,
+    { id: string; updates: Partial<IQCInventory> },
+    { rejectValue: string }
+>('qc/updateQCInventory', async ({ id, updates }, { rejectWithValue }) => {
+    try {
+        console.log('🔄 Updating QC inventory:', id)
+
+        const qcDocRef = doc(db, 'acnQCInventories', id)
+        const currentTime = getCurrentTimestamp()
+
+        const updateData = {
+            ...updates,
+            lastModified: currentTime,
+            dateOfStatusLastChecked: currentTime,
+        }
+
+        await updateDoc(qcDocRef, updateData)
+
+        // Fetch the updated document
+        const updatedDoc = await getDoc(qcDocRef)
+        if (!updatedDoc.exists()) {
+            throw new Error('Updated document not found')
+        }
+
+        const result = { id: updatedDoc.id, ...updatedDoc.data() } as IQCInventory
+
+        console.log('✅ QC inventory updated successfully:', result.propertyId)
+        return result
+    } catch (error: any) {
+        console.error('❌ Error updating QC inventory:', error)
+        return rejectWithValue(error.message || 'Failed to update QC inventory')
+    }
+})
+
+// Fetch QC inventory by ID
 export const fetchQCInventoryById = createAsyncThunk<IQCInventory, string, { rejectValue: string }>(
     'qc/fetchById',
-    async (qcId: string, { rejectWithValue }) => {
+    async (propertyId, { rejectWithValue }) => {
         try {
-            console.log('🔍 Fetching QC inventory with ID:', qcId)
+            console.log('🔄 Fetching QC inventory:', propertyId)
 
-            const docRef = doc(db, 'acnQCInventories', qcId)
+            const docRef = doc(db, 'acnQCInventories', propertyId)
             const docSnap = await getDoc(docRef)
 
-            if (docSnap.exists()) {
-                const data = docSnap.data() as IQCInventory
-                console.log('✅ QC inventory data fetched successfully:', data)
-                return data
-            } else {
-                console.log('❌ No QC inventory found with ID:', qcId)
-                return rejectWithValue(`QC inventory with ID ${qcId} not found`)
+            if (!docSnap.exists()) {
+                console.log('❌ QC inventory not found:', propertyId)
+                return rejectWithValue('QC inventory not found')
             }
+
+            const data = docSnap.data() as IQCInventory
+            console.log('✅ QC inventory fetched successfully:', data.propertyId)
+
+            return data
         } catch (error: any) {
             console.error('❌ Error fetching QC inventory:', error)
             return rejectWithValue(error.message || 'Failed to fetch QC inventory')
@@ -70,66 +159,68 @@ export const fetchQCInventoryById = createAsyncThunk<IQCInventory, string, { rej
     },
 )
 
-// Update QC Status with Role-Based Logic and Business Rules
+// Update QC status with role-based checks
 export const updateQCStatusWithRoleCheck = createAsyncThunk<
     UpdateStatusResponse,
-    UpdateQCStatusParams,
+    UpdateQCStatusParams & { additionalData?: any },
     { rejectValue: string }
 >(
     'qc/updateStatusWithRoleCheck',
-    async ({ property, status, agentData, activeTab, reviewedBy }, { rejectWithValue }) => {
+    async ({ property, status, agentData, activeTab, reviewedBy, comments, additionalData }, { rejectWithValue }) => {
         try {
             let dataToSave: Partial<IQCInventory> = {}
             let shouldCreateProperty = false
             const currentTime = getCurrentTimestamp()
+
             console.log('🔄 Processing status update:', {
                 propertyId: property.propertyId,
                 status,
                 role: agentData.role,
                 activeTab,
                 currentStage: property.stage,
+                additionalData,
             })
 
             // Safely get current statuses with fallbacks
-            const currentKamStatus = property.qcReview?.kamReview?.status || property.kamStatus || 'pending'
-            const currentDataStatus = property.qcReview?.dataReview?.status || property.dataStatus || 'pending'
+            const currentKamStatus = property.kamStatus || 'pending'
+            const currentDataStatus = property.qcStatus || 'pending'
+
+            // Base QC review object
+            const baseQCReview = {
+                ...property.qcReview,
+                ...(additionalData?.rejectedFields && { rejectedFields: additionalData.rejectedFields }),
+                ...(additionalData?.originalPropertyId && { originalPropertyId: additionalData.originalPropertyId }),
+            }
 
             switch (agentData.role) {
                 case 'data':
                     console.log('🔄 Processing data update')
-                    // Role-based validation first
                     if (currentKamStatus !== 'approved') {
                         return rejectWithValue('Data team can only edit status if KAM status is approved')
                     }
                     if (property.stage === 'notApproved') {
                         return rejectWithValue('Data team cannot edit properties in notApproved stage')
                     }
-                    if (status === currentDataStatus) {
-                        return rejectWithValue(`You cannot change the status of a property that is already: ${status}`)
-                    }
 
-                    // Check if status is other than approved
                     if (status !== 'approved') {
-                        // Apply special logic: kamStatus = given status, qcStatus = pending, stage = notApproved, status = given status
                         dataToSave = {
                             qcReview: {
-                                ...property.qcReview,
+                                ...baseQCReview,
                                 kamReview: {
                                     ...property.qcReview?.kamReview,
                                     status: status as any,
                                     reviewDate: currentTime,
                                     reviewedBy,
-                                    comments: `Status updated to ${status} - moved to notApproved stage`,
+                                    comments: comments,
                                 },
                                 dataReview: {
                                     status: status as any,
                                     reviewDate: currentTime,
                                     reviewedBy,
-                                    comments: `Data review status updated to ${status}`,
+                                    comments: comments,
                                 },
                             },
                             kamStatus: status as any,
-                            dataStatus: status as any,
                             qcStatus: 'pending',
                             stage: 'notApproved',
                             status: status as any,
@@ -146,25 +237,25 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                     kamId: agentData.kamId || '',
                                     cpId: property.cpId,
                                     action: `Status changed to ${status}`,
-                                    details: `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
+                                    details:
+                                        comments ||
+                                        `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
                                     performedBy: reviewedBy,
                                     date: currentTime,
                                 },
                             ],
                         }
                     } else {
-                        // Original logic for approved status
                         dataToSave = {
                             qcReview: {
-                                ...property.qcReview,
+                                ...baseQCReview,
                                 dataReview: {
                                     status: status as any,
                                     reviewDate: currentTime,
                                     reviewedBy,
-                                    comments: `Data review status updated to ${status}`,
+                                    comments: comments,
                                 },
                             },
-                            dataStatus: status as any,
                             qcStatus: status as any,
                             status: 'available',
                             stage: 'live',
@@ -181,7 +272,7 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                     kamId: agentData.kamId || '',
                                     cpId: property.cpId,
                                     action: `Status changed to ${status}`,
-                                    details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                    details: comments || `Status updated by ${reviewedBy} (${agentData.role})`,
                                     performedBy: reviewedBy,
                                     date: currentTime,
                                 },
@@ -193,29 +284,22 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
 
                 case 'kam':
                     console.log('🔄 Processing kam update')
-                    // Role-based validation first
                     if (property.stage !== 'kam' && property.stage !== 'notApproved') {
                         return rejectWithValue(
                             'You cannot change the status of a property that is not in the KAM or notApproved stage',
                         )
                     }
-                    if (status === currentKamStatus) {
-                        return rejectWithValue(`You cannot change the status of a property that is already: ${status}`)
-                    }
 
-                    // Check if status is other than approved
                     if (status !== 'approved') {
-                        // Apply special logic: kamStatus = given status, qcStatus = pending, stage = notApproved, status = given status
                         dataToSave = {
                             qcReview: {
-                                ...property.qcReview,
+                                ...baseQCReview,
                                 kamReview: {
                                     status: status as any,
                                     reviewDate: currentTime,
                                     reviewedBy,
-                                    comments: `Status updated to ${status} - moved to notApproved stage`,
+                                    comments: comments || `Status updated to ${status} - moved to notApproved stage`,
                                 },
-                                // Preserve existing dataReview if it exists
                                 ...(property.qcReview?.dataReview && { dataReview: property.qcReview.dataReview }),
                             },
                             kamStatus: status as any,
@@ -235,24 +319,24 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                     kamId: agentData.kamId || '',
                                     cpId: property.cpId,
                                     action: `Status changed to ${status}`,
-                                    details: `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
+                                    details:
+                                        comments ||
+                                        `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
                                     performedBy: reviewedBy,
                                     date: currentTime,
                                 },
                             ],
                         }
                     } else {
-                        // Original logic for approved status
                         dataToSave = {
                             qcReview: {
-                                ...property.qcReview,
+                                ...baseQCReview,
                                 kamReview: {
                                     status: status as any,
                                     reviewDate: currentTime,
                                     reviewedBy,
-                                    comments: `KAM review status updated to ${status}`,
+                                    comments: comments || `KAM review status updated to ${status}`,
                                 },
-                                // Preserve existing dataReview if it exists
                                 ...(property.qcReview?.dataReview && { dataReview: property.qcReview.dataReview }),
                             },
                             kamStatus: status as any,
@@ -270,7 +354,7 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                     kamId: agentData.kamId || '',
                                     cpId: property.cpId,
                                     action: `Status changed to ${status}`,
-                                    details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                    details: comments || `KAM review status updated to ${status}`,
                                     performedBy: reviewedBy,
                                     date: currentTime,
                                 },
@@ -281,27 +365,19 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
 
                 case 'kamModerator':
                     console.log('🔄 Processing kamModerator update')
-                    // KAM moderators can edit in ALL stages (kam, data, notApproved)
-                    if (activeTab === 'kam') {
-                        if (status === currentKamStatus) {
-                            return rejectWithValue(
-                                `You cannot change the status of a property that is already: ${status}`,
-                            )
-                        }
 
-                        // Check if status is other than approved
+                    if (activeTab === 'kam') {
                         if (status !== 'approved') {
-                            // Apply special logic
                             dataToSave = {
                                 qcReview: {
-                                    ...property.qcReview,
+                                    ...baseQCReview,
                                     kamReview: {
                                         status: status as any,
                                         reviewDate: currentTime,
                                         reviewedBy,
-                                        comments: `Status updated to ${status} by moderator - moved to notApproved stage`,
+                                        comments:
+                                            comments || `Status updated to ${status} - moved to notApproved stage`,
                                     },
-                                    // Preserve existing dataReview if it exists
                                     ...(property.qcReview?.dataReview && { dataReview: property.qcReview.dataReview }),
                                 },
                                 kamStatus: status as any,
@@ -321,24 +397,24 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                         kamId: agentData.kamId || '',
                                         cpId: property.cpId,
                                         action: `Status changed to ${status}`,
-                                        details: `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
+                                        details:
+                                            comments ||
+                                            `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
                                         performedBy: reviewedBy,
                                         date: currentTime,
                                     },
                                 ],
                             }
                         } else {
-                            // Original logic for approved status
                             dataToSave = {
                                 qcReview: {
-                                    ...property.qcReview,
+                                    ...baseQCReview,
                                     kamReview: {
                                         status: status as any,
                                         reviewDate: currentTime,
                                         reviewedBy,
-                                        comments: `KAM review status updated to ${status} by moderator`,
+                                        comments: comments || `KAM review status updated to ${status}`,
                                     },
-                                    // Preserve existing dataReview if it exists
                                     ...(property.qcReview?.dataReview && { dataReview: property.qcReview.dataReview }),
                                 },
                                 kamStatus: status as any,
@@ -356,7 +432,7 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                         kamId: agentData.kamId || '',
                                         cpId: property.cpId,
                                         action: `Status changed to ${status}`,
-                                        details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                        details: comments || `KAM review status updated to ${status}`,
                                         performedBy: reviewedBy,
                                         date: currentTime,
                                     },
@@ -364,38 +440,25 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                             }
                         }
                     } else if (activeTab === 'data') {
-                        // For data tab, still need KAM to be approved (unless in notApproved stage)
-                        if (currentKamStatus !== 'approved' && property.stage !== 'notApproved') {
-                            return rejectWithValue('Data team can only edit status if KAM status is approved')
-                        }
-                        if (status === currentDataStatus) {
-                            return rejectWithValue(
-                                `You cannot change the status of a property that is already: ${status}`,
-                            )
-                        }
-
-                        // Check if status is other than approved
                         if (status !== 'approved') {
-                            // Apply special logic
                             dataToSave = {
                                 qcReview: {
-                                    ...property.qcReview,
+                                    ...baseQCReview,
                                     kamReview: {
                                         ...property.qcReview?.kamReview,
                                         status: status as any,
                                         reviewDate: currentTime,
                                         reviewedBy,
-                                        comments: `Status updated to ${status} by moderator - moved to notApproved stage`,
+                                        comments: comments,
                                     },
                                     dataReview: {
                                         status: status as any,
                                         reviewDate: currentTime,
                                         reviewedBy,
-                                        comments: `Data review status updated to ${status} by moderator`,
+                                        comments: comments,
                                     },
                                 },
                                 kamStatus: status as any,
-                                dataStatus: status as any,
                                 qcStatus: 'pending',
                                 stage: 'notApproved',
                                 status: status as any,
@@ -412,31 +475,25 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                         kamId: agentData.kamId || '',
                                         cpId: property.cpId,
                                         action: `Status changed to ${status}`,
-                                        details: `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
+                                        details:
+                                            comments ||
+                                            `Status updated by ${reviewedBy} (${agentData.role}) - moved to notApproved stage`,
                                         performedBy: reviewedBy,
                                         date: currentTime,
                                     },
                                 ],
                             }
                         } else {
-                            // Original logic for approved status
                             dataToSave = {
                                 qcReview: {
-                                    ...property.qcReview,
-                                    kamReview: property.qcReview?.kamReview || {
-                                        status: currentKamStatus as any,
-                                        reviewDate: currentTime,
-                                        reviewedBy: 'System',
-                                        comments: 'Initial KAM review',
-                                    },
+                                    ...baseQCReview,
                                     dataReview: {
                                         status: status as any,
                                         reviewDate: currentTime,
                                         reviewedBy,
-                                        comments: `Data review status updated to ${status} by moderator`,
+                                        comments: comments,
                                     },
                                 },
-                                dataStatus: status as any,
                                 qcStatus: status as any,
                                 status: 'available',
                                 stage: 'live',
@@ -453,7 +510,7 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                                         kamId: agentData.kamId || '',
                                         cpId: property.cpId,
                                         action: `Status changed to ${status}`,
-                                        details: `Status updated by ${reviewedBy} (${agentData.role})`,
+                                        details: comments || `Status updated by ${reviewedBy} (${agentData.role})`,
                                         performedBy: reviewedBy,
                                         date: currentTime,
                                     },
@@ -461,60 +518,24 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                             }
                             shouldCreateProperty = true
                         }
-                    } else {
-                        return rejectWithValue('These fields cannot be edited from this tab!')
                     }
                     break
 
                 default:
-                    return rejectWithValue('Unauthorized role for this operation')
+                    return rejectWithValue('Invalid user role')
             }
 
-            if (!property.propertyId) {
-                return rejectWithValue('Property ID is missing')
-            }
+            // Update the document in Firestore
+            const docRef = doc(db, 'acnQCInventories', property.propertyId)
+            await updateDoc(docRef, dataToSave)
 
-            console.log('💾 Saving data:', dataToSave)
+            console.log('✅ Status updated successfully:', {
+                propertyId: property.propertyId,
+                newStatus: status,
+                stage: dataToSave.stage,
+                shouldCreateProperty,
+            })
 
-            // Update QC inventory
-            const qcDocRef = doc(db, 'acnQCInventories', property.propertyId)
-            await updateDoc(qcDocRef, dataToSave)
-
-            // Send notification (non-blocking)
-            fetch(`https://notification-server-acn.onrender.com/qcstatus/${property.propertyId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }).catch(() => {})
-
-            // Create property if both reviews are approved
-            if (shouldCreateProperty) {
-                const newPropertyId = await generateUniquePropertyId()
-                const propertyData = {
-                    ...property,
-                    ...dataToSave,
-                    propertyId: newPropertyId,
-                    status: 'available',
-                    dateOfInventoryAdded: property.dateOfInventoryAdded,
-                    dateOfStatusLastChecked: currentTime,
-                    ageOfStatus: 0,
-                }
-                const propertyDocRef = doc(db, 'acnProperties', newPropertyId)
-                await setDoc(propertyDocRef, propertyData)
-
-                console.log('🏠 Property created successfully with ID:', newPropertyId)
-
-                // Send property creation notification (non-blocking)
-                fetch(`https://notification-server-acn.onrender.com/property/${newPropertyId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }).catch(() => {})
-            }
-
-            console.log('✅ Status updated successfully')
             return {
                 propertyId: property.propertyId,
                 updates: dataToSave,
@@ -522,48 +543,33 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
             }
         } catch (error: any) {
             console.error('❌ Error updating QC status:', error)
-            return rejectWithValue(error.message || 'Failed to update QC status')
+            return rejectWithValue(error.message || 'Failed to update status')
         }
     },
 )
 
-// Add Note to QC Inventory
+// Add note to QC inventory
 export const addQCInventoryNote = createAsyncThunk<AddNoteResponse, AddNoteParams, { rejectValue: string }>(
     'qc/addNote',
     async ({ propertyId, details, kamId, kamName }, { rejectWithValue }) => {
         try {
-            console.log('📝 Adding note to QC inventory:', {
-                propertyId,
-                details,
-                kamId,
-                kamName,
-            })
-
-            const docRef = doc(db, 'acnQCInventories', propertyId)
-            const docSnap = await getDoc(docRef)
-
-            if (!docSnap.exists()) {
-                return rejectWithValue('Property not found')
-            }
-
-            const currentProperty = docSnap.data() as BaseQCInventory
             const currentTime = getCurrentTimestamp()
 
-            const newNote = {
+            const newNote: QCNote = {
                 kamId,
                 kamName,
                 details,
                 timestamp: currentTime,
             }
 
-            const dataToSave = {
-                notes: [...(currentProperty.notes || []), newNote],
+            const docRef = doc(db, 'acnQCInventories', propertyId)
+            await updateDoc(docRef, {
+                notes: arrayUnion(newNote),
                 lastModified: currentTime,
-            }
+            })
 
-            await updateDoc(docRef, dataToSave)
+            console.log('✅ Note added successfully:', propertyId)
 
-            console.log('✅ Note added successfully')
             return {
                 propertyId,
                 note: newNote,

@@ -72,7 +72,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
             'eoi collection': 'Collect EOI',
             booking: 'Booking Amount',
         }
-        return titleMapping[firebaseType?.toLowerCase()] || firebaseType
+        return titleMapping[firebaseType] || firebaseType
     }
 
     const formatDateTime = (timestamp: number): string => {
@@ -94,7 +94,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
     }
 
     const getScheduledInfo = (task: Task): string => {
-        switch (task.taskType?.toLowerCase()) {
+        switch (task.type.toLowerCase()) {
             case 'lead registration':
                 return 'Registration scheduled'
             case 'initial contact':

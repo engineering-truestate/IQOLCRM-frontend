@@ -5,8 +5,24 @@ import {
     signOut,
     sendPasswordResetEmail,
 } from 'firebase/auth'
-import { auth, storage } from '../firebase'
+import { auth, db, storage } from '../firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+
+export const acnRegisterHelper = async (uid: string, platform: string) => {
+    try {
+        const abc = await setDoc(doc(db, 'internal-agents', uid), {
+            uid: uid,
+            platform: platform,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        })
+        console.log(abc)
+    } catch (error: any) {
+        console.error('Error creating platform:', error)
+        throw error
+    }
+}
 
 export const registerUser = async (
     email: string,
@@ -14,6 +30,7 @@ export const registerUser = async (
     name: string,
     picture: File | null,
     role: string,
+    platform: string,
 ) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
@@ -60,6 +77,10 @@ export const registerUser = async (
             console.error('Error setting custom claims:', claimsError)
             console.warn('User created but role assignment failed')
         }
+        console.log(platform)
+        if (platform === 'acn') {
+            await acnRegisterHelper(user.uid, platform)
+        }
 
         return user
     } catch (error: any) {
@@ -74,6 +95,9 @@ export const loginUser = async (email: string, password: string) => {
         const user = userCredential.user
 
         const idTokenResult = await user.getIdTokenResult()
+        const DocRef = doc(db, 'internal-agents', user.uid)
+        const DocSnap = await getDoc(DocRef)
+        const platform = DocSnap.data()?.platform
 
         return {
             user,
@@ -85,6 +109,7 @@ export const loginUser = async (email: string, password: string) => {
                 displayName: user.displayName,
                 photoURL: user.photoURL,
                 emailVerified: user.emailVerified,
+                platform: platform,
             },
         }
     } catch (error: any) {

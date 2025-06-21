@@ -36,7 +36,9 @@ Plot Size: ${property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
 Facing: ${property.facing || 'N/A'}
 Total Ask Price: ${formatCurrency(property.totalAskPrice)}
 Status: ${property.status || 'Unknown'}
-Agent: ${property.cpCode || 'N/A'}
+Agent: ${property.cpId || 'N/A'}
+
+Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`}
         `.trim()
 
         navigator.clipboard
@@ -54,54 +56,52 @@ Agent: ${property.cpCode || 'N/A'}
         const shareText = `
 *🏠 Property Details*
 
-🏢 *Property Name:* ${property.nameOfTheProperty || property.area || 'Unknown'}
-🆔 *Property ID:* ${property.propertyId || property.id}
-📍 *Location:* ${property.micromarket || 'Unknown'}
-🏠 *Asset Type:* ${property.assetType || 'Unknown'}
-📐 *SBUA:* ${property.sbua ? `${property.sbua} sq ft` : 'N/A'}
-📏 *Plot Size:* ${property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
-🧭 *Facing:* ${property.facing || 'N/A'}
-💰 *Total Ask Price:* ${formatCurrency(property.totalAskPrice)}
-📊 *Status:* ${property.status || 'Unknown'}
-👤 *Agent:* ${property.cpCode || 'N/A'}
+ *Property Name:* ${property.nameOfTheProperty || property.area || 'Unknown'}
+ *Property ID:* ${property.propertyId || property.id}
+ *Location:* ${property.micromarket || 'Unknown'}
+ *Asset Type:* ${property.assetType || 'Unknown'}
+ *SBUA:* ${property.sbua ? `${property.sbua} sq ft` : 'N/A'}
+ *Plot Size:* ${property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
+ *Facing:* ${property.facing || 'N/A'}
+ *Total Ask Price:* ${formatCurrency(property.totalAskPrice)}
+ *Status:* ${property.status || 'Unknown'}
+ *Agent:* ${property.cpId || 'N/A'}
 
-_Shared via Property Management System_
+ *Link:* ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`}
         `.trim()
 
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
         window.open(whatsappUrl, '_blank')
     }
 
-    const handleEmailShare = () => {
-        const subject = `Property Details - ${property.nameOfTheProperty || property.area || 'Unknown'}`
-        const body = `
-Property Details
+    //     const handleEmailShare = () => {
+    //         const subject = `Property Details - ${property.nameOfTheProperty || property.area || 'Unknown'}`
+    //         const body = `
+    // Property Details
 
-Property Name: ${property.nameOfTheProperty || property.area || 'Unknown'}
-Property ID: ${property.propertyId || property.id}
-Location: ${property.micromarket || 'Unknown'}
-Asset Type: ${property.assetType || 'Unknown'}
-SBUA: ${property.sbua ? `${property.sbua} sq ft` : 'N/A'}
-Plot Size: ${property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
-Facing: ${property.facing || 'N/A'}
-Total Ask Price: ${formatCurrency(property.totalAskPrice)}
-Status: ${property.status || 'Unknown'}
-Agent: ${property.cpCode || 'N/A'}
+    // Property Name: ${property.nameOfTheProperty || property.area || 'Unknown'}
+    // Property ID: ${property.propertyId || property.id}
+    // Location: ${property.micromarket || 'Unknown'}
+    // Asset Type: ${property.assetType || 'Unknown'}
+    // SBUA: ${property.sbua ? `${property.sbua} sq ft` : 'N/A'}
+    // Plot Size: ${property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
+    // Facing: ${property.facing || 'N/A'}
+    // Total Ask Price: ${formatCurrency(property.totalAskPrice)}
+    // Status: ${property.status || 'Unknown'}
+    // Agent: ${property.cpCode || 'N/A'}
+    // Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`}
 
-Best regards,
-Property Management Team
-        `.trim()
+    // Best regards,
+    // Property Management Team
+    //         `.trim()
 
-        const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-        window.location.href = mailtoUrl
-    }
+    //         const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    //         window.location.href = mailtoUrl
+    //     }
 
     return (
         <>
-            <div
-                className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
-                onClick={onClose}
-            >
+            <div className='fixed inset-0 bg-black/75 flex items-center justify-center z-50' onClick={onClose}>
                 <div className='flex flex-col gap-0 bg-white rounded-xl w-72 h-80 bg-baseWhite'>
                     {/* Header */}
                     <div className='flex items-center justify-between px-4 py-2'>

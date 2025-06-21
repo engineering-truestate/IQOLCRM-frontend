@@ -11,6 +11,8 @@ import {
     fetchQCInventoryById,
     updateQCStatusWithRoleCheck,
     addQCInventoryNote,
+    addQCInventory,
+    updateQCInventory,
 } from '../../../services/acn/qc/qcService'
 
 const initialState: QCInventoryState = {
@@ -76,6 +78,52 @@ const qcSlice = createSlice({
                 state.loading = false
                 state.error = action.payload as string
                 state.currentQCInventory = null
+            })
+
+            // Add QC Inventory
+            .addCase(addQCInventory.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(addQCInventory.fulfilled, (state, action) => {
+                const payload = action.payload as BaseQCInventory
+                state.loading = false
+                state.currentQCInventory = payload
+                state.qcInventories.push(payload)
+                state.lastFetch = new Date()
+                state.error = null
+            })
+            .addCase(addQCInventory.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.payload as string
+            })
+
+            // Update QC Inventory
+            .addCase(updateQCInventory.pending, (state) => {
+                state.updateLoading = true
+                state.error = null
+            })
+            .addCase(updateQCInventory.fulfilled, (state, action) => {
+                const payload = action.payload as BaseQCInventory
+                state.updateLoading = false
+                state.currentQCInventory = payload
+                state.lastFetch = new Date()
+                state.error = null
+
+                // Update in qcInventories array
+                const index = state.qcInventories.findIndex((qc) => qc.propertyId === payload.propertyId)
+                if (index !== -1) {
+                    state.qcInventories[index] = payload
+                }
+
+                // Update selected inventory if it matches
+                if (state.selectedInventory?.propertyId === payload.propertyId) {
+                    state.selectedInventory = payload
+                }
+            })
+            .addCase(updateQCInventory.rejected, (state, action) => {
+                state.updateLoading = false
+                state.error = action.payload as string
             })
 
             // Update QC Status with Role Check (handles both KAM and Data Team updates)
