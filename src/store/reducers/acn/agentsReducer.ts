@@ -7,6 +7,7 @@ import {
     addCallResultToAgent,
     addNoteToAgent,
     fetchAgentWithNotes,
+    addAgentWithVerification,
 } from '../../../services/acn/agents/agentThunkService'
 import type { RootState } from '../../index'
 
@@ -169,6 +170,18 @@ const agentsSlice = createSlice({
             .addCase(addNoteToAgent.rejected, (state, action) => {
                 state.notesLoading = false
                 state.notesError = action.payload as string
+            })
+            .addCase(addAgentWithVerification.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(addAgentWithVerification.fulfilled, (state, action) => {
+                state.loading = false
+                //state.agents.push(action.payload.agentData)
+            })
+            .addCase(addAgentWithVerification.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.payload as string
             })
     },
 })

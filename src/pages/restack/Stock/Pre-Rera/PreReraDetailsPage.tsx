@@ -113,34 +113,34 @@ const PreReraProjectDetails = () => {
     }
 
     // Add new tower row
-    const addTowerRow = () => {
-        if (!project) return
+    // const addTowerRow = () => {
+    //     if (!project) return
 
-        const newTower: TowerDetail = {
-            name: towerName,
-            floors: Number(towerFloors),
-            name: '',
-            floors: '',
-        }
+    //     const newTower: TowerDetail = {
+    //         name: towerName,
+    //         floors: Number(towerFloors),
+    //         name: '',
+    //         floors: '',
+    //     }
 
-        const currentTowers = project.TowerDetails || []
-        setProject({
-            ...project,
-            TowerDetails: [...currentTowers, newTower],
-        })
+    //     const currentTowers = project.TowerDetails || []
+    //     setProject({
+    //         ...project,
+    //         TowerDetails: [...currentTowers, newTower],
+    //     })
 
-        setEditingTowerRowId(newId)
-        setIsAddingTowerRow(true)
-    }
+    //     setEditingTowerRowId(newId)
+    //     setIsAddingTowerRow(true)
+    // }
 
-    // Delete tower row
-    const deleteTowerRow = (rowId: string) => {
-        if (!project?.TowerDetails) return
-        setProject({
-            ...project,
-            TowerDetails: project.TowerDetails.filter((tower) => tower.id !== rowId),
-        })
-    }
+    // // Delete tower row
+    // const deleteTowerRow = (rowId: string) => {
+    //     if (!project?.TowerDetails) return
+    //     setProject({
+    //         ...project,
+    //         TowerDetails: project.TowerDetails.filter((tower) => tower.id !== rowId),
+    //     })
+    // }
 
     // Helper for rendering info rows
     const renderInfoRow = (
