@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../../store'
 import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
-
+import Dropdown from '../../../../components/design-elements/Dropdown'
 interface Requirement {
     id: string
     name: string
@@ -243,7 +243,11 @@ const Requirements: React.FC<RequirementsProps> = ({
             </div>
         )
     }
-
+    const currentYear = new Date().getFullYear()
+    const possessionOptions = Array.from({ length: 15 }, (_, i) => {
+        const year = (currentYear - i).toString()
+        return { label: year, value: year }
+    })
     // Get current requirement for display
     const currentRequirement = requirements.find((req) => req.id === activeRequirement)
 
@@ -268,17 +272,17 @@ const Requirements: React.FC<RequirementsProps> = ({
                         ))}
 
                         {isAddingNew && (
-                            <button className='py-2 px-1 border-b-2 border-green-500 text-green-600 font-medium text-sm'>
-                                New Requirement
+                            <button className='py-2 px-1 border-b-2 border-black text-gray-500 font-medium text-sm'>
+                                Requirement
                             </button>
                         )}
                         <div className='py-2'>
                             <button
                                 onClick={handleAddNew}
-                                className='flex items-center py-2 gap-2 bg-gray-200 text-gray-900 px-4 rounded-md text-sm font-medium hover:bg-gray-500'
+                                className='flex items-center py-2 gap-2 bg-gray-200 text-gray-900 px-4 rounded-md text-sm w-[78px] h-[28px] font-medium hover:bg-glack'
                                 disabled={isAddingNew}
                             >
-                                <svg width='16' height='16' viewBox='0 0 16 16' fill='none'>
+                                <svg width='8' height='8' viewBox='0 0 16 16' fill='none'>
                                     <path
                                         d='M8 1V15M1 8H15'
                                         stroke='currentColor'
@@ -301,30 +305,30 @@ const Requirements: React.FC<RequirementsProps> = ({
                     <div className='grid grid-cols-3 gap-6 mb-6'>
                         {/* Row 1 */}
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Expected Budget</label>
+                            <label className='block text-sm font-medium text-gray-500 mb-2'>Expected Budget</label>
                             <select
                                 value={formData.expectedBudget}
                                 onChange={(e) => handleInputChange('expectedBudget', e.target.value)}
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
                                 disabled={saving}
                             >
                                 <option value=''>Please Select</option>
-                                <option value='under-50lac'>0.5 - 0.75 Cr</option>
-                                <option value='50lac-80lac'>0.76 - 1 Cr</option>
-                                <option value='50lac-80lac'>1.01 - 1.25 Cr</option>
-                                <option value='50lac-80lac'>1.26 - 1.5 Cr</option>
-                                <option value='50lac-80lac'>1.51 - 1.75 Cr</option>
-                                <option value='50lac-80lac'>1.76 - 2 Cr</option>
+                                <option value='0.5 - 0.75 Cr'>0.5 - 0.75 Cr</option>
+                                <option value='0.76 - 1 Cr'>0.76 - 1 Cr</option>
+                                <option value='1.01 - 1.25 Cr'>1.01 - 1.25 Cr</option>
+                                <option value='1.26 - 1.5 Cr'>1.26 - 1.5 Cr</option>
+                                <option value='1.51 - 1.75 Cr'>1.51 - 1.75 Cr</option>
+                                <option value='1.76 - 2 Cr'>1.76 - 2 Cr</option>
                                 <option value='50lac-80lac'>{'>2 Cr'}</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Zone</label>
+                            <label className='block text-sm font-medium text-gray-500 mb-2'>Zone</label>
                             <select
                                 value={formData.zone}
                                 onChange={(e) => handleInputChange('zone', e.target.value)}
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
                                 disabled={saving}
                             >
                                 <option value=''>Please Select</option>
@@ -332,16 +336,15 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 <option value='south'>South</option>
                                 <option value='east'>East</option>
                                 <option value='west'>West</option>
-                                <option value='central'>Central</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Micro Market</label>
+                            <label className='block text-sm font-medium text-gray-500 mb-2'>Micro Market</label>
                             <select
                                 value={formData.microMarket}
                                 onChange={(e) => handleInputChange('microMarket', e.target.value)}
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
                                 disabled={saving}
                             >
                                 <option value=''>Please Specify</option>
@@ -359,98 +362,90 @@ const Requirements: React.FC<RequirementsProps> = ({
 
                         {/* Row 2 */}
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Property Type</label>
+                            <label className='block text-sm font-medium text-gray-500 mb-2'>Property Type</label>
                             <select
                                 value={formData.propertyType}
                                 onChange={(e) => handleInputChange('propertyType', e.target.value)}
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:ring-gray-500'
                                 disabled={saving}
                             >
                                 <option value=''>Please Select</option>
-                                <option value='apartment'>Plot</option>
+                                <option value='plot'>Plot</option>
                                 <option value='apartment'>Apartment</option>
                                 <option value='villa'>Villa</option>
-                                <option value='plot'>Villament</option>
-                                <option value='office'>Row House</option>
-                                <option value='retail'>Farm House</option>
+                                <option value='villament'>Villament</option>
+                                <option value='row House'>Row House</option>
+                                <option value='farm House'>Farm House</option>
                             </select>
                         </div>
-
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Typology</label>
-                            <select
-                                value={formData.typology}
-                                onChange={(e) => handleInputChange('typology', e.target.value)}
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            <label className='block text-sm font-medium text-gray-500 mb-2'>Typology</label>
+                            <input
+                                type='text'
+                                value={formData.size}
+                                onChange={(e) => handleInputChange('size', e.target.value)}
+                                placeholder='Please Select'
+                                className=' border border-gray-500 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
                                 disabled={saving}
-                            >
-                                <option value=''>Please Select</option>
-                                <option value='1bhk'>1 BHK</option>
-                                <option value='2bhk'>2 BHK</option>
-                                <option value='3bhk'>3 BHK</option>
-                                <option value='4bhk'>4 BHK</option>
-                                <option value='5bhk'>5+ BHK</option>
-                                <option value='villa'>Villa</option>
-                            </select>
+                            />
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Size</label>
+                            <label className='block text-sm font-medium text-gray-500 mb-2'>Size (Sq ft )</label>
                             <input
                                 type='text'
                                 value={formData.size}
                                 onChange={(e) => handleInputChange('size', e.target.value)}
                                 placeholder='e.g., 1200-1500 sqft'
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
                                 disabled={saving}
                             />
                         </div>
 
                         {/* Row 3 */}
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Property Stage</label>
+                            <label className='block text-sm font-medium text-gray-500 mb-2'>Property Stage</label>
                             <select
                                 value={formData.propertyStage}
                                 onChange={(e) => handleInputChange('propertyStage', e.target.value)}
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
                                 disabled={saving}
                             >
                                 <option value=''>Please Select</option>
-                                <option value='ready'>Pre Launch</option>
-                                <option value='under-construction'>Launch</option>
-                                <option value='new-launch'>Under Construction</option>
-                                <option value='new-launch'>Ready to Move</option>
-                                <option value='new-launch'>Complete</option>
+                                <option value='Pre Launch'>Pre Launch</option>
+                                <option value='launch'>Launch</option>
+                                <option value='Under Construction'>Under Construction</option>
+                                <option value='ready to move'>Ready to Move</option>
+                                <option value='complete'>Complete</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Possession By</label>
-                            <select
-                                value={formData.possessionType}
-                                onChange={(e) => handleInputChange('possessionType', e.target.value)}
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                disabled={saving}
-                            >
-                                <option value=''>Please Select</option>
-                                <option value='immediate'>Immediate</option>
-                                <option value='3months'>Within 3 Months</option>
-                                <option value='6months'>Within 6 Months</option>
-                                <option value='1year'>Within 1 Year</option>
-                                <option value='2years'>Within 2 Years</option>
-                            </select>
+                            <label className='block text-sm font-medium text-gray-500 mb-2'>Possession By</label>
+                            <Dropdown
+                                options={[{ label: 'Please Select', value: '' }, ...possessionOptions]}
+                                onSelect={(value) => handleInputChange('possessionType', value)}
+                                defaultValue={formData.possessionType}
+                                placeholder='Select Year'
+                                className='w-full'
+                                triggerClassName='w-full px-4 py-1 border bg-gray-50 text-gray-500 border-gray-300 rounded-sm flex items-center justify-between text-left cursor-not-allowed opacity-80'
+                                //menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
+                                menuClassName='"absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-[300px] overflow-auto'
+                                optionClassName='px-4 py-2 text-sm text-gray-700 bg-gray-50 hover:bg-gray-50 cursor-pointer'
+                                //disabled={saving}
+                            />
                         </div>
                     </div>
 
                     {/* Notes Section */}
                     <div className='mb-6'>
-                        <label className='block text-sm font-medium text-gray-700 mb-2'>Add Note (Optional)</label>
+                        <label className='block text-sm font-medium text-gray-500 mb-2 '>Add Note (Optional)</label>
                         <textarea
                             value={formData.notes}
                             onChange={(e) => handleInputChange('notes', e.target.value)}
                             placeholder='Any specific requirements or preferences...'
                             rows={4}
-                            className='w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            className=' border border-gray-300 rounded-md px-3 py-2 w-[540px] h-[71px] focus:outline-none focus:ring-2 focus:ring-gray-500'
                             disabled={saving}
                         />
                     </div>
@@ -460,7 +455,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                         <button
                             onClick={handleDiscard}
                             disabled={saving}
-                            className='px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium disabled:opacity-50'
+                            className='w-[101px] h-[32px] px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium disabled:opacity-50'
                         >
                             Discard
                         </button>
@@ -547,7 +542,7 @@ const Requirements: React.FC<RequirementsProps> = ({
 
                         <div>
                             <label className='block text-sm font-medium text-gray-700 mb-2'>Possession Type</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700'>
+                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-white text-gray-700'>
                                 {currentRequirement.possessionType || 'Not specified'}
                             </div>
                         </div>

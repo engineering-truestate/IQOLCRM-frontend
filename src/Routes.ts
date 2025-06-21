@@ -162,10 +162,10 @@ export const protectedRoutes: RouteObject[] = [
         path: '/restack/primary',
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryPage, null)),
     },
-    {
-        path: '/restack/resale/:type/:id/details',
-        element: React.createElement(React.Suspense, null, React.createElement(ResaleDetailsPage, null)),
-    },
+    // {
+    //     path: '/restack/resale/:type/:id/details',
+    //     element: React.createElement(React.Suspense, null, React.createElement(ResaleDetailsPage, null)),
+    // },
     {
         path: '/restack/primary/:id',
         element: React.createElement(React.Suspense, null, React.createElement(PrimaryDetailsPage, null)),
@@ -248,14 +248,14 @@ export const protectedRoutes: RouteObject[] = [
         path: '/restack/stock/pre-rera/:id/edit',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
     },
-    {
-        path: '/restack/resale/:type',
-        element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
-    },
-    {
-        path: '/restack/resale',
-        element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
-    },
+    // {
+    //     path: '/restack/resale/:type',
+    //     element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
+    // },
+    // {
+    //     path: '/restack/resale',
+    //     element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
+    // },
     {
         path: '/acn/properties',
         element: React.createElement(
