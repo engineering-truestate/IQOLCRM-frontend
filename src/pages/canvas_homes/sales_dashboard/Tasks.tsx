@@ -5,10 +5,10 @@ import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import DateRangePicker from '../../../components/design-elements/DateRangePicker'
 import { searchTasks, type TaskSearchFilters } from '../../../services/canvas_homes/taskAlgoliaService'
-import hot from '/icons/canvas_homes/hoticon.svg'
-import cold from '/icons/canvas_homes/coldicon.svg'
-import superhot from '/icons/canvas_homes/supericon.svg'
-import potential from '/icons/canvas_homes/potential.svg'
+import potentialIcon from '/icons/canvas_homes/potential-bulb.svg'
+import hotIcon from '/icons/canvas_homes/hoticon.svg'
+import superHotIcon from '/icons/canvas_homes/super-hot.svg'
+import coldIcon from '/icons/canvas_homes/coldicon.svg'
 //import linkedin from '/icons/canvas_homes/linkedin.svg'
 //import meta from '/icons/canvas_homes/meta.svg'
 import { useNavigate } from 'react-router-dom'
@@ -93,6 +93,7 @@ const Tasks = () => {
 
     // Task data state
     const [allTasksData, setAllTasksData] = useState<SalesTask[]>([])
+    const [filteredTasksData, setFilteredTasksData] = useState<SalesTask[]>([])
     const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
     const [loading, setLoading] = useState(false)
 
@@ -171,6 +172,7 @@ const Tasks = () => {
         } catch (error) {
             console.error('Search error:', error)
             setAllTasksData([])
+            setFilteredTasksData([])
         } finally {
             setLoading(false)
         }
@@ -201,14 +203,33 @@ const Tasks = () => {
         return Math.floor(diffTime / (1000 * 60 * 60 * 24))
     }
 
-    const determineTaskStatus = (task: any): 'Complete' | 'Open' | 'Overdue' | 'Upcoming' => {
-        if (task.status === 'Complete' || task.taskStatus === 'Complete') return 'Complete'
+    const determineTaskStatus = (task: any): 'complete' | 'open' | 'Overdue' | 'Upcoming' => {
+        if (task.status === 'complete' || task.taskStatus === 'complete') return 'complete'
 
         const dueDays = calculateDueDays(task.scheduledDate)
         if (dueDays < 0) return 'Overdue'
-        if (dueDays === 0) return 'Open'
+        if (dueDays === 0) return 'open'
         return 'Upcoming'
     }
+
+    // Filter tasks based on status card selection
+    useEffect(() => {
+        if (activeStatusCard === 'All') {
+            setFilteredTasksData(allTasksData)
+        } else if (activeStatusCard === 'Upcoming') {
+            const upcomingTasks = allTasksData.filter((task) => {
+                const dueDays = calculateDueDays(task.scheduledDate)
+                return dueDays >= 0
+            })
+            setFilteredTasksData(upcomingTasks)
+        } else if (activeStatusCard === 'Missed') {
+            const missedTasks = allTasksData.filter((task) => {
+                const dueDays = calculateDueDays(task.scheduledDate)
+                return dueDays < 0
+            })
+            setFilteredTasksData(missedTasks)
+        }
+    }, [allTasksData, activeStatusCard])
 
     // Debounced search for tasks
     const debouncedSearch = useMemo(() => debounce(performSearch, 300), [performSearch, debounce])
@@ -239,20 +260,10 @@ const Tasks = () => {
             Missed: 0,
         }
 
-        const today = new Date()
-        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-
+        // Count each category
         allTasksData.forEach((task) => {
-            const rawDate = task.scheduledDate || task.scheduleTask?.date
-            if (!rawDate) return
-
-            const ts = typeof rawDate === 'string' ? parseInt(rawDate) : rawDate
-            const scheduleDate = new Date(String(ts).length === 10 ? ts * 1000 : ts)
-
-            const diff = scheduleDate.getTime() - todayStart.getTime()
-            const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-            if (diffDays < 0) {
+            const dueDays = calculateDueDays(task.scheduledDate)
+            if (dueDays < 0) {
                 counts.Missed++
             } else {
                 counts.Upcoming++
@@ -284,6 +295,35 @@ const Tasks = () => {
         if (row.leadId || row.id) {
             navigate(`/sales/taskdetails/${row.leadId || row.id}`)
         }
+    }
+    const tagStyles: Record<
+        string,
+        {
+            icon: string
+            bg: string
+            text: string
+        }
+    > = {
+        potential: {
+            icon: potentialIcon, // e.g. /icons/potential.svg
+            bg: 'bg-[#DCFCE7]',
+            text: 'text-[#15803D]',
+        },
+        hot: {
+            icon: hotIcon,
+            bg: 'bg-[#FFEDD5]',
+            text: 'text-[#9A3412]',
+        },
+        superhot: {
+            icon: superHotIcon,
+            bg: 'bg-[#FECACA]',
+            text: 'text-[#991B1B]',
+        },
+        cold: {
+            icon: coldIcon,
+            bg: 'bg-[#DBEAFE]',
+            text: 'text-[#1D4ED8]',
+        },
     }
 
     // Status cards data with dynamic counts
@@ -319,7 +359,6 @@ const Tasks = () => {
                 return 'bg-[#E1F6DF] text-[#2E8E16]'
             case 'open':
                 return 'bg-[#DADAE2] text-gray-700'
-
             default:
                 return 'bg-gray-100 text-gray-700'
         }
@@ -361,44 +400,23 @@ const Tasks = () => {
         {
             key: 'tag',
             header: 'Tag',
-            render: (value) => {
-                const tagValue = (value || '').toLowerCase()
+            render: (value: string) => {
+                const key = value?.toLowerCase().replace(/\s+/g, '')
+                const style = tagStyles[key]
+                const capitalizeWords = (str: string) => str.replace(/\b\w/g, (char) => char.toUpperCase())
 
-                if (tagValue === 'hot') {
-                    return (
-                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFDDDE] text-[#F02532]'>
-                            <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
-                            <span className='text-sm font-normal'>{toCapitalizedWords(value)}</span>
+                if (!style) return <div>-</div>
+
+                return (
+                    <div className='flex justify-start'>
+                        <div
+                            className={`inline-flex items-center min-w-max h-6 gap-1.5 px-2 py-1 rounded-[4px] text-xs font-medium ${style.bg} ${style.text}`}
+                        >
+                            <img src={style.icon} alt={value} className='w-3 h-3 object-contain' />
+                            <span className='text-xs font-medium'>{capitalizeWords(value || '-')}</span>
                         </div>
-                    )
-                } else if (tagValue === 'cold') {
-                    return (
-                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#DBEAFE] text-[#1E3A8A]'>
-                            <img src={cold} alt='Cold' className='w-3 h-3 object-contain' />
-                            <span className='text-sm font-normal'>{toCapitalizedWords(value)}</span>
-                        </div>
-                    )
-                } else if (tagValue === 'potential') {
-                    return (
-                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#E1F6DF] text-[#2E8E16]'>
-                            <img src={potential} alt='Potential' className='w-3 h-3 object-contain' />
-                            <span className='text-sm font-normal'>{toCapitalizedWords(value)}</span>
-                        </div>
-                    )
-                } else if (tagValue === 'warm') {
-                    return (
-                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FAC8C9] text-[#A4151E]'>
-                            <img src={superhot} alt='Warm' className='w-3 h-3 object-contain' />
-                            <span className='text-sm font-normal'>{toCapitalizedWords(value)}</span>
-                        </div>
-                    )
-                } else {
-                    return (
-                        <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-gray-100 text-gray-600'>
-                            <span className='text-sm font-normal'>{toCapitalizedWords(value || '-')}</span>
-                        </div>
-                    )
-                }
+                    </div>
+                )
             },
         },
         {
@@ -440,19 +458,6 @@ const Tasks = () => {
                 </div>
             ),
         },
-        // {
-        //     key: 'completionDate',
-        //     header: 'Completion Date',
-        //     render: (value, row) => {
-        //         const rawDate = value || row.completionDate
-        //         if (!rawDate || rawDate === '-') return <span className='text-[14px] text-gray-900'>-</span>
-
-        //         const ts = typeof rawDate === 'string' ? parseInt(rawDate) : rawDate
-        //         const formatted = !isNaN(ts) ? new Date(String(ts).length === 10 ? ts * 1000 : ts).toLocaleDateString() : rawDate
-
-        //         return <span className='text-[14px] text-gray-900'>{formatted}</span>
-        //     },
-        // },
         {
             key: 'completionDate',
             header: 'Completion Date',
@@ -603,7 +608,7 @@ const Tasks = () => {
                     </div>
                 ) : (
                     <FlexibleTable
-                        data={allTasksData}
+                        data={filteredTasksData}
                         columns={columns}
                         borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                         selectedRows={selectedRows}

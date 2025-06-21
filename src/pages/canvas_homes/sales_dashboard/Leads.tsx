@@ -112,6 +112,7 @@ const Leads = () => {
 
     // Algolia state
     const [allLeadsData, setAllLeadsData] = useState<any[]>([])
+    const [filteredLeadsData, setFilteredLeadsData] = useState<any[]>([])
     const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
 
     // ✅ FIXED: Properly typed debounce function
@@ -123,10 +124,10 @@ const Leads = () => {
         }
     }, [])
 
-    // Create filters object - Fixed to use actual values from dropdowns
+    // Create filters object - Removed state filter from Algolia
     const createFilters = useCallback((): LeadSearchFilters => {
         const filters: LeadSearchFilters = {
-            state: activeStatusCard !== 'All' ? [activeStatusCard.toLowerCase()] : undefined,
+            // Remove state from Algolia filters
             propertyName: selectedProperty ? [selectedProperty] : undefined,
             agentName: selectedAgent ? [selectedAgent] : undefined,
             source: selectedSource ? [selectedSource] : undefined,
@@ -147,7 +148,6 @@ const Leads = () => {
 
         return filters
     }, [
-        activeStatusCard,
         selectedProperty,
         selectedAgent,
         selectedSource,
@@ -159,7 +159,30 @@ const Leads = () => {
         customDateRange,
     ])
 
-    // Search function - Added debugging
+    // Apply manual filtering based on the active status card
+    useEffect(() => {
+        // Apply client-side search filter if needed
+        let filtered = allLeadsData
+
+        if (searchValue) {
+            filtered = filtered.filter(
+                (lead) =>
+                    lead.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    lead.phoneNumber?.includes(searchValue) ||
+                    lead.agentName?.toLowerCase().includes(searchValue.toLowerCase()),
+            )
+        }
+
+        // Filter by state (status card)
+        if (activeStatusCard !== 'All') {
+            const stateValue = activeStatusCard.toLowerCase()
+            filtered = filtered.filter((lead) => lead.state?.toLowerCase() === stateValue)
+        }
+
+        setFilteredLeadsData(filtered)
+    }, [allLeadsData, activeStatusCard, searchValue])
+
+    // Search function - Updated to handle manual filtering
     const performSearch = useCallback(async () => {
         try {
             const filters = createFilters()
@@ -178,6 +201,7 @@ const Leads = () => {
         } catch (error) {
             console.error('Search error:', error)
             setAllLeadsData([])
+            setFilteredLeadsData([])
         }
     }, [searchValue, createFilters])
 
@@ -188,7 +212,6 @@ const Leads = () => {
     useEffect(() => {
         performSearch()
     }, [
-        activeStatusCard,
         selectedProperty,
         selectedAgent,
         selectedSource,
@@ -210,39 +233,36 @@ const Leads = () => {
         performSearch()
     }, [])
 
-    // Filter data based on active status card and other filters (keep existing logic)
-    const filteredLeadsData = useMemo(() => {
-        let filtered = allLeadsData
-
-        // Apply additional client-side search filter if needed
-        if (searchValue) {
-            filtered = filtered.filter(
-                (lead) =>
-                    lead.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    lead.phoneNumber?.includes(searchValue) ||
-                    lead.agentName?.toLowerCase().includes(searchValue.toLowerCase()),
-            )
-        }
-
-        return filtered
-    }, [allLeadsData, searchValue])
-
-    // Calculate status counts from facets - Fixed case sensitivity
+    // Calculate status counts manually from allLeadsData
     const statusCounts = useMemo(() => {
-        const stateFacets = facets.state || {}
-        const totalHits = allLeadsData.length
-
-        console.log('Status facets:', stateFacets) // Debug log
-        console.log('All facets:', facets) // Debug log
-
-        return {
-            All: totalHits,
-            Fresh: stateFacets.fresh || 0,
-            Open: stateFacets.open || 0,
-            Closed: stateFacets.closed || 0,
-            Dropped: stateFacets.dropped || 0,
+        const counts = {
+            All: allLeadsData.length,
+            Fresh: 0,
+            Open: 0,
+            Closed: 0,
+            Dropped: 0,
         }
-    }, [facets, allLeadsData])
+
+        // Count each state
+        allLeadsData.forEach((lead) => {
+            const state = lead.state?.toLowerCase() || ''
+            if (state === 'fresh') counts.Fresh++
+            else if (state === 'open') counts.Open++
+            else if (state === 'closed') counts.Closed++
+            else if (state === 'dropped') counts.Dropped++
+        })
+
+        return counts
+    }, [allLeadsData])
+
+    // Handle date range changes from DateRangePicker
+    const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
+        setCustomDateRange({ startDate, endDate })
+        // Clear preset selection when using custom range
+        if (startDate || endDate) {
+            setSelectedDateRange('')
+        }
+    }, [])
 
     // Generate dropdown options from facets - Fixed to extract correct values
     const generateDropdownOptions = useCallback(
@@ -267,15 +287,6 @@ const Leads = () => {
         },
         [facets],
     )
-
-    // Handle date range changes from DateRangePicker
-    const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
-        setCustomDateRange({ startDate, endDate })
-        // Clear preset selection when using custom range
-        if (startDate || endDate) {
-            setSelectedDateRange('')
-        }
-    }, [])
 
     const handleRowSelect = (rowId: string, selected: boolean) => {
         if (selected) {
@@ -315,7 +326,7 @@ const Leads = () => {
                         {capitalizeFirst(value || row.name || '-')}
                     </div>
                     <div className='text-xs text-gray-500 font-normal'>
-                        {row.addedDate || `Added ${new Date(row.added).toLocaleDateString()}`}
+                        {row.addedDate || `Added ${new Date(row.added * 1000).toLocaleDateString()}`}
                     </div>
                 </div>
             ),
@@ -440,7 +451,8 @@ const Leads = () => {
             header: 'Schedule Task',
             render: (value, row) => {
                 const taskType = capitalizeFirst(value || row?.taskType || '-')
-                const scheduleUnix = row.scheduledDate || row.scheduleTask?.date
+                const scheduleUnix = row.scheduledDate
+                console.log(row.scheduledDate)
 
                 let date = ''
                 if (scheduleUnix) {
@@ -448,28 +460,41 @@ const Leads = () => {
                     if (!isNaN(ts)) date = new Date(ts * 1000).toLocaleDateString()
                 }
 
-                const time = row.scheduleTask?.time || ''
+                const timeInSeconds = row.scheduleTask?.time || null
+
+                // Convert seconds to HH:MM AM/PM format
+                const formattedTime = timeInSeconds
+                    ? new Date(timeInSeconds * 1000).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true,
+                      })
+                    : ''
 
                 return (
                     <div className='flex items-center gap-3' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
                         <div>
                             <div className='text-sm font-medium text-gray-900'>{taskType}</div>
                             <div className='text-xs text-gray-500'>
-                                {date || time ? (
-                                    <>
-                                        {date
-                                            ? new Date(date).toLocaleDateString('en-US', {
-                                                  year: 'numeric',
-                                                  month: 'short',
-                                                  day: 'numeric',
-                                              })
-                                            : ''}
-                                        {date && time ? ' | ' : ''}
-                                        {time || ''}
-                                    </>
-                                ) : (
-                                    ''
-                                )}
+                                <div className='text-xs text-gray-500'>
+                                    {row?.completionDate ? (
+                                        <div>-</div>
+                                    ) : date || formattedTime ? (
+                                        <>
+                                            {date
+                                                ? new Date(scheduleUnix * 1000).toLocaleDateString('en-US', {
+                                                      year: 'numeric',
+                                                      month: 'short',
+                                                      day: 'numeric',
+                                                  })
+                                                : ''}
+                                            {date && formattedTime ? ' | ' : ''}
+                                            {formattedTime}
+                                        </>
+                                    ) : (
+                                        ''
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -519,52 +544,9 @@ const Leads = () => {
                     onDateRangeChange={handleDateRangeChange}
                     placeholder='Date Range'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='w-[130px] flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer truncate'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full min-w-[160px] bg-white border border-gray-300 rounded-md shadow-lg'
                 />
-
-                <Dropdown
-                    options={generateDropdownOptions('propertyName', 'Property')}
-                    onSelect={setSelectedProperty}
-                    defaultValue={selectedProperty}
-                    value={selectedProperty}
-                    forcePlaceholderAlways
-                    placeholder='Property'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
-    ${selectedProperty ? 'border-black' : 'border-gray-300'}`}
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                />
-
-                <Dropdown
-                    options={generateDropdownOptions('agentName', 'Agent')}
-                    onSelect={setSelectedAgent}
-                    defaultValue={selectedAgent}
-                    value={selectedAgent}
-                    forcePlaceholderAlways
-                    placeholder='Agent'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
-    ${selectedAgent ? 'border-black' : 'border-gray-300'}`}
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                />
-
-                <Dropdown
-                    options={generateDropdownOptions('source', 'Source')}
-                    onSelect={setSelectedSource}
-                    defaultValue={selectedSource}
-                    value={selectedSource}
-                    forcePlaceholderAlways
-                    placeholder='Source'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName={`flex items-center justify-between p-2 h-7 border rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer
-    ${selectedSource ? 'border-black' : 'border-gray-300'}`}
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                />
-
                 <Dropdown
                     options={generateDropdownOptions('stage', 'Lead Stage')}
                     onSelect={setSelectedLeadStage}

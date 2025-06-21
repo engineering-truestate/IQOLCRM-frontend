@@ -62,9 +62,9 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onC
         if (taskType === 'site visit' && taskState === 'not visited') {
             return formData.eventName === 'visit scheduled' ? 'interested' : 'follow up'
         } else if (taskType === 'initial contact' && taskState === 'connected') {
-            return 'follow up'
+            return formData.eventName === 'visit scheduled' ? 'interested' : 'follow up'
         } else if (taskType === 'initial contact' && taskState === 'not connected') {
-            return 'follow up'
+            return formData.eventName === 'visit scheduled' ? 'interested' : 'follow up'
         } else if (taskType === 'eoi collection' && taskState === 'eoi not collected') {
             return formData.eventName === 'visit scheduled' ? 'interested' : 'follow up'
         }
@@ -211,7 +211,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onC
             await leadService.update(leadId, leadUpdateData)
 
             // 6. Refresh data and clean up
-            navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
+            window.location.href = `/canvas-homes/sales/leadDetails/${leadId}`
             dispatch(clearTaskId())
 
             toast.success('Event rescheduled successfully!')

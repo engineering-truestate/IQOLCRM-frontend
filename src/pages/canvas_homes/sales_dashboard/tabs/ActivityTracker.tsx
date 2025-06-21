@@ -100,15 +100,14 @@ const ActivityTracker: React.FC = (enquiryId) => {
     // Render the appropriate card based on activity type
     const renderActivityCard = (activity: ActivityHistoryItem, index: number) => {
         switch (activity.activityType) {
-            case 'Task Execution':
+            case 'task execution':
                 return <TaskExecutionCard key={index} activity={activity} />
             case 'task created':
                 return <TaskCreatedCard key={index} activity={activity} />
             case 'agent transfer':
                 return <ChangeAgentCard key={index} activity={activity} />
-            case 'New Enquiry':
+            case 'new enquiry':
                 return <NewEnquiryCard key={index} activity={activity} />
-            case 'Property Change':
             case 'property change':
                 return <PropertyChangeCard key={index} activity={activity} />
             case 'lead closed':

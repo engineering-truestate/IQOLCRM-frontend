@@ -5,10 +5,13 @@ import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
 import potentialIcon from '/icons/canvas_homes/bulbicon.svg'
 
-// Format time function
+// Format time from Unix timestamp in seconds
 const formatTime = (timestamp) => {
     if (!timestamp) return ''
-    const date = new Date(timestamp)
+
+    // Convert seconds to milliseconds for Date object
+    const date = new Date(timestamp * 1000)
+
     return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: 'numeric',
@@ -16,9 +19,17 @@ const formatTime = (timestamp) => {
     })
 }
 
+// Capitalize first letter of each word
+const capitalizeWords = (text) => {
+    if (!text) return ''
+    return String(text)
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+}
+
 const NewEnquiryCard = ({ activity }) => {
     const { activityType = 'New Enquiry', timestamp = '', agentName = '', data = {} } = activity || {}
-
     const { propertyAdded = '', propertyChanged = '', leadStatus = '', tag = '' } = data || {}
 
     // Determine if we have a property change (from one property to another)
@@ -26,15 +37,21 @@ const NewEnquiryCard = ({ activity }) => {
 
     // Get tag color class based on tag value
     const getTagColorClass = (tagValue) => {
-        switch (tagValue) {
-            case 'Hot':
-                return 'bg-[#FEE8BD] text-orange-800'
-            case 'Cold':
-                return 'bg-[#E1F5FE] text-blue-800'
-            case 'Super Hot':
-                return 'bg-[#FFCCBC] text-red-800'
-            case 'Potential':
-                return 'bg-[#E8F5E9] text-green-800'
+        if (!tagValue) return 'bg-gray-200 text-gray-800'
+
+        const lowercaseTag = tagValue.toLowerCase()
+
+        switch (lowercaseTag) {
+            case 'hot':
+                return 'bg-[#FFDDDE] text-[#F02532]'
+            case 'cold':
+                return 'bg-[#E2F4FF] text-[#1C6CED]'
+            case 'super hot':
+                return 'bg-[#FAC8C9] text-[#A4151E]'
+            case 'potential':
+                return 'bg-[#E1F6DF] text-[#2E8E16]'
+            case 'fresh':
+                return 'bg-[#E1F6DF] text-[#2E8E16]'
             default:
                 return 'bg-gray-200 text-gray-800'
         }
@@ -42,14 +59,18 @@ const NewEnquiryCard = ({ activity }) => {
 
     // Get the appropriate tag icon path
     const getTagIcon = (tagValue) => {
-        switch (tagValue) {
-            case 'Hot':
+        if (!tagValue) return null
+
+        const lowercaseTag = tagValue.toLowerCase()
+
+        switch (lowercaseTag) {
+            case 'hot':
                 return hotIcon
-            case 'Cold':
+            case 'cold':
                 return coldIcon
-            case 'Super Hot':
+            case 'super hot':
                 return hotIcon
-            case 'Potential':
+            case 'potential':
                 return potentialIcon
             default:
                 return null
@@ -57,14 +78,15 @@ const NewEnquiryCard = ({ activity }) => {
     }
 
     return (
-        <div className='bg-white shadow-sm border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm'>
+        <div className='bg-white border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm'>
             {/* Header - Activity Type, Time and Agent */}
             <div className='flex justify-between items-start'>
                 <div className='font-semibold text-gray-800'>
-                    {activityType} <span className='text-gray-500 font-normal'>| {formatTime(timestamp)}</span>
+                    {capitalizeWords(activityType)}{' '}
+                    <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(timestamp)}</span>
                 </div>
                 <div className='text-gray-500 text-sm'>
-                    Agent: <span className='text-gray-700'>{agentName}</span>
+                    Agent: <span className='text-gray-700'>{capitalizeWords(agentName)}</span>
                 </div>
             </div>
 
@@ -73,14 +95,16 @@ const NewEnquiryCard = ({ activity }) => {
                 {/* Property Added/Changed */}
                 {propertyAdded && (
                     <div className='flex'>
-                        <div className='w-1/3 text-gray-500'>Property added</div>
+                        <div className='w-1/3 text-gray-500 text-[13px]'>Property added</div>
                         <div className='w-2/3 flex items-center'>
-                            <span className='text-gray-700'>{propertyAdded}</span>
+                            <span className='text-gray-700 text-[13px]'>{capitalizeWords(propertyAdded)}</span>
 
                             {hasPropertyChange && (
                                 <>
                                     <img src={arrowRightIcon} alt='→' className='mx-2 w-4 h-4' />
-                                    <span className='text-gray-700'>{propertyChanged}</span>
+                                    <span className='text-gray-700 text-[13px]'>
+                                        {capitalizeWords(propertyChanged)}
+                                    </span>
                                 </>
                             )}
                         </div>
@@ -90,21 +114,23 @@ const NewEnquiryCard = ({ activity }) => {
                 {/* Lead Status */}
                 {leadStatus && (
                     <div className='flex'>
-                        <div className='w-1/3 text-gray-500'>Lead status</div>
-                        <div className='w-2/3 text-gray-700'>{leadStatus}</div>
+                        <div className='w-1/3 text-gray-500 text-[13px]'>Lead status</div>
+                        <div className='w-2/3 text-gray-700 text-[13px]'>{capitalizeWords(leadStatus)}</div>
                     </div>
                 )}
 
                 {/* Tag (optional) */}
                 {tag && (
                     <div className='flex'>
-                        <div className='w-1/3 text-gray-500'>Tag</div>
+                        <div className='w-1/3 text-gray-500 text-[13px]'>Tag</div>
                         <div className='w-2/3'>
                             <span
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${getTagColorClass(tag)}`}
+                                className={`inline-flex items-center px-2 py-1 rounded-sm text-xs ${getTagColorClass(tag)}`}
                             >
-                                {getTagIcon(tag) && <img src={getTagIcon(tag)} alt={tag} className='w-3 h-3 mr-1' />}
-                                {tag}
+                                {getTagIcon(tag) && (
+                                    <img src={getTagIcon(tag)} alt={capitalizeWords(tag)} className='w-3 h-3 mr-1' />
+                                )}
+                                <span className='text-[13px]'>{capitalizeWords(tag)}</span>
                             </span>
                         </div>
                     </div>

@@ -51,11 +51,11 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
             // Update the lead status to 'closed' with the provided reason
             const currentTimestamp = getUnixDateTime()
             await leadService.update(leadId, {
-                state: 'closed',
+                state: 'dropped',
                 lastModified: Date.now(),
             })
             await enquiryService.update(enquiryId, {
-                state: 'closed',
+                state: 'dropped',
                 lastModified: Date.now(),
             })
             await enquiryService.addActivity(enquiryId, {

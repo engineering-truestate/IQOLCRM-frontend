@@ -28,6 +28,7 @@ const Notes: React.FC<NotesProps> = ({ notes = [], onAddNote, loading }) => {
         'eoi-submitted': true,
         booking: true,
         'follow-up': true,
+        'initial-contact': true,
     })
 
     // Convert Firebase notes to display format
@@ -51,14 +52,10 @@ const Notes: React.FC<NotesProps> = ({ notes = [], onAddNote, loading }) => {
         const sections = [
             { id: 'lead-registration', title: 'Lead Registration', taskTypes: ['lead registration'] },
             { id: 'requirement-collection', title: 'Requirement Collection', taskTypes: ['requirement collection'] },
+            { id: 'initial-contact', title: 'Initial Contact', taskTypes: ['initial contact'] },
             { id: 'site-visit', title: 'Site Visit', taskTypes: ['site visit'] },
             { id: 'eoi-submitted', title: 'EOI Submitted', taskTypes: ['eoi collection', 'eoi'] },
             { id: 'booking', title: 'Booking', taskTypes: ['booking'] },
-            {
-                id: 'follow-up',
-                title: 'Follow Up & Communication',
-                taskTypes: ['follow up', 'initial contact', 'communication'],
-            },
         ]
 
         return sections.map((section) => ({

@@ -77,7 +77,7 @@ const Documents: React.FC<DocumentsProps> = ({
             const timestamp = Date.now()
             const fileName = `${timestamp}_${file.name}`
             const storagePath = `canvas_homes-enquiry-documents/${enquiryId}/${fileName}`
-
+            console.log('rajan the king ', enquiryId, fileName)
             // Create storage reference
             const storageRef = ref(storage, storagePath)
 
