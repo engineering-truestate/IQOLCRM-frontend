@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "iqol-crm"
-  }
+    "default": "iqol-crm",
+    "production": "iqol-crm"
+  },
+  "targets": {},
+  "etags": {}
 }

@@ -5,6 +5,7 @@ import { type PropertyStatus, type PropertyType } from '../../pages/dummy_data/a
 import Dropdown from '../design-elements/Dropdown'
 import StateBaseTextField from '../design-elements/StateBaseTextField'
 import Button from '../design-elements/Button'
+import { toast } from 'react-toastify'
 
 interface UpdateInventoryStatusModalProps {
     isOpen: boolean
@@ -79,6 +80,7 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
 
     const handleUpdate = () => {
         onUpdate(selectedStatus, soldPrice || undefined)
+        toast.success('Updated Succesfuly')
         onClose()
     }
 
@@ -98,7 +100,7 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
     // }
 
     return (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+        <div className='fixed inset-0 bg-black/75 bg-opacity-50 flex items-center justify-center z-50'>
             <div className='bg-white rounded-lg shadow-xl w-96 max-w-md mx-4'>
                 {/* Header */}
                 <div className='px-6 py-4 border-b border-gray-200'>
