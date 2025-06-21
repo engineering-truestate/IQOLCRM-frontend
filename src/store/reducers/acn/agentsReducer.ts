@@ -5,6 +5,8 @@ import {
     fetchAgentByPhone,
     fetchAgentWithConnectHistory,
     addCallResultToAgent,
+    addNoteToAgent,
+    fetchAgentWithNotes,
 } from '../../../services/acn/agents/agentThunkService'
 import type { RootState } from '../../index'
 
@@ -31,6 +33,9 @@ interface AgentsState {
     connectHistoryLoading: boolean
     connectHistoryError: string | null
     currentAgentConnectHistory: any[]
+    notesLoading: boolean
+    notesError: string | null
+    agentNotes: Record<string, any[]> // Store notes by cpId
 }
 
 const initialPropertyData: PropertyData = {
@@ -50,6 +55,9 @@ const initialState: AgentsState = {
     connectHistoryLoading: false,
     connectHistoryError: null,
     currentAgentConnectHistory: [],
+    notesLoading: false,
+    notesError: null,
+    agentNotes: {}, // Initialize as empty object
 }
 
 const agentsSlice = createSlice({
@@ -72,6 +80,10 @@ const agentsSlice = createSlice({
         clearAgentConnectHistory: (state) => {
             state.currentAgentConnectHistory = []
             state.connectHistoryError = null
+        },
+        clearAgentNotes: (state) => {
+            state.agentNotes = {}
+            state.notesError = null
         },
     },
     extraReducers: (builder) => {
@@ -134,10 +146,43 @@ const agentsSlice = createSlice({
                 state.loading = false
                 state.error = action.payload as string
             })
+            .addCase(fetchAgentWithNotes.pending, (state) => {
+                state.notesLoading = true
+                state.notesError = null
+            })
+            .addCase(fetchAgentWithNotes.fulfilled, (state, action) => {
+                state.notesLoading = false
+                state.agentNotes[action.payload.cpId] = action.payload.notes
+            })
+            .addCase(fetchAgentWithNotes.rejected, (state, action) => {
+                state.notesLoading = false
+                state.notesError = action.payload as string
+            })
+            .addCase(addNoteToAgent.pending, (state) => {
+                state.notesLoading = true
+                state.notesError = null
+            })
+            .addCase(addNoteToAgent.fulfilled, (state, action) => {
+                state.notesLoading = false
+                state.agentNotes[action.payload.cpId] = action.payload.allNotes
+            })
+            .addCase(addNoteToAgent.rejected, (state, action) => {
+                state.notesLoading = false
+                state.notesError = action.payload as string
+            })
     },
 })
 
+export const selectNotesByCpId = (state: RootState, cpId: string) => {
+    return state?.agents?.agentNotes?.[cpId] || []
+}
+
+export const selectAgentNotesLoading = (state: RootState) => {
+    return state?.agents?.notesLoading || false
+}
+
 export const selectAgentConnectHistoryLoading = (state: RootState) => state.agents.connectHistoryLoading
 
-export const { clearAgentDetails, clearCurrentAgent, clearAgentError } = agentsSlice.actions
+export const { clearAgentDetails, clearCurrentAgent, clearAgentError, clearAgentNotes, clearAgentConnectHistory } =
+    agentsSlice.actions
 export default agentsSlice.reducer

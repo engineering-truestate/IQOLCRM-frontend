@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import { addNoteToLead, fetchLeadWithNotes } from '../../services/acn/leads/leadsService'
-import { selectNotesByLeadId, selectNotesLoading } from '../../store/reducers/acn/leadsReducers'
-import type { AppDispatch, RootState } from '../../store'
+import { addNoteToAgent, fetchAgentWithNotes } from '../../services/acn/agents/agentThunkService'
+import type { AppDispatch } from '../../store'
 import copyIcon from '../../../public/icons/acn/copy-icon.svg'
 import cross from '../../../public/icons/acn/cross.svg'
 import note from '../../../public/icons/acn/note.svg'
@@ -11,13 +12,17 @@ interface NotesModalProps {
     isOpen: boolean
     onClose: () => void
     rowData: {
-        leadId: string
+        leadId?: string
+        cpId?: string
         name: string
-        phonenumber: string
-        leadStatus: string
+        phonenumber?: string
+        phoneNumber?: string
+        leadStatus?: string
+        agentStatus?: string
         contactStatus: string
         lastTried: number
-        lastConnect: number
+        lastConnect?: number
+        lastConnected?: number
         kamName?: string
         kamId?: string
         source?: string
@@ -30,32 +35,72 @@ interface NotesModalProps {
 
 const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => {
     const dispatch = useDispatch<AppDispatch>()
+    const location = useLocation()
     const [internalNote, setInternalNote] = useState('')
+    const [notes, setNotes] = useState<any[]>([]) // Store notes in local state
+    const [notesLoading, setNotesLoading] = useState(false)
 
-    // Redux selectors
-    const notes = useSelector((state: RootState) => (rowData ? selectNotesByLeadId(state, rowData.leadId) : []))
-    const notesLoading = useSelector((state: RootState) => selectNotesLoading(state))
+    // Determine context based on URL
+    const isLeadsContext = location.pathname.includes('/acn/leads')
+    const isAgentsContext = location.pathname.includes('/acn/agents')
 
     // Fetch notes when modal opens
     useEffect(() => {
         if (isOpen && rowData) {
-            dispatch(fetchLeadWithNotes(rowData.leadId))
+            const fetchNotes = async () => {
+                try {
+                    setNotesLoading(true)
+
+                    if (isLeadsContext && rowData.leadId) {
+                        // For leads, get data directly from thunk
+                        const leadNotes = await dispatch(fetchLeadWithNotes(rowData.leadId)).unwrap()
+                        setNotes(leadNotes)
+                        console.log('Fetching lead notes for:', rowData.leadId, leadNotes)
+                    } else if (isAgentsContext && rowData.cpId) {
+                        // For agents, get data directly from thunk
+                        const agentNotes = await dispatch(fetchAgentWithNotes(rowData.cpId)).unwrap()
+                        setNotes(agentNotes)
+                        console.log('Fetching agent notes for:', rowData.cpId, agentNotes)
+                    }
+                } catch (error) {
+                    console.error('Error fetching notes:', error)
+                    setNotes([])
+                } finally {
+                    setNotesLoading(false)
+                }
+            }
+
+            fetchNotes()
         }
-    }, [isOpen, rowData, dispatch])
+    }, [isOpen, rowData, dispatch, isLeadsContext, isAgentsContext])
 
     const handleAddNote = async () => {
         if (internalNote.trim() && rowData) {
             try {
+                setNotesLoading(true)
                 const noteData = {
                     kamId: rowData.kamId || 'CURRENT_USER',
                     note: internalNote.trim(),
                     source: 'direct',
                 }
 
-                await dispatch(addNoteToLead({ leadId: rowData.leadId, noteData })).unwrap()
+                if (isLeadsContext && rowData.leadId) {
+                    await dispatch(addNoteToLead({ leadId: rowData.leadId, noteData })).unwrap()
+                    // Refresh notes for leads - get fresh data directly
+                    const updatedNotes = await dispatch(fetchLeadWithNotes(rowData.leadId)).unwrap()
+                    setNotes(updatedNotes)
+                } else if (isAgentsContext && rowData.cpId) {
+                    await dispatch(addNoteToAgent({ cpId: rowData.cpId, noteData })).unwrap()
+                    // Refresh notes for agents - get fresh data directly
+                    const updatedNotes = await dispatch(fetchAgentWithNotes(rowData.cpId)).unwrap()
+                    setNotes(updatedNotes)
+                }
+
                 setInternalNote('')
             } catch (error) {
                 console.error('Failed to add note:', error)
+            } finally {
+                setNotesLoading(false)
             }
         }
     }
@@ -70,19 +115,11 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
         })
     }
 
-    // const getSourceBadge = (source: string) => {
-    //     const colors = {
-    //         whatsapp: 'bg-green-100 text-green-800',
-    //         direct: 'bg-blue-100 text-blue-800',
-    //         facebook: 'bg-blue-100 text-blue-800',
-    //         instagram: 'bg-pink-100 text-pink-800',
-    //         referral: 'bg-purple-100 text-purple-800'
-    //     }
-
-    //     return colors[source as keyof typeof colors] || 'bg-gray-100 text-gray-800'
-    // }
-
     if (!isOpen || !rowData) return null
+
+    // Get the appropriate ID and phone number based on context
+    const displayId = isLeadsContext ? rowData.leadId : rowData.cpId
+    const phoneNumber = rowData.phonenumber || rowData.phoneNumber || ''
 
     return (
         <>
@@ -95,8 +132,9 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
                     {/* Header */}
                     <div className='flex items-start justify-between border-b border-gray-200'>
                         <div className='flex-1 py-4'>
-                            <div className='text-sm mb-2'>{rowData.leadId}</div>
+                            <div className='text-sm mb-2'>{displayId}</div>
                             <h2 className='text-xl font-bold text-gray-900'>{rowData.name}</h2>
+                            <div className='text-xs text-gray-500 mt-1'>{isLeadsContext ? 'Lead' : 'Agent'} Notes</div>
                         </div>
                         <div className='flex flex-col items-end p-2'>
                             <button onClick={onClose} className='bg-gray-200 rounded-full cursor-pointer mb-3'>
@@ -105,12 +143,12 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
 
                             <div className='flex items-center gap-2'>
                                 <button
-                                    onClick={() => navigator.clipboard.writeText(rowData.phonenumber)}
+                                    onClick={() => navigator.clipboard.writeText(phoneNumber)}
                                     className='flex items-center p-1 bg-gray-200 hover:bg-gray-300 rounded-md text-sm text-gray-700 transition-colors cursor-pointer'
                                 >
                                     <img src={copyIcon} alt='Copy' className='w-4 h-4' />
                                 </button>
-                                <span className='text-sm text-black'>{rowData.phonenumber}</span>
+                                <span className='text-sm text-black'>{phoneNumber}</span>
                             </div>
                         </div>
                     </div>
@@ -129,7 +167,7 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
                                 <button
                                     onClick={handleAddNote}
                                     disabled={!internalNote.trim() || notesLoading}
-                                    className='absolute right-0 mt-2 flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-200  text-blackdisabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors'
+                                    className='absolute right-0 mt-2 flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-200 text-black disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors'
                                 >
                                     {notesLoading ? (
                                         <div className='w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin' />
@@ -143,7 +181,7 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
 
                         {/* Notes History Section */}
                         <div>
-                            <h3 className='text-base font-semibold text-gray-900 mb-6'>Notes </h3>
+                            <h3 className='text-base font-semibold text-gray-900 mb-6'>Notes</h3>
 
                             {notesLoading && notes.length === 0 ? (
                                 <div className='flex justify-center py-8'>
@@ -153,16 +191,16 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
                                 <div className='text-center py-8 text-gray-500'>No notes added yet</div>
                             ) : (
                                 <div className='space-y-6'>
-                                    {notes.map((note, index) => (
-                                        <div key={`${note.timestamp}-${index}`} className='space-y-3'>
+                                    {notes.map((noteItem, index) => (
+                                        <div key={`${noteItem.timestamp}-${index}`} className='space-y-3'>
                                             <div className='flex justify-end items-center'>
                                                 <div className='text-xs text-gray-400'>
-                                                    {formatTimestamp(note.timestamp)}
+                                                    {formatTimestamp(noteItem.timestamp)}
                                                 </div>
                                             </div>
                                             <div className='bg-gray-50 border border-gray-200 rounded-lg p-4'>
                                                 <div className='text-sm text-gray-700 leading-relaxed whitespace-pre-wrap'>
-                                                    {note.note}
+                                                    {noteItem.note}
                                                 </div>
                                             </div>
                                         </div>
@@ -175,10 +213,6 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
                     {/* Footer */}
                     <div className='p-6 border-t border-gray-200'>
                         <div className='flex justify-end items-center'>
-                            {/* <div className='text-sm text-gray-500'>
-                                Last tried:{' '}
-                                {rowData.lastTried ? new Date(rowData.lastTried).toLocaleDateString() : 'Never'}
-                            </div> */}
                             <button
                                 onClick={onClose}
                                 className='px-4 py-2 text-gray-600 bg-gray-200 text-sm font-medium transition-colors rounded-sm'

@@ -537,3 +537,84 @@ export const updateEnquiryStatusThunk = createAsyncThunk(
         }
     },
 )
+
+interface Note {
+    kamId: string
+    note: string
+    source: string
+    timestamp: number
+    archive: boolean
+}
+
+export const addNoteToAgent = createAsyncThunk(
+    'agents/addNoteToAgent',
+    async (
+        { cpId, noteData }: { cpId: string; noteData: { kamId: string; note: string; source: string; archive: false } },
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('📝 Adding note to agent:', cpId, noteData)
+
+            const docRef = doc(db, 'acnAgents', cpId)
+            const agentDoc = await getDoc(docRef)
+
+            if (!agentDoc.exists()) {
+                throw new Error('Agent not found')
+            }
+
+            const agentData = agentDoc.data()
+            const existingNotes = agentData.notes || []
+
+            const newNote: Note = {
+                ...noteData,
+                timestamp: Math.floor(Date.now() / 1000), // Unix timestamp in seconds
+                archive: false,
+            }
+
+            const updatedNotes = [...existingNotes, newNote]
+
+            await updateDoc(docRef, {
+                notes: updatedNotes,
+                lastModified: Date.now(),
+            })
+
+            console.log('✅ Note added to agent successfully')
+            return { cpId, note: newNote, allNotes: updatedNotes }
+        } catch (error: any) {
+            console.error('❌ Error adding note to agent:', error)
+            return rejectWithValue(error.message || 'Failed to add note to agent')
+        }
+    },
+)
+
+export const fetchAgentWithNotes = createAsyncThunk(
+    'agents/fetchAgentWithNotes',
+    async (cpId: string, { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching agent with notes:', cpId)
+
+            const docRef = doc(db, 'acnAgents', cpId)
+            const docSnap = await getDoc(docRef)
+
+            if (docSnap.exists()) {
+                const data = docSnap.data()
+                const notes = data.notes || []
+
+                // Sort notes by timestamp (newest first) and filter out archived notes
+                const sortedNotes = notes
+                    .filter((note: any) => !note.archive)
+                    .sort((a: any, b: any) => b.timestamp - a.timestamp)
+
+                console.log('✅ Agent notes fetched successfully:', sortedNotes.length)
+
+                // Return the notes directly
+                return sortedNotes
+            }
+
+            throw new Error(`Agent with ID ${cpId} not found`)
+        } catch (error: any) {
+            console.error('❌ Error fetching agent notes:', error)
+            return rejectWithValue(error.message || 'Failed to fetch agent notes')
+        }
+    },
+)
