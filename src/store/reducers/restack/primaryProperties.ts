@@ -1,9 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit'
-import type { PayloadAction } from '@reduxjs/toolkit'
 import type { PrimaryProperty } from '../../../data_types/restack/restack-primary'
-import { fetchPrimaryPropertyById, fetchPrimaryProperties } from '../../actions/restack/primaryProperties'
+import {
+    fetchPrimaryPropertyById,
+    fetchPrimaryProperties,
+    updatePrimaryProperty,
+} from '../../actions/restack/primaryProperties'
 
-interface PrimaryPropertiesState {
+export interface PrimaryPropertiesState {
     properties: PrimaryProperty[]
     currentProperty: PrimaryProperty | null
     loading: boolean
@@ -11,6 +14,11 @@ interface PrimaryPropertiesState {
     filter: string
     sortBy: keyof PrimaryProperty | null
     sortOrder: 'asc' | 'desc'
+    pagination: {
+        page: number
+        limit: number
+        total: number
+    }
 }
 
 const initialState: PrimaryPropertiesState = {
@@ -21,6 +29,11 @@ const initialState: PrimaryPropertiesState = {
     filter: '',
     sortBy: null,
     sortOrder: 'asc',
+    pagination: {
+        page: 1,
+        limit: 10,
+        total: 0,
+    },
 }
 
 const primaryPropertiesSlice = createSlice({
@@ -29,28 +42,18 @@ const primaryPropertiesSlice = createSlice({
     reducers: {
         clearCurrentProperty: (state) => {
             state.currentProperty = null
-            state.error = null
         },
-        clearError: (state) => {
-            state.error = null
-        },
-        setPrimaryPropertiesFilter: (state, action: PayloadAction<string>) => {
+        setFilter: (state, action) => {
             state.filter = action.payload
         },
-        setSortBy: (state, action: PayloadAction<keyof PrimaryProperty>) => {
+        setSortBy: (state, action) => {
             state.sortBy = action.payload
-            // If sorting by the same field, toggle order
-            if (state.sortBy === action.payload) {
-                state.sortOrder = state.sortOrder === 'asc' ? 'desc' : 'asc'
-            } else {
-                // Default to ascending for new sort field
-                state.sortOrder = 'asc'
-            }
         },
-        resetFilters: (state) => {
-            state.filter = ''
-            state.sortBy = null
-            state.sortOrder = 'asc'
+        setSortOrder: (state, action) => {
+            state.sortOrder = action.payload
+        },
+        setPage: (state, action) => {
+            state.pagination.page = action.payload
         },
     },
     extraReducers: (builder) => {
@@ -67,8 +70,7 @@ const primaryPropertiesSlice = createSlice({
             })
             .addCase(fetchPrimaryProperties.rejected, (state, action) => {
                 state.loading = false
-                state.error = action.payload || 'Failed to fetch properties'
-                state.properties = []
+                state.error = action.payload as string
             })
             // Handle fetchPrimaryPropertyById
             .addCase(fetchPrimaryPropertyById.pending, (state) => {
@@ -82,15 +84,44 @@ const primaryPropertiesSlice = createSlice({
             })
             .addCase(fetchPrimaryPropertyById.rejected, (state, action) => {
                 state.loading = false
-                state.error = action.payload || 'Failed to fetch property'
-                state.currentProperty = null
+                state.error = action.payload as string
+            })
+            // Handle updatePrimaryProperty
+            .addCase(updatePrimaryProperty.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(updatePrimaryProperty.fulfilled, (state, action) => {
+                const { projectId, updates } = action.payload
+                const propertyIndex = state.properties.findIndex((p) => p.projectId === projectId)
+
+                if (propertyIndex !== -1) {
+                    // Merge the updates with the existing property
+                    state.properties[propertyIndex] = {
+                        ...state.properties[propertyIndex],
+                        ...updates,
+                    }
+                }
+
+                // Also update current property if it's the one being updated
+                if (state.currentProperty && state.currentProperty.projectId === projectId) {
+                    state.currentProperty = {
+                        ...state.currentProperty,
+                        ...updates,
+                    }
+                }
+
+                state.loading = false
+                state.error = null
+            })
+            .addCase(updatePrimaryProperty.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.payload as string
             })
     },
 })
 
-export const { clearCurrentProperty, clearError, setPrimaryPropertiesFilter, setSortBy, resetFilters } =
-    primaryPropertiesSlice.actions
-
+export const { clearCurrentProperty, setFilter, setSortBy, setSortOrder, setPage } = primaryPropertiesSlice.actions
 export default primaryPropertiesSlice.reducer
 
 export const selectFilteredAndSortedProperties = (state: { primaryProperties: PrimaryPropertiesState }) => {

@@ -6,7 +6,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import { fetchPrimaryProperties, setPrimaryPropertiesFilter } from '../../../store/actions/restack/primaryProperties'
+import { fetchPrimaryProperties } from '../../../store/actions/restack/primaryProperties'
+import { setFilter } from '../../../store/reducers/restack/primaryProperties'
 import type { RootState } from '../../../store'
 import type { AppDispatch } from '../../../store'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
@@ -72,7 +73,7 @@ const PrimaryPage = () => {
 
     // Filter data based on search
     useEffect(() => {
-        dispatch(setPrimaryPropertiesFilter(searchValue))
+        dispatch(setFilter(searchValue))
         setCurrentPage(1)
     }, [searchValue, dispatch])
 
