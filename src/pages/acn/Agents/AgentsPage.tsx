@@ -608,6 +608,16 @@ const AgentsPage = () => {
             },
         },
         {
+            key: 'lastTried',
+            header: 'Last Tried',
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                    {' '}
+                    {value ? formatRelativeTime(value) : 'Never'}
+                </span>
+            ),
+        },
+        {
             key: 'contactStatus',
             header: 'Last Connected Status',
             render: (value, row) => {
