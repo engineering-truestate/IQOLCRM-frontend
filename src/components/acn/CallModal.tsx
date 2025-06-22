@@ -9,6 +9,7 @@ import type { AppDispatch, RootState } from '../../store'
 import { toast } from 'react-toastify'
 import copyic from '/icons/acn/copy-icon.svg'
 import crossic from '/icons/acn/cross.svg'
+import { ClipLoader } from 'react-spinners'
 
 interface CallModalProps {
     isOpen: boolean
@@ -54,6 +55,9 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
 
     const connectHistoryLoading = isLeadsContext ? leadsConnectHistoryLoading : agentsConnectHistoryLoading
 
+    // loader state
+    const [isLoading, setIsLoading] = useState(false)
+
     // Fetch connect history when modal opens
     useEffect(() => {
         if (isOpen && rowData) {
@@ -87,6 +91,7 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
 
     const handleAddCallResult = async () => {
         if (rowData) {
+            setIsLoading(true)
             try {
                 const callData = {
                     connection,
@@ -120,7 +125,6 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
 
                 // Close modal
                 toast.success('Call result added successfully')
-                await new Promise((resolve) => setTimeout(resolve, 1000))
                 onClose()
 
                 // Reload page to get fresh data
@@ -128,6 +132,8 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
             } catch (error) {
                 console.error('Failed to add call result:', error)
                 toast.error('Failed to add call result')
+            } finally {
+                setIsLoading(false)
             }
         }
     }
@@ -345,7 +351,7 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                     <textarea
                                         value={note}
                                         onChange={(e) => setNote(e.target.value)}
-                                        className='w-full h-30 p-3 border border-[#D4DBE3] rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm bg-[#FAFAFA]'
+                                        className='w-full h-30 p-3 border border-[#D4DBE3] rounded-xl resize-none text-sm bg-[#FAFAFA]'
                                     />
                                 </div>
                             </div>
@@ -354,21 +360,27 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
 
                     {/* Footer */}
                     <div className='px-4 py-3'>
-                        <div className='flex justify-end gap-3'>
-                            <button
-                                onClick={onClear}
-                                className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
-                            >
-                                Clear
-                            </button>
-                            <button
-                                onClick={handleAddCallResult}
-                                disabled={connectHistoryLoading}
-                                className='px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-black rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                            >
-                                Save
-                            </button>
-                        </div>
+                        {!isLoading ? (
+                            <div className='flex justify-end gap-3'>
+                                <button
+                                    onClick={onClear}
+                                    className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors'
+                                >
+                                    Clear
+                                </button>
+                                <button
+                                    onClick={handleAddCallResult}
+                                    disabled={connectHistoryLoading}
+                                    className='px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-black rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                                >
+                                    Save
+                                </button>
+                            </div>
+                        ) : (
+                            <div className='flex justify-end items-center'>
+                                <ClipLoader color='#000' />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
