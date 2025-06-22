@@ -119,12 +119,15 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                 setNote('')
 
                 // Close modal
+                toast.success('Call result added successfully')
+                await new Promise((resolve) => setTimeout(resolve, 1000))
                 onClose()
 
                 // Reload page to get fresh data
                 window.location.reload()
             } catch (error) {
                 console.error('Failed to add call result:', error)
+                toast.error('Failed to add call result')
             }
         }
     }
@@ -137,27 +140,29 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
 
     return (
         <>
-            {/* Very light overlay - only covers left 60% */}
-            <div className='fixed top-0 left-0 w-[65%] h-full bg-black opacity-50 z-40' onClick={onClose} />
+            {/* Overlay */}
+            <div className='fixed inset-0 bg-black/75 z-40' onClick={onClose} />
 
             {/* Modal */}
-            <div className='fixed top-0 right-0 h-full w-[35%] bg-white z-50 shadow-2xl border-l border-gray-200'>
+            <div
+                className='fixed top-0 right-0 h-full min-w-[25%] w-fit bg-white z-50 shadow-2xl border-l border-gray-200 p-5'
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className='flex flex-col h-full'>
                     {/* Header */}
-                    <div className='px-4 py-2 '>
-                        <div className='flex items-start justify-between border-b border-gray-200'>
-                            <div className='flex-1 py-4'>
-                                <div className='text-sm mb-2'>{displayId}</div>
-                                <h2 className='text-xl font-bold text-gray-900'>{rowData.name}</h2>
-                                <div className='text-xs text-gray-500 mt-1'>
-                                    {isLeadsContext ? 'Lead' : 'Agent'} Contact
-                                </div>
+                    <div className=''>
+                        <button
+                            onClick={onClose}
+                            className='absolute top-4 right-5 bg-gray-200 rounded-full cursor-pointer mb-3'
+                        >
+                            <img src={crossic} alt='Icon' className='w-7 h-7' />
+                        </button>
+                        <div className='flex flex-col items-start gap-3 pt-3 pb-4 justify-between border-b border-gray-200'>
+                            <div className='flex'>
+                                <div className='text-sm mb-2 text-[#0D141C]'>{displayId}</div>
                             </div>
-                            <div className='flex flex-col items-end p-2'>
-                                <button onClick={onClose} className='bg-gray-200 rounded-full cursor-pointer mb-3'>
-                                    <img src={crossic} alt='Icon' className='w-7 h-7' />
-                                </button>
-
+                            <div className='flex flex-row items-center w-full justify-between'>
+                                <h2 className='text-xl font-bold text-[#0D141C]'>{rowData.name}</h2>
                                 <div className='flex items-center gap-2'>
                                     <button
                                         onClick={() => {
@@ -175,29 +180,29 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                     </div>
 
                     {/* Call Result Form */}
-                    <div className='flex-1 p-6 overflow-y-auto'>
+                    <div className='flex-1 pt-6 overflow-y-auto'>
                         {/* Add Call Result Section */}
-                        <div className='mb-8'>
-                            <p className='text-sm font-semibold mb-4'>Call Result</p>
+                        <div className='flex flex-col gap-3'>
+                            <p className='text-sm font-semibold'>Call Result</p>
 
-                            <div className='space-y-3'>
+                            <div className='flex flex-col gap-3'>
                                 {/* Connection Status */}
                                 <div>
                                     <div className='flex gap-3'>
                                         <button
                                             onClick={() => setConnection('connected')}
                                             className={`flex flex-1 items-center gap-2 px-4 py-4 rounded-xl text-sm font-medium border transition-colors
-                                            ${
-                                                connection === 'connected'
-                                                    ? 'border-gray-300 bg-white'
-                                                    : 'border-gray-300 bg-white hover:bg-gray-50'
-                                            }
-                                        `}
+                                        ${
+                                            connection === 'connected'
+                                                ? 'border-gray-300 bg-white'
+                                                : 'border-gray-300 bg-white hover:bg-gray-50'
+                                        }
+                                    `}
                                         >
                                             <span
                                                 className={`w-4 h-4 rounded-full  flex items-center justify-center
-                                            ${connection === 'connected' ? 'border-5 border-black' : 'border-1 border-gray-400'}
-                                            `}
+                                        ${connection === 'connected' ? 'border-5 border-black' : 'border-1 border-gray-400'}
+                                        `}
                                             >
                                                 {connection === 'connected' && (
                                                     <span className='w-2 h-2 rounded-full' />
@@ -209,17 +214,17 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                         <button
                                             onClick={() => setConnection('not connected')}
                                             className={`flex flex-1 items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors
-                                            ${
-                                                connection === 'not connected'
-                                                    ? 'border-gray-300 bg-white '
-                                                    : 'border-gray-300 bg-white hover:bg-gray-50'
-                                            }
-                                        `}
+                                        ${
+                                            connection === 'not connected'
+                                                ? 'border-gray-300 bg-white '
+                                                : 'border-gray-300 bg-white hover:bg-gray-50'
+                                        }
+                                    `}
                                         >
                                             <span
                                                 className={`w-4 h-4 rounded-full border-2 flex items-center justify-center
-                                            ${connection === 'not connected' ? 'border-5 border-black' : 'border-1 border-gray-400'}
-                                            `}
+                                        ${connection === 'not connected' ? 'border-5 border-black' : 'border-1 border-gray-400'}
+                                        `}
                                             >
                                                 {connection === 'not connected' && (
                                                     <span className='w-2 h-2 rounded-full' />
@@ -238,17 +243,17 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                                 <button
                                                     onClick={() => setConnectMedium('on call')}
                                                     className={`flex flex-1 items-center gap-2 px-4 py-4 rounded-xl text-sm font-medium border transition-colors
-                                            ${
-                                                connectMedium === 'on call'
-                                                    ? 'border-gray-300 bg-white'
-                                                    : 'border-gray-300 bg-white hover:bg-gray-50'
-                                            }
-                                        `}
+                                        ${
+                                            connectMedium === 'on call'
+                                                ? 'border-gray-300 bg-white'
+                                                : 'border-gray-300 bg-white hover:bg-gray-50'
+                                        }
+                                    `}
                                                 >
                                                     <span
                                                         className={`w-4 h-4 rounded-full flex items-center justify-center
-                                            ${connectMedium === 'on call' ? 'border-5 border-black' : 'border-1 border-gray-400'}
-                                            `}
+                                        ${connectMedium === 'on call' ? 'border-5 border-black' : 'border-1 border-gray-400'}
+                                        `}
                                                     >
                                                         {connectMedium === 'on call' && (
                                                             <span className='w-2 h-2 rounded-full' />
@@ -260,17 +265,17 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                                 <button
                                                     onClick={() => setConnectMedium('on whatsapp')}
                                                     className={`flex flex-1 items-center gap-2 px-4 py-4 rounded-xl text-sm font-medium border transition-colors
-                                            ${
-                                                connectMedium === 'on whatsapp'
-                                                    ? 'border-gray-300 bg-white'
-                                                    : 'border-gray-300 bg-white hover:bg-gray-50'
-                                            }
-                                        `}
+                                        ${
+                                            connectMedium === 'on whatsapp'
+                                                ? 'border-gray-300 bg-white'
+                                                : 'border-gray-300 bg-white hover:bg-gray-50'
+                                        }
+                                    `}
                                                 >
                                                     <span
                                                         className={`w-4 h-4 rounded-full flex items-center justify-center
-                                            ${connectMedium === 'on whatsapp' ? 'border-5 border-black' : 'border-1 border-gray-400'}
-                                            `}
+                                        ${connectMedium === 'on whatsapp' ? 'border-5 border-black' : 'border-1 border-gray-400'}
+                                        `}
                                                     >
                                                         {connectMedium === 'on whatsapp' && (
                                                             <span className='w-2 h-2 rounded-full' />
@@ -287,17 +292,17 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                                 <button
                                                     onClick={() => setDirection('inbound')}
                                                     className={`flex flex-1 items-center gap-2 px-4 py-4 rounded-xl text-sm font-medium border transition-colors
-                                            ${
-                                                direction === 'inbound'
-                                                    ? 'border-gray-300 bg-white'
-                                                    : 'border-gray-300 bg-white hover:bg-gray-50'
-                                            }
-                                        `}
+                                        ${
+                                            direction === 'inbound'
+                                                ? 'border-gray-300 bg-white'
+                                                : 'border-gray-300 bg-white hover:bg-gray-50'
+                                        }
+                                    `}
                                                 >
                                                     <span
                                                         className={`w-4 h-4 rounded-full flex items-center justify-center
-                                            ${direction === 'inbound' ? 'border-5 border-black' : 'border-1 border-gray-400'}
-                                            `}
+                                        ${direction === 'inbound' ? 'border-5 border-black' : 'border-1 border-gray-400'}
+                                        `}
                                                     >
                                                         {direction === 'inbound' && (
                                                             <span className='w-2 h-2 rounded-full' />
@@ -309,17 +314,17 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                                 <button
                                                     onClick={() => setDirection('outbound')}
                                                     className={`flex flex-1 items-center gap-2 px-4 py-4 rounded-xl text-sm font-medium border transition-colors
-                                            ${
-                                                direction === 'outbound'
-                                                    ? 'border-gray-300 bg-white'
-                                                    : 'border-gray-300 bg-white hover:bg-gray-50'
-                                            }
-                                        `}
+                                        ${
+                                            direction === 'outbound'
+                                                ? 'border-gray-300 bg-white'
+                                                : 'border-gray-300 bg-white hover:bg-gray-50'
+                                        }
+                                    `}
                                                 >
                                                     <span
                                                         className={`w-4 h-4 rounded-full flex items-center justify-center
-                                            ${direction === 'outbound' ? 'border-5 border-black' : 'border-1 border-gray-400'}
-                                            `}
+                                        ${direction === 'outbound' ? 'border-5 border-black' : 'border-1 border-gray-400'}
+                                        `}
                                                     >
                                                         {direction === 'outbound' && (
                                                             <span className='w-2 h-2 rounded-full' />
@@ -333,14 +338,14 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                 )}
 
                                 {/* Optional Note */}
-                                <div className='mt-5'>
+                                <div className='pt-3'>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>
                                         <p className='text-base font-semibold '>Notes</p>
                                     </label>
                                     <textarea
                                         value={note}
                                         onChange={(e) => setNote(e.target.value)}
-                                        className='w-full h-30 p-3 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm bg-gray-100'
+                                        className='w-full h-30 p-3 border border-[#D4DBE3] rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm bg-[#FAFAFA]'
                                     />
                                 </div>
                             </div>
@@ -348,7 +353,7 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                     </div>
 
                     {/* Footer */}
-                    <div className='p-6'>
+                    <div className='px-4 py-3'>
                         <div className='flex justify-end gap-3'>
                             <button
                                 onClick={onClear}
@@ -361,7 +366,7 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                                 disabled={connectHistoryLoading}
                                 className='px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-black rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                             >
-                                Save note
+                                Save
                             </button>
                         </div>
                     </div>

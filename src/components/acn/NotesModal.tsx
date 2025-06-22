@@ -124,10 +124,10 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
     return (
         <>
             {/* Very light overlay - only covers left 60% */}
-            <div className='fixed top-0 left-0 w-[65%] h-full bg-black opacity-50 z-40' onClick={onClose} />
+            <div className='fixed top-0 left-0 h-full bg-black opacity-50 z-40' onClick={onClose} />
 
             {/* Modal */}
-            <div className='fixed top-0 right-0 h-full w-[35%] bg-white z-50 shadow-2xl border-l border-gray-200'>
+            <div className='fixed top-0 right-0 h-full w-fit bg-white z-50 shadow-2xl border-l border-gray-200'>
                 <div className='flex flex-col h-full px-4 py-2 '>
                     {/* Header */}
                     <div className='flex items-start justify-between border-b border-gray-200'>
