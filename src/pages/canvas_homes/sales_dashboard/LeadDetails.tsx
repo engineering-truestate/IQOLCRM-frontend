@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useLeadDetails } from '../../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../../hooks/canvas_homes/UseLeadDetails'
 import Layout from '../../../layout/Layout'
 import Documents from './tabs/Documents'
 import Notes from './tabs/Notes'
@@ -15,6 +15,8 @@ import google from '/icons/canvas_homes/google.svg'
 import CloseLeadSideModal from '../../../components/canvas_homes/CloseLeadSideModal'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../store'
+import ActivityTracker from './tabs/ActivityTracker'
+import PropertyDetail from './tabs/PropertyDetail'
 
 // Helper function to handle null/undefined values
 const formatValue = (value: any): string => {
@@ -54,7 +56,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         updateEnquiry,
         updateLead,
         updateTask,
-    } = useLeadDetails(leadId || '') // Provide empty string as fallback
+    } = UseLeadDetails(leadId || '') // Provide empty string as fallback
 
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false)
     const [isAddDetailsModalOpen, setIsAddDetailsModalOpen] = useState(false)
@@ -150,15 +152,9 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                     <Tasks
                         tasks={tasks}
                         loading={loading.tasks}
-                        onTaskStatusUpdate={updateTaskStatus}
                         error={errors.tasks}
                         setActiveTab={setActiveTab}
-                        onUpdateEnquiry={updateEnquiry}
-                        onUpdateLead={updateLead}
-                        onAddNote={addNote}
-                        onUpdateTask={updateTask}
-                        agentId={currentEnquiry?.agentId || ''}
-                        agentName={currentEnquiry?.agentHistory?.[0]?.agentName || ''}
+                        refreshData={refreshData}
                     />
                 )
             case 'Documents':
@@ -172,6 +168,8 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 )
             case 'Notes':
                 return <Notes notes={currentEnquiry?.notes || []} onAddNote={addNote} loading={loading.enquiries} />
+            case 'Activity tracker':
+                return <ActivityTracker enquiryId={selectedEnquiryId} />
             case 'Requirements':
                 return (
                     <Requirements
@@ -179,6 +177,13 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                         enquiryId={selectedEnquiryId}
                         requirements={currentEnquiry?.requirements || []}
                         onRequirementsUpdate={refreshData}
+                    />
+                )
+            case 'Properties':
+                return (
+                    <PropertyDetail
+                        propertyId={currentEnquiry?.propertyId || ''}
+                        propertyName={currentEnquiry?.propertyName || ''}
                     />
                 )
             default:

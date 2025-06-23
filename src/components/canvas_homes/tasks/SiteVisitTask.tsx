@@ -94,7 +94,9 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
     }
 
     const handleNotVisitedAction = (value: string) => {
-        if (value === 'reschedule task') setShowRescheduleEvent(true)
+        if (value === 'reschedule task') {
+            setShowRescheduleEvent(true)
+        }
         if (value === 'change property') setShowChangePropertyModal(true)
         if (value === 'close lead') {
             changeTaskState('not visited')
@@ -149,7 +151,8 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
             <RescheduleEventModal
                 isOpen={showRescheduleEvent}
                 onClose={() => setShowRescheduleEvent(false)}
-                taskType='Site Not Visit'
+                taskType='site visit'
+                taskState='not visited'
             />
         </>
     )

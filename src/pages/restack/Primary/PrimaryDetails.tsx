@@ -518,6 +518,7 @@ const PrimaryDetailsPage = () => {
         fieldKey: string,
         options?: { label: string; value: string }[],
         fieldType: 'text' | 'date' | 'number' = 'text',
+        onClick?: () => void,
     ) => {
         if (isEditing) {
             if (options) {
@@ -584,7 +585,10 @@ const PrimaryDetailsPage = () => {
             }
 
             return (
-                <div className='border-b border-[#D4DBE2] gap-1 pb-2 mb-4 flex flex-col justify-between'>
+                <div
+                    className={`border-b border-[#D4DBE2] gap-1 pb-2 mb-4 flex flex-col justify-between ${onClick ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                    onClick={onClick}
+                >
                     <label className='text-sm text-gray-600 block mb-1'>{label} </label>
                     <div className='text-sm text-black font-medium'>{displayValue}</div>
                 </div>
@@ -1786,12 +1790,24 @@ const PrimaryDetailsPage = () => {
                             undefined,
                             'text',
                         )}
-                        {renderField('Images', 'View Images', '', undefined, 'text')}
-                        {renderField('Typology & Unit Plan', 'View Units plan', '', undefined, 'text')}
-                        {renderField('Master Plan', 'View Master plan', '', undefined, 'text')}
-                        {renderField('Brochure', 'Download Brochure (PDF)', '', undefined, 'text')}
-                        {renderField('CDP Map', 'CDP map (PDF)', '', undefined, 'text')}
-                        {renderField('Cost Sheet', 'Download Cost Sheet (PDF)', '', undefined, 'text')}
+                        {renderField('Images', 'View Images', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/documents`),
+                        )}
+                        {renderField('Typology & Unit Plan', 'View Units plan', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/typology`),
+                        )}
+                        {renderField('Master Plan', 'View Master plan', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/masterplan`),
+                        )}
+                        {renderField('Brochure', 'Download Brochure (PDF)', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/brochure`),
+                        )}
+                        {renderField('CDP Map', 'CDP map (PDF)', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/cdp`),
+                        )}
+                        {renderField('Cost Sheet', 'Download Cost Sheet (PDF)', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/costsheet`),
+                        )}
                     </div>
 
                     {/* Amenities */}

@@ -5,38 +5,38 @@ import { useParams } from 'react-router'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
+import { taskService } from '../../services/canvas_homes/taskService'
+import { leadService } from '../../services/canvas_homes/leadService'
+import { enquiryService } from '../../services/canvas_homes/enquiryService'
+import { LEAD_STATUSES } from '../../pages/dummy_data/acn_leads_dummy_data'
 
 interface CloseLeadModalProps {
     isOpen: boolean
     onClose: () => void
-    onUpdateTask: (taskId: string, updates: any) => Promise<void>
-    onUpdateLead: (leadId: string, updates: any) => Promise<void>
-    onUdateEnquiry: (enquiryId: string, updates: any) => Promise<void>
-    onAddNote: (enquiryId: string, note: any) => Promise<void>
-    loading?: boolean
     taskState?: string | null
     taskType: string
 }
 
-const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
-    isOpen,
-    onClose,
-    onUpdateTask,
-    onUpdateLead,
-    onUpdateEnquiry,
-    onAddNote,
-    loading = false,
-    taskState,
-    taskType,
-}) => {
+const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskState, taskType }) => {
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
+    const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
+    const { leadId } = useParams()
+    const { refreshData, setSelectedEnquiryId, leadData } = UseLeadDetails(leadId || '')
+
+    // Set selected enquiry ID when component mounts
+    React.useEffect(() => {
+        if (enquiryId) {
+            setSelectedEnquiryId(enquiryId)
+        }
+    }, [enquiryId, setSelectedEnquiryId])
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
-    const currentTimestamp = Date.now()
+    const currentTimestamp = getUnixDateTime()
 
+    const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
         reason: '',
         tag: 'Cold',
@@ -91,7 +91,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                 ...prev,
                 leadStatus,
                 stage,
-                timestamp: Date.now(),
+                timestamp: getUnixDateTime(),
             }))
         }
     }, [isOpen, taskState, taskIds, agentId, agentName])
@@ -109,10 +109,10 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
     ]
 
     const tagOptions = [
-        { value: 'Cold', label: 'Cold' },
-        { value: 'Hot', label: 'Hot' },
-        { value: 'Super Hot', label: 'Super Hot' },
-        { value: 'Potential', label: 'Potential' },
+        { value: 'cold', label: 'Cold' },
+        { value: 'hot', label: 'Hot' },
+        { value: 'super hot', label: 'Super Hot' },
+        { value: 'potential', label: 'Potential' },
     ]
 
     const handleInputChange = (field: string, value: string) => {
@@ -128,11 +128,13 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
             return
         }
 
-        try {
-            const currentTimestamp = Date.now()
+        setIsLoading(true)
 
-            if (taskIds) {
-                // Update enquiry
+        try {
+            const currentTimestamp = getUnixDateTime()
+
+            if (taskIds && enquiryId && leadId) {
+                // Update enquiry using service
                 const enqData = {
                     state: 'dropped',
                     stage: formData.stage,
@@ -140,65 +142,94 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                     tag: formData.tag.toLowerCase(),
                     lastModified: currentTimestamp,
                 }
-                await onUpdateEnquiry(enqData)
+                await enquiryService.update(enquiryId, enqData)
+
+                // Add Lead Closed activity to enquiry
+                await enquiryService.addActivity(enquiryId, {
+                    activityType: 'Lead Closed',
+                    timestamp: currentTimestamp,
+                    agentName: agentName,
+                    data: {
+                        reason: formData.reason,
+                    },
+                })
+                await enquiryService.addActivity(enquiryId, {
+                    activityType: 'Task Execution',
+                    timestamp: currentTimestamp,
+                    agentName: agentName,
+                    data: {
+                        reason: formData.reason,
+                        note: formData.note,
+                        taskType: taskType,
+                        leadStatus: formData.leadStatus,
+                        tag:
+                            leadData.tag?.toLowerCase() !== formData.tag?.toLowerCase()
+                                ? [leadData.tag?.toLowerCase(), formData.tag?.toLowerCase()]
+                                : [formData.tag?.toLowerCase()],
+                    },
+                })
 
                 // Add note to enquiry if provided
                 if (formData.note) {
                     const newNote = {
                         note: formData.note,
-                        timestamp: getUnixDateTime(),
+                        timestamp: currentTimestamp,
                         agentName: agentName,
                         agentId: agentId,
                         taskType: taskType,
                     }
-                    await onAddNote(newNote)
+                    await enquiryService.addNote(enquiryId, newNote)
                 }
 
-                // Update lead
-                const leadData = {
+                // Update lead using service
+                const updateleadData = {
                     state: 'dropped',
                     stage: formData.stage,
                     leadStatus: formData.leadStatus,
                     tag: formData.tag.toLowerCase(),
                     lastModified: currentTimestamp,
                 }
-                await onUpdateLead(leadData)
+                await leadService.update(leadId, updateleadData)
 
-                // Update task
-                await onUpdateTask(taskIds, {
+                // Update task using service
+                await taskService.update(taskIds, {
                     status: 'complete',
                     completionDate: currentTimestamp,
                 })
 
+                // Refresh data after all operations complete
+                await refreshData()
+
                 toast.success('Lead closed successfully')
+                onClose()
+
+                // Reset form
+                setFormData({
+                    reason: '',
+                    status: 'Complete',
+                    leadStatus: '',
+                    tag: 'Cold',
+                    state: 'dropped',
+                    note: '',
+                    stage: '',
+                    taskId: taskIds,
+                    agentId: agentId,
+                    agentName: agentName,
+                    timestamp: currentTimestamp,
+                })
             } else {
                 toast.error('Required IDs are missing')
             }
-
-            onClose()
-
-            // Reset form
-            setFormData({
-                reason: '',
-                status: 'Complete',
-                leadStatus: '',
-                tag: 'Cold',
-                state: 'dropped',
-                note: '',
-                stage: '',
-                taskId: taskIds,
-                agentId: agentId,
-                agentName: agentName,
-                timestamp: currentTimestamp,
-            })
         } catch (error: any) {
             console.error('Error closing lead:', error)
             toast.error(error.message || 'Failed to close lead')
+        } finally {
+            setIsLoading(false)
         }
     }
 
     const handleDiscard = () => {
-        if (loading) return // Prevent closing while loading
+        if (isLoading) return // Prevent closing while loading
 
         setFormData({
             reason: '',
@@ -217,7 +248,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
     }
 
     const handleModalClick = (e: React.MouseEvent) => {
-        if (loading) return // Prevent closing while loading
+        if (isLoading) return // Prevent closing while loading
         onClose()
     }
 
@@ -234,9 +265,9 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                     <h2 className='text-lg font-semibold text-gray-900'>Close Lead</h2>
                     <button
                         onClick={onClose}
-                        disabled={loading}
+                        disabled={isLoading}
                         className={`text-gray-400 hover:text-gray-600 transition-colors text-xl font-bold w-6 h-6 flex items-center justify-center ${
-                            loading ? 'opacity-50 cursor-not-allowed' : ''
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                     >
                         ×
@@ -246,7 +277,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                 {/* Content */}
                 <div className='p-4 space-y-4'>
                     {/* Loading indicator */}
-                    {loading && (
+                    {isLoading && (
                         <div className='bg-blue-50 border border-blue-200 p-3 rounded-md'>
                             <div className='flex items-center gap-2 text-blue-700'>
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
@@ -261,9 +292,9 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                         <select
                             value={formData.reason}
                             onChange={(e) => handleInputChange('reason', e.target.value)}
-                            disabled={loading}
+                            disabled={isLoading}
                             className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50 ${
-                                loading ? 'opacity-50 cursor-not-allowed' : ''
+                                isLoading ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                         >
                             {reasonOptions.map((option) => (
@@ -301,9 +332,9 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                             <select
                                 value={formData.tag}
                                 onChange={(e) => handleInputChange('tag', e.target.value)}
-                                disabled={loading}
+                                disabled={isLoading}
                                 className={`w-full px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs ${
-                                    loading ? 'opacity-50 cursor-not-allowed' : ''
+                                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
                                 }`}
                             >
                                 {tagOptions.map((option) => (
@@ -323,9 +354,9 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                             onChange={(e) => handleInputChange('note', e.target.value)}
                             placeholder='Add your notes here...'
                             rows={4}
-                            disabled={loading}
+                            disabled={isLoading}
                             className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none ${
-                                loading ? 'opacity-50 cursor-not-allowed' : ''
+                                isLoading ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                         />
                     </div>
@@ -335,22 +366,22 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({
                 <div className='flex justify-end gap-3 p-4 border-t border-gray-200'>
                     <button
                         onClick={handleDiscard}
-                        disabled={loading}
+                        disabled={isLoading}
                         className={`px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                            loading ? 'opacity-50 cursor-not-allowed' : ''
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                     >
                         Discard
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={loading || !formData.reason}
+                        disabled={isLoading || !formData.reason}
                         className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2 ${
-                            loading || !formData.reason ? 'opacity-50 cursor-not-allowed' : ''
+                            isLoading || !formData.reason ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                     >
-                        {loading && <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>}
-                        {loading ? 'Closing...' : 'Close Lead'}
+                        {isLoading && <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>}
+                        {isLoading ? 'Closing...' : 'Close Lead'}
                     </button>
                 </div>
             </div>

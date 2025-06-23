@@ -119,6 +119,39 @@ export const getPreLaunchPropertyById = createAsyncThunk(
         }
     },
 )
+export const getPreLaunchPropertyByName = createAsyncThunk(
+    'preLaunch/getPropertyByName',
+    async (projectName: string, { dispatch, rejectWithValue }) => {
+        try {
+            dispatch(fetchPreLaunchPropertyRequest())
+
+            const property = await PreLaunchService.getPropertyByName(projectName)
+
+            dispatch(fetchPreLaunchPropertySuccess([property]))
+            return property
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to fetch property'
+            dispatch(fetchPreLaunchPropertyFailure(errorMessage))
+            return rejectWithValue(errorMessage)
+        }
+    },
+)
+// You should create a new action for handling property names if needed, or just return the string[] result.
+export const getPreLaunchAllPropertyName = createAsyncThunk(
+    'preLaunch/getAllPropertyName',
+    async (filters: PropertyFilters | undefined, { dispatch, rejectWithValue }) => {
+        try {
+            const propertyNames = await PreLaunchService.getAllPropertyName()
+
+            return propertyNames
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to fetch property'
+            // Optionally dispatch a failure action if needed
+            // dispatch(fetchPreLaunchPropertyFailure(errorMessage))
+            return rejectWithValue(errorMessage)
+        }
+    },
+)
 
 // Synchronous action creators (these don't need thunks)
 export const selectProperty = (property: Property) => (dispatch: AppDispatch) => {

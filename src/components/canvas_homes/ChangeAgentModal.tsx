@@ -128,6 +128,18 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({ isOpen, onClose, le
                 agentHistory: updatedAgentHistory,
                 lastModified: Date.now(),
             }
+            await enquiryService.addActivity(enquiryId, {
+                activityType: 'Property Change',
+                timestamp: currentTimestamp,
+                agentName: agentName,
+                data: {
+                    propertyAdded: formData.propertyName,
+                    propertyChanged: previousPropertyName,
+                    leadStatus: 'Property Changed',
+                    reason: formData.reason,
+                    note: formData.note || '',
+                },
+            })
 
             await enquiryService.update(enquiryId, enquiryUpdateData)
             console.log('Enquiry updated with new agent')

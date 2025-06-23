@@ -11,6 +11,8 @@ import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
 import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
 import { useNavigate } from 'react-router-dom'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import { calculateALSC } from '../../../components/helper/calculateALSC'
 
 // Status card component
 const StatusCard = ({
@@ -76,7 +78,7 @@ const Leads = () => {
     // Create filters object - Fixed to use actual values from dropdowns
     const createFilters = useCallback((): LeadSearchFilters => {
         const filters: LeadSearchFilters = {
-            leadState: activeStatusCard !== 'All' ? [activeStatusCard.toLowerCase()] : undefined,
+            state: activeStatusCard !== 'All' ? [activeStatusCard.toLowerCase()] : undefined,
             propertyName: selectedProperty ? [selectedProperty] : undefined,
             agentName: selectedAgent ? [selectedAgent] : undefined,
             source: selectedSource ? [selectedSource] : undefined,
@@ -177,9 +179,13 @@ const Leads = () => {
         return filtered
     }, [allLeadsData, searchValue])
 
+    const indexedLeadsData = useMemo(() => {
+        return filteredLeadsData.map((lead, index) => ({ ...lead, index }))
+    }, [filteredLeadsData])
+
     // Calculate status counts from facets - Fixed case sensitivity
     const statusCounts = useMemo(() => {
-        const stateFacets = facets.leadState || {}
+        const stateFacets = facets.state || {}
         const totalHits = allLeadsData.length
 
         console.log('Status facets:', stateFacets) // Debug log
@@ -239,7 +245,6 @@ const Leads = () => {
         console.log('Row clicked:', row)
         window.location.href = `/sales/leaddetails/${row.objectId || row.id}`
     }
-
     // Status cards data with dynamic counts
     const statusCards = [
         { title: 'All', count: statusCounts.All },
@@ -256,14 +261,19 @@ const Leads = () => {
         {
             key: 'name',
             header: 'Name',
-            render: (value, row) => (
-                <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
-                    <div className='text-sm font-medium text-gray-900'>{capitalizeFirst(value || row.name || '-')}</div>
-                    <div className='text-xs text-gray-500 font-normal'>
-                        {row.addedDate || `Added ${new Date(row.added).toLocaleDateString()}`}
+            render: (value, row) => {
+                const added = row.added || row.addedDate
+                const addedDateFormatted = added ? new Date(added * 1000).toLocaleDateString() : 'Unknown'
+
+                return (
+                    <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
+                        <div className='text-sm font-medium text-gray-900'>
+                            {capitalizeFirst(value || row.name || '-')}
+                        </div>
+                        <div className='text-xs text-gray-500 font-normal'>Added {addedDateFormatted}</div>
                     </div>
-                </div>
-            ),
+                )
+            },
         },
         {
             key: 'propertyName',
@@ -306,7 +316,7 @@ const Leads = () => {
             key: 'stage',
             header: 'Lead Stage',
             render: (value, row) => (
-                <span className='text-sm text-gray-900'>{capitalizeFirst(value || row.leadStage || '-')}</span>
+                <span className='text-sm text-gray-900'>{capitalizeFirst(value || row.stage || '-')}</span>
             ),
         },
         {
@@ -317,24 +327,23 @@ const Leads = () => {
         {
             key: 'tag',
             header: 'Tag',
-            render: (value) => (
-                <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFEDD5] text-[#9A3412]'>
-                    <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
-                    <span className='text-sm font-normal'>{capitalizeFirst(value || '-')}</span>
-                </div>
-            ),
+            render: (value) =>
+                value ? (
+                    <div className='inline-flex items-center min-w-[68px] w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFEDD5] text-[#9A3412]'>
+                        <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
+                        <span className='text-xs font-normal'>{capitalizeFirst(value)}</span>
+                    </div>
+                ) : (
+                    <div>-</div>
+                ),
         },
         {
-            key: 'aslc',
+            key: 'lastModified',
             header: 'ASLC',
             render: (value, row) => {
-                const today = Date.now()
-                const dateToUse = row.leadState === 'fresh' ? row.added : row.scheduledDate
-                const daysDifference = Math.floor((today - dateToUse) / (1000 * 60 * 60 * 24))
-
                 return (
                     <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {daysDifference || 0} days
+                        {calculateALSC(allLeadsData[row.index])}
                     </span>
                 )
             },
@@ -343,18 +352,23 @@ const Leads = () => {
             key: 'taskType',
             header: 'Schedule Task',
             render: (value, row) => {
-                const taskType = capitalizeFirst(value || row.scheduleTask?.type || '-')
-                const date = row.scheduledDate
-                    ? new Date(row.scheduledDate).toLocaleDateString()
-                    : row.scheduleTask?.date
-                const time = row.scheduleTask?.time
+                const taskType = capitalizeFirst(value || row?.taskType || '-')
+                const scheduleUnix = row.scheduledDate || row.scheduleTask?.date
+
+                let date = ''
+                if (scheduleUnix) {
+                    const ts = typeof scheduleUnix === 'string' ? parseInt(scheduleUnix) : scheduleUnix
+                    if (!isNaN(ts)) date = new Date(ts * 1000).toLocaleDateString()
+                }
+
+                const time = row.scheduleTask?.time || ''
 
                 return (
                     <div className='flex items-center gap-3'>
                         <div>
                             <div className='text-sm font-medium text-gray-900'>{taskType}</div>
                             <div className='text-xs text-gray-500'>
-                                {date || time ? `${date || ''}${date && time ? ' | ' : ''}${time || ''}` : ''}
+                                {date || time ? `${date}${date && time ? ' | ' : ''}${time}` : '-'}
                             </div>
                         </div>
                     </div>
@@ -512,13 +526,12 @@ const Leads = () => {
             {/* Table */}
             <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[63vh]'>
                 <FlexibleTable
-                    data={filteredLeadsData}
+                    data={indexedLeadsData}
                     columns={columns}
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                     selectedRows={selectedRows}
                     headerClassName='font-normal'
                     onRowSelect={handleRowSelect}
-                    onRowClick={handleRowClick}
                     className='rounded-lg'
                     stickyHeader={true}
                     hoverable={true}

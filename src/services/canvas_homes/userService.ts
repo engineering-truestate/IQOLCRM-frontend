@@ -1,6 +1,18 @@
-import { collection, doc, getDocs, getDoc, setDoc, updateDoc, limit, query, orderBy } from 'firebase/firestore'
+import {
+    collection,
+    doc,
+    getDocs,
+    getDoc,
+    setDoc,
+    updateDoc,
+    limit,
+    query,
+    orderBy,
+    deleteDoc,
+} from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { User } from './types'
+import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 
 class UserService {
     private collectionName = 'canvashomesUsers' // Firestore collection name
@@ -50,19 +62,21 @@ class UserService {
             const q = query(collection(db, this.collectionName), orderBy('userId', 'desc'), limit(1))
             const snapshot = await getDocs(q)
 
-            let nextUserId = 'user001'
+            let nextUserId = 'user01'
             if (!snapshot.empty) {
                 const lastUserId = snapshot.docs[0].data().userId
                 const lastNumber = parseInt(lastUserId.replace('user', ''))
                 const newNumber = lastNumber + 1
-                nextUserId = `user${newNumber.toString().padStart(3, '0')}`
+                nextUserId = `user${newNumber.toString().padStart(2, '0')}`
             }
+
+            const timestamp = getUnixDateTime()
 
             const newUser = {
                 ...userData,
                 userId: nextUserId,
-                added: Date.now(),
-                lastModified: Date.now(),
+                added: timestamp,
+                lastModified: timestamp,
             }
 
             await setDoc(doc(db, this.collectionName, nextUserId), newUser)
@@ -86,12 +100,26 @@ class UserService {
 
             const updateData = {
                 ...updates,
-                lastModified: Date.now(),
+                lastModified: getUnixDateTime(),
             }
 
             await updateDoc(doc(db, this.collectionName, userId.trim()), updateData)
         } catch (error) {
-            console.error('Error updating lead:', error)
+            console.error('Error updating user:', error)
+            throw error
+        }
+    }
+
+    async delete(userId: string): Promise<void> {
+        try {
+            if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+                throw new Error('Invalid userId provided for deletion')
+            }
+
+            await deleteDoc(doc(db, this.collectionName, userId.trim()))
+            console.log(`User ${userId} deleted successfully`)
+        } catch (error) {
+            console.error('Error deleting user:', error)
             throw error
         }
     }

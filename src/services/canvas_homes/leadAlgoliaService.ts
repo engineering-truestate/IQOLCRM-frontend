@@ -8,7 +8,7 @@ const INDEX_NAME = 'canvashomeleads'
 
 // Types for search parameters
 export interface LeadSearchFilters {
-    leadState?: string[]
+    state?: string[]
     propertyName?: string[]
     agentName?: string[]
     agentId?: string[]
@@ -70,10 +70,10 @@ const convertToTimestamp = (date: string | Date | number): number => {
 const buildLeadFilterString = (filters: LeadSearchFilters): string => {
     const filterParts: string[] = []
 
-    if (filters.leadState && filters.leadState.length > 0) {
-        const stateFilters = filters.leadState.map((state) => `leadState:'${state}'`).join(' OR ')
+    if (filters.state && filters.state.length > 0) {
+        const stateFilters = filters.state.map((state) => `state:'${state}'`).join(' OR ')
         filterParts.push(`(${stateFilters})`)
-        console.log('Added leadState filter:', stateFilters)
+        console.log('Added state filter:', stateFilters)
     }
 
     if (filters.propertyName && filters.propertyName.length > 0) {
@@ -234,16 +234,7 @@ export const searchLeads = async (params: LeadSearchParams = {}): Promise<Algoli
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: [
-                        'leadState',
-                        'propertyName',
-                        'agentName',
-                        'source',
-                        'stage',
-                        'tag',
-                        'taskType',
-                        'leadStatus',
-                    ],
+                    facets: ['state', 'propertyName', 'agentName', 'source', 'stage', 'tag', 'taskType', 'leadStatus'],
                     maxValuesPerFacet: 100,
                     analytics: true,
                 },
@@ -310,16 +301,7 @@ export const getAllLeadFacets = async (): Promise<Record<string, LeadFacetValue[
                     indexName: INDEX_NAME,
                     query: '',
                     hitsPerPage: 0, // We only want facets, not hits
-                    facets: [
-                        'leadState',
-                        'propertyName',
-                        'agentName',
-                        'source',
-                        'stage',
-                        'tag',
-                        'taskType',
-                        'leadStatus',
-                    ],
+                    facets: ['state', 'propertyName', 'agentName', 'source', 'stage', 'tag', 'taskType', 'leadStatus'],
                     maxValuesPerFacet: 100,
                 },
             ],

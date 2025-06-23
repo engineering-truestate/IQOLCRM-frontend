@@ -51,9 +51,9 @@ class TaskService {
                         }) as Task,
                 )
                 .sort((a, b) => {
-                    const aDate = a.scheduledDate?.toMillis?.() ?? 0
-                    const bDate = b.scheduledDate?.toMillis?.() ?? 0
-                    return aDate - bDate // Sort by date ascending
+                    const aDate = a.scheduledDate ?? 0
+                    const bDate = b.scheduledDate ?? 0
+                    return aDate - bDate
                 })
 
             return tasks
@@ -64,67 +64,27 @@ class TaskService {
     }
 
     /**
-     * Get all tasks assigned to a specific agent with optional filtering by status and type.
-     * Results are sorted by scheduledDate.
-     */
-    async getByAgentId(
-        agentId: string,
-        filters?: {
-            status?: 'open' | 'complete'
-            type?: string
-        },
-    ): Promise<Task[]> {
-        try {
-            let q = query(collection(db, this.collectionName), where('agentId', '==', agentId))
-
-            // Apply filters if provided
-            if (filters?.status) {
-                q = query(q, where('status', '==', filters.status))
-            }
-            if (filters?.type) {
-                q = query(q, where('type', '==', filters.type))
-            }
-
-            const querySnapshot = await getDocs(q)
-            const tasks = querySnapshot.docs
-                .map((doc) => ({ taskId: doc.id, ...doc.data() }) as Task)
-                .sort((a, b) => {
-                    const aDate = a.scheduledDate?.toMillis?.() ?? 0
-                    const bDate = b.scheduledDate?.toMillis?.() ?? 0
-                    return aDate - bDate
-                })
-
-            return tasks
-        } catch (error) {
-            console.error('Error fetching tasks by agent ID:', error)
-            throw error
-        }
-    }
-
-    /**
      * Create a new task with an auto-incremented taskId (e.g., task001, task002).
      */
     async create(taskData: Omit<Task, 'taskId' | 'added' | 'lastModified'>): Promise<string> {
         try {
-            // Fetch the last created task to determine the next taskId
             const q = query(collection(db, this.collectionName), orderBy('taskId', 'desc'), limit(1))
             const snapshot = await getDocs(q)
 
-            let nextTaskId = 'task001'
+            let nextTaskId = 'task01'
             if (!snapshot.empty) {
                 const lastTaskId = snapshot.docs[0].data().taskId
                 const lastNumber = parseInt(lastTaskId.replace('task', ''))
                 const newNumber = lastNumber + 1
-                nextTaskId = `task${newNumber.toString().padStart(3, '0')}`
+                nextTaskId = `task${newNumber.toString().padStart(2, '0')}`
             }
 
-            // Prepare the task object
+            const timestamp = getUnixDateTime()
             const newTask = {
                 ...taskData,
                 taskId: nextTaskId,
-                taskResult: taskData.taskResult || null,
-                added: Date.now(),
-                lastModified: Date.now(),
+                added: timestamp,
+                lastModified: timestamp,
             }
 
             await setDoc(doc(db, this.collectionName, nextTaskId), newTask)
@@ -141,13 +101,14 @@ class TaskService {
      */
     async updateStatus(taskId: string, status: 'open' | 'complete', taskResult?: string): Promise<void> {
         try {
+            const timestamp = getUnixDateTime()
             const updateData: any = {
                 status,
-                lastModified: Date.now(),
+                lastModified: timestamp,
             }
 
             if (status === 'complete') {
-                updateData.completionDate = Date.now()
+                updateData.completionDate = timestamp
                 if (taskResult) {
                     updateData.taskResult = taskResult
                 }

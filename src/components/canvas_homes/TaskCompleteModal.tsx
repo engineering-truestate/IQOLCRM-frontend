@@ -5,17 +5,14 @@ import { useParams } from 'react-router'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
+import { taskService } from '../../services/canvas_homes/taskService'
+import { leadService } from '../../services/canvas_homes/leadService'
+import { enquiryService } from '../../services/canvas_homes/enquiryService'
 
 interface TaskCompleteModalProps {
     isOpen: boolean
     onClose: () => void
-    onUpdateLead: (leadId: string, data: any) => Promise<void>
-    onUpdateEnquiry: (enquiryId: string, data: any) => Promise<void>
-    onTaskStatusUpdate: (taskId: string, data: any) => Promise<void>
-    onUpdateTask?: (taskId: string, updates: any) => Promise<void> // Added missing function
-    onAddNote: (enquiryId: string, note: any) => Promise<void>
-    loading?: boolean
     title?: string
     stage?: string
     state?: string
@@ -26,40 +23,32 @@ interface TaskCompleteModalProps {
 const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     isOpen,
     onClose,
-    onUpdateLead,
-    onUpdateEnquiry,
-    onUpdateTask,
-    onAddNote,
-    loading = false,
-    title,
+    title = 'Task Complete',
     stage,
-    state,
-    leadStatus,
+    state = 'open',
+    leadStatus = 'Interested',
     taskType,
 }) => {
     const taskId = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { refreshData } = useLeadDetails(leadId)
+    const { refreshData, setSelectedEnquiryId, leadData } = UseLeadDetails(leadId || '')
+
+    // Set selected enquiry ID when component mounts
+    React.useEffect(() => {
+        if (enquiryId) {
+            setSelectedEnquiryId(enquiryId)
+        }
+    }, [enquiryId, setSelectedEnquiryId])
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
-    const currentTimestamp = Date.now()
 
+    const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
         tag: 'Cold',
         note: '',
-        status: 'Complete',
-        state,
-        leadStatus,
-        stage,
-        leadId,
-        enquiryId,
-        taskId,
-        agentId,
-        agentName,
-        timestamp: currentTimestamp,
     })
 
     const tagOptions = [
@@ -77,71 +66,98 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     }
 
     const handleSubmit = async () => {
+        if (!enquiryId || !leadId || !taskId) {
+            toast.error('Required IDs are missing')
+            return
+        }
+
+        setIsLoading(true)
+
         try {
-            const currentTimestamp = Date.now()
+            const currentTimestamp = getUnixDateTime()
 
-            if (enquiryId && leadId && taskId) {
-                // Update Enquiry
-                const enqData = {
-                    state: state,
-                    stage: stage,
+            // Update enquiry using service
+            await enquiryService.update(enquiryId, {
+                state: state,
+                stage: stage,
+                leadStatus: leadStatus,
+                tag: formData.tag.toLowerCase(),
+                lastModified: currentTimestamp,
+            })
+
+            // Add Task Execution activity to enquiry
+            await enquiryService.addActivity(enquiryId, {
+                activityType: 'Task Execution',
+                timestamp: currentTimestamp,
+                agentName: agentName,
+                data: {
+                    taskType: taskType || 'Task',
                     leadStatus: leadStatus,
-                    tag: formData.tag.toLowerCase(),
-                    lastModified: currentTimestamp,
-                }
-                await onUpdateEnquiry(enqData)
+                    tag:
+                        leadData.tag?.toLowerCase() !== formData.tag?.toLowerCase()
+                            ? [leadData.tag?.toLowerCase(), formData.tag?.toLowerCase()]
+                            : [formData.tag?.toLowerCase()],
+                    note: formData.note.trim() || '',
+                },
+            })
 
-                // Add note if provided
-                if (formData.note) {
-                    const newNote = {
-                        note: formData.note,
-                        timestamp: getUnixDateTime(),
-                        agentName,
-                        agentId,
-                        taskType,
-                    }
-                    await onAddNote(newNote)
-                }
-
-                // Update Lead
-                const leadData = {
-                    state: state,
-                    stage: stage,
-                    leadStatus: leadStatus,
-                    tag: formData.tag.toLowerCase(),
-                    lastModified: currentTimestamp,
-                }
-                await onUpdateLead(leadData)
-
-                // Update Task
-                await onUpdateTask(taskId, {
-                    status: 'complete',
-                    completionDate: currentTimestamp,
+            // Add note to enquiry if provided
+            if (formData.note.trim()) {
+                await enquiryService.addNote(enquiryId, {
+                    note: formData.note.trim(),
+                    timestamp: currentTimestamp,
+                    agentName,
+                    agentId,
+                    taskType: taskType || 'Task',
                 })
-                onClose()
-
-                setFormData((prev) => ({
-                    ...prev,
-                    note: '',
-                    tag: 'Cold',
-                    timestamp: Date.now(),
-                }))
-            } else {
-                toast.error('Required IDs are missing')
             }
+
+            // Update lead using service
+            await leadService.update(leadId, {
+                state: state,
+                stage: stage,
+                leadStatus: leadStatus,
+                tag: formData.tag.toLowerCase(),
+                lastModified: currentTimestamp,
+            })
+
+            // Update task using service
+            await taskService.update(taskId, {
+                status: 'complete',
+                completionDate: currentTimestamp,
+            })
+
+            // Refresh data after all operations complete
+            await refreshData()
+
+            toast.success('Task completed successfully!')
+            onClose()
+
+            // Reset form
+            setFormData({
+                tag: 'Cold',
+                note: '',
+            })
         } catch (error: any) {
-            console.error('Error updating task', error)
-            toast.error(error.message || 'Failed to update task')
+            console.error('Error completing task:', error)
+            toast.error(error.message || 'Failed to complete task')
+        } finally {
+            setIsLoading(false)
         }
     }
 
     const handleDiscard = () => {
-        if (loading) return
+        if (isLoading) return
+
+        setFormData({
+            tag: 'Cold',
+            note: '',
+        })
         onClose()
     }
 
     const handleModalClick = (e: React.MouseEvent) => {
-        if (loading) return
+        if (isLoading) return
         onClose()
     }
 
@@ -158,9 +174,9 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                     <h2 className='text-lg font-semibold text-gray-900'>{title}</h2>
                     <button
                         onClick={onClose}
-                        disabled={loading}
-                        className={`text-gray-400 hover:text-gray-600 text-xl font-bold w-6 h-6 flex items-center justify-center ${
-                            loading ? 'opacity-50 cursor-not-allowed' : ''
+                        disabled={isLoading}
+                        className={`text-gray-400 hover:text-gray-600 text-xl font-bold w-6 h-6 flex items-center justify-center transition-colors ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                     >
                         ×
@@ -169,11 +185,12 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
 
                 {/* Content */}
                 <div className='p-4 space-y-4'>
-                    {loading && (
+                    {/* Loading indicator */}
+                    {isLoading && (
                         <div className='bg-blue-50 border border-blue-200 p-3 rounded-md'>
                             <div className='flex items-center gap-2 text-blue-700'>
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
-                                <span className='text-sm font-medium'>Saving</span>
+                                <span className='text-sm font-medium'>Completing task...</span>
                             </div>
                         </div>
                     )}
@@ -192,7 +209,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                             <label className='block text-sm font-medium text-gray-700 mb-1'>Lead Status</label>
                             <input
                                 type='text'
-                                value={formData.leadStatus}
+                                value={leadStatus}
                                 disabled
                                 className='w-full px-2 py-2 border border-gray-300 rounded-md text-xs bg-gray-100 text-gray-500'
                             />
@@ -202,8 +219,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                             <select
                                 value={formData.tag}
                                 onChange={(e) => handleInputChange('tag', e.target.value)}
-                                disabled={loading}
-                                className='w-full px-2 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                disabled={isLoading}
+                                className='w-full px-2 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
                             >
                                 {tagOptions.map((option) => (
                                     <option key={option.value} value={option.value}>
@@ -222,8 +239,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                             onChange={(e) => handleInputChange('note', e.target.value)}
                             placeholder='Add your notes here...'
                             rows={4}
-                            disabled={loading}
-                            className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            disabled={isLoading}
+                            className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
                         />
                     </div>
                 </div>
@@ -232,18 +249,18 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 <div className='flex justify-end gap-3 p-4 border-t border-gray-200'>
                     <button
                         onClick={handleDiscard}
-                        disabled={loading}
-                        className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        disabled={isLoading}
+                        className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                     >
                         Discard
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={loading}
-                        className='px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center gap-2'
+                        disabled={isLoading}
+                        className='px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
                     >
-                        {loading && <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>}
-                        {loading ? 'Saving' : 'Close Success'}
+                        {isLoading && <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>}
+                        {isLoading ? 'Completing...' : 'Complete Task'}
                     </button>
                 </div>
             </div>

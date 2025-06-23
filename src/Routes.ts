@@ -16,12 +16,12 @@ import Logout from './pages/auth/Logout'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import PreLaunchPage from './pages/restack/PreLaunch/PreLaunch'
 import PreLaunchDetailsPage from './pages/restack/PreLaunch/PreLaunchDetails'
-import ErrorPage from './404'
-import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+// import ErrorPage from './404'
+// import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 import Home from './Home'
 import AgentsPage from './pages/acn/Agents/AgentsPage'
-import PrimaryPage from './pages/restack/Primary/Primary'
-import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+// import PrimaryPage from './pages/restack/Primary/Primary'
+// import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 import PropertyDetailsPage from './pages/acn/Properties/PropertyDetailsPage'
 import AgentDetailsPage from './pages/acn/Agents/AgentDetailsPage'
 import QCDashboardPage from './pages/acn/QCDashboard/QCDashboardPage'
@@ -47,12 +47,17 @@ import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
 // import Resale from './pages/restack/resale/Resale'
 import Rental from './pages/restack/rental/Rental'
 import PropertiesPage from './pages/acn/Properties/Properties'
+import SalesDashboard from './pages/canvas_homes/sales_dashboard/Sales'
+import LeadDetails from './pages/canvas_homes/sales_dashboard/LeadDetails'
 import AddEditInventoryPage from './pages/acn/Properties/AddInventoryPage'
 import ResalePage from './pages/restack/Resale/ResalePage'
 import Resale from './pages/restack/Resale/Resale'
 import { ResaleDetailsPage } from './pages/restack/Resale/ResalePageDetails'
-import LeadDetails from './pages/canvas_homes/sales_dashboard/LeadDetails'
-import SalesDashboard from './pages/canvas_homes/sales_dashboard/Sales'
+// import LeadDetails from './pages/canvas_homes/sales_dashboard/LeadDetails'
+// import SalesDashboard from './pages/canvas_homes/sales_dashboard/Sales'
+import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+import PrimaryPage from './pages/restack/Primary/Primary'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -192,14 +197,6 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
     },
     {
-        path: '/restack/resale/:type',
-        element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
-    },
-    {
-        path: '/restack/resale',
-        element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
-    },
-    {
         path: '/acn/properties',
         element: React.createElement(
             ProtectedRoute,
@@ -216,8 +213,45 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
     },
     {
+        path: '/restack/stock/pre-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
+    },
+    {
         path: '/restack/stock/pre-rera/:id/edit',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
+    },
+    {
+        path: '/acn/properties',
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
+        ),
+    },
+
+    {
+        path: '/restack/stock/post-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
+    },
+    {
+        path: '/restack/stock/post-rera/:id/documents',
+        element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera/:id/details',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
+    },
+    {
+        path: '/restack/stock/pre-rera/:id/edit',
+        element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
+    },
+    {
+        path: '/restack/resale/:type',
+        element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
+    },
+    {
+        path: '/restack/resale',
+        element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
     },
     {
         path: '/acn/properties',

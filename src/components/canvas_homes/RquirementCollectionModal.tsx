@@ -4,12 +4,14 @@ import { useSelector } from 'react-redux'
 import { useParams } from 'react-router'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { toast } from 'react-toastify'
-import { leadService } from '../../services/canvas_homes'
-import { taskService } from '../../services/canvas_homes'
+import { leadService } from '../../services/canvas_homes/leadService'
+import { taskService } from '../../services/canvas_homes/taskService'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../store'
 import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
+import useAuth from '../../hooks/useAuth'
 
 interface RootState {
     taskId: {
@@ -19,33 +21,13 @@ interface RootState {
     }
 }
 
-interface Note {
-    timestamp: number
-    agentId: string
-    agentName: string
-    note: string
-    taskType: string
-}
-
 interface RequirementCollectedModalProps {
     isOpen: boolean
     onClose: () => void
     taskType?: string
-    subTaskType?: string
-    taskData?: any
-    enquiryData?: any
-    leadData?: any
 }
 
-const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
-    isOpen,
-    onClose,
-    taskType,
-    subTaskType,
-    taskData = {},
-    enquiryData = {},
-    leadData = {},
-}) => {
+const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ isOpen, onClose, taskType }) => {
     // State management
     const [selectedTag, setSelectedTag] = useState<string>('potential')
     const [note, setNote] = useState<string>('')
@@ -56,22 +38,30 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
     const { taskId, enquiryId, taskState } = useSelector((state: RootState) => state.taskId)
     const dispatch = useDispatch<AppDispatch>()
     const { leadId } = useParams()
+    const { user } = useAuth()
+    const { refreshData, setSelectedEnquiryId, leadData } = UseLeadDetails(leadId || '')
 
-    taskType = taskType || taskState || ''
+    // Set selected enquiry ID when component mounts
+    React.useEffect(() => {
+        if (enquiryId) {
+            setSelectedEnquiryId(enquiryId)
+        }
+    }, [enquiryId, setSelectedEnquiryId])
 
-    // Agent details (mocked for this example)
-    const agentId = 'agent123' // Replace with actual agent ID from context or props
-    const agentName = 'John Doe' // Replace with actual agent name from context or props
+    // Agent details from auth
+    const agentId = user?.uid || ''
+    const agentName = user?.displayName || ''
+    const currentTaskType = taskType || taskState || ''
     const isLoading = isSaving || !isOpen
 
     useEffect(() => {
         if (isOpen) {
             // Reset form when modal opens
-            setSelectedTag(leadData.tag || 'potential')
+            setSelectedTag(leadData?.tag || 'potential')
             setNote('')
             setError(null)
         }
-    }, [isOpen, leadData.tag])
+    }, [isOpen, leadData?.tag])
 
     const tagOptions = [
         { label: 'Potential', value: 'potential' },
@@ -100,99 +90,90 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
             setIsSaving(true)
             setError(null)
 
-            // 1. Update task details
+            const currentTimestamp = getUnixDateTime()
 
-            const taskUpdateData = {
-                ...taskData,
-                taskResult: 'requirement_collected',
+            // 1. Update task to complete
+            await taskService.update(taskId, {
                 status: 'complete',
-                lastModified: getUnixDateTime(),
-                completionDate: getUnixDateTime(),
-            }
+                lastModified: currentTimestamp,
+                completionDate: currentTimestamp,
+            })
 
-            await taskService.update(taskId, taskUpdateData)
+            // 2. Determine lead state and stage based on task type
+            let leadState = 'open'
+            let leadStage = currentTaskType
 
-            switch (taskType) {
-                case 'Initial Contact':
-                    leadData = {
-                        ...leadData,
-                        state: 'dropped',
-                        stage: taskType,
-                    }
+            switch (currentTaskType.toLowerCase()) {
+                case 'initial contact':
+                case 'site visit':
+                    leadState = 'open'
+                    leadStage = currentTaskType
                     break
-                case 'Site Visit':
-                    leadData = {
-                        ...leadData,
-                        state: 'dropped',
-                        stage: taskType,
-                    }
-                    break
-                case 'Site Not Visit':
-                    leadData = {
-                        ...leadData,
-                        state: 'dropped',
-                    }
-                    break
-                case 'EOI Not Collected':
-                    leadData = {
-                        ...leadData,
-                        state: 'dropped',
-                    }
-                    break
-                case 'Booking Unsuccessful':
-                    leadData = {
-                        ...leadData,
-                        state: 'dropped',
-                    }
+                case 'site not visit':
+                case 'eoi not collected':
+                case 'booking unsuccessful':
+                    leadState = 'dropped'
                     break
                 default:
+                    leadState = 'open'
                     break
             }
 
-            try {
-                // 4. Add note if provided
-                let noteData: Note | null = null
-                if (note.trim()) {
-                    noteData = {
-                        timestamp: getUnixDateTime(),
-                        agentId,
-                        agentName,
-                        note: note.trim(),
-                        taskType: taskType,
-                    }
-                }
-                const currentEnquiry = await enquiryService.getById(enquiryId)
-                const updatedNotes = [...(currentEnquiry?.notes || []), noteData]
-
-                await enquiryService.update(enquiryId, {
-                    ...enquiryData,
-                    notes: updatedNotes,
-                    tag: selectedTag,
-                    leadStatus: 'Requirement Collected',
-                    lastModified: getUnixDateTime(),
-                })
-            } catch (noteError) {
-                toast.error(
-                    'Error adding note: ' + (noteError instanceof Error ? noteError.message : String(noteError)),
-                )
-            }
-
-            // 3. Update lead with new status, stage, and tag
-
-            const leadUpdateData = {
-                ...leadData,
+            // 3. Update enquiry with new status and tag
+            await enquiryService.update(enquiryId, {
                 tag: selectedTag,
                 leadStatus: 'Requirement Collected',
-                lastModified: getUnixDateTime(),
+                state: leadState,
+                stage: leadStage,
+                lastModified: currentTimestamp,
+            })
+
+            // 4. Add Task Execution activity to enquiry
+            await enquiryService.addActivity(enquiryId, {
+                activityType: 'Task Execution',
+                timestamp: currentTimestamp,
+                agentName: agentName,
+                data: {
+                    taskType: currentTaskType,
+                    leadStatus: 'Requirement Collected',
+                    tag:
+                        leadData.tag?.toLowerCase() !== selectedTag?.toLowerCase()
+                            ? [leadData.tag?.toLowerCase(), selectedTag?.toLowerCase()]
+                            : [selectedTag?.toLowerCase()],
+                    note: note.trim() || '',
+                },
+            })
+
+            // 5. Add note to enquiry if provided
+            if (note.trim()) {
+                await enquiryService.addNote(enquiryId, {
+                    timestamp: currentTimestamp,
+                    agentId,
+                    agentName,
+                    note: note.trim(),
+                    taskType: currentTaskType,
+                })
             }
 
-            await leadService.update(leadId, leadUpdateData)
+            // 6. Update lead with new status, stage, and tag
+            await leadService.update(leadId, {
+                tag: selectedTag,
+                leadStatus: 'Requirement Collected',
+                state: leadState,
+                stage: leadStage,
+                lastModified: currentTimestamp,
+            })
+
+            // 7. Refresh data and clean up
+            await refreshData()
             dispatch(clearTaskId())
-            // 5. Show success message and close modal
+
+            // 8. Show success message and close modal
             toast.success('Requirements collected successfully!')
             onClose()
         } catch (err) {
-            toast.error('Error saving requirement')
+            console.error('Error saving requirement:', err)
+            toast.error('Error saving requirement: ' + (err instanceof Error ? err.message : String(err)))
             setError('Failed to save. Please try again.')
         } finally {
             setIsSaving(false)
@@ -202,12 +183,8 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
     if (!isOpen) return null
 
     return (
-        <>
-            {/* Modal Overlay */}
-            {/* <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={onClose} /> */}
-
-            {/* Modal Container */}
-            <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 bg-white z-50 rounded-lg shadow-lg'>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50' onClick={onClose}>
+            <div className='w-96 bg-white rounded-lg shadow-lg' onClick={(e) => e.stopPropagation()}>
                 <div className='flex flex-col'>
                     {/* Modal Header */}
                     <div className='flex items-center justify-between p-6 pb-4 border-b border-gray-100'>
@@ -215,7 +192,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className='p-1 hover:bg-gray-100 rounded-md'
+                            className='p-1 hover:bg-gray-100 rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
                             aria-label='Close'
                         >
                             <svg
@@ -238,6 +215,16 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
 
                     {/* Modal Content */}
                     <div className='p-6 space-y-4'>
+                        {/* Loading indicator */}
+                        {isSaving && (
+                            <div className='bg-blue-50 border border-blue-200 p-3 rounded-md'>
+                                <div className='flex items-center gap-2 text-blue-700'>
+                                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
+                                    <span className='text-sm font-medium'>Saving requirements...</span>
+                                </div>
+                            </div>
+                        )}
+
                         {error && (
                             <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm'>
                                 {error}
@@ -269,9 +256,10 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                                 defaultValue={selectedTag}
                                 placeholder='Select Tag'
                                 className='w-full'
-                                triggerClassName='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left'
+                                triggerClassName='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white flex items-center justify-between text-left disabled:opacity-50 disabled:cursor-not-allowed'
                                 menuClassName='absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm'
                                 optionClassName='cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-blue-50 text-sm'
+                                disabled={isLoading}
                             />
                         </div>
 
@@ -281,7 +269,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                             <textarea
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
-                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed'
                                 rows={4}
                                 placeholder='Enter notes here...'
                                 disabled={isLoading}
@@ -315,7 +303,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     )
 }
 

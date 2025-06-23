@@ -1,35 +1,44 @@
 import React, { useCallback } from 'react'
 import { useState } from 'react'
 import Dropdown from './Dropdown'
-import ChangePropertyModal from '../ChangePropertyModal'
-import RequirementCollectedModal from '../RquirementCollectionModal'
-import CloseLeadModal from '../CloseLeadModal'
 import type { AppDispatch } from '../../../store'
 import { useDispatch } from 'react-redux'
 import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
+import ChangePropertyModal from '../ChangePropertyModal'
 import RescheduleEventModal from '../RescheduleEventModal'
+import TaskCompleteModal from '../TaskCompleteModal'
+import CloseLeadModal from '../CloseLeadModal'
 
 interface InitialContactTaskProps {
-    taskId: string
-    updateTaskState: (taskId: string, key: string, value: any) => void
-    taskStatusOptions: { label: string; value: string }[]
-    setActiveTab?: (tab: string) => void
+    updateTaskState: (taskId: string, field: string, value: string) => void
+    getTaskState?: (taskId: string) => any
+    updating?: boolean
+    setActiveTab: (tab: string) => void
+    taskStatusOptions: Array<{ label: string; value: string }>
 }
 
 const InitialContactTask: React.FC<InitialContactTaskProps> = ({
-    taskId,
     updateTaskState,
-    taskStatusOptions,
+    getTaskState,
+    updating = false,
     setActiveTab,
+    taskStatusOptions,
 }) => {
     const [isChangePropertyModalOpen, setIsChangePropertyModalOpen] = useState(false)
     const [isResheduleEventModalOpen, setIsRescheduleEventModalOpen] = useState(false)
+    const [isCloseLeadModalOpen, setIsCloseLeadModalOpen] = useState(false)
+    const [isTaskCompleteModalOpen, setIsTaskCompleteModalOpen] = useState(false)
+    const [taskState, changeTaskState] = useState('connected')
     const [taskType, setTaskType] = useState('Initial Contact')
 
     const dispatch = useDispatch<AppDispatch>()
 
     const interestedOptions = [
-        { label: 'Interested', value: 'interested', task: () => console.log('Interested') },
+        {
+            label: 'Interested',
+            value: 'interested',
+            modal: useCallback(() => setIsTaskCompleteModalOpen(true), [setIsTaskCompleteModalOpen]),
+        },
         {
             label: 'Not Interested',
             value: 'not_interested',
@@ -52,6 +61,10 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                 {
                     label: 'Close Lead',
                     value: 'close_lead',
+                    modal: useCallback(() => {
+                        changeTaskState('connected')
+                        setIsCloseLeadModalOpen(true)
+                    }, [taskState, setIsCloseLeadModalOpen]),
                 },
             ],
         },
@@ -59,7 +72,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
             label: 'Reschedule Event',
             value: 'reschedule_event',
             modal: useCallback(() => {
-                setTaskType('Initial Contact - Connected')
+                changeTaskState('connected')
                 setIsRescheduleEventModalOpen(true)
             }, [setIsRescheduleEventModalOpen]),
         },
@@ -70,14 +83,24 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
             label: 'Reschedule Task',
             value: 'reschedule task',
             modal: useCallback(() => {
-                setTaskType('Initial Contact - Not Connected')
+                changeTaskState('not connected')
                 setIsRescheduleEventModalOpen(true)
             }, [setIsRescheduleEventModalOpen]),
         },
-        { label: 'Close Lead', value: 'close lead' },
+        {
+            label: 'Close Lead',
+            value: 'close_lead',
+            modal: useCallback(() => {
+                changeTaskState('not conected')
+                setIsCloseLeadModalOpen(true)
+            }, [taskState, setIsCloseLeadModalOpen]),
+        },
     ]
 
-    const handleSelect = (value: string) => updateTaskState(taskId, 'eoiMode', value)
+    const handleSelect = (value: string) => {
+        // Since we don't have taskId prop anymore, child components will handle their own updates
+        console.log('Selected value:', value)
+    }
 
     const handleChangeProperty = (formData: any) => {
         console.log('Change property form data:', formData)
@@ -109,15 +132,32 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                     isOpen={isChangePropertyModalOpen}
                     onClose={() => setIsChangePropertyModalOpen(false)}
                     onChangeProperty={handleChangeProperty}
+                    taskType='initial contact'
                 />
             )}
             {isResheduleEventModalOpen && (
                 <RescheduleEventModal
                     isOpen={isResheduleEventModalOpen}
                     onClose={() => setIsRescheduleEventModalOpen(false)}
-                    taskType={taskType}
+                    taskType='initial contact'
+                    taskState={taskState}
                 />
             )}
+            <CloseLeadModal
+                isOpen={isCloseLeadModalOpen}
+                onClose={() => setIsCloseLeadModalOpen(false)}
+                taskType='initial contact'
+                taskState={taskState}
+            />
+            <TaskCompleteModal
+                isOpen={isTaskCompleteModalOpen}
+                onClose={() => setIsTaskCompleteModalOpen(false)}
+                title='Initial Contacted'
+                leadStatus='Interested'
+                stage='Initial Contacted'
+                state='open'
+                taskType='initial contact'
+            />
         </div>
     )
 }

@@ -10,13 +10,13 @@ const LeadRegistrationTask = ({ taskStatusOptions }) => {
         { value: 'builder3@example.com', label: 'Builder 3' },
     ]
 
-    const [selectedEmail, setSelectedEmail] = useState('')
+    const [selectedEmail, setSelectedEmail] = useState<string>('')
 
-    const handleEmailSelect = (email) => {
+    const handleEmailSelect = (email: string) => {
         setSelectedEmail(email)
     }
 
-    const handleProceed = (e) => {
+    const handleProceed = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
         if (selectedEmail) {
             window.location.href = `mailto:${selectedEmail}`
@@ -32,6 +32,7 @@ const LeadRegistrationTask = ({ taskStatusOptions }) => {
 
             <div className='flex justify-between items-center mb-3'>
                 <Dropdown
+                    defaultValue='Select Builder Email'
                     onSelect={handleEmailSelect}
                     options={emailOptions}
                     placeholder='Select Builder Email'
