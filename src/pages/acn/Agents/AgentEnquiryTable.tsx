@@ -1,14 +1,12 @@
-import { useState, useEffect } from 'react'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
-import type { IEnquiry } from '../../../store/reducers/types' // Assuming you have an IEnquiry type
-import { fetchAllEnquiries } from '../../../services/acn/enquiries/enquiryService'
+import type { IEnquiry } from '../../../data_types/acn/types'
 
 interface AgentEnquiryTableProps {
     agentId: string | undefined
     enquiryData: IEnquiry[]
 }
 
-const AgentEnquiryTable: React.FC<AgentEnquiryTableProps> = ({ agentId, enquiryData }) => {
+const AgentEnquiryTable: React.FC<AgentEnquiryTableProps> = ({ enquiryData }) => {
     const getEnquiryColumns = (): TableColumn[] => {
         const columns: TableColumn[] = [
             {
