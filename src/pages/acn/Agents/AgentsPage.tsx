@@ -578,30 +578,16 @@ const AgentsPage = () => {
             ),
         },
         {
-            key: 'contactHistory[0]',
+            key: 'lastConnected',
             header: 'Last Connected',
-            render: (row) => {
-                // Handle different possible data structures
-                let timestamp = null
-                const contactHistory = row.contactHistory
-                if (Array.isArray(contactHistory) && contactHistory.length > 0) {
-                    // If it's an array of contact history
-                    timestamp = contactHistory[0].timestamp
-                } else if (contactHistory && typeof contactHistory === 'object') {
-                    // If it's a single contact history object
-                    timestamp = contactHistory.timestamp
-                } else if (row.lastConnected) {
-                    // Fallback to lastConnected if available
-                    timestamp = row.lastConnected
-                }
-
-                return (
-                    <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                        {timestamp ? formatRelativeTime(timestamp) : 'Never'}
-                    </span>
-                )
-            },
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                    {' '}
+                    {value ? formatRelativeTime(value) : 'Never'}
+                </span>
+            ),
         },
+
         {
             key: 'lastTried',
             header: 'Last Tried',

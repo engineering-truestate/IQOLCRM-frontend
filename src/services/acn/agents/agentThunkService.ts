@@ -145,6 +145,9 @@ export const addCallResultToAgent = createAsyncThunk(
             if (callData.connection === 'connected') {
                 updateData.lastConnected = timestamp
             }
+            // if (callData.connection === 'not connected') {
+            //     updateData.lastTried = timestamp
+            // }
 
             // Add note if provided
             if (note && note.trim()) {

@@ -107,6 +107,8 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                             note: note.trim() || undefined,
                         }),
                     ).unwrap()
+                    console.log('here')
+                    //toast.success('Call result added successfully')
                 } else if (isAgentsContext && rowData.cpId) {
                     await dispatch(
                         addCallResultToAgent({
@@ -128,7 +130,7 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                 onClose()
 
                 // Reload page to get fresh data
-                window.location.reload()
+                //window.location.reload()
             } catch (error) {
                 console.error('Failed to add call result:', error)
                 toast.error('Failed to add call result')
@@ -151,7 +153,7 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
 
             {/* Modal */}
             <div
-                className='fixed top-0 right-0 h-full min-w-[25%] w-fit bg-white z-50 shadow-2xl border-l border-gray-200 p-5'
+                className='fixed top-0 right-0 h-full min-w-[30%] w-fit bg-white z-50 shadow-2xl border-l border-gray-200 p-5'
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='flex flex-col h-full'>

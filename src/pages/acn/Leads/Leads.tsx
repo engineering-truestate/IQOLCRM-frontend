@@ -75,6 +75,7 @@ const ALL_SOURCE_OPTIONS = [
     { value: 'facebook', count: 0 },
     { value: 'referral', count: 0 },
     { value: 'direct', count: 0 },
+    { value: 'meta', count: 0 },
 ]
 
 const ITEMS_PER_PAGE = 50
@@ -296,7 +297,7 @@ const LeadsPage = () => {
             page: parseInt(searchParams.get('page') || '1', 10),
             kamName: searchParams.get('kamName')?.split(',').filter(Boolean) || [],
         }
-
+        console.log(urlParams.sort)
         setFilterState({
             kamName: urlParams.kamName,
             sort: urlParams.sort,
