@@ -54,7 +54,7 @@ const CustomPagination: React.FC<CustomPaginationProps> = ({
     const pages = generatePages()
 
     return (
-        <div className={`py-1 w-full flex justify-center ${className}`}>
+        <div className={` w-full flex justify-center py-[14px] border-t border-[#E3E3E3] ${className}`}>
             <ul className='inline-flex items-center space-x-2'>
                 {/* Previous Button */}
                 {/* <li

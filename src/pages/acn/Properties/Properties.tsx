@@ -1547,10 +1547,13 @@ const PropertiesPage = () => {
                 onFiltersChange={handleFiltersChange}
                 propertyType={activeTab}
             />
-            <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+            <div className='w-full overflow-hidden font-sans h-screen flex flex-col'>
+                <div
+                    className='flex flex-col gap-4 pt-2 bg-white flex-1 overflow-hidden'
+                    style={{ width: 'calc(100vw)', maxWidth: '100%' }}
+                >
                     {/* Header */}
-                    <div className='mb-4'>
+                    <div className='flex-shrink-0'>
                         <div className='flex items-center justify-between mb-2 px-6'>
                             <h1 className='text-lg font-semibold text-black'>Properties ({nbHits || 0})</h1>
                             <div className='flex items-center gap-4'>
@@ -1668,7 +1671,7 @@ const PropertiesPage = () => {
                         </div>
 
                         {/* Show search info */}
-                        {searchLoading && <div className='mb-2 text-sm text-blue-600'>Searching...</div>}
+                        {searchLoading && <div className='mb-2 text-sm text-blue-600 flex-shrink-0'>Searching...</div>}
 
                         {/* {!searchLoading && totalItems > 0 && (
                             <div className='mb-2 text-sm text-gray-600'>
@@ -1678,7 +1681,7 @@ const PropertiesPage = () => {
                         )} */}
 
                         {searchError && (
-                            <div className='mb-2 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                            <div className='mb-2 p-3 bg-red-50 border border-red-200 rounded-lg flex-shrink-0'>
                                 <div className='text-sm text-red-700'>Error: {searchError}</div>
                                 <button
                                     onClick={() => performSearch(urlParams.query, filters, 0, urlParams.sort)}
@@ -1690,66 +1693,71 @@ const PropertiesPage = () => {
                         )}
                     </div>
 
-                    {/* Table with horizontal scrolling and fixed actions column */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
-                        <div className='h-[68] overflow-y-auto'>
-                            {searchLoading ? (
-                                <div className='flex items-center justify-center h-64'>
-                                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
-                                    <span className='ml-3 text-gray-600'>Loading properties...</span>
-                                </div>
-                            ) : searchError ? (
-                                <div className='flex items-center justify-center h-64'>
-                                    <div className='text-center'>
-                                        <div className='text-red-600 mb-4'>Error: {searchError}</div>
-                                        <Button
-                                            bgColor='bg-blue-600'
-                                            textColor='text-white'
-                                            onClick={() => performSearch(urlParams.query, filters, 0, urlParams.sort)}
-                                        >
-                                            Retry
-                                        </Button>
+                    {/* Table Container - This will take remaining space */}
+                    <div className='flex-1 flex flex-col gap-[29px] overflow-hidden'>
+                        {/* Table with horizontal scrolling and fixed actions column */}
+                        <div className='bg-white rounded-lg overflow-hidden flex-1 pl-6'>
+                            <div className='h-full overflow-hidden'>
+                                {searchLoading ? (
+                                    <div className='flex items-center justify-center h-64'>
+                                        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+                                        <span className='ml-3 text-gray-600'>Loading properties...</span>
                                     </div>
-                                </div>
-                            ) : properties?.length ? (
-                                <FlexibleTable
-                                    data={properties}
-                                    columns={getColumns()}
-                                    hoverable={true}
-                                    borders={{
-                                        table: false,
-                                        header: true,
-                                        rows: true,
-                                        cells: false,
-                                        outer: false,
-                                    }}
-                                    maxHeight='68vh'
-                                    className='rounded-lg'
-                                    stickyHeader={true}
-                                />
-                            ) : (
-                                <div className='flex items-center justify-center h-64'>
-                                    <div className='text-center'>
-                                        <div className='text-gray-500 text-lg font-medium'>No properties found</div>
-                                        <div className='text-gray-400 text-sm mt-1'>
-                                            Try adjusting your search or filters
+                                ) : searchError ? (
+                                    <div className='flex items-center justify-center h-64'>
+                                        <div className='text-center'>
+                                            <div className='text-red-600 mb-4'>Error: {searchError}</div>
+                                            <Button
+                                                bgColor='bg-blue-600'
+                                                textColor='text-white'
+                                                onClick={() =>
+                                                    performSearch(urlParams.query, filters, 0, urlParams.sort)
+                                                }
+                                            >
+                                                Retry
+                                            </Button>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                ) : properties?.length ? (
+                                    <FlexibleTable
+                                        data={properties}
+                                        columns={getColumns()}
+                                        hoverable={true}
+                                        borders={{
+                                            table: false,
+                                            header: true,
+                                            rows: true,
+                                            cells: false,
+                                            outer: false,
+                                        }}
+                                        maxHeight='100%'
+                                        className='rounded-lg h-full'
+                                        stickyHeader={true}
+                                    />
+                                ) : (
+                                    <div className='flex items-center justify-center h-64'>
+                                        <div className='text-center'>
+                                            <div className='text-gray-500 text-lg font-medium'>No properties found</div>
+                                            <div className='text-gray-400 text-sm mt-1'>
+                                                Try adjusting your search or filters
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Pagination */}
-                        {!searchLoading && totalPages > 1 && (
-                            <div className='flex items-center justify-between px-6 border-t border-gray-200'>
-                                <CustomPagination
-                                    currentPage={urlParams.page}
-                                    totalPages={totalPages}
-                                    onPageChange={handlePageChange}
-                                    className=''
-                                />
-                            </div>
-                        )}
+                        {/* {!searchLoading && totalPages > 1 && ( */}
+                        <div className='flex items-center justify-center flex-shrink-0'>
+                            <CustomPagination
+                                currentPage={urlParams.page}
+                                totalPages={totalPages}
+                                onPageChange={handlePageChange}
+                                className=''
+                            />
+                        </div>
+                        {/* )} */}
                     </div>
 
                     {/* Share Modal */}

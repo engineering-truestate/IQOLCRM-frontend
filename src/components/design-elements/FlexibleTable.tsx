@@ -308,7 +308,7 @@ export function FlexibleTable({
         if (isHeader && borders.header !== false) {
             classes.push('border-b-0 border-gray-300')
         } else if (!isHeader && borders.rows !== false) {
-            classes.push('border-b border-gray-200')
+            classes.push('border-b border-[#E3E3E3]')
         }
 
         return classes.join(' ')
