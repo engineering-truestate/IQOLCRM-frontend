@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 import Layout from '../../../layout/Layout'
@@ -20,15 +20,13 @@ import {
     selectAllLeads,
     selectLeadsLoading,
     selectLeadsError,
-    selectLeadUpdating,
     setLeads as setReduxLeads,
-    updateLeadLocal,
 } from '../../../store/reducers/acn/leadsReducers'
 import type { RootState, AppDispatch } from '../../../store/index'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import CustomPagination from '../../../components/design-elements/CustomPagination'
 
-// Import your existing icons
+// Import icons
 import phoneic from '/icons/acn/phone.svg'
 import notesic from '/icons/acn/notes.svg'
 import verifyic from '/icons/acn/verify.svg'
@@ -42,7 +40,18 @@ import organicic from '/icons/acn/organic.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 
-// Define all available options as constants
+// Define filter state interface
+interface FilterState {
+    kamName: string[]
+    sort: string
+    connectStatus: string[]
+    source: string[]
+    leadStatus: string[]
+    page: number
+    query: string
+}
+
+// Constants
 const ALL_LEAD_STATUS_OPTIONS = [
     { value: 'interested', count: 0 },
     { value: 'not interested', count: 0 },
@@ -68,13 +77,14 @@ const ALL_SOURCE_OPTIONS = [
     { value: 'direct', count: 0 },
 ]
 
-// Create memoized selectors to prevent unnecessary re-renders
-const selectLeadsState = (state: RootState) => state.leads
+const ITEMS_PER_PAGE = 50
 
+// Memoized selectors
+const selectLeadsState = (state: RootState) => state.leads
 const selectFilteredLeads = createSelector([selectLeadsState], (leadsState) => Object.values(leadsState.leads))
 
 // Lead Source component
-const LeadSourceCell = ({ source }: { source: string }) => {
+const LeadSourceCell = React.memo(({ source }: { source: string }) => {
     const getSourceIcon = () => {
         switch (source) {
             case 'whatsApp':
@@ -106,156 +116,178 @@ const LeadSourceCell = ({ source }: { source: string }) => {
             </span>
         </div>
     )
-}
+})
 
-// Multi-select filter dropdown component
-const MultiSelectDropdown = ({
-    allOptions,
-    selectedValues,
-    onSelectionChange,
-    placeholder,
-    label,
-    facets = {},
-}: {
-    allOptions: Array<{ value: string; count: number }>
-    selectedValues: string[]
-    onSelectionChange: (values: string[]) => void
-    placeholder: string
-    label: string
-    facets?: Record<string, number>
-}) => {
-    const [isOpen, setIsOpen] = useState(false)
-    const dropdownRef = useRef<HTMLDivElement>(null)
+// Multi-select dropdown component
+const MultiSelectDropdown = React.memo(
+    ({
+        allOptions,
+        selectedValues,
+        onSelectionChange,
+        placeholder,
+        label,
+        facets = {},
+    }: {
+        allOptions: Array<{ value: string; count: number }>
+        selectedValues: string[]
+        onSelectionChange: (values: string[]) => void
+        placeholder: string
+        label: string
+        facets?: Record<string, number>
+    }) => {
+        const [isOpen, setIsOpen] = useState(false)
+        const dropdownRef = useRef<HTMLDivElement>(null)
 
-    const updateFilter = (value: string) => {
-        if (selectedValues.includes(value)) {
-            onSelectionChange(selectedValues.filter((v) => v !== value))
-        } else {
-            onSelectionChange([...selectedValues, value])
-        }
-    }
+        const updateFilter = useCallback(
+            (value: string) => {
+                if (selectedValues.includes(value)) {
+                    onSelectionChange(selectedValues.filter((v) => v !== value))
+                } else {
+                    onSelectionChange([...selectedValues, value])
+                }
+            },
+            [selectedValues, onSelectionChange],
+        )
 
-    const getFacetCount = (value: string) => {
-        const option = allOptions.find((opt) => opt.value === value)
-        if (option && option.count > 0) {
-            return option.count
-        }
-        return facets[value] || 0
-    }
+        const getFacetCount = useCallback(
+            (value: string) => {
+                const option = allOptions.find((opt) => opt.value === value)
+                if (option && option.count > 0) {
+                    return option.count
+                }
+                return facets[value] || 0
+            },
+            [allOptions, facets],
+        )
 
-    const getDisplayText = () => {
-        if (selectedValues.length === 0) return placeholder
-        if (selectedValues.length === 1) return selectedValues[0]
-        return `${selectedValues.length} selected`
-    }
+        const getDisplayText = useMemo(() => {
+            if (selectedValues.length === 0) return placeholder
+            if (selectedValues.length === 1) return selectedValues[0]
+            return `${selectedValues.length} selected`
+        }, [selectedValues, placeholder])
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false)
+        useEffect(() => {
+            const handleClickOutside = (event: MouseEvent) => {
+                if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                    setIsOpen(false)
+                }
             }
-        }
 
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside)
-        }
-    }, [])
+            document.addEventListener('mousedown', handleClickOutside)
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside)
+            }
+        }, [])
 
-    return (
-        <div className='relative inline-block' ref={dropdownRef}>
-            <button
-                className='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer'
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                <span className='truncate'>{getDisplayText()}</span>
-                <svg
-                    className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                    fill='none'
-                    stroke='currentColor'
-                    viewBox='0 0 24 24'
+        return (
+            <div className='relative inline-block' ref={dropdownRef}>
+                <button
+                    className={`flex items-center justify-between px-3 py-1 border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] cursor-pointer ${
+                        selectedValues.length > 0
+                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                            : 'bg-gray-100 text-black'
+                    }`}
+                    onClick={() => setIsOpen(!isOpen)}
                 >
-                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
-                </svg>
-            </button>
+                    <span className='truncate'>{getDisplayText}</span>
+                    <svg
+                        className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                    >
+                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+                    </svg>
+                </button>
 
-            {isOpen && (
-                <div className='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto'>
-                    <div className='px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b sticky top-0'>
-                        {label}
-                    </div>
-
-                    <div className='px-3 py-2 border-b bg-gray-50 flex gap-2'>
-                        <button
-                            className='text-xs text-blue-600 hover:text-blue-800 font-medium'
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                onSelectionChange(allOptions.map((opt) => opt.value))
-                            }}
-                        >
-                            Select All
-                        </button>
-                        <span className='text-xs text-gray-400'>|</span>
-                        <button
-                            className='text-xs text-red-600 hover:text-red-800 font-medium'
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                onSelectionChange([])
-                            }}
-                        >
-                            Clear All
-                        </button>
-                    </div>
-
-                    {allOptions.map((facet) => {
-                        const currentCount = getFacetCount(facet.value)
-                        const isSelected = selectedValues.includes(facet.value)
-                        return (
-                            <div
-                                key={facet.value}
-                                className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 last:rounded-b-md ${
-                                    isSelected ? 'bg-blue-50' : ''
-                                }`}
-                                onClick={() => {
-                                    updateFilter(facet.value)
+                {isOpen && (
+                    <div className='absolute z-50 mt-1 min-w-fit w-full bg-white border border-gray-300 rounded-md shadow-lg whitespace-nowrap'>
+                        <div className='px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b sticky top-0'>
+                            {label}
+                        </div>
+                        <div className='px-3 py-2 border-b bg-gray-50 flex gap-2'>
+                            <button
+                                className='text-xs text-blue-600 hover:text-blue-800 font-medium'
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onSelectionChange(allOptions.map((opt) => opt.value))
                                 }}
                             >
-                                <div className='flex items-center justify-between'>
-                                    <div className='flex items-center gap-2'>
-                                        <input
-                                            type='checkbox'
-                                            checked={isSelected}
-                                            onChange={() => {}}
-                                            className='rounded text-blue-600'
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                        <span className={isSelected ? 'text-blue-700 font-medium' : 'text-gray-700'}>
-                                            {facet.value}
-                                        </span>
+                                Select All
+                            </button>
+                            <span className='text-xs text-gray-400'>|</span>
+                            <button
+                                className='text-xs text-red-600 hover:text-red-800 font-medium'
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onSelectionChange([])
+                                }}
+                            >
+                                Clear All
+                            </button>
+                        </div>
+
+                        {allOptions.map((facet) => {
+                            const currentCount = getFacetCount(facet.value)
+                            const isSelected = selectedValues.includes(facet.value)
+                            return (
+                                <div
+                                    key={facet.value}
+                                    className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 last:rounded-b-md ${
+                                        isSelected ? 'bg-blue-50' : ''
+                                    }`}
+                                    onClick={() => updateFilter(facet.value)}
+                                >
+                                    <div className='flex items-center justify-between'>
+                                        <div className='flex items-center gap-2'>
+                                            <input
+                                                type='checkbox'
+                                                checked={isSelected}
+                                                onChange={() => {}}
+                                                className='rounded text-blue-600'
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                            <span
+                                                className={isSelected ? 'text-blue-700 font-medium' : 'text-gray-700'}
+                                            >
+                                                {facet.value}
+                                            </span>
+                                        </div>
+                                        <span className='text-xs text-gray-500'>({currentCount})</span>
                                     </div>
-                                    <span className='text-xs text-gray-500'>({currentCount})</span>
                                 </div>
-                            </div>
-                        )
-                    })}
-                </div>
-            )}
-        </div>
-    )
-}
+                            )
+                        })}
+                    </div>
+                )}
+            </div>
+        )
+    },
+)
 
 const LeadsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
-    const [searchParams, setSearchParams] = useSearchParams()
+    const [searchParams] = useSearchParams()
 
-    // Use memoized selectors to prevent unnecessary re-renders
+    // Redux selectors
     const reduxLeads = useSelector(selectFilteredLeads)
     const reduxLoading = useSelector((state: RootState) => selectLeadsLoading(state))
     const reduxError = useSelector((state: RootState) => selectLeadsError(state))
 
-    // Memoize URL parameters to prevent unnecessary updates
-    const urlParams = useMemo(
-        () => ({
+    // Filter state with proper typing
+    const [filterState, setFilterState] = useState<FilterState>(() => ({
+        kamName: [],
+        sort: '',
+        connectStatus: [],
+        source: [],
+        leadStatus: [],
+        page: 1,
+        query: '',
+    }))
+
+    // Load initial URL params only once on mount
+    useEffect(() => {
+        const urlParams = {
             query: searchParams.get('query') || '',
             leadStatus: searchParams.get('leadStatus')?.split(',').filter(Boolean) || [],
             connectStatus: searchParams.get('connectStatus')?.split(',').filter(Boolean) || [],
@@ -263,86 +295,114 @@ const LeadsPage = () => {
             sort: searchParams.get('sort') || '',
             page: parseInt(searchParams.get('page') || '1', 10),
             kamName: searchParams.get('kamName')?.split(',').filter(Boolean) || [],
-        }),
-        [searchParams],
-    )
+        }
 
-    // Initialize state from URL parameters
-    const [filterState, setFilterState] = useState(() => ({
-        kamName: urlParams.kamName || [],
-        sort: urlParams.sort || '',
-        connectStatus: urlParams.connectStatus || [],
-        source: urlParams.source || [],
-        leadStatus: urlParams.leadStatus || [],
-        page: urlParams.page || 1,
-    }))
-
-    // Effect to sync URL parameters with filter state
-    useEffect(() => {
         setFilterState({
-            kamName: urlParams.kamName || [],
-            sort: urlParams.sort || '',
-            connectStatus: urlParams.connectStatus || [],
-            source: urlParams.source || [],
-            leadStatus: urlParams.leadStatus || [],
-            page: urlParams.page || 1,
+            kamName: urlParams.kamName,
+            sort: urlParams.sort,
+            connectStatus: urlParams.connectStatus,
+            source: urlParams.source,
+            leadStatus: urlParams.leadStatus,
+            page: urlParams.page,
+            query: urlParams.query,
         })
-    }, [urlParams])
+    }, []) // Only run once on mount
 
-    // Update URL parameters
-    const updateURLParams = useCallback(
-        (key: string, value: string | string[] | null) => {
-            const newParams = new URLSearchParams(searchParams)
-            if (value === null || (Array.isArray(value) && value.length === 0)) {
-                newParams.delete(key)
-            } else if (Array.isArray(value)) {
-                newParams.set(key, value.join(','))
-            } else {
-                newParams.set(key, value)
-            }
-            if (key !== 'page') {
-                newParams.set('page', '1')
-            }
-            setSearchParams(newParams)
+    // **KEY FIX: Function to update URL without page reload**
+    const updateURLSilently = useCallback((newFilterState: FilterState) => {
+        const newParams = new URLSearchParams()
+
+        if (newFilterState.query) newParams.set('query', newFilterState.query)
+        if (newFilterState.leadStatus.length > 0) newParams.set('leadStatus', newFilterState.leadStatus.join(','))
+        if (newFilterState.connectStatus.length > 0)
+            newParams.set('connectStatus', newFilterState.connectStatus.join(','))
+        if (newFilterState.source.length > 0) newParams.set('source', newFilterState.source.join(','))
+        if (newFilterState.sort) newParams.set('sort', newFilterState.sort)
+        if (newFilterState.page > 1) newParams.set('page', newFilterState.page.toString())
+        if (newFilterState.kamName.length > 0) newParams.set('kamName', newFilterState.kamName.join(','))
+
+        const newUrl = `${window.location.pathname}${newParams.toString() ? '?' + newParams.toString() : ''}`
+
+        // **This is the key - use replaceState to update URL without navigation**
+        window.history.replaceState(null, '', newUrl)
+    }, [])
+
+    // **Updated filter handlers - Update both state and URL**
+    const handleLeadStatusChange = useCallback(
+        (statuses: string[]) => {
+            const newState = { ...filterState, leadStatus: statuses, page: 1 }
+            setFilterState(newState)
+            updateURLSilently(newState)
         },
-        [searchParams, setSearchParams],
+        [filterState, updateURLSilently],
     )
 
-    // Event handlers
-    const handleLeadStatusChange = useCallback(() => {
-        return (statuses: string[]) => updateURLParams('leadStatus', statuses)
-    }, [updateURLParams])
+    const handleConnectStatusChange = useCallback(
+        (statuses: string[]) => {
+            const newState = { ...filterState, connectStatus: statuses, page: 1 }
+            setFilterState(newState)
+            updateURLSilently(newState)
+        },
+        [filterState, updateURLSilently],
+    )
 
-    const handleConnectStatusChange = useCallback(() => {
-        return (statuses: string[]) => updateURLParams('connectStatus', statuses)
-    }, [updateURLParams])
+    const handleSourceChange = useCallback(
+        (sources: string[]) => {
+            const newState = { ...filterState, source: sources, page: 1 }
+            setFilterState(newState)
+            updateURLSilently(newState)
+        },
+        [filterState, updateURLSilently],
+    )
 
-    const handleSourceChange = useCallback(() => {
-        return (sources: string[]) => updateURLParams('source', sources)
-    }, [updateURLParams])
+    const handleKAMChange = useCallback(
+        (kams: string[]) => {
+            const newState = { ...filterState, kamName: kams, page: 1 }
+            setFilterState(newState)
+            updateURLSilently(newState)
+        },
+        [filterState, updateURLSilently],
+    )
 
-    const handleKAMChange = useCallback(() => {
-        return (kams: string[]) => updateURLParams('kamName', kams)
-    }, [updateURLParams])
+    const handleSortChange = useCallback(
+        (sort: string) => {
+            const newState = { ...filterState, sort: sort || '', page: 1 }
+            setFilterState(newState)
+            updateURLSilently(newState)
+        },
+        [filterState, updateURLSilently],
+    )
 
-    const handleSortChange = useCallback(() => {
-        return (sort: string) => updateURLParams('sort', sort || null)
-    }, [updateURLParams])
+    const handlePageChange = useCallback(
+        (page: number) => {
+            const newState = { ...filterState, page }
+            setFilterState(newState)
+            updateURLSilently(newState)
+        },
+        [filterState, updateURLSilently],
+    )
 
-    const handlePageChange = useCallback(() => {
-        return (page: number) => updateURLParams('page', page.toString())
-    }, [updateURLParams])
-
-    // Reset all filters
     const resetFilters = useCallback(() => {
-        setSearchParams({})
-    }, [setSearchParams])
+        const newState = {
+            kamName: [],
+            sort: '',
+            connectStatus: [],
+            source: [],
+            leadStatus: [],
+            page: 1,
+            query: '',
+        }
+        setFilterState(newState)
+        updateURLSilently(newState)
+    }, [updateURLSilently])
 
-    // Data and pagination states
+    // Local state
     const [leads, setLeads] = useState<ILead[]>([])
     const [totalLeads, setTotalLeads] = useState(0)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
+    const [kamOptions, setKamOptions] = useState<Array<{ value: string; count: number }>>([])
 
     // Modal states
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false)
@@ -351,120 +411,70 @@ const LeadsPage = () => {
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
     const [selectedRowData, setSelectedRowData] = useState<ILead | null>(null)
 
-    // Facets for dynamic filter options
-    const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
-    const [kamOptions, setKamOptions] = useState<Array<{ value: string; count: number }>>([])
-
-    const ITEMS_PER_PAGE = 50
-
-    // Function to update lead status using Redux thunk - NO PAGE RELOAD
-    const handleUpdateLeadStatus = async (leadId: string, status: string) => {
-        try {
-            // Optimistic update - update local state immediately
-            setLeads((prevLeads) =>
-                prevLeads.map((lead) =>
-                    lead.leadId === leadId ? { ...lead, leadStatus: status as any, lastModified: Date.now() } : lead,
-                ),
-            )
-
-            // Dispatch Redux thunk to update database
-            await dispatch(updateLeadStatus({ leadId, status })).unwrap()
-
-            console.log('Lead status updated successfully')
-
-            // ✅ No page reload - state is already updated optimistically
-        } catch (error) {
-            console.error('Failed to update lead status:', error)
-            // Revert optimistic update on error
-            searchLeads()
-        }
-    }
-
-    // Function to update KAM using Redux thunk - NO PAGE RELOAD
-    const handleUpdateKAM = async (leadId: string, kamName: string) => {
-        try {
-            // Optimistic update
-            setLeads((prevLeads) =>
-                prevLeads.map((lead) =>
-                    lead.leadId === leadId ? { ...lead, kamName, lastModified: Date.now() } : lead,
-                ),
-            )
-
-            // Dispatch Redux thunk to update database
-            await dispatch(updateLeadKAM({ leadId, kamName })).unwrap()
-
-            console.log('KAM updated successfully')
-
-            // ✅ No page reload - state is already updated optimistically
-        } catch (error) {
-            console.error('Failed to update KAM:', error)
-            searchLeads()
-        }
-    }
-
-    // Function to update boolean fields using Redux thunk - NO PAGE RELOAD
-    const handleUpdateBooleanField = async (leadId: string, field: keyof ILead, value: boolean) => {
-        try {
-            // Optimistic update
-            setLeads((prevLeads) =>
-                prevLeads.map((lead) =>
-                    lead.leadId === leadId ? { ...lead, [field]: value, lastModified: Date.now() } : lead,
-                ),
-            )
-
-            // Dispatch Redux thunk to update database
-            await dispatch(updateLeadBooleanField({ leadId, field, value })).unwrap()
-
-            console.log('Boolean field updated successfully')
-
-            // ✅ No page reload - state is already updated optimistically
-        } catch (error) {
-            console.error('Failed to update boolean field:', error)
-            searchLeads()
-        }
-    }
-
-    // Debounced search function with cancel support
-    const debounce = <T extends (...args: any[]) => any>(
-        func: T,
-        wait: number,
-    ): { (...args: Parameters<T>): void; cancel: () => void } => {
-        let timeout: NodeJS.Timeout | null = null
-
-        function debouncedFn(...args: Parameters<T>) {
-            if (timeout) {
-                clearTimeout(timeout)
-            }
-            timeout = setTimeout(() => {
-                timeout = null
-                func(...args)
-            }, wait)
-        }
-
-        debouncedFn.cancel = () => {
-            if (timeout) {
-                clearTimeout(timeout)
-                timeout = null
-            }
-        }
-
-        return debouncedFn
-    }
-
-    // Load KAM options on component mount
+    // Mounted ref
+    const mounted = useRef(true)
     useEffect(() => {
-        const loadKamOptions = async () => {
-            try {
-                const kamFacets = await leadSearchService.getFacetValues('kamName')
-                setKamOptions(kamFacets)
-            } catch (error) {
-                console.error('Error loading KAM options:', error)
-            }
+        mounted.current = true
+        return () => {
+            mounted.current = false
         }
-        loadKamOptions()
     }, [])
 
-    // Memoized search function
+    // Optimistic update functions
+    const handleUpdateLeadStatus = useCallback(
+        async (leadId: string, status: string) => {
+            try {
+                setLeads((prevLeads) =>
+                    prevLeads.map((lead) =>
+                        lead.leadId === leadId
+                            ? { ...lead, leadStatus: status as any, lastModified: Date.now() }
+                            : lead,
+                    ),
+                )
+                await dispatch(updateLeadStatus({ leadId, status })).unwrap()
+            } catch (error) {
+                console.error('Failed to update lead status:', error)
+                searchLeads()
+            }
+        },
+        [dispatch],
+    )
+
+    const handleUpdateKAM = useCallback(
+        async (leadId: string, kamName: string) => {
+            try {
+                setLeads((prevLeads) =>
+                    prevLeads.map((lead) =>
+                        lead.leadId === leadId ? { ...lead, kamName, lastModified: Date.now() } : lead,
+                    ),
+                )
+                await dispatch(updateLeadKAM({ leadId, kamName })).unwrap()
+            } catch (error) {
+                console.error('Failed to update KAM:', error)
+                searchLeads()
+            }
+        },
+        [dispatch],
+    )
+
+    const handleUpdateBooleanField = useCallback(
+        async (leadId: string, field: keyof ILead, value: boolean) => {
+            try {
+                setLeads((prevLeads) =>
+                    prevLeads.map((lead) =>
+                        lead.leadId === leadId ? { ...lead, [field]: value, lastModified: Date.now() } : lead,
+                    ),
+                )
+                await dispatch(updateLeadBooleanField({ leadId, field, value })).unwrap()
+            } catch (error) {
+                console.error('Failed to update boolean field:', error)
+                searchLeads()
+            }
+        },
+        [dispatch],
+    )
+
+    // Optimized search function
     const searchLeads = useCallback(async () => {
         if (!mounted.current) return
 
@@ -473,15 +483,16 @@ const LeadsPage = () => {
 
         try {
             const response = await leadSearchService.searchLeads(
-                urlParams.query,
+                filterState.query || '',
                 {
-                    leadStatus: urlParams.leadStatus,
-                    contactStatus: urlParams.connectStatus,
-                    source: urlParams.source,
+                    leadStatus: filterState.leadStatus,
+                    contactStatus: filterState.connectStatus,
+                    source: filterState.source,
+                    kamName: filterState.kamName,
                 },
-                Math.max(0, urlParams.page - 1),
+                Math.max(0, filterState.page - 1),
                 ITEMS_PER_PAGE,
-                urlParams.sort || undefined,
+                filterState.sort || undefined,
             )
 
             if (!mounted.current) return
@@ -490,7 +501,6 @@ const LeadsPage = () => {
             setTotalLeads(response.nbHits || 0)
             setFacets(response.facets || {})
 
-            // Update Redux store with fetched leads - wrap in try/catch to handle serialization issues
             try {
                 dispatch(setReduxLeads(response.hits))
             } catch (err) {
@@ -509,49 +519,58 @@ const LeadsPage = () => {
                 setLoading(false)
             }
         }
-    }, [urlParams, dispatch])
+    }, [filterState, dispatch])
 
-    // Add mounted ref to prevent memory leaks
-    const mounted = useRef(true)
+    // Load KAM options
     useEffect(() => {
-        mounted.current = true
-        return () => {
-            mounted.current = false
+        const loadKamOptions = async () => {
+            try {
+                const kamFacets = await leadSearchService.getFacetValues('kamName')
+                setKamOptions(kamFacets)
+            } catch (error) {
+                console.error('Error loading KAM options:', error)
+            }
         }
+        loadKamOptions()
     }, [])
 
-    // Debounced search effect
-    const debouncedSearch = useMemo(() => {
-        const debouncedFn = debounce(() => {
-            if (mounted.current) {
-                searchLeads()
-            }
-        }, 300)
-        return debouncedFn
-    }, [searchLeads])
+    // Debounced search with proper cleanup
+    const debouncedSearchRef = useRef<NodeJS.Timeout>()
 
-    // Single unified effect for search
     useEffect(() => {
-        if (urlParams.query) {
-            debouncedSearch()
+        // Clear previous timeout
+        if (debouncedSearchRef.current) {
+            clearTimeout(debouncedSearchRef.current)
+        }
+
+        // Set new timeout for search
+        if (filterState.query) {
+            debouncedSearchRef.current = setTimeout(() => {
+                searchLeads()
+            }, 300)
         } else {
             searchLeads()
         }
 
+        // Cleanup
         return () => {
-            debouncedSearch.cancel()
+            if (debouncedSearchRef.current) {
+                clearTimeout(debouncedSearchRef.current)
+            }
         }
-    }, [urlParams, debouncedSearch, searchLeads])
+    }, [filterState, searchLeads])
 
-    // Update URL handlers
-    const handleSearchValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newParams = new URLSearchParams(searchParams)
-        newParams.set('query', e.target.value)
-        newParams.set('page', '1') // Reset page when search changes
-        setSearchParams(newParams)
-    }
+    // **Updated search input handler**
+    const handleSearchValueChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            const newState = { ...filterState, query: e.target.value, page: 1 }
+            setFilterState(newState)
+            updateURLSilently(newState)
+        },
+        [filterState, updateURLSilently],
+    )
 
-    // Memoized metrics calculation to prevent unnecessary recalculations
+    // Memoized calculations
     const metrics = useMemo(() => {
         const totalLeadsCount = totalLeads
         const notContactedCount = leads.filter((lead) => lead.leadStatus === 'not contact yet').length
@@ -571,10 +590,8 @@ const LeadsPage = () => {
         ]
     }, [totalLeads, leads])
 
-    // Calculate total pages
-    const totalPages = Math.ceil(totalLeads / ITEMS_PER_PAGE)
+    const totalPages = useMemo(() => Math.ceil(totalLeads / ITEMS_PER_PAGE), [totalLeads])
 
-    // Memoized helper function to merge static options with facet counts
     const mergeOptionsWithFacets = useCallback(
         (staticOptions: Array<{ value: string; count: number }>, facetName: string) => {
             const facetData = facets[facetName] || {}
@@ -586,37 +603,42 @@ const LeadsPage = () => {
         [facets],
     )
 
-    // Sort options (single select)
-    const sortOptions = [
-        { label: 'Newest First', value: 'added_desc' },
-        { label: 'Oldest First', value: 'added_asc' },
-        { label: 'Name A-Z', value: 'name_asc' },
-        { label: 'Name Z-A', value: 'name_desc' },
-        { label: 'Last Connect', value: 'lastConnect_desc' },
-    ]
+    // Static options
+    const sortOptions = useMemo(
+        () => [
+            { label: 'Newest First', value: 'added_desc' },
+            { label: 'Oldest First', value: 'added_asc' },
+            { label: 'Name A-Z', value: 'name_asc' },
+            { label: 'Name Z-A', value: 'name_desc' },
+            { label: 'Last Connect', value: 'lastConnect_desc' },
+        ],
+        [],
+    )
 
-    const leadStatusDropdownOptions: DropdownOption[] = [
-        {
-            label: 'Interested',
-            value: 'interested',
-            color: '#E1F6DF',
-            textColor: '#065F46',
-        },
-        {
-            label: 'Not Interested',
-            value: 'not interested',
-            color: '#D3D4DD',
-            textColor: '#374151',
-        },
-        {
-            label: 'No Contact Yet',
-            value: 'not contact yet',
-            color: '#FEECED',
-            textColor: '#991B1B',
-        },
-    ]
+    const leadStatusDropdownOptions: DropdownOption[] = useMemo(
+        () => [
+            {
+                label: 'Interested',
+                value: 'interested',
+                color: '#E1F6DF',
+                textColor: '#065F46',
+            },
+            {
+                label: 'Not Interested',
+                value: 'not interested',
+                color: '#D3D4DD',
+                textColor: '#374151',
+            },
+            {
+                label: 'No Contact Yet',
+                value: 'not contact yet',
+                color: '#FEECED',
+                textColor: '#991B1B',
+            },
+        ],
+        [],
+    )
 
-    // Memoized KAM options to prevent unnecessary recalculations
     const kamAssignedOptions: DropdownOption[] = useMemo(
         () => [
             ...Object.keys(facets.kamName || {}).map((kam) => ({
@@ -628,161 +650,168 @@ const LeadsPage = () => {
         [facets.kamName],
     )
 
-    // Table columns configuration
-    const columns: TableColumn[] = [
-        {
-            key: 'leadId',
-            header: 'Lead ID',
-            render: (value) => (
-                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
-            ),
-        },
-        {
-            key: 'name',
-            header: 'Lead Name',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-semibold w-auto'>{toCapitalizedWords(value)}</span>
-            ),
-        },
-        {
-            key: 'phonenumber',
-            header: 'Contact Number',
-            render: (value) => (
-                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
-            ),
-        },
-        {
-            key: 'lastTried',
-            header: 'Last Tried',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                    {value ? formatUnixDate(value) : 'Never'}
-                </span>
-            ),
-        },
-        {
-            key: 'lastConnect',
-            header: 'Last Connect',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                    {value ? formatUnixDate(value) : 'Never'}
-                </span>
-            ),
-        },
-        {
-            key: 'leadStatus',
-            header: 'Lead Status',
-            dropdown: {
-                options: leadStatusDropdownOptions,
-                placeholder: 'Select Status',
-                onChange: (value, row) => {
-                    handleUpdateLeadStatus(row.leadId, value)
+    // Table columns
+    const columns: TableColumn[] = useMemo(
+        () => [
+            {
+                key: 'leadId',
+                header: 'Lead ID',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                ),
+            },
+            {
+                key: 'name',
+                header: 'Lead Name',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-sm font-semibold w-auto'>{toCapitalizedWords(value)}</span>
+                ),
+            },
+            {
+                key: 'phonenumber',
+                header: 'Contact Number',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                ),
+            },
+            {
+                key: 'lastTried',
+                header: 'Last Tried',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                        {value ? formatUnixDate(value) : 'Never'}
+                    </span>
+                ),
+            },
+            {
+                key: 'lastConnect',
+                header: 'Last Connect',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                        {value ? formatUnixDate(value) : 'Never'}
+                    </span>
+                ),
+            },
+            {
+                key: 'leadStatus',
+                header: 'Lead Status',
+                dropdown: {
+                    options: leadStatusDropdownOptions,
+                    placeholder: 'Select Status',
+                    onChange: (value, row) => {
+                        handleUpdateLeadStatus(row.leadId, value)
+                    },
                 },
             },
-        },
-        {
-            key: 'contactStatus',
-            header: 'Connect Status',
-            render: (value) => (
-                <div className='whitespace-nowrap w-auto'>
-                    <StatusBadge status={value} type='connect' />
-                </div>
-            ),
-        },
-        {
-            key: 'kamName',
-            header: 'KAM Assigned',
-            dropdown: {
-                options: kamAssignedOptions,
-                placeholder: 'Select KAM',
-                onChange: (value, row) => {
-                    handleUpdateKAM(row.leadId, value)
+            {
+                key: 'contactStatus',
+                header: 'Connect Status',
+                render: (value) => (
+                    <div className='whitespace-nowrap w-auto'>
+                        <StatusBadge status={value} type='connect' />
+                    </div>
+                ),
+            },
+            {
+                key: 'kamName',
+                header: 'KAM Assigned',
+                dropdown: {
+                    options: kamAssignedOptions,
+                    placeholder: 'Select KAM',
+                    onChange: (value, row) => {
+                        handleUpdateKAM(row.leadId, value)
+                    },
                 },
             },
-        },
-        {
-            key: 'source',
-            header: 'Lead Source',
-            render: (value) => (
-                <div className='whitespace-nowrap w-auto'>
-                    <LeadSourceCell source={value} />
-                </div>
-            ),
-        },
-        {
-            key: 'communityJoined',
-            header: 'Joined Community',
-            render: (value, row) => (
-                <input
-                    type='checkbox'
-                    checked={value === true}
-                    onChange={(e) => {
-                        handleUpdateBooleanField(row.leadId, 'communityJoined', e.target.checked)
-                    }}
-                    className='rounded text-blue-600'
-                />
-            ),
-        },
-        {
-            key: 'onBroadcast',
-            header: 'On Broadcast',
-            render: (value, row) => (
-                <input
-                    type='checkbox'
-                    checked={value === true}
-                    onChange={(e) => {
-                        handleUpdateBooleanField(row.leadId, 'onBroadcast', e.target.checked)
-                    }}
-                    className='rounded text-blue-600'
-                />
-            ),
-        },
-
-        {
-            key: 'actions',
-            header: 'Actions',
-            fixed: true,
-            fixedPosition: 'right',
-            render: (_, row) => (
-                <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
-                    <button
-                        className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                        onClick={() => {
-                            setSelectedRowData(row)
-                            setIsCallResultModalOpen(true)
+            {
+                key: 'source',
+                header: 'Lead Source',
+                render: (value) => (
+                    <div className='whitespace-nowrap w-auto'>
+                        <LeadSourceCell source={value} />
+                    </div>
+                ),
+            },
+            {
+                key: 'communityJoined',
+                header: 'Joined Community',
+                render: (value, row) => (
+                    <input
+                        type='checkbox'
+                        checked={value === true}
+                        onChange={(e) => {
+                            handleUpdateBooleanField(row.leadId, 'communityJoined', e.target.checked)
                         }}
-                        title='Call'
-                    >
-                        <img src={phoneic} alt='Phone Icon' className='w-7 h-7 flex-shrink-0' />
-                    </button>
-                    <button
-                        className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                        onClick={() => {
-                            setSelectedRowData(row)
-                            setIsNotesModalOpen(true)
+                        className='rounded text-blue-600'
+                    />
+                ),
+            },
+            {
+                key: 'onBroadcast',
+                header: 'On Broadcast',
+                render: (value, row) => (
+                    <input
+                        type='checkbox'
+                        checked={value === true}
+                        onChange={(e) => {
+                            handleUpdateBooleanField(row.leadId, 'onBroadcast', e.target.checked)
                         }}
-                        title='Notes'
-                    >
-                        <img src={notesic} alt='Notes Icon' className='w-7 h-7 flex-shrink-0' />
-                    </button>
-                    <button
-                        className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                        onClick={() => {
-                            console.log('row', row)
-                            setSelectedRowData(row)
-                            setIsVerificationModalOpen(true)
-                        }}
-                        title='Profile'
-                    >
-                        <img src={verifyic} alt='Verify Icon' className='w-7 h-7 flex-shrink-0' />
-                    </button>
-                </div>
-            ),
-        },
-    ]
+                        className='rounded text-blue-600'
+                    />
+                ),
+            },
+            {
+                key: 'actions',
+                header: 'Actions',
+                fixed: true,
+                fixedPosition: 'right',
+                render: (_, row) => (
+                    <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
+                        <button
+                            className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
+                            onClick={() => {
+                                setSelectedRowData(row)
+                                setIsCallResultModalOpen(true)
+                            }}
+                            title='Call'
+                        >
+                            <img src={phoneic} alt='Phone Icon' className='w-7 h-7 flex-shrink-0' />
+                        </button>
+                        <button
+                            className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
+                            onClick={() => {
+                                setSelectedRowData(row)
+                                setIsNotesModalOpen(true)
+                            }}
+                            title='Notes'
+                        >
+                            <img src={notesic} alt='Notes Icon' className='w-7 h-7 flex-shrink-0' />
+                        </button>
+                        <button
+                            className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
+                            onClick={() => {
+                                setSelectedRowData(row)
+                                setIsVerificationModalOpen(true)
+                            }}
+                            title='Profile'
+                        >
+                            <img src={verifyic} alt='Verify Icon' className='w-7 h-7 flex-shrink-0' />
+                        </button>
+                    </div>
+                ),
+            },
+        ],
+        [
+            leadStatusDropdownOptions,
+            kamAssignedOptions,
+            handleUpdateLeadStatus,
+            handleUpdateKAM,
+            handleUpdateBooleanField,
+        ],
+    )
 
     return (
-        <Layout loading={loading || reduxLoading}>
+        <Layout loading={false}>
             <div className='w-full overflow-hidden h-screen font-sans flex flex-col'>
                 <div
                     className='flex flex-col gap-4 pt-2 bg-white flex-1 overflow-hidden'
@@ -811,7 +840,7 @@ const LeadsPage = () => {
                                             </svg>
                                         }
                                         placeholder='Search name and number'
-                                        value={urlParams.query}
+                                        value={filterState.query}
                                         onChange={handleSearchValueChange}
                                         className='h-8'
                                     />
@@ -843,8 +872,8 @@ const LeadsPage = () => {
 
                             <MultiSelectDropdown
                                 allOptions={kamOptions}
-                                selectedValues={urlParams.kamName}
-                                onSelectionChange={handleKAMChange()}
+                                selectedValues={filterState.kamName}
+                                onSelectionChange={handleKAMChange}
                                 placeholder='KAM'
                                 label='Select KAMs'
                                 facets={facets.kamName || {}}
@@ -852,8 +881,8 @@ const LeadsPage = () => {
 
                             <Dropdown
                                 options={sortOptions}
-                                onSelect={handleSortChange()}
-                                defaultValue={urlParams.sort}
+                                onSelect={handleSortChange}
+                                defaultValue={filterState.sort}
                                 placeholder='Sort'
                                 className='relative inline-block'
                                 triggerClassName='flex items-center justify-between px-3 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
@@ -863,8 +892,8 @@ const LeadsPage = () => {
 
                             <MultiSelectDropdown
                                 allOptions={mergeOptionsWithFacets(ALL_CONTACT_STATUS_OPTIONS, 'contactStatus')}
-                                selectedValues={urlParams.connectStatus}
-                                onSelectionChange={handleConnectStatusChange()}
+                                selectedValues={filterState.connectStatus}
+                                onSelectionChange={handleConnectStatusChange}
                                 placeholder='Connect Status'
                                 label='Select Connect Status'
                                 facets={facets.contactStatus || {}}
@@ -872,8 +901,8 @@ const LeadsPage = () => {
 
                             <MultiSelectDropdown
                                 allOptions={mergeOptionsWithFacets(ALL_LEAD_STATUS_OPTIONS, 'leadStatus')}
-                                selectedValues={urlParams.leadStatus}
-                                onSelectionChange={handleLeadStatusChange()}
+                                selectedValues={filterState.leadStatus}
+                                onSelectionChange={handleLeadStatusChange}
                                 placeholder='Lead Status'
                                 label='Select Lead Status'
                                 facets={facets.leadStatus || {}}
@@ -881,8 +910,8 @@ const LeadsPage = () => {
 
                             <MultiSelectDropdown
                                 allOptions={mergeOptionsWithFacets(ALL_SOURCE_OPTIONS, 'source')}
-                                selectedValues={urlParams.source}
-                                onSelectionChange={handleSourceChange()}
+                                selectedValues={filterState.source}
+                                onSelectionChange={handleSourceChange}
                                 placeholder='Source'
                                 label='Select Sources'
                                 facets={facets.source || {}}
@@ -897,9 +926,8 @@ const LeadsPage = () => {
                         )}
                     </div>
 
-                    {/* Table Container - This will take remaining space */}
+                    {/* Table Container */}
                     <div className='flex-1 flex flex-col gap-[29px] overflow-hidden'>
-                        {/* Table */}
                         <div className='bg-white rounded-lg overflow-hidden flex-1 pl-6'>
                             <div className='h-full overflow-hidden'>
                                 <FlexibleTable
@@ -922,15 +950,10 @@ const LeadsPage = () => {
 
                         {/* Pagination */}
                         <div className='flex items-center justify-between px-6 border-t border-[#E3E3E3] flex-shrink-0'>
-                            {/* <div className='text-sm text-gray-500 font-medium'>
-                                Showing {(filterState.page - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                                {Math.min(filterState.page * ITEMS_PER_PAGE, totalLeads)} of {totalLeads} leads
-                            </div> */}
-
                             <CustomPagination
                                 currentPage={filterState.page}
                                 totalPages={totalPages}
-                                onPageChange={(page) => handlePageChange()(page)}
+                                onPageChange={handlePageChange}
                                 className=''
                             />
                         </div>

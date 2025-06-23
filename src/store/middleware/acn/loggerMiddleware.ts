@@ -149,7 +149,7 @@ const logToActionDocument = async (actionType: string, logEntry: any) => {
 }
 
 export const activityLoggerMiddleware: Middleware = (store) => (next) => (action: any) => {
-    console.log('🔥 Middleware intercepted action:', action.type)
+    //console.log('🔥 Middleware intercepted action:', action.type)
 
     const result = next(action)
 
@@ -210,7 +210,7 @@ export const activityLoggerMiddleware: Middleware = (store) => (next) => (action
             console.log('❌ No user found from any source')
         }
     } else {
-        console.log('⏭️ Action not in logging list:', (action as any).type)
+        //console.log('⏭️ Action not in logging list:', (action as any).type)
     }
 
     return result
