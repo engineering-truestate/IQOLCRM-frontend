@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import Dropdown from './Dropdown'
 import SendEmailModal from '../SendEmailModal'
 
-const LeadRegistrationTask = ({ taskStatusOptions }) => {
-    const [isModalOpen, setModalOpen] = useState<boolean>(true)
+const LeadRegistrationTask = ({ propertyLink = '' }) => {
+    const [isModalOpen, setModalOpen] = useState<boolean>(false)
     const emailOptions = [
         { value: 'builder1@example.com', label: 'Builder 1' },
         { value: 'builder2@example.com', label: 'Builder 2' },
@@ -14,13 +14,6 @@ const LeadRegistrationTask = ({ taskStatusOptions }) => {
 
     const handleEmailSelect = (email: string) => {
         setSelectedEmail(email)
-    }
-
-    const handleProceed = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation()
-        if (selectedEmail) {
-            window.location.href = `mailto:${selectedEmail}`
-        }
     }
 
     return (
@@ -36,7 +29,7 @@ const LeadRegistrationTask = ({ taskStatusOptions }) => {
                     onSelect={handleEmailSelect}
                     options={emailOptions}
                     placeholder='Select Builder Email'
-                    triggerClassName='flex items-center w-[485px] h-8 justify-between px-3 py-2 border border-gray-300 rounded-sm text-xs text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center w-fit h-8 justify-between px-3 py-2 border border-gray-300 p-2 rounded-sm text-xs text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer font-medium'
                 />
 
                 <div className='text-left'>
@@ -53,11 +46,11 @@ const LeadRegistrationTask = ({ taskStatusOptions }) => {
             </div>
 
             <button
-                onClick={() => {
+                onClick={(e) => {
+                    e.stopPropagation()
                     setModalOpen(true)
                 }}
                 className='px-2 bg-blue-500 w-26.5 h-8 text-white text-sm rounded-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                disabled={!selectedEmail}
             >
                 Proceed
             </button>

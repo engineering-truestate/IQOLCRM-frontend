@@ -37,9 +37,7 @@ const Login = () => {
         >
             <div className='bg-white w-[380px] h-[380px] rounded-[3%] p-6 text-center font-sans shadow-lg'>
                 <h2 className='text-[26px] text-[#09342e] font-bold'>Log in</h2>
-                <p className='text-[15px] text-[#6d7071] mb-4'>
-                    दिलों के बाज़ार में हम अपना दिल लेकर निकले,दिल वहीं चोरी हो गया, दाम वहीं नहीं मिला।
-                </p>
+                <p className='text-[15px] text-[#6d7071] mb-4'>Please Enter Your Credentials</p>
 
                 <div className='mb-4'>
                     <input

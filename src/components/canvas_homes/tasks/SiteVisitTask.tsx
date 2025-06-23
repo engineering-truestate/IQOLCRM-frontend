@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from 'react'
+import { useCallback } from 'react'
+import React, { useState } from 'react'
 import Dropdown from './Dropdown'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../store'
@@ -15,92 +16,84 @@ interface DropdownOption {
 }
 
 interface SiteVisitTaskProps {
-    taskId: string
-    updateTaskState: (taskId: string, field: string, value: string) => void
-    getTaskState?: (taskId: string) => any
-    onUpdateLead?: () => void
-    onUpdateEnquiry?: () => void
-    onUpdateTask?: (taskId: string, updates: any) => Promise<void>
-    onTaskStatusUpdate?: () => void
-    onAddNote?: () => void
-    updating?: boolean
     setActiveTab: (tab: string) => void
+    refreshData: () => void
 }
 
-const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
-    updateTaskState,
-    onUpdateLead,
-    onUpdateEnquiry,
-    onUpdateTask,
-    onAddNote,
-    updating = false,
-    setActiveTab,
-}) => {
+const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({ setActiveTab, refreshData }) => {
     const dispatch = useDispatch<AppDispatch>()
     const [showTaskCompleteModal, setShowTaskCompleteModal] = useState(false)
     const [showChangePropertyModal, setShowChangePropertyModal] = useState(false)
-    const [showcloseLeadModal, setShowCloseLeadModal] = useState(false)
+    const [showCloseLeadModal, setShowCloseLeadModal] = useState(false) // Fixed variable name
     const [showRescheduleEvent, setShowRescheduleEvent] = useState(false)
-    const [taskState, changeTaskState] = useState('')
+    const [taskState, changeTaskState] = useState('') // Renamed for clarity
 
-    const commonModalProps = {
-        onUpdateLead,
-        onUpdateEnquiry,
-        onUpdateTask,
-        onAddNote,
-    }
-
+    // Define the dropdown options with appropriate handlers
     const visitedOptions: DropdownOption[] = [
-        { label: 'Want To Book', value: 'want to book' },
+        {
+            label: 'Want To Book',
+            value: 'want to book',
+            modal: () => setShowTaskCompleteModal(true),
+        },
         {
             label: 'Change Property',
             value: 'change property',
+            modal: () => setShowChangePropertyModal(true),
         },
         {
             label: 'Collect Requirement',
-            value: 'collect requirement',
+            value: 'collect_requirement',
+            modal: useCallback(() => {
+                dispatch(setTaskState('site visit'))
+                if (setActiveTab) {
+                    setActiveTab('Requirements')
+                }
+            }, [dispatch, setActiveTab]),
+        },
+        {
+            label: 'Close Lead',
+            value: 'close lead',
             modal: () => {
-                dispatch(setTaskState('Site Visit'))
-                setActiveTab('Requirements')
+                changeTaskState('visited')
+                setShowCloseLeadModal(true)
             },
         },
-        { label: 'Close Lead', value: 'close lead' },
     ]
 
     const notVisitedOptions: DropdownOption[] = [
-        { label: 'Reschedule Task', value: 'reschedule task', modal: () => setShowRescheduleEvent(true) },
+        {
+            label: 'Reschedule Task',
+            value: 'reschedule task',
+            modal: () => setShowRescheduleEvent(true),
+        },
         {
             label: 'Change Property',
             value: 'change property',
+            modal: () => setShowChangePropertyModal(true),
         },
         {
             label: 'Collect Requirement',
             value: 'collect requirement',
             modal: () => {
-                dispatch(setTaskState('Site Not Visit'))
+                dispatch(setTaskState('site not visit'))
                 setActiveTab('Requirements')
             },
         },
-        { label: 'Close Lead', value: 'close lead' },
+        {
+            label: 'Close Lead',
+            value: 'close lead',
+            modal: () => {
+                changeTaskState('not visited')
+                setShowCloseLeadModal(true)
+            },
+        },
     ]
 
-    const handleVisitedAction = (value: string) => {
-        if (value === 'want to book') setShowTaskCompleteModal(true)
-        if (value === 'change property') setShowChangePropertyModal(true)
-        if (value === 'close lead') {
-            changeTaskState('visited')
-            setShowCloseLeadModal(true)
-        }
-    }
-
-    const handleNotVisitedAction = (value: string) => {
-        if (value === 'reschedule task') {
-            setShowRescheduleEvent(true)
-        }
-        if (value === 'change property') setShowChangePropertyModal(true)
-        if (value === 'close lead') {
-            changeTaskState('not visited')
-            setShowCloseLeadModal(true)
+    // Unified handler for dropdown selections
+    const handleDropdownSelect = (options: DropdownOption[], value: string) => {
+        const option = options.find((opt) => opt.value === value)
+        if (option && option.modal) {
+            option.modal()
         }
     }
 
@@ -110,7 +103,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
                 <Dropdown
                     defaultValue=''
                     options={visitedOptions}
-                    onSelect={handleVisitedAction}
+                    onSelect={(value) => handleDropdownSelect(visitedOptions, value)}
                     triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
                     placeholder='Visited'
                 />
@@ -118,7 +111,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
                 <Dropdown
                     defaultValue=''
                     options={notVisitedOptions}
-                    onSelect={handleNotVisitedAction}
+                    onSelect={(value) => handleDropdownSelect(notVisitedOptions, value)}
                     triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white min-w-[100px] cursor-pointer'
                     placeholder='Not Visited'
                 />
@@ -132,27 +125,30 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
                 stage='site visited'
                 state='open'
                 taskType='site visit'
-                {...commonModalProps}
+                refreshData={refreshData}
             />
 
             <ChangePropertyModal
                 isOpen={showChangePropertyModal}
                 onClose={() => setShowChangePropertyModal(false)}
                 taskType='site visit'
-                {...commonModalProps}
+                refreshData={refreshData}
             />
+
             <CloseLeadModal
-                isOpen={showcloseLeadModal}
+                isOpen={showCloseLeadModal}
                 onClose={() => setShowCloseLeadModal(false)}
                 taskType='site visit'
                 taskState={taskState}
-                {...commonModalProps}
+                refreshData={refreshData}
             />
+
             <RescheduleEventModal
                 isOpen={showRescheduleEvent}
                 onClose={() => setShowRescheduleEvent(false)}
                 taskType='site visit'
                 taskState='not visited'
+                refreshData={refreshData}
             />
         </>
     )

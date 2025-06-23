@@ -18,54 +18,30 @@ import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 class TaskService {
     private collectionName = 'canvashomesTasks'
 
-    /**
-     * Fetch a single task by its ID.
-     */
     async getById(taskId: string): Promise<Task | null> {
         try {
             const taskDoc = await getDoc(doc(db, this.collectionName, taskId))
-            if (taskDoc.exists()) {
-                return { taskId, ...taskDoc.data() } as Task
-            }
-            return null
+            return taskDoc.exists() ? ({ taskId, ...taskDoc.data() } as Task) : null
         } catch (error) {
             console.error('Error fetching task:', error)
             throw error
         }
     }
 
-    /**
-     * Get all tasks associated with a specific enquiry, sorted by scheduledDate.
-     */
     async getByEnquiryId(enquiryId: string): Promise<Task[]> {
         try {
             const q = query(collection(db, this.collectionName), where('enquiryId', '==', enquiryId))
             const querySnapshot = await getDocs(q)
 
-            const tasks = querySnapshot.docs
-                .map(
-                    (doc) =>
-                        ({
-                            taskId: doc.id,
-                            ...doc.data(),
-                        }) as Task,
-                )
-                .sort((a, b) => {
-                    const aDate = a.scheduledDate ?? 0
-                    const bDate = b.scheduledDate ?? 0
-                    return aDate - bDate
-                })
-
-            return tasks
+            return querySnapshot.docs
+                .map((doc) => ({ taskId: doc.id, ...doc.data() }) as Task)
+                .sort((a, b) => (a.scheduledDate ?? 0) - (b.scheduledDate ?? 0))
         } catch (error) {
             console.error('Error fetching tasks by enquiry ID:', error)
             throw error
         }
     }
 
-    /**
-     * Create a new task with an auto-incremented taskId (e.g., task001, task002).
-     */
     async create(taskData: Omit<Task, 'taskId' | 'added' | 'lastModified'>): Promise<string> {
         try {
             const q = query(collection(db, this.collectionName), orderBy('taskId', 'desc'), limit(1))
@@ -74,8 +50,7 @@ class TaskService {
             let nextTaskId = 'task01'
             if (!snapshot.empty) {
                 const lastTaskId = snapshot.docs[0].data().taskId
-                const lastNumber = parseInt(lastTaskId.replace('task', ''))
-                const newNumber = lastNumber + 1
+                const newNumber = parseInt(lastTaskId.replace('task', '')) + 1
                 nextTaskId = `task${newNumber.toString().padStart(2, '0')}`
             }
 
@@ -95,23 +70,16 @@ class TaskService {
         }
     }
 
-    /**
-     * Update only the status and optionally the result of a task.
-     * Automatically updates lastModified and completionDate if completed.
-     */
     async updateStatus(taskId: string, status: 'open' | 'complete', taskResult?: string): Promise<void> {
         try {
             const timestamp = getUnixDateTime()
-            const updateData: any = {
+            const updateData: Partial<Task> = {
                 status,
                 lastModified: timestamp,
             }
 
             if (status === 'complete') {
                 updateData.completionDate = timestamp
-                if (taskResult) {
-                    updateData.taskResult = taskResult
-                }
             }
 
             await updateDoc(doc(db, this.collectionName, taskId), updateData)
@@ -121,10 +89,6 @@ class TaskService {
         }
     }
 
-    /**
-     * Generic update for a task using partial fields.
-     * Automatically updates lastModified timestamp.
-     */
     async update(taskId: string, updates: Partial<Task>): Promise<void> {
         try {
             const updateData = {
@@ -138,9 +102,6 @@ class TaskService {
         }
     }
 
-    /**
-     * Delete a task by its taskId.
-     */
     async delete(taskId: string): Promise<void> {
         try {
             await deleteDoc(doc(db, this.collectionName, taskId))

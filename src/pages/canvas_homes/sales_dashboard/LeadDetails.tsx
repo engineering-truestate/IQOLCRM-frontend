@@ -2,6 +2,12 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { UseLeadDetails } from '../../../hooks/canvas_homes/UseLeadDetails'
 import Layout from '../../../layout/Layout'
+import hotIcon from '/icons/canvas_homes/hoticon.svg'
+import coldIcon from '/icons/canvas_homes/coldicon.svg'
+import potentialIcon from '/icons/canvas_homes/bulbicon.svg'
+import superhotIcon from '/icons/canvas_homes/superhoticon.svg'
+import linkedin from '/icons/canvas_homes/linkedin.svg'
+import meta from '/icons/canvas_homes/meta.svg'
 import Documents from './tabs/Documents'
 import Notes from './tabs/Notes'
 import Requirements from './tabs/Requirements'
@@ -12,18 +18,25 @@ import AddEnquiryModal from '../../../components/canvas_homes/AddEnquiryModal'
 import ChangeAgentModal from '../../../components/canvas_homes/ChangeAgentModal'
 import type { AgentHistoryItem } from '../../../services/canvas_homes/types'
 import google from '/icons/canvas_homes/google.svg'
+import manualIcon from '/icons/canvas_homes/manualicon.svg'
+import whatsapp from '/icons/canvas_homes/whatsappicon.svg'
+import call from '/icons/canvas_homes/callicon.svg'
 import CloseLeadSideModal from '../../../components/canvas_homes/CloseLeadSideModal'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../store'
 import ActivityTracker from './tabs/ActivityTracker'
 import PropertyDetail from './tabs/PropertyDetail'
 
-// Helper function to handle null/undefined values
+// Helper function to handle null/undefined values and capitalize first letter of each word
 const formatValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
         return '-'
     }
+    // Capitalize first letter of each word
     return String(value)
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
 }
 
 // Update the interface to make leadId optional since we'll get it from URL
@@ -92,7 +105,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
     const handleCloseCreateTaskModal = () => {
         setIsCreateTaskModalOpen(false)
-        refreshData()
     }
 
     // Add Details Modal Handlers
@@ -100,7 +112,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         setIsAddDetailsModalOpen(true)
     }
     const handleDetailsAdded = () => {
-        refreshData()
         setIsAddDetailsModalOpen(false)
     }
 
@@ -119,7 +130,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     // Format date helpers
     const formatDate = (timestamp: number | null | undefined) => {
         if (!timestamp) return '-'
-        return new Date(timestamp).toLocaleDateString('en-US', {
+        return new Date(timestamp * 1000).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -261,6 +272,63 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         )
     }
 
+    // Source Icon Component
+    const SourceIcon = ({ source }: { source: string | null | undefined }) => {
+        if (!source) return null
+
+        const sourceType = String(source).toLowerCase()
+        return (
+            <div className='flex items-center justify-center h-5 rounded-[20px] px-2 py-4'>
+                {sourceType === 'google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
+                {sourceType === 'linkedin' && <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />}
+                {sourceType === 'meta' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
+                {sourceType === 'manual' && <img src={manualIcon} alt='Manual' className='w-4 h-4 object-contain' />}
+
+                <span className='ml-[3.5px] text-[13px] font-normal '>{formatValue(sourceType || '-')}</span>
+            </div>
+        )
+    }
+
+    // Tag Badge Component
+    const TagBadge = ({ tag }: { tag: string | null | undefined }) => {
+        if (!tag) return <span className='text-[13px] text-gray-500'>-</span>
+
+        const tagType = String(tag).toLowerCase()
+        let badgeClasses = 'inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-medium'
+        let tagIcon
+
+        // Determine styling and icon based on tag type
+        switch (tagType) {
+            case 'hot':
+                badgeClasses += ' bg-[#FFDDDE] text-[#F02532]'
+                tagIcon = hotIcon
+                break
+            case 'super hot':
+                badgeClasses += ' bg-[#FAC8C9] text-[#A4151E]'
+                tagIcon = superhotIcon
+                break
+            case 'potential':
+                badgeClasses += ' bg-[#E1F6DF] text-[#2E8E16]'
+                tagIcon = potentialIcon
+                break
+            case 'cold':
+                badgeClasses += ' bg-[#E2F4FF] text-[#1C6CED]'
+                tagIcon = coldIcon
+                break
+            default:
+                // Default styling for unknown tags
+                badgeClasses += ' bg-[#E2F4FF] text-[#1C6CED]'
+                tagIcon = coldIcon // Use cold as default
+        }
+
+        return (
+            <div className={badgeClasses}>
+                <img src={tagIcon} alt={tagType} width='12' height='12' />
+                <span>{formatValue(tag)}</span>
+            </div>
+        )
+    }
+
     // Agent Item Component
     const AgentItem: React.FC<{ agent: AgentHistoryItem; showDivider: boolean }> = ({ agent, showDivider }) => (
         <div className='space-y-2'>
@@ -286,7 +354,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     return (
         <Layout loading={false}>
             <div className='w-full'>
-                <div className='bg-white min-h-screen w-full max-w-full'>
+                <div className='bg-whitehttp://localhost:5173/canvas-homes/sales/leaddetails/lead09 min-h-screen w-full max-w-full'>
                     {/* Header with Breadcrumb */}
                     <div className='flex items-center justify-between p-3 border-b border-gray-300'>
                         <div className='flex items-center gap-2 text-sm text-gray-600'>
@@ -300,7 +368,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                     <div className='flex flex-1 overflow-hidden flex-col md:flex-row'>
                         {/* Main Content - Left Side */}
-                        <div className='w-full md:w-[70%]'>
+                        <div className='w-full md:w-[75%]'>
                             {/* Tabs Navigation */}
                             <div className='bg-white border-b border-gray-200 flex-shrink-0 overflow-x-auto'>
                                 <div className='px-2 md:px-6'>
@@ -325,9 +393,9 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                         {activeTab === 'Task' && (
                                             <button
                                                 onClick={handleCreateTaskClick}
-                                                className='flex items-center gap-2 bg-blue-600 text-white px-2 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap'
+                                                className='flex items-center gap-2 bg-[#1C6CED] text-white px-2 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap'
                                             >
-                                                <svg width='16' height='16' viewBox='0 0 16 16' fill='none'>
+                                                <svg width='12' height='12' viewBox='0 0 16 16' fill='none'>
                                                     <path
                                                         d='M8 1V15M1 8H15'
                                                         stroke='currentColor'
@@ -350,12 +418,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                         {/* Right Sidebar - Customer Details, Enquiry Details, Agent Details */}
                         <div
-                            className='w-full md:w-[30%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
+                            className='w-full md:w-[25%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
                             style={{ height: 'auto', minHeight: '40vh', maxHeight: 'calc(100vh - 44.6px)' }}
                         >
                             <div className='flex-1 p-4 space-y-6 flex flex-col overflow-hidden'>
-                                {/* Customer Details Section */}
-                                <div className='flex-shrink-0'>
+                                {/* Customer Details Section - Made scrollable when content overflows */}
+                                <div className='flex-shrink-0 flex flex-col max-h-[18vh] overflow-hidden'>
                                     <div className='flex items-center justify-between mb-3'>
                                         <h3 className='font-medium text-sm text-gray-900'>Customer Details</h3>
 
@@ -367,70 +435,81 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                         </button>
                                     </div>
 
-                                    <div className='space-y-3'>
-                                        <div className='flex justify-between'>
-                                            <span className='text-[13px] w-[60%] font-normal text-gray-600'>Name</span>
-                                            <span className='text-[13px] w-[40%] text-left font-normal text-gray-900'>
-                                                {formatValue(leadData?.leadName || leadData?.name || userData?.name)}
-                                            </span>
-                                        </div>
-
-                                        <div className='flex justify-between'>
-                                            <span className='text-[13px] w-[60%] text-gray-600'>Phone no.</span>
-                                            <div className='w-[40%] text-left'>
-                                                <span className='text-[13px] text-gray-900'>
-                                                    {formatValue(leadData?.phoneNumber || userData?.phonenumber)}
+                                    {/* Scrollable container for customer details */}
+                                    <div className='overflow-y-auto pr-1 scrollbar-hide'>
+                                        <div className='space-y-[11px]'>
+                                            <div className='flex justify-between'>
+                                                <span className='text-[13px] w-[60%] font-normal text-gray-600'>
+                                                    Name
                                                 </span>
-                                                {leadData?.label && (
-                                                    <span
-                                                        className={`ml-1 text-xs px-1 py-0.5 rounded ${
-                                                            leadData.label === 'whatsapp'
-                                                                ? 'bg-green-100 text-green-800'
-                                                                : 'bg-blue-100 text-blue-800'
-                                                        }`}
-                                                    >
-                                                        {leadData.label === 'whatsapp' ? 'WhatsApp' : 'Call'}
-                                                    </span>
-                                                )}
+                                                <span className='text-[13px] w-[40%] text-left font-normal text-gray-900'>
+                                                    {formatValue(leadData?.name || userData?.name)}
+                                                </span>
                                             </div>
-                                        </div>
 
-                                        {/* Additional Phone Numbers */}
-                                        {leadData?.phoneNumbers &&
-                                            leadData.phoneNumbers.length > 0 &&
-                                            leadData.phoneNumbers.map((phone, index) => (
-                                                <div key={index} className='flex justify-between'>
-                                                    <span className='text-[13px] w-[60%] text-gray-600'>
-                                                        Phone {index + 2}
+                                            <div className='flex justify-between'>
+                                                <span className='text-[13px] w-[60%] text-gray-600'>Phone No.</span>
+                                                <div className='w-[40%] text-left'>
+                                                    <span className='text-[13px] text-gray-900'>
+                                                        {formatValue(leadData?.phoneNumber || userData?.phoneNumber)}
                                                     </span>
-                                                    <div className='w-[40%] text-left'>
-                                                        <span className='text-[13px] text-gray-900'>
-                                                            {formatValue(phone.number)}
+                                                </div>
+                                            </div>
+
+                                            {/* Additional Phone Numbers */}
+                                            {leadData?.phoneNumbers &&
+                                                leadData.phoneNumbers.length > 0 &&
+                                                leadData.phoneNumbers.map((phone, index) => (
+                                                    <div key={index} className='flex justify-between'>
+                                                        <span className='text-[13px] w-[53%] text-gray-600'>
+                                                            Phone No. {index + 2}
                                                         </span>
-                                                        <span
-                                                            className={`ml-1 text-xs px-1 py-0.5 rounded ${
-                                                                phone.label === 'whatsapp'
-                                                                    ? 'bg-green-100 text-green-800'
-                                                                    : 'bg-blue-100 text-blue-800'
-                                                            }`}
-                                                        >
-                                                            {phone.label === 'whatsapp' ? 'WhatsApp' : 'Call'}
+
+                                                        <div className='w-[47%] text-left flex items-center'>
+                                                            {phone?.label && (
+                                                                <span className='mr-1 flex-shrink-0'>
+                                                                    <img
+                                                                        src={
+                                                                            phone.label == 'whatsapp' ? whatsapp : call
+                                                                        }
+                                                                        alt={
+                                                                            phone.label === 'whatsapp'
+                                                                                ? 'WhatsApp'
+                                                                                : 'Call'
+                                                                        }
+                                                                        className='w-4 h-4'
+                                                                    />
+                                                                </span>
+                                                            )}
+                                                            <span className='text-[13px] text-gray-900 truncate'>
+                                                                {formatValue(phone.number)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                            {userData?.emailAddress && (
+                                                <div className='flex justify-between'>
+                                                    <span className='text-[13px] w-[60%] text-gray-600'>Email Id</span>
+                                                    <div className='w-[40%] text-left'>
+                                                        <span className='text-[13px] text-gray-900 truncate block'>
+                                                            {formatValue(userData?.emailAddress)}
                                                         </span>
                                                     </div>
                                                 </div>
-                                            ))}
-
-                                        <div className='mt-3'>
-                                            <button className='w-full h-7.5 text-sm border border-gray-200 rounded-md pb-1 bg-gray-100 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors'>
-                                                Details From Sign 3
-                                            </button>
+                                            )}
                                         </div>
                                     </div>
+                                </div>
+                                <div className='mt-0'>
+                                    <button className='w-full h-6 text-sm border border-gray-700 rounded-md pb-1 bg-gray-100 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors'>
+                                        Details From Sign 3
+                                    </button>
                                 </div>
 
                                 {/* Enquiry Details Section */}
                                 <div className='flex-shrink-0'>
-                                    <div className='flex items-center justify-between mb-3'>
+                                    <div className='flex items-center justify-between'>
                                         <h3 className='font-medium text-sm text-gray-900'>Enquiry Details</h3>
                                         <button
                                             className='bg-gray-200 h-8 w-26 text-gray-700 p-2 rounded text-xs font-medium hover:bg-gray-300 transition-colors'
@@ -448,121 +527,81 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                             <span className='ml-2 text-sm text-gray-600'>Loading enquiries...</span>
                                         </div>
                                     ) : enquiries.length > 0 ? (
-                                        <div className='space-y-3'>
+                                        <div className='space-y-[11px]'>
                                             {/* Enquiry Tabs */}
                                             <div className='flex gap-4 md:gap-8 mb-3.5 border-b border-gray-200 overflow-x-auto scrollbar-hide'>
-                                                {enquiries.map((enquiry, index) => (
-                                                    <button
-                                                        key={enquiry.enquiryId}
-                                                        onClick={() => handleEnquirySelect(enquiry.enquiryId)}
-                                                        className={`py-1 px-1 text-xs font-medium border-b-2 transition-colors duration-150 whitespace-nowrap ${
-                                                            selectedEnquiryId === enquiry.enquiryId
-                                                                ? 'border-blue-500 text-blue-600'
-                                                                : 'border-transparent text-gray-500 hover:text-gray-700'
-                                                        }`}
-                                                    >
-                                                        Enquiry {index + 1}
-                                                    </button>
-                                                ))}
+                                                {[...enquiries].map((enquiry, index) => {
+                                                    const actualIndex = enquiries.length - index
+                                                    return (
+                                                        <button
+                                                            key={enquiry.enquiryId}
+                                                            onClick={() => handleEnquirySelect(enquiry.enquiryId)}
+                                                            className={`py-1 px-1 text-[13px] font-semibold border-b-2 transition-colors duration-150 whitespace-nowrap ${
+                                                                selectedEnquiryId === enquiry.enquiryId
+                                                                    ? 'border-blue-500 text-blue-600'
+                                                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                                            }`}
+                                                        >
+                                                            Enquiry {actualIndex}
+                                                        </button>
+                                                    )
+                                                })}
                                             </div>
 
                                             {/* Current Enquiry Details */}
                                             {currentEnquiry && (
-                                                <div className='space-y-3'>
+                                                <div className='space-y-[11px]'>
                                                     <div className='flex justify-between'>
-                                                        <span className='text-[13px] w-[60%] text-gray-600'>
+                                                        <span className='text-[13px] w-[60%] text-gray-600 font-normal'>
                                                             Property Name
                                                         </span>
-                                                        <span className='text-[13px] w-[40%] text-gray-900'>
+                                                        <span className='text-[13px] w-[40%] text-gray-900 font-normal'>
                                                             {formatValue(currentEnquiry.propertyName)}
                                                         </span>
                                                     </div>
 
                                                     <div className='flex justify-between'>
-                                                        <span className='text-[13px] w-[60%] text-gray-600'>
+                                                        <span className='text-[13px] w-[60%] text-gray-600 font-normal'>
                                                             Enquiry Date
                                                         </span>
-                                                        <span className='text-[13px] w-[40%] text-gray-900'>
+                                                        <span className='text-[13px] w-[40%] text-gray-900 font-normal'>
                                                             {formatDate(currentEnquiry.added)}
                                                         </span>
                                                     </div>
 
                                                     <div className='flex justify-between'>
-                                                        <span className='text-[13px] w-[60%] text-gray-600'>Stage</span>
-                                                        <span className='text-[13px] w-[40%] text-gray-900'>
+                                                        <span className='text-[13px] w-[60%] text-gray-600 font-normal'>
+                                                            Stage
+                                                        </span>
+                                                        <span className='text-[13px] w-[40%] text-gray-900 font-normal'>
                                                             {formatValue(currentEnquiry.stage)}
                                                         </span>
                                                     </div>
 
                                                     <div className='flex justify-between'>
-                                                        <span className='text-[13px] w-[60%] text-gray-600'>
+                                                        <span className='text-[13px] w-[60%] text-gray-600 font-normal'>
                                                             Status
                                                         </span>
-                                                        <span className='text-[13px] w-[40%] text-gray-900'>
+                                                        <span className='text-[13px] w-[40%] text-gray-900 font-normal'>
                                                             {formatValue(currentEnquiry.leadStatus)}
                                                         </span>
                                                     </div>
 
                                                     <div className='flex justify-between items-center'>
-                                                        <span className='text-sm w-[60%] text-gray-600'>Source</span>
-                                                        <div className='w-[40%] flex items-center gap-2 text-left'>
-                                                            {currentEnquiry?.source === 'Google' ? (
-                                                                <img src={google} alt='Google' className='w-4 h-4' />
-                                                            ) : currentEnquiry.source === 'META' ||
-                                                              currentEnquiry.source === 'Facebook' ? (
-                                                                <div className='w-4 h-4 bg-blue-600 rounded flex items-center justify-center'>
-                                                                    <span className='text-white text-xs font-bold'>
-                                                                        F
-                                                                    </span>
-                                                                </div>
-                                                            ) : (
-                                                                <div className='w-4 h-4 bg-gray-500 rounded-full flex items-center justify-center'>
-                                                                    <span className='text-white text-xs font-bold'>
-                                                                        {currentEnquiry?.source
-                                                                            ? currentEnquiry.source
-                                                                                  .charAt(0)
-                                                                                  .toUpperCase()
-                                                                            : '-'}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            <span className='text-xs text-gray-600'>
-                                                                {formatValue(currentEnquiry.source)}
-                                                            </span>
+                                                        <span className='text-[13px] w-[60%] text-gray-600 font-normal'>
+                                                            Source
+                                                        </span>
+                                                        <div className='text-[13px] w-[40%] flex items-center gap-2 text-left font-normal'>
+                                                            <SourceIcon source={currentEnquiry.source} />
                                                         </div>
                                                     </div>
 
-                                                    <div className='flex justify-between items-center'>
-                                                        <span className='text-sm w-[60%] text-gray-600'>Tag</span>
-                                                        <div className='w-[40%] text-left'>
-                                                            {currentEnquiry.tag ? (
-                                                                <div
-                                                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                                                                        currentEnquiry.tag === 'hot'
-                                                                            ? 'bg-red-100 text-red-800'
-                                                                            : currentEnquiry.tag === 'super hot'
-                                                                              ? 'bg-red-200 text-red-900'
-                                                                              : currentEnquiry.tag === 'potential'
-                                                                                ? 'bg-yellow-100 text-yellow-800'
-                                                                                : 'bg-blue-100 text-blue-800'
-                                                                    }`}
-                                                                >
-                                                                    <svg
-                                                                        width='12'
-                                                                        height='12'
-                                                                        viewBox='0 0 12 12'
-                                                                        fill='none'
-                                                                    >
-                                                                        <path
-                                                                            d='M6 1L7.5 4.5L11 5L8.5 7.5L9 11L6 9L3 11L3.5 7.5L1 5L4.5 4.5L6 1Z'
-                                                                            fill='currentColor'
-                                                                        />
-                                                                    </svg>
-                                                                    <span>{currentEnquiry.tag}</span>
-                                                                </div>
-                                                            ) : (
-                                                                <span className='text-[13px] text-gray-500'>-</span>
-                                                            )}
+                                                    <div className='flex justify-between items-center font-normal'>
+                                                        <span className='text-[13px] w-[60%] text-gray-600 font-normal'>
+                                                            Tag
+                                                        </span>
+                                                        <div className='text-[13px] w-[40%] text-left'>
+                                                            <TagBadge tag={currentEnquiry.tag} />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -576,7 +615,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                 </div>
 
                                 {/* Agent Details Section */}
-                                <div className='flex-1 flex flex-col min-h-0'>
+                                <div className='flex-1 flex flex-col min-h-0 overflow-hidden'>
                                     <div className='flex items-center justify-between mb-3'>
                                         <h3 className='font-medium text-sm text-gray-900'>Agent Details</h3>
                                         <button
@@ -589,23 +628,57 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                         </button>
                                     </div>
 
-                                    <div className='flex-1 overflow-y-auto scrollbar-hide space-y-4'>
+                                    <div className='flex-1 overflow-y-auto scrollbar-hide'>
                                         {loading.enquiries ? (
                                             <div className='flex items-center justify-center py-4'>
                                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
                                                 <span className='ml-2 text-sm text-gray-600'>Loading agents...</span>
                                             </div>
-                                        ) : currentEnquiry?.agentHistory && currentEnquiry.agentHistory.length > 0 ? (
-                                            currentEnquiry.agentHistory.map((agent, index) => (
-                                                <AgentItem
-                                                    key={index}
-                                                    agent={agent}
-                                                    showDivider={index < currentEnquiry.agentHistory.length - 1}
-                                                />
-                                            ))
                                         ) : (
-                                            <div className='text-center py-4 text-gray-500'>
-                                                <p className='text-sm'>No agent history available</p>
+                                            <div className='relative'>
+                                                {/* Timeline vertical line */}
+                                                <div className='absolute left-[5px] top-1 bottom-1 w-[1px] bg-gray-200'></div>
+
+                                                {/* Agent History in descending order by timestamp */}
+                                                {currentEnquiry?.agentHistory &&
+                                                currentEnquiry.agentHistory.length > 0 ? (
+                                                    [...currentEnquiry.agentHistory]
+                                                        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)) // Sort in descending order by timestamp
+
+                                                        .map((agent, index, filteredArray) => (
+                                                            <div key={index} className='relative space-y-2 mb-4'>
+                                                                <div className='flex items-center gap-2'>
+                                                                    <div className='w-3 h-3 bg-blue-500 rounded-[100%] z-10 border border-gray-200'></div>
+                                                                    <span className='text-[13px] w-[60%] text-gray-600'>
+                                                                        Agent Name
+                                                                    </span>
+                                                                    <span className='text-[13px] w-[40%] text-left text-gray-900 ml-auto'>
+                                                                        {formatValue(agent.agentName)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className='flex justify-between ml-4'>
+                                                                    <span className='text-[13px] w-[60%] text-gray-600'>
+                                                                        Last Stage
+                                                                    </span>
+                                                                    <span className='text-[13px] w-[40%] text-left text-gray-900'>
+                                                                        {formatValue(agent.lastStage)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className='flex justify-between ml-4'>
+                                                                    <span className='text-[13px] w-[60%] text-gray-600'>
+                                                                        Date
+                                                                    </span>
+                                                                    <span className='text-[13px] w-[40%] text-left text-gray-900'>
+                                                                        {formatDate(agent.timestamp)}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                ) : !leadData?.agentName ? (
+                                                    <div className='text-center py-4 text-gray-500'>
+                                                        <p className='text-sm'>No agent history available</p>
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         )}
                                     </div>
@@ -643,11 +716,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 propertyName={currentEnquiry?.propertyName}
                 name={leadData?.name}
                 leadAddDate={leadData?.added}
+                refreshData={refreshData}
             />
             <AddDetailsModal
                 isOpen={isAddDetailsModalOpen}
                 onClose={() => setIsAddDetailsModalOpen(false)}
-                onDetailsAdded={handleDetailsAdded}
+                onDetailsAdded={refreshData}
                 leadId={leadId}
                 userId={leadData?.userId}
                 currentPhoneNumber={leadData?.phoneNumber}
@@ -657,9 +731,10 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
             <ChangeAgentModal
                 isOpen={isChangeAgentModalOpen}
                 onClose={() => setIsChangeAgentModalOpen(false)}
-                onDetailsAdded={handleDetailsAdded}
+                onAgentChange={refreshData}
                 leadId={leadId}
                 enquiryId={selectedEnquiryId}
+                agentName={leadData?.agentName}
             />
             <AddEnquiryModal
                 isOpen={isAddEnquiryModalOpen}
@@ -667,6 +742,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 onEnquiryAdded={refreshData}
                 leadId={leadId}
                 stage={leadData?.stage}
+                agentName={leadData?.agentName}
             />
             <CloseLeadSideModal
                 isOpen={isCloseLeadSideModalOpen}
@@ -674,6 +750,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 leadId={leadId}
                 enquiryId={selectedEnquiryId}
                 onLeadClosed={refreshData}
+                agentName={leadData?.agentName}
             />
         </Layout>
     )

@@ -10,20 +10,12 @@ import TaskCompleteModal from '../TaskCompleteModal'
 import CloseLeadModal from '../CloseLeadModal'
 
 interface InitialContactTaskProps {
-    updateTaskState: (taskId: string, field: string, value: string) => void
-    getTaskState?: (taskId: string) => any
-    updating?: boolean
+    refreshData?: any
     setActiveTab: (tab: string) => void
     taskStatusOptions: Array<{ label: string; value: string }>
 }
 
-const InitialContactTask: React.FC<InitialContactTaskProps> = ({
-    updateTaskState,
-    getTaskState,
-    updating = false,
-    setActiveTab,
-    taskStatusOptions,
-}) => {
+const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, refreshData }) => {
     const [isChangePropertyModalOpen, setIsChangePropertyModalOpen] = useState(false)
     const [isResheduleEventModalOpen, setIsRescheduleEventModalOpen] = useState(false)
     const [isCloseLeadModalOpen, setIsCloseLeadModalOpen] = useState(false)
@@ -102,19 +94,14 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
         console.log('Selected value:', value)
     }
 
-    const handleChangeProperty = (formData: any) => {
-        console.log('Change property form data:', formData)
-        setIsChangePropertyModalOpen(false) // Close the modal after submitting
-    }
-
     return (
         <div>
             <div className='flex gap-3'>
                 <Dropdown
                     options={interestedOptions}
                     onSelect={handleSelect}
-                    triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
-                    nestedOptionClassName='ml-4 border-l border-gray-200 bg-gray-50 rounded-md'
+                    triggerClassName='flex items-center h-8 w-full justify-between p-2  rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
+                    nestedOptionClassName='ml-2 border-l w-fit border-gray-200 bg-gray- rounded-md text-[13px]'
                     placeholder='Connected'
                     defaultValue=''
                 />
@@ -122,7 +109,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                 <Dropdown
                     options={notConnectedOptions}
                     onSelect={handleSelect}
-                    triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center h-8 w-full justify-between p-2 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
                     placeholder='Not Connected'
                     defaultValue=''
                 />
@@ -131,8 +118,8 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                 <ChangePropertyModal
                     isOpen={isChangePropertyModalOpen}
                     onClose={() => setIsChangePropertyModalOpen(false)}
-                    onChangeProperty={handleChangeProperty}
                     taskType='initial contact'
+                    refreshData={refreshData}
                 />
             )}
             {isResheduleEventModalOpen && (
@@ -141,6 +128,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                     onClose={() => setIsRescheduleEventModalOpen(false)}
                     taskType='initial contact'
                     taskState={taskState}
+                    refreshData={refreshData}
                 />
             )}
             <CloseLeadModal
@@ -148,14 +136,16 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                 onClose={() => setIsCloseLeadModalOpen(false)}
                 taskType='initial contact'
                 taskState={taskState}
+                refreshData={refreshData}
             />
             <TaskCompleteModal
                 isOpen={isTaskCompleteModalOpen}
                 onClose={() => setIsTaskCompleteModalOpen(false)}
-                title='Initial Contacted'
-                leadStatus='Interested'
-                stage='Initial Contacted'
+                title='initial contacted'
+                leadStatus='interested'
+                stage='initial contacted'
                 state='open'
+                refreshData={refreshData}
                 taskType='initial contact'
             />
         </div>

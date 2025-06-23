@@ -22,19 +22,12 @@ class LeadService {
      */
     async getById(leadId: string): Promise<Lead | null> {
         try {
-            if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {
-                console.error('Invalid leadId provided:', leadId)
-                return null
-            }
-
-            const leadDoc = await getDoc(doc(db, this.collectionName, leadId.trim()))
+            const leadDoc = await getDoc(doc(db, this.collectionName, leadId))
 
             if (leadDoc.exists()) {
-                const data = leadDoc.data()
-                return { leadId: leadDoc.id, ...data } as Lead
-            } else {
-                return null
+                return { leadId: leadDoc.id, ...leadDoc.data() } as Lead
             }
+            return null
         } catch (error) {
             console.error('Error fetching lead:', error)
             throw new Error(`Failed to fetch lead: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -42,7 +35,7 @@ class LeadService {
     }
 
     /**
-     * Create a new lead with a unique sequential leadId (e.g., lead01, lead02, etc.).
+     * Create a new lead with a unique sequential leadId (e.g., lead01, lead02, etc.)
      */
     async create(leadData: Omit<Lead, 'leadId' | 'added' | 'lastModified'>): Promise<string> {
         try {
@@ -53,8 +46,7 @@ class LeadService {
 
             if (!snapshot.empty) {
                 const lastLeadId = snapshot.docs[0].data().leadId
-                const lastNumber = parseInt(lastLeadId.replace('lead', ''))
-                const newNumber = lastNumber + 1
+                const newNumber = parseInt(lastLeadId.replace('lead', '')) + 1
                 nextLeadId = `lead${newNumber.toString().padStart(2, '0')}`
             }
 
@@ -76,21 +68,16 @@ class LeadService {
     }
 
     /**
-     * Update an existing lead by its ID.
-     * Automatically updates the 'lastModified' timestamp.
+     * Update an existing lead by its ID
      */
     async update(leadId: string, updates: Partial<Lead>): Promise<void> {
         try {
-            if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {
-                throw new Error('Invalid leadId provided for update')
-            }
-
             const updateData = {
                 ...updates,
                 lastModified: getUnixDateTime(),
             }
 
-            await updateDoc(doc(db, this.collectionName, leadId.trim()), updateData)
+            await updateDoc(doc(db, this.collectionName, leadId), updateData)
         } catch (error) {
             console.error('Error updating lead:', error)
             throw error
@@ -98,15 +85,11 @@ class LeadService {
     }
 
     /**
-     * Delete a lead by its leadId.
+     * Delete a lead by its leadId
      */
     async delete(leadId: string): Promise<void> {
         try {
-            if (!leadId || typeof leadId !== 'string' || leadId.trim() === '') {
-                throw new Error('Invalid leadId provided for deletion')
-            }
-
-            await deleteDoc(doc(db, this.collectionName, leadId.trim()))
+            await deleteDoc(doc(db, this.collectionName, leadId))
         } catch (error) {
             console.error('Error deleting lead:', error)
             throw error

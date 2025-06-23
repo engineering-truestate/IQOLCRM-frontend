@@ -44,9 +44,9 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                 enquiryId: firebaseTask.enquiryId,
                 type: firebaseTask.taskType,
                 title: getTaskTitle(firebaseTask.taskType),
-                date: formatDateTime(firebaseTask.added),
+                date: firebaseTask.added,
                 scheduledInfo: firebaseTask?.eventName ? firebaseTask.eventName : getScheduledInfo(firebaseTask),
-                scheduledDate: formatDateTime(firebaseTask.scheduledDate),
+                scheduledDate: firebaseTask.scheduledDate,
                 status: firebaseTask.status,
                 firebaseTask: firebaseTask,
                 eoiEntries: firebaseTask.eoiEntries || [],
@@ -75,26 +75,8 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
         return titleMapping[firebaseType] || firebaseType
     }
 
-    const formatDateTime = (timestamp: number): string => {
-        if (!timestamp) return 'Not scheduled'
-        const date = new Date(timestamp * 1000) // Convert Unix timestamp to milliseconds
-        return (
-            date.toLocaleDateString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: '2-digit',
-            }) +
-            ' | ' +
-            date.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true,
-            })
-        )
-    }
-
     const getScheduledInfo = (task: Task): string => {
-        switch (task.type.toLowerCase()) {
+        switch (task.taskType.toLowerCase()) {
             case 'lead registration':
                 return 'Registration scheduled'
             case 'initial contact':
@@ -155,37 +137,48 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
         try {
             const currentUnixTime = getUnixDateTime()
 
-            // Update task with completion details using service
-            await taskService.update(taskId, {
+            // Prepare the task update promise
+            const taskUpdatePromise = taskService.update(taskId, {
                 status: 'complete',
                 completionDate: currentUnixTime,
                 lastModified: currentUnixTime,
             })
 
-            // Update enquiry status and tag using service
-            const task = firebaseTasks.find((t) => t.taskId === taskId)
-            if (task?.enquiryId) {
-                await enquiryService.update(task.enquiryId, {
-                    stage: 'lead registered',
-                    state: 'open',
-                })
-                await enquiryService.addActivity(task.enquiryId, {
-                    activityType: 'task execution',
-                    agentName: user?.displayName || 'Unknown Agent',
-                    timestamp: currentUnixTime,
-                    data: {},
-                })
-            }
+            // Prepare enquiry updates if enquiryId exists
+            const enquiryUpdatePromise = new Promise<void>((resolve, reject) => {
+                const task = firebaseTasks.find((t) => t.taskId === taskId)
+                if (task?.enquiryId) {
+                    Promise.all([
+                        enquiryService.update(task.enquiryId, {
+                            stage: 'lead registered',
+                            state: 'open',
+                        }),
+                        enquiryService.addActivity(task.enquiryId, {
+                            activityType: 'task execution',
+                            agentName: user?.displayName || 'Unknown Agent',
+                            timestamp: currentUnixTime,
+                            data: {},
+                        }),
+                    ])
+                        .then(() => resolve())
+                        .catch((error) => reject(error))
+                } else {
+                    resolve() // No enquiryId, resolve immediately
+                }
+            })
 
-            // Update lead status, state, and tag using service
-            if (leadId) {
-                await leadService.update(leadId, {
-                    stage: 'lead registered',
-                    state: 'open',
-                    completionDate: currentUnixTime,
-                    lastModified: currentUnixTime,
-                })
-            }
+            // Prepare lead update promise if leadId exists
+            const leadUpdatePromise = leadId
+                ? leadService.update(leadId, {
+                      stage: 'lead registered',
+                      state: 'open',
+                      completionDate: currentUnixTime,
+                      lastModified: currentUnixTime,
+                  })
+                : Promise.resolve() // If no leadId, resolve immediately
+
+            // Wait for all promises to complete in parallel
+            await Promise.all([taskUpdatePromise, enquiryUpdatePromise, leadUpdatePromise])
 
             // ✅ Fix: use selectedStatus instead of undefined status
             setTaskStates((prev) => ({
@@ -210,40 +203,25 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
 
     const renderTaskContent = (task: any) => {
         const commonProps = {
-            updateTaskState,
-            getTaskState,
-            updating: updatingTasks[task.id] || false,
+            taskStatusOptions: { taskStatusOptions },
+            refreshData,
         }
 
         switch (task.type?.toLowerCase()) {
             case 'lead registration':
                 return <LeadRegistrationTask propertyLink={task.firebaseTask.propertyLink || '#'} />
             case 'initial contact':
-                return (
-                    <InitialContactTask
-                        {...commonProps}
-                        setActiveTab={setActiveTab}
-                        taskStatusOptions={taskStatusOptions}
-                    />
-                )
+                return <InitialContactTask {...commonProps} setActiveTab={setActiveTab} />
             case 'site visit':
                 return (
                     <SiteVisitTask {...commonProps} setActiveTab={setActiveTab} taskStatusOptions={taskStatusOptions} />
                 )
             case 'eoi collection':
-                return (
-                    <CollectEOITask
-                        {...commonProps}
-                        setActiveTab={setActiveTab}
-                        taskStatusOptions={taskStatusOptions}
-                        eoiEntries={task.eoiEntries}
-                    />
-                )
+                return <CollectEOITask {...commonProps} setActiveTab={setActiveTab} eoiEntries={task.eoiEntries} />
             case 'booking':
                 return (
                     <BookingAmountTask
                         {...commonProps}
-                        taskStatusOptions={taskStatusOptions}
                         setActiveTab={setActiveTab}
                         agentId={agentId}
                         agentName={agentName}
@@ -302,7 +280,6 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                         />
                     </svg>
                     <p className='text-lg font-medium text-gray-900 mb-2'>No tasks created yet</p>
-                    <p className='text-gray-600'>Tasks will appear here when they are created for this enquiry</p>
                 </div>
             </div>
         )

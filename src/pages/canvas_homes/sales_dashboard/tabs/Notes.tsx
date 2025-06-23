@@ -10,7 +10,7 @@ interface NotesProps {
 
 interface Note {
     id: string
-    timestamp: string
+    timestamp: number
     content: string
     agent: string
 }
@@ -28,13 +28,14 @@ const Notes: React.FC<NotesProps> = ({ notes = [], onAddNote, loading }) => {
         'eoi-submitted': true,
         booking: true,
         'follow-up': true,
+        'initial-contact': true,
     })
 
     // Convert Firebase notes to display format
     const convertFirebaseNotes = (firebaseNotes: NoteItem[]): Note[] => {
         return firebaseNotes.map((note, index) => ({
             id: `${note?.timestamp}-${index}`,
-            timestamp: formatUnixDateTime(note?.timestamp) || '--',
+            timestamp: note?.timestamp || '--',
             content: note?.note,
             agent: note?.agentName,
             taskType: note?.taskType,
@@ -51,14 +52,10 @@ const Notes: React.FC<NotesProps> = ({ notes = [], onAddNote, loading }) => {
         const sections = [
             { id: 'lead-registration', title: 'Lead Registration', taskTypes: ['lead registration'] },
             { id: 'requirement-collection', title: 'Requirement Collection', taskTypes: ['requirement collection'] },
+            { id: 'initial-contact', title: 'Initial Contact', taskTypes: ['initial contact'] },
             { id: 'site-visit', title: 'Site Visit', taskTypes: ['site visit'] },
             { id: 'eoi-submitted', title: 'EOI Submitted', taskTypes: ['eoi collection', 'eoi'] },
             { id: 'booking', title: 'Booking', taskTypes: ['booking'] },
-            {
-                id: 'follow-up',
-                title: 'Follow Up & Communication',
-                taskTypes: ['follow up', 'initial contact', 'communication'],
-            },
         ]
 
         return sections.map((section) => ({
@@ -149,14 +146,20 @@ const Notes: React.FC<NotesProps> = ({ notes = [], onAddNote, loading }) => {
                                 {/* Notes List - Scrollable */}
                                 {expandedSections[section.id] && (
                                     <div className='p-4 pb-0 h-31 overflow-y-auto space-y-3 pr-2 scrollbar-hide'>
-                                        {section.notes.map((note) => (
-                                            <div key={note.id}>
-                                                <div className='flex items-start justify-between mb-2'>
-                                                    <span className='text-xs text-gray-500'>{note.timestamp}</span>
+                                        {[...section.notes]
+                                            .sort((a, b) => b.timestamp - a.timestamp)
+                                            .map((note) => (
+                                                <div key={note.id}>
+                                                    <div className='flex items-start justify-between mb-2'>
+                                                        <span className='text-xs text-gray-500'>
+                                                            {formatUnixDateTime(note.timestamp)}
+                                                        </span>
+                                                    </div>
+                                                    <p className='text-sm text-gray-900 leading-relaxed'>
+                                                        {note.content}
+                                                    </p>
                                                 </div>
-                                                <p className='text-sm text-gray-900 leading-relaxed'>{note.content}</p>
-                                            </div>
-                                        ))}
+                                            ))}
                                     </div>
                                 )}
                             </div>

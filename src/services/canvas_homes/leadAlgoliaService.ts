@@ -57,7 +57,7 @@ const convertToTimestamp = (date: string | Date | number): number => {
     }
 
     if (typeof date === 'string') {
-        return new Date(date).getTime()
+        return new Date(date).getTime() / 1000
     }
 
     if (date instanceof Date) {
