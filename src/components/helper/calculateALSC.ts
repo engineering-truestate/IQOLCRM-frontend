@@ -1,6 +1,6 @@
 import type { Lead } from '../../services/canvas_homes'
 import { getUnixDateTime } from './getUnixDateTime'
-import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 
 export async function calculateALSC(data: Lead): Promise<string | null> {
     // Return null if no added timestamp is available
@@ -44,12 +44,14 @@ export async function calculateALSC(data: Lead): Promise<string | null> {
 
         // Return "0 Days : 0 Hours" if the end time is in the future
         if (timeDifferenceSeconds < 0) {
-            return '0 Days : 0 Hours'
+            return '0 Hours'
         }
 
         // Calculate the number of days and remaining hours
         const days = Math.floor(timeDifferenceSeconds / (60 * 60 * 24))
         const remainingHours = Math.floor((timeDifferenceSeconds % (60 * 60 * 24)) / (60 * 60))
+
+        if (days == 0) return `${remainingHours} Hours`
 
         return `${days} Days : ${remainingHours} Hours`
     } catch (error) {
