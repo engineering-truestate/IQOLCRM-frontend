@@ -578,7 +578,7 @@ const AgentsPage = () => {
             ),
         },
         {
-            key: 'contactHistory[0]',
+            key: 'contactHistory',
             header: 'Last Connected',
             render: (row) => {
                 // Handle different possible data structures
