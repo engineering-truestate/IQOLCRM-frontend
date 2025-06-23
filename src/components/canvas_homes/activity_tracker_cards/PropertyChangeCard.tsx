@@ -56,15 +56,15 @@ const PropertyChangeCard = ({ activity }) => {
             <div className='mt-3 space-y-2 pt-3 border-t border-gray-200'>
                 {leadStatus && (
                     <div className='flex'>
-                        <div className='w-1/3 text-gray-500 text-[13px]'>Lead status</div>
-                        <div className='w-2/3 text-gray-800 text-[13px]'>{capitalizeWords(leadStatus)}</div>
+                        <div className='w-1/10 text-gray-500 text-[13px]'>Lead status</div>
+                        <div className='text-gray-800 text-[13px]'>{capitalizeWords(leadStatus)}</div>
                     </div>
                 )}
 
                 {propertyAdded && (
                     <div className='flex'>
-                        <div className='w-1/3 text-gray-500 text-[13px]'>Property added</div>
-                        <div className='w-2/3 flex items-center'>
+                        <div className='w-1/7 text-gray-500 text-[13px]'>Property added</div>
+                        <div className='flex items-center'>
                             <span className='text-gray-700 text-[13px]'>{capitalizeWords(propertyAdded)}</span>
 
                             {propertyChanged && (

@@ -5,6 +5,10 @@ import Dropdown from '../design-elements/Dropdown'
 import { toast } from 'react-toastify'
 import type { Enquiry } from '../../services/canvas_homes/types'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch, RootState } from '../../store'
+import { useSelector } from 'react-redux'
+import { fetchPreLaunchProperties, getPreLaunchAllPropertyName } from '../../store/actions/restack/preLaunchActions'
 
 interface AddEnquiryModalProps {
     isOpen: boolean
@@ -37,25 +41,39 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
         agentName: '',
         enquiryDate: getCurrentDateTimeString(),
     })
+    const dispatch = useDispatch<AppDispatch>()
+
+    const { properties } = useSelector((state: RootState) => state.preLaunch)
+    const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Property options with IDs
-    const properties = [
-        // { label: 'Select Property', value: '' },
-        { label: 'Sunset Villa', value: 'prop001|Sunset Villa' },
-        { label: 'Ocean View Apartment', value: 'prop002|Ocean View Apartment' },
-        { label: 'Downtown Condo', value: 'prop003|Downtown Condo' },
-        { label: 'Garden Heights', value: 'prop004|Garden Heights' },
-        { label: 'Riverside Towers', value: 'prop005|Riverside Towers' },
-        { label: 'Sattva Hills', value: 'prop006|Sattva Hills' },
-        { label: 'Prestige Gardenia', value: 'prop007|Prestige Gardenia' },
-        { label: 'Brigade Cosmopolis', value: 'prop008|Brigade Cosmopolis' },
-        { label: 'Sobha City', value: 'prop009|Sobha City' },
-        { label: 'Embassy Springs', value: 'prop010|Embassy Springs' },
-        { label: 'Mantri Energia', value: 'prop011|Mantri Energia' },
-    ]
+    useEffect(() => {
+        // Reset form data when modal opens
+        const loadProperty = async () => {
+            if (!properties || properties.length === 0) {
+                await dispatch(fetchPreLaunchProperties())
+            }
+            console.log('Properties loaded:', properties)
+            return properties.map((property) => ({
+                label: property.projectName,
+                value: `${property.projectId}|${property.projectName}`,
+            }))
+        }
+        loadProperty()
+    }, [dispatch, properties, isOpen])
+
+    useEffect(() => {
+        // Set property options when properties are loaded
+        if (properties && properties.length > 0) {
+            const options = properties.map((property) => ({
+                label: property.projectName,
+                value: `${property.projectId}|${property.projectName}`,
+            }))
+            setPropertyOptions(options)
+        }
+    }, [properties])
 
     // Agent options with IDs
     const agents = [
@@ -324,7 +342,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                             <div>
                                 <label className='block text-sm font-medium text-gray-700 mb-2'>Property Name</label>
                                 <Dropdown
-                                    options={properties}
+                                    options={propertyOptions}
                                     onSelect={handlePropertySelect}
                                     defaultValue={
                                         formData.propertyId ? `${formData.propertyId}|${formData.propertyName}` : ''

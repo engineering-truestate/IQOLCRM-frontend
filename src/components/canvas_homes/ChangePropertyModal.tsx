@@ -1,5 +1,5 @@
 import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import { useParams } from 'react-router'
@@ -10,7 +10,9 @@ import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { useNavigate } from 'react-router'
+import { useDispatch } from 'react-redux'
 import Dropdown from '../design-elements/Dropdown'
+import { fetchPreLaunchProperties, getPreLaunchAllPropertyName } from '../../store/actions/restack/preLaunchActions'
 
 interface ChangePropertyModalProps {
     isOpen: boolean
@@ -22,10 +24,12 @@ interface ChangePropertyModalProps {
 const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, taskType, refreshData }) => {
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
+    const dispatch = useDispatch<AppDispatch>()
     const { user } = useAuth()
     const { leadId } = useParams()
     const { leadData } = useLeadDetails(leadId || '')
-    const navigate = useNavigate()
+    const { properties } = useSelector((state: RootState) => state.preLaunch)
+    const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
@@ -52,25 +56,36 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
     const [isLoading, setIsLoading] = useState(false)
 
+    useEffect(() => {
+        // Reset form data when modal opens
+        const loadProperty = async () => {
+            if (!properties || properties.length === 0) {
+                await dispatch(fetchPreLaunchProperties())
+            }
+            console.log('Properties loaded:', properties)
+            return properties.map((property) => ({
+                label: property.projectName,
+                value: `${property.projectId}|${property.projectName}`,
+            }))
+        }
+        loadProperty()
+    }, [dispatch, properties, isOpen])
+
+    useEffect(() => {
+        // Set property options when properties are loaded
+        if (properties && properties.length > 0) {
+            const options = properties.map((property) => ({
+                label: property.projectName,
+                value: `${property.projectId}|${property.projectName}`,
+            }))
+            setPropertyOptions(options)
+        }
+    }, [properties])
+
     const reasonOptions = [
         { value: '', label: 'Select reason' },
         { value: 'not interested in current property', label: 'Not Interested in Current Property' },
         { value: 'other', label: 'Other' },
-    ]
-
-    const propertyOptions = [
-        { value: '', label: 'Select new property' },
-        { value: 'prop001|Sunset Villa', label: 'Sunset Villa' },
-        { value: 'prop002|Ocean View Apartment', label: 'Ocean View Apartment' },
-        { value: 'prop003|Downtown Condo', label: 'Downtown Condo' },
-        { value: 'prop004|Garden Heights', label: 'Garden Heights' },
-        { value: 'prop005|Riverside Towers', label: 'Riverside Towers' },
-        { value: 'prop006|Sattva Hills', label: 'Sattva Hills' },
-        { value: 'prop007|Prestige Gardenia', label: 'Prestige Gardenia' },
-        { value: 'prop008|Brigade Cosmopolis', label: 'Brigade Cosmopolis' },
-        { value: 'prop009|Sobha City', label: 'Sobha City' },
-        { value: 'prop010|Embassy Springs', label: 'Embassy Springs' },
-        { value: 'prop011|Mantri Energia', label: 'Mantri Energia' },
     ]
 
     const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
