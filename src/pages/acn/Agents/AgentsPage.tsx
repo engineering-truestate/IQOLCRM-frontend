@@ -151,7 +151,10 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
 
     return (
         <div className='flex items-center gap-2'>
-            <button className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md' onClick={resetAllFilters}>
+            <button
+                className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-50'
+                onClick={resetAllFilters}
+            >
                 <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
             </button>
 
