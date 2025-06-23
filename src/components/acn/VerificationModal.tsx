@@ -1,26 +1,33 @@
 import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import { fetchKAMOptions, verifyLeadAndCreateAgent } from '../../services/acn/leads/leadsService'
+import { addAgentWithVerification } from '../../services/acn/agents/agentThunkService'
 import {
     selectKAMOptions,
     selectKAMOptionsLoading,
     selectAgentVerificationLoading,
     selectAgentVerificationError,
 } from '../../store/reducers/acn/leadsReducers'
+import { selectAgentNotesLoading } from '../../store/reducers/acn/agentsReducer'
 import type { AppDispatch, RootState } from '../../store'
-import { useLocation } from 'react-router-dom'
+import { toast } from 'react-toastify'
 
 interface VerificationModalProps {
     isOpen: boolean
     onClose: () => void
     rowData: {
-        leadId: string
+        leadId?: string
+        cpId?: string
         name: string
-        phonenumber: string
-        leadStatus: string
+        phonenumber?: string
+        phoneNumber?: string
+        leadStatus?: string
+        agentStatus?: string
         contactStatus: string
         lastTried: number
-        lastConnect: number
+        lastConnect?: number
+        lastConnected?: number
         kamName?: string
         kamId?: string
         source?: string
@@ -35,11 +42,20 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
     const dispatch = useDispatch<AppDispatch>()
     const location = useLocation()
 
+    // Determine context based on URL
+    const isLeadsContext = location.pathname.includes('/acn/leads')
+    const isAgentsContext = location.pathname.includes('/acn/agents')
+
     // Redux selectors
     const kamOptions = useSelector(selectKAMOptions)
     const kamOptionsLoading = useSelector(selectKAMOptionsLoading)
-    const agentVerificationLoading = useSelector(selectAgentVerificationLoading)
-    const agentVerificationError = useSelector(selectAgentVerificationError)
+    const leadVerificationLoading = useSelector(selectAgentVerificationLoading)
+    const leadVerificationError = useSelector(selectAgentVerificationError)
+    const agentVerificationLoading = useSelector((state: RootState) => selectAgentNotesLoading(state))
+
+    // Use appropriate loading state based on context
+    const verificationLoading = isLeadsContext ? leadVerificationLoading : agentVerificationLoading
+    const verificationError = isLeadsContext ? leadVerificationError : null
 
     const [formData, setFormData] = useState({
         name: '',
@@ -79,10 +95,12 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
 
     // Prefill form data when rowData changes
     useEffect(() => {
-        if (isOpen && rowData) {
+        //console.log('here2')
+        if (isOpen && rowData && isLeadsContext) {
+            //console.log('here3')
             setFormData({
                 name: rowData.name || '',
-                phoneNumber: rowData.phonenumber || '',
+                phoneNumber: rowData.phonenumber || rowData.phoneNumber || '',
                 emailAddress: '', // This needs to be filled by user
                 workAddress: '', // Not mandatory
                 reraId: '',
@@ -93,8 +111,24 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
             })
             setSelectedAreas([])
             setSelectedCategories([])
+        } else if (isOpen && isAgentsContext) {
+            // For agents context without rowData (new agent creation)
+            //console.log('here')
+            setFormData({
+                name: '',
+                phoneNumber: '',
+                emailAddress: '',
+                workAddress: '',
+                reraId: '',
+                firmName: '',
+                firmSize: '',
+                kamName: '',
+                kamId: '',
+            })
+            setSelectedAreas([])
+            setSelectedCategories([])
         }
-    }, [isOpen, rowData])
+    }, [isOpen, rowData, isAgentsContext])
 
     const handleInputChange = (field: string, value: string) => {
         setFormData({ ...formData, [field]: value })
@@ -139,14 +173,13 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
     }
 
     const handleVerify = async () => {
-        if (!rowData) return
-
         // Validation for mandatory fields
         const requiredFields = ['name', 'phoneNumber', 'emailAddress', 'kamName']
         const missingFields = requiredFields.filter((field) => !formData[field as keyof typeof formData].trim())
 
         if (missingFields.length > 0) {
-            alert(`Please fill the following mandatory fields: ${missingFields.join(', ')}`)
+            toast.error(`Please fill the following mandatory fields: ${missingFields.join(', ')}`)
+            //alert(`Please fill the following mandatory fields: ${missingFields.join(', ')}`)
             return
         }
 
@@ -157,28 +190,41 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                 businessCategory: selectedCategories,
             }
 
-            await dispatch(
-                verifyLeadAndCreateAgent({
-                    leadId: rowData.leadId,
-                    verificationData,
-                }),
-            ).unwrap()
+            if (isLeadsContext && rowData?.leadId) {
+                // For leads - verify and create agent from lead
+                await dispatch(
+                    verifyLeadAndCreateAgent({
+                        leadId: rowData.leadId,
+                        verificationData,
+                    }),
+                ).unwrap()
+                toast.success('Lead Verified and Agent created successfully!')
+                //alert('Agent verified and created successfully!')
+            } else if (isAgentsContext) {
+                // For agents - create new agent directly
+                await dispatch(
+                    addAgentWithVerification({
+                        verificationData,
+                    }),
+                ).unwrap()
+                toast.success('Agent created successfully!')
+                //alert('Agent created successfully!')
+            }
 
-            alert('Agent verified and created successfully!')
             onClose()
-
-            // Reload page to refresh the leads list
+            // Reload page to refresh the data
             window.location.reload()
         } catch (error) {
-            console.error('Failed to verify agent:', error)
-            alert('Failed to verify agent. Please try again.')
+            console.error('Failed to verify/create agent:', error)
+            toast.error('Failed to create agent. Please try again.')
+            //alert('Failed to create agent. Please try again.')
         }
     }
 
     if (!isOpen) return null
 
-    // If on /acn/agents and rowData is empty, show a message or fallback UI
-    if (location.pathname === '/acn/leads' && !rowData) {
+    // If on /acn/leads and no rowData, show error message
+    if (isLeadsContext && !rowData) {
         return (
             <div className='fixed top-0 right-0 h-full w-[40%] bg-white z-50 shadow-2xl border-l border-gray-200 flex items-center justify-center'>
                 <div className='text-center w-full'>
@@ -195,14 +241,13 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
         )
     }
 
-    // If on /acn/leads and rowData is present, show the full modal
-    if (location.pathname === '/acn/leads' && !rowData) {
-        // Defensive: if modal is open but no rowData, don't render
-        return null
-    }
-
     const areas = ['north bangalore', 'south bangalore', 'east bangalore', 'west bangalore', 'pan bangalore']
     const categories = ['resale', 'rental', 'primary']
+
+    // Get display ID and title based on context
+    const displayId = isLeadsContext ? rowData?.leadId : 'New Agent'
+    const modalTitle = isLeadsContext ? 'Verify Agent Information' : 'Add New Agent'
+    const buttonText = isLeadsContext ? 'Verify & Create Agent' : 'Create Agent'
 
     return (
         <>
@@ -216,8 +261,8 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                     <div className='p-6 border-b border-gray-200'>
                         <div className='flex items-center justify-between'>
                             <div>
-                                <div className='text-sm text-gray-500 mb-1'>{rowData?.leadId || ''}</div>
-                                <h2 className='text-xl font-semibold text-gray-900'>Verify Agent Information</h2>
+                                <div className='text-sm text-gray-500 mb-1'>{displayId}</div>
+                                <h2 className='text-xl font-semibold text-gray-900'>{modalTitle}</h2>
                             </div>
                             <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-md'>
                                 <svg
@@ -240,9 +285,9 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                     {/* Form Content */}
                     <div className='flex-1 p-6 overflow-y-auto'>
                         {/* Error Display */}
-                        {agentVerificationError && (
+                        {verificationError && (
                             <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm'>
-                                {agentVerificationError}
+                                {verificationError}
                             </div>
                         )}
 
@@ -462,19 +507,19 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                             <button
                                 onClick={onClose}
                                 className='px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors'
-                                disabled={agentVerificationLoading}
+                                disabled={verificationLoading}
                             >
                                 Close
                             </button>
                             <button
                                 onClick={handleVerify}
-                                disabled={agentVerificationLoading}
+                                disabled={verificationLoading}
                                 className='px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
                             >
-                                {agentVerificationLoading ? (
+                                {verificationLoading ? (
                                     <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
                                 ) : null}
-                                Verify & Create Agent
+                                {buttonText}
                             </button>
                         </div>
                     </div>

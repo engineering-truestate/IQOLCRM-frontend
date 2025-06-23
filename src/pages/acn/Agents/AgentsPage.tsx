@@ -523,7 +523,7 @@ const AgentsPage = () => {
             render: (value, row) => (
                 <button
                     onClick={() => handleAgentClick(row.objectID, row)}
-                    className='whitespace-nowrap text-sm font-semibold w-auto hover:text-blue-600'
+                    className='whitespace-nowrap text-sm font-semibold w-auto hover:text-blue-600 cursor-pointer'
                 >
                     {value}
                 </button>
@@ -606,6 +606,16 @@ const AgentsPage = () => {
                     </span>
                 )
             },
+        },
+        {
+            key: 'lastTried',
+            header: 'Last Tried',
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                    {' '}
+                    {value ? formatRelativeTime(value) : 'Never'}
+                </span>
+            ),
         },
         {
             key: 'contactStatus',
@@ -697,13 +707,13 @@ const AgentsPage = () => {
 
     return (
         <Layout>
-            <div className='w-full overflow-hidden font-sans'>
+            <div className='w-full overflow-hidden font-sans h-screen flex flex-col'>
                 <div
-                    className='flex flex-col gap-4 py-2 bg-white min-h-screen'
+                    className='flex flex-col gap-4 pt-2 bg-white flex-1 overflow-hidden'
                     style={{ width: 'calc(100vw)', maxWidth: '100%' }}
                 >
                     {/* Header */}
-                    <div className=''>
+                    <div className='flex-shrink-0'>
                         <div className='flex items-center justify-between px-6'>
                             <h1 className='text-lg font-semibold text-black'>Agents {/*({totalAgents})*/}</h1>
                             <div className='flex items-center gap-4'>
@@ -716,7 +726,7 @@ const AgentsPage = () => {
                                         className='h-8'
                                     />
                                     <button
-                                        className='flex items-center justify-center rounded-sm px-2 py-[5px] hover:bg-gray-100 bg-[#24252E] gap-2'
+                                        className='flex items-center justify-center rounded-sm px-2 py-[5px] cursor-pointer hover:bg-gray-900 bg-[#24252E] gap-2'
                                         onClick={() => {
                                             setIsVerificationModalOpen(true)
                                         }}
@@ -731,12 +741,12 @@ const AgentsPage = () => {
                     </div>
 
                     {/* Metrics Cards */}
-                    <div className='px-6'>
+                    <div className='px-6 flex-shrink-0'>
                         <MetricsCards metrics={metrics} />
                     </div>
 
                     {/* Filters */}
-                    <div className='px-6'>
+                    <div className='px-6 flex-shrink-0'>
                         <FiltersBar
                             handleSortChange={handleSortChange}
                             sortBy={sortBy}
@@ -764,16 +774,16 @@ const AgentsPage = () => {
                         />
                     </div>
 
-                    {/* Table with loader overlay */}
-                    {loading === true ? (
-                        <div className='relative h-[69vh] overflow-y-auto pl-6'>
-                            <div className='absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-60'>
-                                <div className='w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+                    {/* Table Container - This will take remaining space */}
+                    <div className='flex-1 flex flex-col gap-[29px] overflow-hidden'>
+                        {loading === true ? (
+                            <div className='relative h-full overflow-y-auto'>
+                                <div className='absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-60'>
+                                    <div className='w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <div>
-                            <div className='relative h-[69vh] overflow-y-auto pl-6'>
+                        ) : (
+                            <div className='h-full overflow-hidden pl-6'>
                                 <FlexibleTable
                                     data={agentsData}
                                     columns={columns}
@@ -785,24 +795,24 @@ const AgentsPage = () => {
                                         cells: false,
                                         outer: false,
                                     }}
-                                    maxHeight='69vh'
-                                    className='rounded-lg'
+                                    maxHeight='100%'
+                                    className='rounded-lg h-full'
                                     stickyHeader={true}
                                 />
                             </div>
-                            {/* Pagination */}
-                            <div className='h-[6vh] flex items-center justify-center'>
-                                {totalAgents > ITEMS_PER_PAGE && (
-                                    <CustomPagination
-                                        currentPage={currentPage}
-                                        totalPages={Math.ceil(totalAgents / ITEMS_PER_PAGE)}
-                                        onPageChange={setCurrentPage}
-                                        className='mt-4'
-                                    />
-                                )}
-                            </div>
+                        )}
+                        {/* Pagination */}
+                        <div className='flex items-center justify-center flex-shrink-0'>
+                            {/* {totalAgents > ITEMS_PER_PAGE && ( */}
+                            <CustomPagination
+                                currentPage={currentPage}
+                                totalPages={Math.ceil(totalAgents / ITEMS_PER_PAGE)}
+                                onPageChange={setCurrentPage}
+                                className=''
+                            />
+                            {/* )} */}
                         </div>
-                    )}
+                    </div>
 
                     {/* Modals */}
                     <NotesModal

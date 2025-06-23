@@ -36,6 +36,8 @@ import PreReraEditPage from './pages/restack/Stock/Pre-Rera/PreReraEditPage'
 
 // import ErrorPage from './404'
 // import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+// import ErrorPage from './404'
+// import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 // import ResalePage from './pages/restack/Resale/ResalePage'
 // import ResalePageDetails from './pages/restack/Resale/ResalePageDetails'
 
@@ -45,7 +47,11 @@ import ComplaintsPage from './pages/restack/Primary/ComplaintsPage'
 import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
 import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
-import PrimaryPage from './pages/restack/Primary/Primary'
+// import PrimaryPage from './pages/restack/Primary/Primary'
+// import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
+// import ResalePage from './pages/restack/resale/ResalePage'
+// import Resale from './pages/restack/resale/Resale'
+// import PrimaryPage from './pages/restack/Primary/Primary'
 // import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
 // import ResalePage from './pages/restack/resale/ResalePage'
 // import Resale from './pages/restack/resale/Resale'
@@ -62,7 +68,11 @@ import MarketingDashboard from './pages/canvas_homes/marketing_dashboard/Marketi
 import SalesDashboard from './pages/canvas_homes/sales_dashboard/Sales'
 import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+import PrimaryPage from './pages/restack/Primary/Primary'
 // import MarketingDashboard from './pages/canvas_homes/marketing_dashboard/Marketing'
+// import { ResaleDetailsPage } from './pages/restack/Resale/ResalePageDetails'
+// import ResalePage from './pages/restack/Resale/ResalePage'
+// import Resale from './pages/restack/Resale/Resale'
 
 export const authRoutes: RouteObject[] = [
     {

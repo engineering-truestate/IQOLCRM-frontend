@@ -4,6 +4,9 @@ import chevronUp from '/icons/acn/chevron-up.svg'
 import chevronDown from '/icons/acn/chevron-down.svg'
 import calendarIcon from '/icons/acn/calendar.svg'
 import walletAdd from '/icons/acn/wallet-add.svg'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../store'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 
 interface AgentDetails {
     [key: string]: string | number | boolean | null | undefined
@@ -60,6 +63,11 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
         enquiryDetails: true,
         credits: true,
     })
+
+    // Redux state
+    const something = useSelector((state: RootState) => state.agentDetails)
+
+    console.log(something, 'page')
 
     const toggleMainDropdown = () => {
         setIsMainDropdownOpen(!isMainDropdownOpen)
@@ -132,7 +140,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
             <div className='border-b-1 border-[#D3D4DD] overflow-y-auto'>
                 <button
                     onClick={() => toggleSection(sectionKey)}
-                    className='w-full px-4 py-3  transition-colors duration-200 flex justify-between items-center text-left'
+                    className='w-full px-4 py-3  transition-colors duration-200 flex justify-between items-center text-left cursor-pointer'
                 >
                     <span className='font-medium text-gray-900 text-sm'>{title}</span>
                     {isOpen ? (
@@ -167,7 +175,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
         <div className=' mx-auto bg-gray-50 overflow-y-auto'>
             {/* Header - Now clickable */}
             <div className='bg-white px-4 py-4 w-full'>
-                <div className='flex items-center justify-between'>
+                <div className='flex items-center justify-between cursor-pointer' onClick={toggleMainDropdown}>
                     {/* Left: Avatar + Name + ID */}
                     <div className='flex items-center gap-3'>
                         <div className='w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center'>

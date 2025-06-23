@@ -257,7 +257,9 @@ export const fetchLeadWithNotes = createAsyncThunk(
                     .sort((a: NoteData, b: NoteData) => b.timestamp - a.timestamp)
 
                 console.log('✅ Lead notes fetched successfully:', sortedNotes.length)
-                return { leadId, notes: sortedNotes }
+
+                // Return the notes directly instead of an object
+                return sortedNotes
             }
 
             throw new Error(`Lead with ID ${leadId} not found`)
