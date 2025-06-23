@@ -523,7 +523,7 @@ const AgentsPage = () => {
             render: (value, row) => (
                 <button
                     onClick={() => handleAgentClick(row.objectID, row)}
-                    className='whitespace-nowrap text-sm font-semibold w-auto hover:text-blue-600'
+                    className='whitespace-nowrap text-sm font-semibold w-auto hover:text-blue-600 cursor-pointer'
                 >
                     {value}
                 </button>
