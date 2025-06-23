@@ -8,7 +8,7 @@ export const fetchPrimaryProperties = createAsyncThunk<PrimaryProperty[], void, 
     'primary/fetchPrimaryProperties',
     async (_, { rejectWithValue }) => {
         try {
-            const querySnapshot = await getDocs(collection(db, 'restack_primary_properties'))
+            const querySnapshot = await getDocs(collection(db, 'testRestackPrimary'))
             const properties = querySnapshot.docs.map((doc) => ({
                 projectId: doc.id,
                 ...doc.data(),
@@ -35,7 +35,7 @@ export const fetchPrimaryPropertyById = createAsyncThunk<PrimaryProperty, string
     'primary/fetchPrimaryPropertyById',
     async (id: string, { rejectWithValue }) => {
         try {
-            const docRef = doc(db, 'restack_primary_properties', id)
+            const docRef = doc(db, 'testRestackPrimary', id)
             const docSnap = await getDoc(docRef)
 
             if (!docSnap.exists()) {

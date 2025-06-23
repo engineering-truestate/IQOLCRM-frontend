@@ -9,7 +9,7 @@ import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { taskService } from '../../services/canvas_homes/taskService'
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 
 interface RootState {
     taskId: {
@@ -42,7 +42,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onC
     const { leadId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { user } = useAuth()
-    const { refreshData, setSelectedEnquiryId, leadData, loadLeadData } = useLeadDetails(leadId || '')
+    const { refreshData, setSelectedEnquiryId, leadData, loadLeadData } = UseLeadDetails(leadId || '')
 
     // Set selected enquiry ID when component mounts
     React.useEffect(() => {

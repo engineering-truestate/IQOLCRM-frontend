@@ -5,7 +5,7 @@ import { useParams } from 'react-router'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
@@ -33,7 +33,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
+    const { refreshData, setSelectedEnquiryId, leadData } = UseLeadDetails(leadId || '')
 
     // Set selected enquiry ID when component mounts
     React.useEffect(() => {

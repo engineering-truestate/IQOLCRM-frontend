@@ -1,4 +1,4 @@
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
@@ -23,7 +23,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
+    const { refreshData, setSelectedEnquiryId, leadData } = UseLeadDetails(leadId || '')
     // Set selected enquiry ID when component mounts
     React.useEffect(() => {
         if (enquiryId) {

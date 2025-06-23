@@ -9,7 +9,7 @@ import PropertyChangeCard from '../../../../components/canvas_homes/activity_tra
 import LeadStateCard from '../../../../components/canvas_homes/activity_tracker_cards/LeadStateCard'
 import LeadAddedCard from '../../../../components/canvas_homes/activity_tracker_cards/LeadAddedCard'
 import { enquiryService } from '../../../../services/canvas_homes/enquiryService'
-import { useLeadDetails } from '../../../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../../../hooks/canvas_homes/UseLeadDetails'
 
 interface RootState {
     taskId: {

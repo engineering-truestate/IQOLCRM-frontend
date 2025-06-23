@@ -10,7 +10,7 @@ import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../store'
 import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 import useAuth from '../../hooks/useAuth'
 
 interface RootState {
@@ -39,7 +39,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
     const dispatch = useDispatch<AppDispatch>()
     const { leadId } = useParams()
     const { user } = useAuth()
-    const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
+    const { refreshData, setSelectedEnquiryId, leadData } = UseLeadDetails(leadId || '')
 
     // Set selected enquiry ID when component mounts
     React.useEffect(() => {

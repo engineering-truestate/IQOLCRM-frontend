@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { leadService, enquiryService, taskService, userService } from '../../services/canvas_homes'
 import type { Lead, Enquiry, Task, User, ActivityHistoryItem } from '../../services/canvas_homes/types'
 
-export const useLeadDetails = (leadId: string) => {
+export const UseLeadDetails = (leadId: string) => {
     // State
     const [leadData, setLeadData] = useState<Lead | null>(null)
     const [enquiries, setEnquiries] = useState<Enquiry[]>([])
@@ -33,7 +33,7 @@ export const useLeadDetails = (leadId: string) => {
     // Load lead data
     const loadLeadData = useCallback(async () => {
         if (!leadId) {
-            console.error('Invalid leadId provided to useLeadDetails:', leadId)
+            console.error('Invalid leadId provided to UseLeadDetails:', leadId)
             setErrors((prev) => ({ ...prev, lead: 'Invalid lead ID provided' }))
             return
         }

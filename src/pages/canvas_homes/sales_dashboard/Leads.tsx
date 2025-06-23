@@ -12,6 +12,7 @@ import meta from '/icons/canvas_homes/meta.svg'
 import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
 import { useNavigate } from 'react-router-dom'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import { calculateALSC } from '../../../components/helper/calculateALSC'
 
 // Status card component
 const StatusCard = ({
@@ -178,6 +179,10 @@ const Leads = () => {
         return filtered
     }, [allLeadsData, searchValue])
 
+    const indexedLeadsData = useMemo(() => {
+        return filteredLeadsData.map((lead, index) => ({ ...lead, index }))
+    }, [filteredLeadsData])
+
     // Calculate status counts from facets - Fixed case sensitivity
     const statusCounts = useMemo(() => {
         const stateFacets = facets.state || {}
@@ -240,7 +245,6 @@ const Leads = () => {
         console.log('Row clicked:', row)
         window.location.href = `/sales/leaddetails/${row.objectId || row.id}`
     }
-
     // Status cards data with dynamic counts
     const statusCards = [
         { title: 'All', count: statusCounts.All },
@@ -337,17 +341,9 @@ const Leads = () => {
             key: 'lastModified',
             header: 'ASLC',
             render: (value, row) => {
-                const lastModified = row.lastModified
-                const today = Math.floor(Date.now() / 1000) // in seconds
-
-                let daysDifference = 0
-                if (lastModified) {
-                    daysDifference = Math.floor((today - lastModified) / (60 * 60 * 24))
-                }
-
                 return (
                     <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {daysDifference} days
+                        {calculateALSC(allLeadsData[row.index])}
                     </span>
                 )
             },
@@ -530,13 +526,12 @@ const Leads = () => {
             {/* Table */}
             <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[63vh]'>
                 <FlexibleTable
-                    data={filteredLeadsData}
+                    data={indexedLeadsData}
                     columns={columns}
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                     selectedRows={selectedRows}
                     headerClassName='font-normal'
                     onRowSelect={handleRowSelect}
-                    onRowClick={handleRowClick}
                     className='rounded-lg'
                     stickyHeader={true}
                     hoverable={true}

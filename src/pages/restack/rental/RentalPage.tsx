@@ -8,7 +8,13 @@ import { FlexibleTable, type TableColumn } from '../../../components/design-elem
 import Layout from '../../../layout/Layout'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
-import { get99AcresRentalData, getMagicBricksRentalData } from '../../../services/restack/rentalService'
+import {
+    get99AcresRentalData,
+    getACNRentalData,
+    getHousingRentalData,
+    getMagicBricksRentalData,
+    getMyGateRentalData,
+} from '../../../services/restack/rentalService'
 
 const RentalPage = () => {
     const [searchValue, setSearchValue] = useState('')
@@ -27,13 +33,22 @@ const RentalPage = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            let data = await get99AcresRentalData()
+            let data: RestackRentalProperty[] = []
             switch (type) {
                 case '99acres':
                     data = await get99AcresRentalData()
                     break
                 case 'magicbricks':
                     data = await getMagicBricksRentalData()
+                    break
+                case 'ACN':
+                    data = await getACNRentalData()
+                    break
+                case 'myGate':
+                    data = await getMyGateRentalData()
+                    break
+                case 'Housing':
+                    data = await getHousingRentalData()
                     break
                 default:
                     break
@@ -134,7 +149,7 @@ const RentalPage = () => {
                     {/* Header */}
                     <div className='mb-2'>
                         <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Rental / 99 Acres</h1>
+                            <h1 className='text-xl font-semibold text-gray-900'>Rental / {type}</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='w-80'>
                                     <StateBaseTextField
