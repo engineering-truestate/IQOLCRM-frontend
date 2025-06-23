@@ -1,29 +1,43 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import * as XLSX from 'xlsx'
-import { validateCSVData, addBulkLeads, addManualLead, fetchKAMOptions } from '../../services/acn/leads/leadsService'
+import {
+    validateCSVData,
+    addBulkLeads,
+    addManualLead,
+    fetchKAMOptions,
+    validateLeadData,
+} from '../../services/acn/leads/leadsService'
 import {
     selectCSVValidationLoading,
     selectCSVValidationError,
     selectValidatedCSVData,
+    selectPreviewCSVData,
+    selectDuplicateInfo,
     selectBulkAddLoading,
     selectBulkAddError,
     selectManualAddLoading,
     selectManualAddError,
     selectKAMOptions,
     selectKAMOptionsLoading,
+    selectLeadValidationLoading,
+    selectLeadValidationError,
     clearCSVValidationError,
     clearValidatedCSVData,
     clearBulkAddError,
     clearManualAddError,
+    clearLeadValidationError,
 } from '../../store/reducers/acn/leadsReducers'
 import type { AppDispatch, RootState } from '../../store'
+import { toast } from 'react-toastify'
 
 interface BulkLeadData {
     Number: string
     Name: string
     Email: string
     'Lead Source': string
+    isDuplicate?: boolean
+    duplicateType?: string
 }
 
 interface AddLeadModalProps {
@@ -46,12 +60,16 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
     const csvValidationLoading = useSelector(selectCSVValidationLoading)
     const csvValidationError = useSelector(selectCSVValidationError)
     const validatedCSVData = useSelector(selectValidatedCSVData)
+    const previewCSVData = useSelector(selectPreviewCSVData)
+    const duplicateInfo = useSelector(selectDuplicateInfo)
     const bulkAddLoading = useSelector(selectBulkAddLoading)
     const bulkAddError = useSelector(selectBulkAddError)
     const manualAddLoading = useSelector(selectManualAddLoading)
     const manualAddError = useSelector(selectManualAddError)
     const kamOptions = useSelector(selectKAMOptions)
     const kamOptionsLoading = useSelector(selectKAMOptionsLoading)
+    const leadValidationLoading = useSelector(selectLeadValidationLoading)
+    const leadValidationError = useSelector(selectLeadValidationError)
 
     // Manual upload form state
     const [manualForm, setManualForm] = useState({
@@ -63,6 +81,24 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
         kamName: '',
         kamId: '',
     })
+
+    // Reset function for all file-related states
+    const resetFileStates = () => {
+        // Clear all file-related states
+        setParsedCSVData([])
+        setShowCSVViewer(false)
+        setParseError(null)
+
+        // Clear Redux states
+        dispatch(clearCSVValidationError())
+        dispatch(clearValidatedCSVData())
+        dispatch(clearBulkAddError())
+
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+        }
+    }
 
     // Load KAM options when modal opens
     useEffect(() => {
@@ -77,9 +113,15 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
             dispatch(clearCSVValidationError())
             dispatch(clearBulkAddError())
             dispatch(clearManualAddError())
+            dispatch(clearLeadValidationError())
             setParseError(null)
         }
     }, [isOpen, dispatch])
+
+    // Clear phone validation when phone changes
+    useEffect(() => {
+        dispatch(clearLeadValidationError())
+    }, [manualForm.phone, dispatch])
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault()
@@ -104,10 +146,12 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                 file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
                 file.name.endsWith('.xlsx')
             ) {
+                // Reset all states before processing new file
+                resetFileStates()
                 setSelectedFile(file)
                 parseExcelFile(file)
             } else {
-                alert('Please upload a CSV or XLSX file only')
+                toast.error('Please upload a CSV or XLSX file only')
             }
         }
     }
@@ -121,10 +165,12 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                 file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
                 file.name.endsWith('.xlsx')
             ) {
+                // Reset all states before processing new file
+                resetFileStates()
                 setSelectedFile(file)
                 parseExcelFile(file)
             } else {
-                alert('Please upload a CSV or XLSX file only')
+                toast.error('Please upload a CSV or XLSX file only')
             }
         }
     }
@@ -132,7 +178,6 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
     // XLSX parser for both CSV and Excel files
     const parseExcelFile = (file: File) => {
         setParseError(null)
-
         const reader = new FileReader()
 
         reader.onload = (e) => {
@@ -223,13 +268,29 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
     const handleValidateCSV = async () => {
         if (parsedCSVData.length === 0) {
-            alert('No data to validate')
+            toast.error('No data to validate')
             return
         }
 
         try {
-            await dispatch(validateCSVData(parsedCSVData)).unwrap()
-            alert('File validation successful! You can now upload the leads.')
+            const result = await dispatch(validateCSVData(parsedCSVData)).unwrap()
+
+            // Enhanced success message based on results
+            if (result.validatedData.length > 0) {
+                if (result.duplicateInfo && result.duplicateInfo.count > 0) {
+                    toast.warn(
+                        `Validation complete!\n\n✅ ${result.validatedData.length} valid leads ready to upload\n⚠️ ${result.duplicateInfo.count} duplicates will be skipped\n\nYou can proceed with uploading the valid leads.`,
+                    )
+                } else {
+                    toast.success(
+                        `Validation successful! All ${result.validatedData.length} leads are valid and ready to upload.`,
+                    )
+                }
+            } else {
+                toast.error(
+                    'Validation complete, but no valid leads found. All phone numbers already exist in the database.',
+                )
+            }
         } catch (error) {
             // Error will be shown in the UI
         }
@@ -237,20 +298,27 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
     const handleUpload = async () => {
         if (validatedCSVData.length === 0) {
-            alert('Please validate the file first')
+            toast.error('No valid leads to upload')
             return
         }
 
         try {
-            await dispatch(addBulkLeads(validatedCSVData)).unwrap()
-            alert(`Successfully added ${validatedCSVData.length} leads!`)
+            const result = await dispatch(addBulkLeads(validatedCSVData)).unwrap()
+
+            // Enhanced success message
+            const uploadedCount = result.leads?.length || validatedCSVData.length
+            let message = `🎉 Upload Successful!\n\n✅ ${uploadedCount} lead${uploadedCount !== 1 ? 's' : ''} added successfully!`
+
+            if (result.duplicates && result.duplicates.length > 0) {
+                message += `\n\n⚠️ ${result.duplicates.length} duplicate${result.duplicates.length !== 1 ? 's' : ''} were automatically skipped.`
+                toast.error(message)
+            } else {
+                toast.success(message)
+            }
 
             // Reset state
+            resetFileStates()
             setSelectedFile(null)
-            setParsedCSVData([])
-            setShowCSVViewer(false)
-            setParseError(null)
-            dispatch(clearValidatedCSVData())
 
             onClose()
             window.location.reload()
@@ -280,20 +348,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
         const missingFields = requiredFields.filter((field) => !manualForm[field as keyof typeof manualForm].trim())
 
         if (missingFields.length > 0) {
-            alert(`Please fill the following mandatory fields: ${missingFields.join(', ')}`)
-            return false
-        }
-
-        // Validate phone number
-        let phone = manualForm.phone.replace(/\s+/g, '')
-        if (phone.startsWith('+91')) {
-            phone = phone.substring(3)
-        } else if (phone.startsWith('91') && phone.length === 12) {
-            phone = phone.substring(2)
-        }
-
-        if (!/^\d{10}$/.test(phone)) {
-            alert('Phone number must be exactly 10 digits')
+            toast.error(`Please fill the following mandatory fields: ${missingFields.join(', ')}`)
             return false
         }
 
@@ -301,7 +356,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
         if (manualForm.email.trim()) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
             if (!emailRegex.test(manualForm.email.trim())) {
-                alert('Please enter a valid email address')
+                toast.error('Please enter a valid email address')
                 return false
             }
         }
@@ -314,9 +369,32 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
             return
         }
 
+        // Phone validation before adding user
+        if (!manualForm.phone.trim()) {
+            toast.error('Please enter a phone number')
+            return
+        }
+
+        // Basic phone validation
+        let phone = manualForm.phone.replace(/\s+/g, '')
+        if (phone.startsWith('+91')) {
+            phone = phone.substring(3)
+        } else if (phone.startsWith('91') && phone.length === 12) {
+            phone = phone.substring(2)
+        }
+
+        if (!/^\d{10}$/.test(phone)) {
+            toast.error('Phone number must be exactly 10 digits')
+            return
+        }
+
         try {
+            // Check for duplicates first
+            await dispatch(validateLeadData({ phone: manualForm.phone, isManual: true })).unwrap()
+
+            // If validation passes, add the lead
             await dispatch(addManualLead(manualForm)).unwrap()
-            alert('Lead added successfully!')
+            toast.success('Lead added successfully!')
 
             // Reset form
             setManualForm({
@@ -331,8 +409,13 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
             onClose()
             window.location.reload()
-        } catch (error) {
-            // Error will be shown in the UI
+        } catch (error: any) {
+            // Show specific error message for duplicates or other validation errors
+            if (error.includes('already exists')) {
+                toast.error(`❌ Cannot add lead: ${error}`)
+            } else {
+                toast.error(`❌ Error adding lead: ${error}`)
+            }
         }
     }
 
@@ -346,6 +429,32 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
             kamName: '',
             kamId: '',
         })
+        dispatch(clearLeadValidationError())
+    }
+
+    // Enhanced modal close handler
+    const handleModalClose = () => {
+        resetFileStates()
+        setSelectedFile(null)
+        setActiveTab('bulk')
+        setDragActive(false)
+
+        // Reset manual form
+        setManualForm({
+            name: '',
+            phone: '',
+            email: '',
+            leadSource: '',
+            notes: '',
+            kamName: '',
+            kamId: '',
+        })
+
+        // Clear all Redux errors
+        dispatch(clearManualAddError())
+        dispatch(clearLeadValidationError())
+
+        onClose()
     }
 
     const leadSourceOptions = [
@@ -356,6 +465,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
         'referral',
         'organic',
         'classified',
+        'meta',
     ]
 
     if (!isOpen) return null
@@ -363,7 +473,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
     return (
         <>
             {/* Very light overlay - only covers left 60% */}
-            <div className='fixed top-0 left-0 w-[60%] h-full bg-black opacity-50 z-40' onClick={onClose} />
+            <div className='fixed top-0 left-0 w-[60%] h-full bg-black opacity-50 z-40' onClick={handleModalClose} />
 
             {/* Modal */}
             <div className='fixed top-0 right-0 h-full w-[40%] bg-white z-50 shadow-2xl border-l border-gray-200'>
@@ -374,7 +484,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                             <h2 className='text-xl font-semibold text-gray-900'>
                                 {activeTab === 'bulk' ? 'Upload Leads' : 'New Lead'}
                             </h2>
-                            <button onClick={onClose} className='p-1 hover:bg-gray-100 rounded-md'>
+                            <button onClick={handleModalClose} className='p-1 hover:bg-gray-100 rounded-md'>
                                 <svg
                                     className='w-5 h-5 text-gray-400'
                                     fill='none'
@@ -485,10 +595,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                                 </div>
                                                 <button
                                                     onClick={() => {
+                                                        resetFileStates()
                                                         setSelectedFile(null)
-                                                        setParsedCSVData([])
-                                                        setShowCSVViewer(false)
-                                                        setParseError(null)
                                                     }}
                                                     className='text-sm text-red-600 hover:text-red-800'
                                                 >
@@ -528,17 +636,14 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                         )}
                                     </div>
                                 ) : (
-                                    // File Viewer
+                                    // File Viewer with Duplicate Detection
                                     <div className='space-y-4'>
                                         <div className='flex items-center justify-between'>
                                             <h3 className='text-lg font-medium text-gray-900'>File Preview</h3>
                                             <button
                                                 onClick={() => {
-                                                    setShowCSVViewer(false)
+                                                    resetFileStates()
                                                     setSelectedFile(null)
-                                                    setParsedCSVData([])
-                                                    setParseError(null)
-                                                    dispatch(clearValidatedCSVData())
                                                 }}
                                                 className='text-sm text-gray-600 hover:text-gray-800'
                                             >
@@ -563,31 +668,69 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                                             <th className='px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase'>
                                                                 Lead Source
                                                             </th>
+                                                            <th className='px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase'>
+                                                                Status
+                                                            </th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className='bg-white divide-y divide-gray-200'>
-                                                        {parsedCSVData.slice(0, 10).map((row, index) => (
-                                                            <tr key={index}>
-                                                                <td className='px-3 py-2 text-sm text-gray-900'>
-                                                                    {row.Number}
-                                                                </td>
-                                                                <td className='px-3 py-2 text-sm text-gray-900'>
-                                                                    {row.Name}
-                                                                </td>
-                                                                <td className='px-3 py-2 text-sm text-gray-900'>
-                                                                    {row.Email}
-                                                                </td>
-                                                                <td className='px-3 py-2 text-sm text-gray-900'>
-                                                                    {row['Lead Source']}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
+                                                        {(previewCSVData.length > 0 ? previewCSVData : parsedCSVData)
+                                                            .slice(0, 10)
+                                                            .map((row, index) => (
+                                                                <tr
+                                                                    key={index}
+                                                                    className={row.isDuplicate ? 'bg-red-50' : ''}
+                                                                >
+                                                                    <td
+                                                                        className={`px-3 py-2 text-sm ${row.isDuplicate ? 'text-red-600 font-medium' : 'text-gray-900'}`}
+                                                                    >
+                                                                        {row.Number}
+                                                                    </td>
+                                                                    <td
+                                                                        className={`px-3 py-2 text-sm ${row.isDuplicate ? 'text-red-600' : 'text-gray-900'}`}
+                                                                    >
+                                                                        {row.Name}
+                                                                    </td>
+                                                                    <td
+                                                                        className={`px-3 py-2 text-sm ${row.isDuplicate ? 'text-red-600' : 'text-gray-900'}`}
+                                                                    >
+                                                                        {row.Email}
+                                                                    </td>
+                                                                    <td
+                                                                        className={`px-3 py-2 text-sm ${row.isDuplicate ? 'text-red-600' : 'text-gray-900'}`}
+                                                                    >
+                                                                        {row['Lead Source']}
+                                                                    </td>
+                                                                    <td className='px-3 py-2 text-sm'>
+                                                                        {row.isDuplicate ? (
+                                                                            <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800'>
+                                                                                Duplicate ({row.duplicateType})
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800'>
+                                                                                Valid
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
                                                     </tbody>
                                                 </table>
                                             </div>
-                                            {parsedCSVData.length > 10 && (
+                                            {(previewCSVData.length > 0 ? previewCSVData : parsedCSVData).length >
+                                                10 && (
                                                 <div className='px-3 py-2 bg-gray-50 text-sm text-gray-500'>
-                                                    Showing first 10 rows of {parsedCSVData.length} total rows
+                                                    Showing first 10 rows of{' '}
+                                                    {
+                                                        (previewCSVData.length > 0 ? previewCSVData : parsedCSVData)
+                                                            .length
+                                                    }{' '}
+                                                    total rows
+                                                    {duplicateInfo && duplicateInfo.count > 0 && (
+                                                        <span className='ml-2 text-red-600 font-medium'>
+                                                            ({duplicateInfo.count} duplicates found)
+                                                        </span>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -605,10 +748,39 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                             </button>
                                         </div>
 
-                                        {validatedCSVData.length > 0 && (
+                                        {/* Enhanced validation success message */}
+                                        {duplicateInfo && duplicateInfo.count > 0 && validatedCSVData.length > 0 && (
                                             <div className='p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm'>
-                                                ✅ Validation successful! {validatedCSVData.length} leads ready to
-                                                upload.
+                                                <div className='font-medium mb-1'>✅ Ready to Upload!</div>
+                                                <div>
+                                                    {validatedCSVData.length} valid lead
+                                                    {validatedCSVData.length !== 1 ? 's' : ''} ready for upload.
+                                                </div>
+                                                <div className='text-yellow-700 mt-1'>
+                                                    {duplicateInfo.count} duplicate
+                                                    {duplicateInfo.count !== 1 ? 's' : ''} will be skipped
+                                                    automatically.
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {validatedCSVData.length > 0 &&
+                                            (!duplicateInfo || duplicateInfo.count === 0) && (
+                                                <div className='p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm'>
+                                                    ✅ Perfect! All {validatedCSVData.length} leads are valid and ready
+                                                    to upload.
+                                                </div>
+                                            )}
+
+                                        {/* Show message when no valid leads */}
+                                        {validatedCSVData.length === 0 && duplicateInfo && duplicateInfo.count > 0 && (
+                                            <div className='p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm'>
+                                                <div className='font-medium mb-1'>❌ No Valid Leads Found</div>
+                                                <div>
+                                                    All {duplicateInfo.count} phone numbers already exist in the
+                                                    database.
+                                                </div>
+                                                <div className='mt-1'>Please upload a file with new phone numbers.</div>
                                             </div>
                                         )}
                                     </div>
@@ -825,6 +997,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                     </svg>
                                     Download Template XLSX
                                 </button>
+
                                 <button
                                     onClick={handleUpload}
                                     disabled={validatedCSVData.length === 0 || bulkAddLoading}
@@ -842,7 +1015,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                             />
                                         </svg>
                                     )}
-                                    Upload Leads
+                                    Upload {validatedCSVData.length} Valid Lead
+                                    {validatedCSVData.length !== 1 ? 's' : ''}
                                 </button>
                             </div>
                         ) : (
@@ -856,10 +1030,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                 </button>
                                 <button
                                     onClick={handleAddUser}
-                                    disabled={manualAddLoading}
+                                    disabled={manualAddLoading || leadValidationLoading}
                                     className='flex items-center gap-2 px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
                                 >
-                                    {manualAddLoading ? (
+                                    {manualAddLoading || leadValidationLoading ? (
                                         <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
                                     ) : (
                                         <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
