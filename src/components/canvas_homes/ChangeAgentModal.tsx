@@ -11,7 +11,7 @@ interface ChangeAgentModalProps {
     onClose: () => void
     leadId: string
     enquiryId: string
-    onDetailsAdded?: () => void
+    onAgentChange?: () => void
     agentName?: string
 }
 
@@ -21,7 +21,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
     onClose,
     leadId,
     enquiryId,
-    onDetailsAdded,
+    onAgentChange,
 }) => {
     const [formData, setFormData] = useState({
         agentId: '',
@@ -101,7 +101,6 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
 
         return true
     }
-
     const handleSave = async () => {
         setError(null)
 
@@ -139,6 +138,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
                 agentHistory: updatedAgentHistory,
                 lastModified: currentTimestamp,
             }
+
             await enquiryService.addActivity(enquiryId, {
                 activityType: 'agent transfer',
                 timestamp: currentTimestamp,
@@ -149,19 +149,19 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
                 },
             })
 
-            await enquiryService.update(enquiryId, enquiryUpdateData)
-            console.log('Enquiry updated with new agent')
-
-            // Update lead with new agent information
-            const leadUpdateData = {
+            // Run enquiry and lead updates in parallel
+            const enquiryUpdatePromise = enquiryService.update(enquiryId, enquiryUpdateData)
+            const leadUpdatePromise = leadService.update(leadId, {
                 agentId: formData.agentId,
                 agentName: formData.agentName,
                 lastModified: getUnixDateTime(),
-            }
+            })
 
-            await leadService.update(leadId, leadUpdateData)
+            // Wait for both lead and enquiry updates to complete
+            await Promise.all([enquiryUpdatePromise, leadUpdatePromise])
+            console.log('Enquiry and lead updated with new agent')
 
-            // After updating enquiry and lead
+            // After updating enquiry and lead, update tasks
             try {
                 const allTasks = await taskService.getByEnquiryId(enquiryId)
                 const openTasks = allTasks.filter((task) => task.status === 'open')
@@ -174,6 +174,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
                     })
                 })
 
+                // Wait for all task updates to complete
                 await Promise.all(updatePromises)
                 console.log('All open tasks updated with new agent')
             } catch (taskError) {
@@ -181,8 +182,8 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
             }
 
             // Call the callback to refresh the data
-            if (onDetailsAdded) {
-                onDetailsAdded()
+            if (onAgentChange) {
+                onAgentChange()
             }
 
             // Show success message
@@ -213,7 +214,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-62 z-40' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[433px] bg-white z-50 rounded-lg shadow-2xl'>

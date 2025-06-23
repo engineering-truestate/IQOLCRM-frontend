@@ -146,7 +146,6 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
 
         return true
     }
-
     const handleSave = async () => {
         setError(null)
 
@@ -189,9 +188,13 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
 
             console.log('Updating lead with data:', updateData)
 
-            // Update lead using the service
-            await leadService.update(leadId, updateData)
-            await userService.update(userId, updateData)
+            // Run both updates in parallel using Promise.all
+            const leadUpdatePromise = leadService.update(leadId, updateData)
+            const userUpdatePromise = userService.update(userId, updateData)
+
+            // Wait for both updates to finish
+            await Promise.all([leadUpdatePromise, userUpdatePromise])
+
             console.log('Lead updated successfully')
 
             // Call the callback to refresh the lead data

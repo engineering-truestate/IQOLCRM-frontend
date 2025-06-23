@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { enquiryService } from '../../../../services/canvas_homes'
 import RequirementCollectedModal from '../../../../components/canvas_homes/RquirementCollectionModal'
 import { toast } from 'react-toastify'
-import { useSelector } from 'react-redux'
-import { useDispatch } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../../store'
 import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 import Dropdown from '../../../../components/design-elements/Dropdown'
+
+// Types
 interface Requirement {
     id: string
     name: string
@@ -21,6 +22,7 @@ interface Requirement {
     notes: string
     added: string
 }
+
 interface RootState {
     taskId: {
         taskState: string
@@ -32,33 +34,99 @@ interface RequirementsProps {
     enquiryId: string | null
     requirements?: Requirement[]
     onRequirementsUpdate?: () => void
+    refreshData?: () => void
+}
+
+// Dropdown options
+const BUDGET_OPTIONS = [
+    { label: 'Please Select', value: '' },
+    { label: '0.5 - 0.75 Cr', value: '0.5 - 0.75 Cr' },
+    { label: '0.76 - 1 Cr', value: '0.76 - 1 Cr' },
+    { label: '1.01 - 1.25 Cr', value: '1.01 - 1.25 Cr' },
+    { label: '1.26 - 1.5 Cr', value: '1.26 - 1.5 Cr' },
+    { label: '1.51 - 1.75 Cr', value: '1.51 - 1.75 Cr' },
+    { label: '1.76 - 2 Cr', value: '1.76 - 2 Cr' },
+    { label: '>2 Cr', value: '>2 Cr' },
+]
+
+const ZONE_OPTIONS = [
+    { label: 'Please Select', value: '' },
+    { label: 'North', value: 'north' },
+    { label: 'South', value: 'south' },
+    { label: 'East', value: 'east' },
+    { label: 'West', value: 'west' },
+]
+
+const MICRO_MARKET_OPTIONS = [
+    { label: 'Please Select', value: '' },
+    { label: 'Whitefield', value: 'whitefield' },
+    { label: 'Koramangala', value: 'koramangala' },
+    { label: 'Indiranagar', value: 'indiranagar' },
+    { label: 'Hebbal', value: 'hebbal' },
+    { label: 'Electronic City', value: 'electronic-city' },
+    { label: 'Sarjapur', value: 'sarjapur' },
+    { label: 'Marathahalli', value: 'marathahalli' },
+    { label: 'JP Nagar', value: 'jp-nagar' },
+    { label: 'BTM Layout', value: 'btm-layout' },
+]
+
+const PROPERTY_TYPE_OPTIONS = [
+    { label: 'Please Select', value: '' },
+    { label: 'Plot', value: 'plot' },
+    { label: 'Apartment', value: 'apartment' },
+    { label: 'Villa', value: 'villa' },
+    { label: 'Villament', value: 'villament' },
+    { label: 'Row House', value: 'row house' },
+    { label: 'Farm House', value: 'farm house' },
+]
+
+const TYPOLOGY_OPTIONS = [
+    { label: 'Please Select', value: '' },
+    { label: '1 BHK', value: '1 BHK' },
+    { label: '2 BHK', value: '2 BHK' },
+    { label: '3 BHK', value: '3 BHK' },
+    { label: '4 BHK', value: '4 BHK' },
+    { label: '5 BHK', value: '5 BHK' },
+    { label: 'Penthouse', value: 'penthouse' },
+]
+
+const PROPERTY_STAGE_OPTIONS = [
+    { label: 'Please Select', value: '' },
+    { label: 'Pre Launch', value: 'Pre Launch' },
+    { label: 'Launch', value: 'Launch' },
+    { label: 'Under Construction', value: 'Under Construction' },
+    { label: 'Ready to Move', value: 'Ready to Move' },
+    { label: 'Complete', value: 'Complete' },
+]
+
+// Initial form state
+const INITIAL_FORM_DATA = {
+    expectedBudget: '',
+    zone: '',
+    microMarket: '',
+    propertyType: '',
+    typology: '',
+    size: '',
+    propertyStage: '',
+    possessionType: '',
+    notes: '',
 }
 
 const Requirements: React.FC<RequirementsProps> = ({
     enquiryId,
     requirements: existingRequirements = [],
     onRequirementsUpdate,
+    refreshData,
 }) => {
+    // State management
     const [activeRequirement, setActiveRequirement] = useState<string | null>(null)
     const [isAddingNew, setIsAddingNew] = useState(false)
     const [saving, setSaving] = useState(false)
-    const dispatch = useDispatch<AppDispatch>()
-    const [formData, setFormData] = useState({
-        expectedBudget: '',
-        zone: '',
-        microMarket: '',
-        propertyType: '',
-        typology: '',
-        size: '',
-        propertyStage: '',
-        possessionType: '',
-        notes: '',
-    })
-
+    const [formData, setFormData] = useState(INITIAL_FORM_DATA)
     const [requirements, setRequirements] = useState<Requirement[]>(existingRequirements)
+    const [isRequirementModalOpen, setIsRequirementModalOpen] = useState(false)
 
-    const [isRequirementModalOpen, SetIsRequirementModalOpen] = useState(false)
-
+    const dispatch = useDispatch<AppDispatch>()
     const { taskState } = useSelector((state: RootState) => state.taskId)
 
     // Update local requirements when props change
@@ -69,26 +137,19 @@ const Requirements: React.FC<RequirementsProps> = ({
         }
     }, [existingRequirements])
 
+    // Handle form input changes
     const handleInputChange = (field: string, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }))
     }
 
+    // Initialize new requirement form
     const handleAddNew = () => {
         setIsAddingNew(true)
         setActiveRequirement(null)
-        setFormData({
-            expectedBudget: '',
-            zone: '',
-            microMarket: '',
-            propertyType: '',
-            typology: '',
-            size: '',
-            propertyStage: '',
-            possessionType: '',
-            notes: '',
-        })
+        setFormData(INITIAL_FORM_DATA)
     }
 
+    // API call to update enquiry requirements
     const updateEnquiryRequirements = async (updatedRequirements: Requirement[]) => {
         if (!enquiryId) {
             throw new Error('No enquiry selected')
@@ -108,9 +169,10 @@ const Requirements: React.FC<RequirementsProps> = ({
         }
     }
 
+    // Save new requirement
     const handleSave = async () => {
         if (!enquiryId) {
-            alert('No enquiry selected. Please select an enquiry first.')
+            toast.error('No enquiry selected. Please select an enquiry first.')
             return
         }
 
@@ -133,12 +195,7 @@ const Requirements: React.FC<RequirementsProps> = ({
             await updateEnquiryRequirements(updatedRequirements)
 
             // Create note content for new requirement
-            let noteContent = ''
-
-            // Add note to enquiry with task type "requirement collected"
-            if (formData.notes) {
-                noteContent += `${formData.notes}`
-            }
+            const noteContent = formData.notes || ''
 
             await enquiryService.addNote(enquiryId, {
                 agentId: 'system',
@@ -152,11 +209,11 @@ const Requirements: React.FC<RequirementsProps> = ({
             setIsAddingNew(false)
             toast.success('Requirement saved successfully!')
 
-            // Notify parent to refresh data to show new note
+            // Notify parent to refresh data or show modal
             if (onRequirementsUpdate && taskState == null) {
                 onRequirementsUpdate()
             } else {
-                SetIsRequirementModalOpen(true)
+                setIsRequirementModalOpen(true)
             }
         } catch (error) {
             console.error('Error saving requirement:', error)
@@ -166,30 +223,22 @@ const Requirements: React.FC<RequirementsProps> = ({
         }
     }
 
+    // Cancel adding new requirement
     const handleDiscard = () => {
         setIsAddingNew(false)
         if (requirements.length > 0) {
             setActiveRequirement(requirements[0].id)
         }
-        setFormData({
-            expectedBudget: '',
-            zone: '',
-            microMarket: '',
-            propertyType: '',
-            typology: '',
-            size: '',
-            propertyStage: '',
-            possessionType: '',
-            notes: '',
-        })
-        // dispatch(clearTaskId());
+        setFormData(INITIAL_FORM_DATA)
     }
 
+    // Select a requirement to view
     const handleRequirementSelect = (reqId: string) => {
         setActiveRequirement(reqId)
         setIsAddingNew(false)
     }
 
+    // Delete a requirement
     const handleDelete = async (reqId: string) => {
         if (!enquiryId) {
             toast.error('No enquiry selected.')
@@ -219,6 +268,19 @@ const Requirements: React.FC<RequirementsProps> = ({
         }
     }
 
+    // Generate possession year options
+    const currentYear = new Date().getFullYear()
+    const possessionOptions = [
+        { label: 'Please Select', value: '' },
+        ...Array.from({ length: 15 }, (_, i) => {
+            const year = (currentYear - i).toString()
+            return { label: year, value: year }
+        }),
+    ]
+
+    // Get current requirement for display
+    const currentRequirement = requirements.find((req) => req.id === activeRequirement)
+
     // No enquiry selected state
     if (!enquiryId) {
         return (
@@ -243,57 +305,64 @@ const Requirements: React.FC<RequirementsProps> = ({
             </div>
         )
     }
-    const currentYear = new Date().getFullYear()
-    const possessionOptions = Array.from({ length: 15 }, (_, i) => {
-        const year = (currentYear - i).toString()
-        return { label: year, value: year }
-    })
-    // Get current requirement for display
-    const currentRequirement = requirements.find((req) => req.id === activeRequirement)
+
+    // Common styling
+    const labelClassName = 'block text-sm font-medium text-gray-600 mb-1.5'
+    const readOnlyFieldClassName =
+        'w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 h-[36px] flex items-center'
+    const dropdownClassName = 'w-full'
+    const dropdownTriggerClassName =
+        'w-full px-3 py-2 border border-gray-300 bg-white text-gray-700 rounded-md flex items-center justify-between text-left h-[36px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+    const dropdownMenuClassName =
+        'absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[200px] overflow-auto'
+    const dropdownOptionClassName = 'px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer'
+    const inputClassName =
+        'border border-gray-300 rounded-md px-3 py-2 text-gray-700 w-full h-[36px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
 
     return (
         <div className='bg-white rounded-lg p-6'>
             {/* Requirement Tabs */}
             {(requirements.length > 0 || isAddingNew) && (
                 <div className='border-b border-gray-200 mb-6'>
-                    <nav className='flex space-x-8'>
-                        {requirements.map((requirement, index) => (
-                            <button
-                                key={requirement.id}
-                                onClick={() => handleRequirementSelect(requirement.id)}
-                                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                                    activeRequirement === requirement.id && !isAddingNew
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                            >
-                                Requirement {index + 1}
-                            </button>
-                        ))}
+                    <nav className='flex items-center space-x-6'>
+                        <div className='flex space-x-4 overflow-x-auto scrollbar-hide'>
+                            {requirements.map((requirement, index) => (
+                                <button
+                                    key={requirement.id}
+                                    onClick={() => handleRequirementSelect(requirement.id)}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                                        activeRequirement === requirement.id && !isAddingNew
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    Requirement {index + 1}
+                                </button>
+                            ))}
 
-                        {isAddingNew && (
-                            <button className='py-2 px-1 border-b-2 border-black text-gray-500 font-medium text-sm'>
-                                Requirement
-                            </button>
-                        )}
-                        <div className='py-2'>
-                            <button
-                                onClick={handleAddNew}
-                                className='flex items-center py-2 gap-2 bg-gray-200 text-gray-900 px-4 rounded-md text-sm w-[78px] h-[28px] font-medium hover:bg-glack'
-                                disabled={isAddingNew}
-                            >
-                                <svg width='8' height='8' viewBox='0 0 16 16' fill='none'>
-                                    <path
-                                        d='M8 1V15M1 8H15'
-                                        stroke='currentColor'
-                                        strokeWidth='2'
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                    />
-                                </svg>
-                                Add
-                            </button>
+                            {isAddingNew && (
+                                <button className='py-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm whitespace-nowrap'>
+                                    New Requirement
+                                </button>
+                            )}
                         </div>
+
+                        <button
+                            onClick={handleAddNew}
+                            className='flex items-center gap-2 bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors ml-auto h-[32px]'
+                            disabled={isAddingNew}
+                        >
+                            <svg width='10' height='10' viewBox='0 0 16 16' fill='none'>
+                                <path
+                                    d='M8 1V15M1 8H15'
+                                    stroke='currentColor'
+                                    strokeWidth='2'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                />
+                            </svg>
+                            <span>Add</span>
+                        </button>
                     </nav>
                 </div>
             )}
@@ -302,150 +371,137 @@ const Requirements: React.FC<RequirementsProps> = ({
             {isAddingNew ? (
                 // Add New Requirement Form
                 <div>
-                    <div className='grid grid-cols-3 gap-6 mb-6'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6'>
                         {/* Row 1 */}
                         <div>
-                            <label className='block text-sm font-medium text-gray-500 mb-2'>Expected Budget</label>
-                            <select
-                                value={formData.expectedBudget}
-                                onChange={(e) => handleInputChange('expectedBudget', e.target.value)}
-                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
-                                disabled={saving}
-                            >
-                                <option value=''>Please Select</option>
-                                <option value='0.5 - 0.75 Cr'>0.5 - 0.75 Cr</option>
-                                <option value='0.76 - 1 Cr'>0.76 - 1 Cr</option>
-                                <option value='1.01 - 1.25 Cr'>1.01 - 1.25 Cr</option>
-                                <option value='1.26 - 1.5 Cr'>1.26 - 1.5 Cr</option>
-                                <option value='1.51 - 1.75 Cr'>1.51 - 1.75 Cr</option>
-                                <option value='1.76 - 2 Cr'>1.76 - 2 Cr</option>
-                                <option value='50lac-80lac'>{'>2 Cr'}</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className='block text-sm font-medium text-gray-500 mb-2'>Zone</label>
-                            <select
-                                value={formData.zone}
-                                onChange={(e) => handleInputChange('zone', e.target.value)}
-                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
-                                disabled={saving}
-                            >
-                                <option value=''>Please Select</option>
-                                <option value='north'>North</option>
-                                <option value='south'>South</option>
-                                <option value='east'>East</option>
-                                <option value='west'>West</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className='block text-sm font-medium text-gray-500 mb-2'>Micro Market</label>
-                            <select
-                                value={formData.microMarket}
-                                onChange={(e) => handleInputChange('microMarket', e.target.value)}
-                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
-                                disabled={saving}
-                            >
-                                <option value=''>Please Specify</option>
-                                <option value='whitefield'>Whitefield</option>
-                                <option value='koramangala'>Koramangala</option>
-                                <option value='indiranagar'>Indiranagar</option>
-                                <option value='hebbal'>Hebbal</option>
-                                <option value='electronic-city'>Electronic City</option>
-                                <option value='sarjapur'>Sarjapur</option>
-                                <option value='marathahalli'>Marathahalli</option>
-                                <option value='jp-nagar'>JP Nagar</option>
-                                <option value='btm-layout'>BTM Layout</option>
-                            </select>
-                        </div>
-
-                        {/* Row 2 */}
-                        <div>
-                            <label className='block text-sm font-medium text-gray-500 mb-2'>Property Type</label>
-                            <select
-                                value={formData.propertyType}
-                                onChange={(e) => handleInputChange('propertyType', e.target.value)}
-                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:ring-gray-500'
-                                disabled={saving}
-                            >
-                                <option value=''>Please Select</option>
-                                <option value='plot'>Plot</option>
-                                <option value='apartment'>Apartment</option>
-                                <option value='villa'>Villa</option>
-                                <option value='villament'>Villament</option>
-                                <option value='row House'>Row House</option>
-                                <option value='farm House'>Farm House</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className='block text-sm font-medium text-gray-500 mb-2'>Typology</label>
-                            <input
-                                type='text'
-                                value={formData.size}
-                                onChange={(e) => handleInputChange('size', e.target.value)}
+                            <label className={labelClassName}>Expected Budget</label>
+                            <Dropdown
+                                options={BUDGET_OPTIONS}
+                                onSelect={(value) => handleInputChange('expectedBudget', value)}
+                                defaultValue={formData.expectedBudget}
                                 placeholder='Please Select'
-                                className=' border border-gray-500 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
+                                className={dropdownClassName}
+                                triggerClassName={dropdownTriggerClassName}
+                                menuClassName={dropdownMenuClassName}
+                                optionClassName={dropdownOptionClassName}
                                 disabled={saving}
                             />
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-500 mb-2'>Size (Sq ft )</label>
+                            <label className={labelClassName}>Zone</label>
+                            <Dropdown
+                                options={ZONE_OPTIONS}
+                                onSelect={(value) => handleInputChange('zone', value)}
+                                defaultValue={formData.zone}
+                                placeholder='Please Select'
+                                className={dropdownClassName}
+                                triggerClassName={dropdownTriggerClassName}
+                                menuClassName={dropdownMenuClassName}
+                                optionClassName={dropdownOptionClassName}
+                                disabled={saving}
+                            />
+                        </div>
+
+                        <div>
+                            <label className={labelClassName}>Micro Market</label>
+                            <Dropdown
+                                options={MICRO_MARKET_OPTIONS}
+                                onSelect={(value) => handleInputChange('microMarket', value)}
+                                defaultValue={formData.microMarket}
+                                placeholder='Please Select'
+                                className={dropdownClassName}
+                                triggerClassName={dropdownTriggerClassName}
+                                menuClassName={dropdownMenuClassName}
+                                optionClassName={dropdownOptionClassName}
+                                disabled={saving}
+                            />
+                        </div>
+
+                        {/* Row 2 */}
+                        <div>
+                            <label className={labelClassName}>Property Type</label>
+                            <Dropdown
+                                options={PROPERTY_TYPE_OPTIONS}
+                                onSelect={(value) => handleInputChange('propertyType', value)}
+                                defaultValue={formData.propertyType}
+                                placeholder='Please Select'
+                                className={dropdownClassName}
+                                triggerClassName={dropdownTriggerClassName}
+                                menuClassName={dropdownMenuClassName}
+                                optionClassName={dropdownOptionClassName}
+                                disabled={saving}
+                            />
+                        </div>
+
+                        <div>
+                            <label className={labelClassName}>Typology</label>
+                            <Dropdown
+                                options={TYPOLOGY_OPTIONS}
+                                onSelect={(value) => handleInputChange('typology', value)}
+                                defaultValue={formData.typology}
+                                placeholder='Please Select'
+                                className={dropdownClassName}
+                                triggerClassName={dropdownTriggerClassName}
+                                menuClassName={dropdownMenuClassName}
+                                optionClassName={dropdownOptionClassName}
+                                disabled={saving}
+                            />
+                        </div>
+
+                        <div>
+                            <label className={labelClassName}>Size (Sq ft)</label>
                             <input
                                 type='text'
                                 value={formData.size}
                                 onChange={(e) => handleInputChange('size', e.target.value)}
                                 placeholder='e.g., 1200-1500 sqft'
-                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
+                                className={inputClassName}
                                 disabled={saving}
                             />
                         </div>
 
                         {/* Row 3 */}
                         <div>
-                            <label className='block text-sm font-medium text-gray-500 mb-2'>Property Stage</label>
-                            <select
-                                value={formData.propertyStage}
-                                onChange={(e) => handleInputChange('propertyStage', e.target.value)}
-                                className=' border border-gray-300 rounded-md px-1 py-1 text-gray-500 w-[254px] h-[32px] focus:outline-none focus:ring-2 focus:gray-500'
+                            <label className={labelClassName}>Property Stage</label>
+                            <Dropdown
+                                options={PROPERTY_STAGE_OPTIONS}
+                                onSelect={(value) => handleInputChange('propertyStage', value)}
+                                defaultValue={formData.propertyStage}
+                                placeholder='Please Select'
+                                className={dropdownClassName}
+                                triggerClassName={dropdownTriggerClassName}
+                                menuClassName={dropdownMenuClassName}
+                                optionClassName={dropdownOptionClassName}
                                 disabled={saving}
-                            >
-                                <option value=''>Please Select</option>
-                                <option value='Pre Launch'>Pre Launch</option>
-                                <option value='launch'>Launch</option>
-                                <option value='Under Construction'>Under Construction</option>
-                                <option value='ready to move'>Ready to Move</option>
-                                <option value='complete'>Complete</option>
-                            </select>
+                            />
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-500 mb-2'>Possession By</label>
+                            <label className={labelClassName}>Possession By</label>
                             <Dropdown
-                                options={[{ label: 'Please Select', value: '' }, ...possessionOptions]}
+                                options={possessionOptions}
                                 onSelect={(value) => handleInputChange('possessionType', value)}
                                 defaultValue={formData.possessionType}
                                 placeholder='Select Year'
-                                className='w-full'
-                                triggerClassName='w-full px-4 py-1 border bg-gray-50 text-gray-500 border-gray-300 rounded-sm flex items-center justify-between text-left cursor-not-allowed opacity-80'
-                                //menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                menuClassName='"absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-[300px] overflow-auto'
-                                optionClassName='px-4 py-2 text-sm text-gray-700 bg-gray-50 hover:bg-gray-50 cursor-pointer'
-                                //disabled={saving}
+                                className={dropdownClassName}
+                                triggerClassName={dropdownTriggerClassName}
+                                menuClassName={dropdownMenuClassName}
+                                optionClassName={dropdownOptionClassName}
+                                disabled={saving}
                             />
                         </div>
                     </div>
 
                     {/* Notes Section */}
                     <div className='mb-6'>
-                        <label className='block text-sm font-medium text-gray-500 mb-2 '>Add Note (Optional)</label>
+                        <label className={labelClassName}>Add Note (Optional)</label>
                         <textarea
                             value={formData.notes}
                             onChange={(e) => handleInputChange('notes', e.target.value)}
                             placeholder='Any specific requirements or preferences...'
-                            rows={4}
-                            className=' border border-gray-300 rounded-md px-3 py-2 w-[540px] h-[71px] focus:outline-none focus:ring-2 focus:ring-gray-500'
+                            rows={3}
+                            className='border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-700'
                             disabled={saving}
                         />
                     </div>
@@ -455,14 +511,14 @@ const Requirements: React.FC<RequirementsProps> = ({
                         <button
                             onClick={handleDiscard}
                             disabled={saving}
-                            className='w-[101px] h-[32px] px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium disabled:opacity-50'
+                            className='px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium disabled:opacity-50'
                         >
                             Discard
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className='px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2'
+                            className='px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 min-w-[80px]'
                         >
                             {saving && (
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
@@ -487,62 +543,58 @@ const Requirements: React.FC<RequirementsProps> = ({
                         </div>
                     </div>
 
-                    <div className='grid grid-cols-3 gap-6 mb-6'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6'>
                         {/* Row 1 */}
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Expected Budget</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700'>
+                            <label className={labelClassName}>Expected Budget</label>
+                            <div className={readOnlyFieldClassName}>
                                 {currentRequirement.expectedBudget || 'Not specified'}
                             </div>
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Zone</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700'>
-                                {currentRequirement.zone || 'Not specified'}
-                            </div>
+                            <label className={labelClassName}>Zone</label>
+                            <div className={readOnlyFieldClassName}>{currentRequirement.zone || 'Not specified'}</div>
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Micro Market</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700'>
+                            <label className={labelClassName}>Micro Market</label>
+                            <div className={readOnlyFieldClassName}>
                                 {currentRequirement.microMarket || 'Not specified'}
                             </div>
                         </div>
 
                         {/* Row 2 */}
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Property Type</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700'>
+                            <label className={labelClassName}>Property Type</label>
+                            <div className={readOnlyFieldClassName}>
                                 {currentRequirement.propertyType || 'Not specified'}
                             </div>
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Typology</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700'>
+                            <label className={labelClassName}>Typology</label>
+                            <div className={readOnlyFieldClassName}>
                                 {currentRequirement.typology || 'Not specified'}
                             </div>
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Size</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700'>
-                                {currentRequirement.size || 'Not specified'}
-                            </div>
+                            <label className={labelClassName}>Size</label>
+                            <div className={readOnlyFieldClassName}>{currentRequirement.size || 'Not specified'}</div>
                         </div>
 
                         {/* Row 3 */}
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Property Stage</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700'>
+                            <label className={labelClassName}>Property Stage</label>
+                            <div className={readOnlyFieldClassName}>
                                 {currentRequirement.propertyStage || 'Not specified'}
                             </div>
                         </div>
 
                         <div>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Possession Type</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-white text-gray-700'>
+                            <label className={labelClassName}>Possession Type</label>
+                            <div className={readOnlyFieldClassName}>
                                 {currentRequirement.possessionType || 'Not specified'}
                             </div>
                         </div>
@@ -551,8 +603,8 @@ const Requirements: React.FC<RequirementsProps> = ({
                     {/* Notes Section */}
                     {currentRequirement.notes && (
                         <div className='mb-6'>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Notes</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 min-h-[100px]'>
+                            <label className={labelClassName}>Notes</label>
+                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 min-h-[80px]'>
                                 {currentRequirement.notes}
                             </div>
                         </div>
@@ -585,16 +637,11 @@ const Requirements: React.FC<RequirementsProps> = ({
                 </div>
             )}
             {isRequirementModalOpen && (
-                <>
-                    {console.log('Modal should render now')}
-                    <RequirementCollectedModal
-                        isOpen={isRequirementModalOpen}
-                        onClose={() => {
-                            console.log('Modal closing...') // Add this
-                            SetIsRequirementModalOpen(false)
-                        }}
-                    />
-                </>
+                <RequirementCollectedModal
+                    isOpen={isRequirementModalOpen}
+                    onClose={() => setIsRequirementModalOpen(false)}
+                    refreshData={onRequirementsUpdate}
+                />
             )}
         </div>
     )

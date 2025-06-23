@@ -112,7 +112,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         setIsAddDetailsModalOpen(true)
     }
     const handleDetailsAdded = () => {
-        refreshData()
         setIsAddDetailsModalOpen(false)
     }
 
@@ -369,7 +368,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                     <div className='flex flex-1 overflow-hidden flex-col md:flex-row'>
                         {/* Main Content - Left Side */}
-                        <div className='w-full md:w-[70%]'>
+                        <div className='w-full md:w-[75%]'>
                             {/* Tabs Navigation */}
                             <div className='bg-white border-b border-gray-200 flex-shrink-0 overflow-x-auto'>
                                 <div className='px-2 md:px-6'>
@@ -419,12 +418,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                         {/* Right Sidebar - Customer Details, Enquiry Details, Agent Details */}
                         <div
-                            className='w-full md:w-[30%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
+                            className='w-full md:w-[25%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
                             style={{ height: 'auto', minHeight: '40vh', maxHeight: 'calc(100vh - 44.6px)' }}
                         >
                             <div className='flex-1 p-4 space-y-6 flex flex-col overflow-hidden'>
-                                {/* Customer Details Section */}
-                                <div className='flex-shrink-0'>
+                                {/* Customer Details Section - Made scrollable when content overflows */}
+                                <div className='flex-shrink-0 flex flex-col max-h-[18vh] overflow-hidden'>
                                     <div className='flex items-center justify-between mb-3'>
                                         <h3 className='font-medium text-sm text-gray-900'>Customer Details</h3>
 
@@ -436,71 +435,76 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                         </button>
                                     </div>
 
-                                    <div className='space-y-[11px]'>
-                                        <div className='flex justify-between'>
-                                            <span className='text-[13px] w-[60%] font-normal text-gray-600'>Name</span>
-                                            <span className='text-[13px] w-[40%] text-left font-normal text-gray-900'>
-                                                {formatValue(leadData?.name || userData?.name)}
-                                            </span>
-                                        </div>
-
-                                        <div className='flex justify-between'>
-                                            <span className='text-[13px] w-[60%] text-gray-600'>Phone No.</span>
-                                            <div className='w-[40%] text-left'>
-                                                <span className='text-[13px] text-gray-900'>
-                                                    {formatValue(leadData?.phoneNumber || userData?.phoneNumber)}
+                                    {/* Scrollable container for customer details */}
+                                    <div className='overflow-y-auto pr-1 scrollbar-hide'>
+                                        <div className='space-y-[11px]'>
+                                            <div className='flex justify-between'>
+                                                <span className='text-[13px] w-[60%] font-normal text-gray-600'>
+                                                    Name
+                                                </span>
+                                                <span className='text-[13px] w-[40%] text-left font-normal text-gray-900'>
+                                                    {formatValue(leadData?.name || userData?.name)}
                                                 </span>
                                             </div>
-                                        </div>
 
-                                        {/* Additional Phone Numbers */}
-                                        {leadData?.phoneNumbers &&
-                                            leadData.phoneNumbers.length > 0 &&
-                                            leadData.phoneNumbers.map((phone, index) => (
-                                                <div key={index} className='flex justify-between'>
-                                                    <span className='text-[13px] w-[53%] text-gray-600'>
-                                                        Phone No. {index + 2}
+                                            <div className='flex justify-between'>
+                                                <span className='text-[13px] w-[60%] text-gray-600'>Phone No.</span>
+                                                <div className='w-[40%] text-left'>
+                                                    <span className='text-[13px] text-gray-900'>
+                                                        {formatValue(leadData?.phoneNumber || userData?.phoneNumber)}
                                                     </span>
+                                                </div>
+                                            </div>
 
-                                                    <div className='w-[47%] text-left'>
-                                                        {phone?.label && (
-                                                            <span
-                                                                className={` text-xs px-1 py-[3px] rounded inline-flex items-center gap-1 
-                                                          
-                                                        }=`}
-                                                            >
-                                                                <img
-                                                                    src={phone.label == 'whatsapp' ? whatsapp : call}
-                                                                    alt={
-                                                                        phone.label === 'whatsapp' ? 'WhatsApp' : 'Call'
-                                                                    }
-                                                                    className='w-4 h-4 mt-[2px]'
-                                                                />
+                                            {/* Additional Phone Numbers */}
+                                            {leadData?.phoneNumbers &&
+                                                leadData.phoneNumbers.length > 0 &&
+                                                leadData.phoneNumbers.map((phone, index) => (
+                                                    <div key={index} className='flex justify-between'>
+                                                        <span className='text-[13px] w-[53%] text-gray-600'>
+                                                            Phone No. {index + 2}
+                                                        </span>
+
+                                                        <div className='w-[47%] text-left flex items-center'>
+                                                            {phone?.label && (
+                                                                <span className='mr-1 flex-shrink-0'>
+                                                                    <img
+                                                                        src={
+                                                                            phone.label == 'whatsapp' ? whatsapp : call
+                                                                        }
+                                                                        alt={
+                                                                            phone.label === 'whatsapp'
+                                                                                ? 'WhatsApp'
+                                                                                : 'Call'
+                                                                        }
+                                                                        className='w-4 h-4'
+                                                                    />
+                                                                </span>
+                                                            )}
+                                                            <span className='text-[13px] text-gray-900 truncate'>
+                                                                {formatValue(phone.number)}
                                                             </span>
-                                                        )}
-                                                        <span className='text-[13px] text-gray-900'>
-                                                            {formatValue(phone.number)}
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                            {userData?.emailAddress && (
+                                                <div className='flex justify-between'>
+                                                    <span className='text-[13px] w-[60%] text-gray-600'>Email Id</span>
+                                                    <div className='w-[40%] text-left'>
+                                                        <span className='text-[13px] text-gray-900 truncate block'>
+                                                            {formatValue(userData?.emailAddress)}
                                                         </span>
                                                     </div>
                                                 </div>
-                                            ))}
-                                        {userData?.emailAddress && (
-                                            <div className='flex justify-between'>
-                                                <span className='text-[13px] w-[60%] text-gray-600'>Email Id</span>
-                                                <div className='w-[40%] text-left'>
-                                                    <span className='text-[13px] text-gray-900'>
-                                                        {formatValue(userData?.emailAddress)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className='mt-3'>
-                                            <button className='w-full h-6 text-sm border border-gray-700 rounded-md pb-1 bg-gray-100 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors'>
-                                                Details From Sign 3
-                                            </button>
+                                            )}
                                         </div>
                                     </div>
+                                </div>
+                                <div className='mt-0'>
+                                    <button className='w-full h-6 text-sm border border-gray-700 rounded-md pb-1 bg-gray-100 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors'>
+                                        Details From Sign 3
+                                    </button>
                                 </div>
 
                                 {/* Enquiry Details Section */}
@@ -611,7 +615,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                 </div>
 
                                 {/* Agent Details Section */}
-                                <div className='flex-1 flex flex-col min-h-0'>
+                                <div className='flex-1 flex flex-col min-h-0 overflow-hidden'>
                                     <div className='flex items-center justify-between mb-3'>
                                         <h3 className='font-medium text-sm text-gray-900'>Agent Details</h3>
                                         <button
@@ -712,11 +716,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 propertyName={currentEnquiry?.propertyName}
                 name={leadData?.name}
                 leadAddDate={leadData?.added}
+                refreshData={refreshData}
             />
             <AddDetailsModal
                 isOpen={isAddDetailsModalOpen}
                 onClose={() => setIsAddDetailsModalOpen(false)}
-                onDetailsAdded={handleDetailsAdded}
+                onDetailsAdded={refreshData}
                 leadId={leadId}
                 userId={leadData?.userId}
                 currentPhoneNumber={leadData?.phoneNumber}
@@ -726,7 +731,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
             <ChangeAgentModal
                 isOpen={isChangeAgentModalOpen}
                 onClose={() => setIsChangeAgentModalOpen(false)}
-                onDetailsAdded={handleDetailsAdded}
+                onAgentChange={refreshData}
                 leadId={leadId}
                 enquiryId={selectedEnquiryId}
                 agentName={leadData?.agentName}

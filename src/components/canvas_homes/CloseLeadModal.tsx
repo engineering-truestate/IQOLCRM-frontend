@@ -18,22 +18,16 @@ interface CloseLeadModalProps {
     onClose: () => void
     taskState?: string | null
     taskType: string
+    refreshData: () => void
 }
 
-const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskState, taskType }) => {
+const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskState, taskType, refreshData }) => {
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
+    const { leadData } = useLeadDetails(leadId || '')
     const navigate = useNavigate()
-
-    // Set selected enquiry ID when component mounts
-    React.useEffect(() => {
-        if (enquiryId) {
-            setSelectedEnquiryId(enquiryId)
-        }
-    }, [enquiryId, setSelectedEnquiryId])
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
@@ -64,7 +58,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
             switch (taskState) {
                 case 'connected':
                     leadStatus = 'not interested'
-                    stage = 'initial connected'
+                    stage = 'initial contacted'
                     break
                 case 'not connected':
                     leadStatus = 'not connected'
@@ -126,7 +120,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
             [field]: value,
         }))
     }
-
     const handleSubmit = async () => {
         if (!formData.reason || !formData.tag) {
             toast.error('Please fill in all required fields.')
@@ -139,7 +132,9 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
             const currentTimestamp = getUnixDateTime()
 
             if (taskIds && enquiryId && leadId) {
-                // Update enquiry using service
+                // Prepare all promises for parallel execution
+
+                // Prepare enquiry update data
                 const enqData = {
                     state: 'dropped',
                     stage: formData.stage,
@@ -147,18 +142,17 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     tag: formData.tag,
                     lastModified: currentTimestamp,
                 }
-                await enquiryService.update(enquiryId, enqData)
 
                 // Add Lead Closed activity to enquiry
-                await enquiryService.addActivity(enquiryId, {
+                const addLeadClosedActivity = enquiryService.addActivity(enquiryId, {
                     activityType: 'lead closed',
                     timestamp: currentTimestamp,
                     agentName: agentName,
-                    data: {
-                        reason: formData.reason,
-                    },
+                    data: { reason: formData.reason },
                 })
-                await enquiryService.addActivity(enquiryId, {
+
+                // Add Task Execution activity to enquiry
+                const addTaskExecutionActivity = enquiryService.addActivity(enquiryId, {
                     activityType: 'task execution',
                     timestamp: currentTimestamp,
                     agentName: agentName,
@@ -172,32 +166,44 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                 })
 
                 // Add note to enquiry if provided
-                if (formData.note) {
-                    const newNote = {
-                        note: formData.note,
-                        timestamp: currentTimestamp,
-                        agentName: agentName,
-                        agentId: agentId,
-                        taskType: taskType,
-                    }
-                    await enquiryService.addNote(enquiryId, newNote)
-                }
+                const addNotePromise = formData.note
+                    ? enquiryService.addNote(enquiryId, {
+                          note: formData.note,
+                          timestamp: currentTimestamp,
+                          agentName: agentName,
+                          agentId: agentId,
+                          taskType: taskType,
+                      })
+                    : Promise.resolve() // Resolve immediately if no note
 
                 // Update lead using service
-                const updateleadData = {
+                const updateLeadData = {
                     state: 'dropped',
                     stage: formData.stage,
                     leadStatus: formData.leadStatus,
                     tag: formData.tag,
                     lastModified: currentTimestamp,
                 }
-                await leadService.update(leadId, updateleadData)
 
-                // Update task using service
-                await taskService.update(taskIds, {
+                // Update task status using service
+                const updateTaskStatus = taskService.update(taskIds, {
                     status: 'complete',
                     completionDate: currentTimestamp,
                 })
+
+                // Update enquiry and lead concurrently using Promise.all
+                const enquiryUpdatePromise = enquiryService.update(enquiryId, enqData)
+                const leadUpdatePromise = leadService.update(leadId, updateLeadData)
+
+                // Wait for all promises to complete
+                await Promise.all([
+                    enquiryUpdatePromise,
+                    leadUpdatePromise,
+                    updateTaskStatus,
+                    addLeadClosedActivity,
+                    addTaskExecutionActivity,
+                    addNotePromise,
+                ])
 
                 // Refresh data after all operations complete
                 await refreshData()
@@ -205,6 +211,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                 toast.success('Lead closed successfully')
                 onClose()
                 navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
+
                 // Reset form
                 setFormData({
                     reason: '',

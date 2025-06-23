@@ -37,7 +37,6 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
         }
         return true
     }
-
     const handleCloseLead = async () => {
         setError(null)
 
@@ -48,17 +47,21 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
         setIsLoading(true)
 
         try {
-            // Update the lead status to 'closed' with the provided reason
+            // Get current timestamp for consistency
             const currentTimestamp = getUnixDateTime()
-            await leadService.update(leadId, {
+
+            // Prepare promises for the lead and enquiry updates
+            const leadUpdatePromise = leadService.update(leadId, {
                 state: 'dropped',
-                lastModified: Date.now(),
+                lastModified: currentTimestamp,
             })
-            await enquiryService.update(enquiryId, {
+
+            const enquiryUpdatePromise = enquiryService.update(enquiryId, {
                 state: 'dropped',
-                lastModified: Date.now(),
+                lastModified: currentTimestamp,
             })
-            await enquiryService.addActivity(enquiryId, {
+
+            const addActivityPromise = enquiryService.addActivity(enquiryId, {
                 activityType: 'lead closed',
                 timestamp: currentTimestamp,
                 agentName: agentName,
@@ -67,7 +70,10 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
                 },
             })
 
-            // Show success message
+            // Run the updates in parallel
+            await Promise.all([leadUpdatePromise, enquiryUpdatePromise, addActivityPromise])
+
+            // Show success message after all operations are complete
             toast.success('Lead closed successfully!')
 
             // Call the callback to refresh the lead data or perform actions after closure
@@ -85,7 +91,6 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
             setIsLoading(false)
         }
     }
-
     const handleDiscard = () => {
         setReason('')
         setError(null)

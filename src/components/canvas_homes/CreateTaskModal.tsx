@@ -20,6 +20,7 @@ interface CreateTaskModalProps {
     propertyName?: string
     leadAddDate?: number
     name?: string
+    refreshData?: any
 }
 
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
@@ -36,6 +37,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     name,
     stage,
     tag,
+    refreshData,
 }) => {
     const getCurrentDateTime = () => {
         const now = new Date()
@@ -50,8 +52,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
-    const navigate = useNavigate()
 
     const taskOptions = [
         // { label: 'Please select', value: '' },
@@ -119,35 +119,33 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 lastModified: getUnixDateTime(),
             }
 
-            console.log('Creating task:', taskData)
-
-            // Update lead with task information
-            await leadService.update(leadId, {
+            // Create promises for each async operation
+            const updateLead = leadService.update(leadId, {
                 taskType: formData.task.toLowerCase(),
                 lastModified: getUnixDateTime(),
                 scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
             })
 
-            // Add activity history to enquiry
-            if (enquiryId) {
-                await enquiryService.addActivity(enquiryId, {
-                    activityType: 'task created',
-                    timestamp: getUnixDateTime(),
-                    agentName: agentName || null,
-                    data: {
-                        taskType: formData.task.toLowerCase(),
-                        scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
-                    },
-                })
-            }
+            const addActivityPromise = enquiryId
+                ? enquiryService.addActivity(enquiryId, {
+                      activityType: 'task created',
+                      timestamp: getUnixDateTime(),
+                      agentName: agentName || null,
+                      data: {
+                          taskType: formData.task.toLowerCase(),
+                          scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
+                      },
+                  })
+                : null
 
-            // Create the task
-            if (onTaskCreated) {
-                await onTaskCreated(taskData)
-            }
+            const createTaskPromise = onTaskCreated ? onTaskCreated(taskData) : null
+
+            // Wait for all promises to resolve concurrently
+            await Promise.all([updateLead, addActivityPromise, createTaskPromise])
+
             toast.success('Task Created Successfully')
             handleDiscard()
-            navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
+            refreshData()
         } catch (error) {
             console.error('Error creating task:', error)
             setError('Failed to create task. Please try again.')
@@ -170,7 +168,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     return (
         <>
-            <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-62 z-40' onClick={!isLoading ? onClose : undefined} />
 
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[433px] bg-white z-50 rounded-lg shadow-2xl'>
                 <div className='flex flex-col'>

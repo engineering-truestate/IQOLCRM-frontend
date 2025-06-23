@@ -24,9 +24,16 @@ interface RescheduleEventModalProps {
     onClose: () => void
     taskType: string
     taskState?: string
+    refreshData?: () => void
 }
 
-const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onClose, taskType, taskState = '' }) => {
+const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
+    isOpen,
+    onClose,
+    taskType,
+    taskState = '',
+    refreshData,
+}) => {
     // State management
     const [formData, setFormData] = useState({
         reason: '',
@@ -37,21 +44,13 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onC
     })
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const navigate = useNavigate()
 
     // Redux and route params
     const { taskId, enquiryId } = useSelector((state: RootState) => state.taskId)
     const { leadId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { user } = useAuth()
-    const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
-
-    // Set selected enquiry ID when component mounts
-    React.useEffect(() => {
-        if (enquiryId) {
-            setSelectedEnquiryId(enquiryId)
-        }
-    }, [enquiryId, setSelectedEnquiryId])
+    const { leadData } = useLeadDetails(leadId || '')
 
     // Agent details from auth
     const agentId = user?.uid || ''
@@ -161,22 +160,20 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onC
             const leadStatus = getLeadStatus()
             const stage = getStage()
 
-            // 1. Update task details
-            await taskService.update(taskId, {
+            // Prepare the data for updating task, enquiry, lead, and adding activities
+            const taskUpdateData = {
                 eventName: formData.eventName,
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledTimestamp,
-            })
+            }
 
-            // 2. Update enquiry with new status
-            await enquiryService.update(enquiryId, {
+            const enquiryUpdateData = {
                 leadStatus: leadStatus,
                 lastModified: currentTimestamp,
                 ...(stage && { stage: stage }),
-            })
+            }
 
-            // 3. Add Task Execution activity for rescheduling
-            await enquiryService.addActivity(enquiryId, {
+            const taskExecutionActivity = {
                 activityType: 'task execution',
                 timestamp: currentTimestamp,
                 agentName: agentName,
@@ -187,20 +184,19 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onC
                     reason: formData.reason,
                     note: formData.note.trim() || '',
                 },
-            })
-
-            // 4. Add note if provided
-            if (formData.note.trim()) {
-                await enquiryService.addNote(enquiryId, {
-                    timestamp: currentTimestamp,
-                    agentId,
-                    agentName,
-                    note: `${formData.note.trim()}`,
-                    taskType: taskType,
-                })
             }
 
-            // 5. Update lead with new status
+            // Prepare the note update if provided
+            const noteUpdate = formData.note.trim()
+                ? enquiryService.addNote(enquiryId, {
+                      timestamp: currentTimestamp,
+                      agentId,
+                      agentName,
+                      note: `${formData.note.trim()}`,
+                      taskType: taskType,
+                  })
+                : Promise.resolve()
+
             const leadUpdateData = {
                 leadStatus: leadStatus,
                 lastModified: currentTimestamp,
@@ -208,11 +204,17 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({ isOpen, onC
                 ...(stage && { stage: stage }),
             }
 
-            await leadService.update(leadId, leadUpdateData)
+            // Execute all updates in parallel
+            await Promise.all([
+                taskService.update(taskId, taskUpdateData),
+                enquiryService.update(enquiryId, enquiryUpdateData),
+                enquiryService.addActivity(enquiryId, taskExecutionActivity),
+                noteUpdate, // Optional note update
+                leadService.update(leadId, leadUpdateData),
+            ])
 
-            // 6. Refresh data and clean up
-            window.location.href = `/canvas-homes/sales/leadDetails/${leadId}`
             dispatch(clearTaskId())
+            refreshData()
 
             toast.success('Event rescheduled successfully!')
             onClose()

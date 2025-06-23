@@ -24,6 +24,7 @@ interface TaskCompleteModalProps {
     state?: string
     leadStatus?: string
     taskType?: string
+    refreshData?: any
 }
 
 const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
@@ -34,21 +35,14 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     state = 'open',
     leadStatus = 'Interested',
     taskType,
+    refreshData,
 }) => {
     const dispatch = useDispatch<AppDispatch>()
     const taskId = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
-    const navigate = useNavigate()
-
-    // Set selected enquiry ID when component mounts
-    useEffect(() => {
-        if (enquiryId) {
-            setSelectedEnquiryId(enquiryId)
-        }
-    }, [enquiryId, setSelectedEnquiryId])
+    const { leadData } = useLeadDetails(leadId || '')
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
@@ -84,15 +78,16 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
         setIsLoading(true)
 
         try {
-            // Update task using service
             const currentTimestamp = getUnixDateTime()
-            await taskService.update(taskId, {
+
+            // Prepare the task update promise
+            const taskUpdatePromise = taskService.update(taskId, {
                 status: 'complete',
                 completionDate: currentTimestamp,
             })
 
-            // Update enquiry using service
-            await enquiryService.update(enquiryId, {
+            // Prepare the enquiry update promise
+            const enquiryUpdatePromise = enquiryService.update(enquiryId, {
                 state: state,
                 stage: stage,
                 leadStatus: leadStatus,
@@ -100,19 +95,19 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 lastModified: currentTimestamp,
             })
 
-            // Add Task Execution activity to enquiry
+            // Prepare note addition to enquiry if provided
+            const addNotePromise = formData.note.trim()
+                ? enquiryService.addNote(enquiryId, {
+                      note: formData.note.trim(),
+                      timestamp: currentTimestamp,
+                      agentName,
+                      agentId,
+                      taskType: taskType || 'Task',
+                  })
+                : Promise.resolve() // If no note, resolve immediately
 
-            // Add note to enquiry if provided
-            if (formData.note.trim()) {
-                await enquiryService.addNote(enquiryId, {
-                    note: formData.note.trim(),
-                    timestamp: currentTimestamp,
-                    agentName,
-                    agentId,
-                    taskType: taskType || 'Task',
-                })
-            }
-            await enquiryService.addActivity(enquiryId, {
+            // Prepare activity log for task execution in enquiry
+            const activityLogPromise = enquiryService.addActivity(enquiryId, {
                 activityType: 'task execution',
                 timestamp: currentTimestamp,
                 agentName: agentName,
@@ -124,18 +119,28 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 },
             })
 
-            // Update lead using service
-            await leadService.update(leadId, {
+            // Prepare lead update promise
+            const leadUpdatePromise = leadService.update(leadId, {
                 state: state,
                 stage: stage,
                 leadStatus: leadStatus,
                 tag: formData.tag,
                 lastModified: currentTimestamp,
             })
+
+            // Wait for all promises to complete in parallel
+            await Promise.all([
+                taskUpdatePromise,
+                enquiryUpdatePromise,
+                addNotePromise,
+                activityLogPromise,
+                leadUpdatePromise,
+            ])
+
             toast.success('Task completed successfully!')
             onClose()
+            refreshData()
             dispatch(clearTaskId())
-            window.location.href = `/canvas-homes/sales/leadDetails/${leadId}`
         } catch (error: any) {
             console.error('Error completing task:', error)
             toast.error(error.message || 'Failed to complete task')

@@ -11,6 +11,7 @@ const Dropdown = ({
     nestedOptionClassName = '',
     placeholder = 'Select...',
     disabled = false,
+    state = false,
 }) => {
     // State Management
     const [isOpen, setIsOpen] = useState(false)
@@ -80,9 +81,19 @@ const Dropdown = ({
         <div ref={dropdownRef} className={`relative inline-block ${className} bg red`}>
             {/* Trigger Button */}
             <button onClick={handleToggle} className={`${triggerClassName || defaultTriggerStyles} whitespace-nowrap`}>
-                {selected === 'open' || selected === 'complete' ? selected : placeholder}
+                {selected === 'open' || selected === 'complete' || state
+                    ? selected == ''
+                        ? placeholder
+                        : selected
+                    : placeholder}
+
                 <span className='ml-1'>
-                    <svg className='w-4 h-4 ml-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <svg
+                        className={`w-4 h-4 ml-1  transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                    >
                         <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
                     </svg>
                 </span>

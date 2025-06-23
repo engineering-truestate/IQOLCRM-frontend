@@ -45,8 +45,8 @@ const LeadStateCard = ({ activity }) => {
                 {/* Reason */}
                 {reason && (
                     <div className='flex'>
-                        <div className='w-1/3 text-gray-500 text-[13px]'>Reason</div>
-                        <div className='w-2/3 text-gray-800 text-[13px]'>{capitalizeWords(reason)}</div>
+                        <div className='w-1/10 text-gray-500 text-[13px]'>Reason</div>
+                        <div className=' text-gray-800 text-[13px]'>{capitalizeWords(reason)}</div>
                     </div>
                 )}
             </div>

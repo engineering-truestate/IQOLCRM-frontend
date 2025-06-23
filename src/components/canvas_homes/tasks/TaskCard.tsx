@@ -1,5 +1,5 @@
 import React from 'react'
-import Dropdown from './Dropdown'
+import Dropdown from '../../design-elements/Dropdown'
 import { useDispatch } from 'react-redux'
 import { setEnquiryId, setTaskId } from '../../../store/reducers/canvas-homes/taskIdReducer'
 import type { AppDispatch } from '../../../store'

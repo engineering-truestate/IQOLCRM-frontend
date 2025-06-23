@@ -273,6 +273,7 @@ export function FlexibleTable({
     }
 
     const handleRowSelect = (rowId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        console.log(rowId)
         onRowSelect?.(rowId, e.target.checked)
     }
 
@@ -430,7 +431,7 @@ export function FlexibleTable({
                             </tr>
                         ) : (
                             data.map((row, index) => {
-                                const isSelected = selectedRows.includes(row.id)
+                                const isSelected = selectedRows.includes(row?.taskId || row?.leadId || row.id)
                                 const rowClasses = [
                                     hoverable ? 'hover:bg-gray-50' : '',
                                     striped && index % 2 === 0 ? 'bg-gray-50' : '',
@@ -442,7 +443,6 @@ export function FlexibleTable({
                                 return (
                                     <tr
                                         key={row.id || index}
-                                        onClick={onRowClick ? () => onRowClick(row) : undefined}
                                         className={`${rowClasses} ${onRowClick ? 'cursor-pointer' : ''}`}
                                     >
                                         {showCheckboxes && (
@@ -458,7 +458,7 @@ export function FlexibleTable({
                                                     type='checkbox'
                                                     className='h-4 w-4 rounded border-gray-300'
                                                     checked={isSelected}
-                                                    onChange={(e) => handleRowSelect(row.id, e)}
+                                                    onChange={(e) => handleRowSelect(row?.leadId || row.id, e)}
                                                 />
                                             </td>
                                         )}
@@ -478,6 +478,7 @@ export function FlexibleTable({
                                                             ? '2px 0 4px -2px rgba(0,0,0,0.1)'
                                                             : 'none',
                                                 }}
+                                                onClick={onRowClick ? () => onRowClick(row) : undefined}
                                             >
                                                 {column.checkbox ? (
                                                     <div className='flex items-center justify-center'>
@@ -513,6 +514,7 @@ export function FlexibleTable({
                                             <td
                                                 key={column.key}
                                                 className={`py-2 px-4 text-center align-middle text-sm ${getCellBorderClasses()} ${cellClassName}`}
+                                                onClick={onRowClick ? () => onRowClick(row) : undefined}
                                             >
                                                 {column.checkbox ? (
                                                     <div className='flex items-center justify-center'>
@@ -555,6 +557,7 @@ export function FlexibleTable({
                                                     boxShadow:
                                                         colIndex === 0 ? '-2px 0 4px -2px rgba(0,0,0,0.1)' : 'none',
                                                 }}
+                                                onClick={onRowClick ? () => onRowClick(row) : undefined}
                                             >
                                                 {column.checkbox ? (
                                                     <div className='flex items-center justify-center'>

@@ -6,6 +6,7 @@ import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer
 import TaskCompleteModal from '../TaskCompleteModal'
 import ChangePropertyModal from '../ChangePropertyModal'
 import CloseLeadModal from '../CloseLeadModal'
+import { ref } from 'firebase/storage'
 
 interface DropdownOption {
     label: string
@@ -14,18 +15,12 @@ interface DropdownOption {
 }
 
 interface BookingAmountTaskProps {
-    taskId: string
-    updateTaskState: (taskId: string, field: string, value: string) => void
+    refreshData: () => void
+
     setActiveTab: (tab: string) => void
-    updating?: boolean
 }
 
-const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
-    taskId,
-    updateTaskState,
-    setActiveTab,
-    updating = false,
-}) => {
+const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({ refreshData, setActiveTab }) => {
     const dispatch = useDispatch<AppDispatch>()
     const [showTaskCompleteModal, setShowTaskCompleteModal] = useState(false)
     const [showChangePropertyModal, setShowChangePropertyModal] = useState(false)
@@ -97,12 +92,14 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                 stage='booking confirmed'
                 state='closed'
                 taskType='booking'
+                refreshData={refreshData}
             />
 
             <ChangePropertyModal
                 isOpen={showChangePropertyModal}
                 onClose={() => setShowChangePropertyModal(false)}
                 taskType='booking'
+                refreshData={refreshData}
             />
 
             <CloseLeadModal
@@ -110,6 +107,7 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                 onClose={() => setShowCloseLeadModal(false)}
                 taskType='booking'
                 taskState='booking unsuccessful'
+                refreshData={refreshData}
             />
         </>
     )

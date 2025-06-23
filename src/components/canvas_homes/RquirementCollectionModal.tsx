@@ -26,9 +26,15 @@ interface RequirementCollectedModalProps {
     isOpen: boolean
     onClose: () => void
     taskType?: string
+    refreshData?: any
 }
 
-const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ isOpen, onClose, taskType }) => {
+const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
+    isOpen,
+    onClose,
+    taskType,
+    refreshData,
+}) => {
     // State management
     const [selectedTag, setSelectedTag] = useState<string>('potential')
     const [note, setNote] = useState<string>('')
@@ -41,14 +47,9 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
     const dispatch = useDispatch<AppDispatch>()
     const { leadId } = useParams()
     const { user } = useAuth()
-    const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
+    const { leadData } = useLeadDetails(leadId || '')
 
     // Set selected enquiry ID when component mounts
-    React.useEffect(() => {
-        if (enquiryId) {
-            setSelectedEnquiryId(enquiryId)
-        }
-    }, [enquiryId, setSelectedEnquiryId])
 
     // Agent details from auth
     const agentId = user?.uid || ''
@@ -72,7 +73,6 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
         { label: 'Super Hot', value: 'super hot' },
         { label: 'Cold', value: 'cold' },
     ]
-
     const handleSave = async () => {
         if (!taskId) {
             setError('Task ID is missing')
@@ -95,81 +95,88 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({ i
 
             const currentTimestamp = getUnixDateTime()
 
-            // 1. Update task to complete
-            await taskService.update(taskId, {
-                status: 'complete',
-                lastModified: currentTimestamp,
-                completionDate: currentTimestamp,
-            })
-
-            // 2. Determine lead state and stage based on task type
+            // 1. Determine lead state and stage based on task type
             let leadState = 'open'
             let leadStage = currentTaskType
 
             switch (currentTaskType.toLowerCase()) {
                 case 'initial contact':
+                    leadStage = 'initital contacted'
+                    break
                 case 'site visit':
                     leadState = 'open'
-                    leadStage = currentTaskType
+                    leadStage = 'site visited'
                     break
                 case 'site not visit':
+                    leadStage = 'initial contacted'
+                    break
                 case 'eoi not collected':
+                    leadStage = 'site visited'
+                    break
                 case 'booking unsuccessful':
                     leadState = 'dropped'
+                    leadStage = 'eoi collected'
                     break
                 default:
                     leadState = 'open'
                     break
             }
 
-            // 3. Update enquiry with new status and tag
-            await enquiryService.update(enquiryId, {
+            // 2. Update task to complete, enquiry, and lead in parallel
+            const updateTask = taskService.update(taskId, {
+                status: 'complete',
+                lastModified: currentTimestamp,
+                completionDate: currentTimestamp,
+            })
+
+            const updateEnquiry = enquiryService.update(enquiryId, {
                 tag: selectedTag,
-                leadStatus: 'Requirement Collected',
+                leadStatus: 'requirement collected',
                 state: leadState,
                 stage: leadStage,
                 lastModified: currentTimestamp,
             })
 
-            // 4. Add Task Execution activity to enquiry
-            await enquiryService.addActivity(enquiryId, {
+            const addActivity = enquiryService.addActivity(enquiryId, {
                 activityType: 'task execution',
                 timestamp: currentTimestamp,
                 agentName: agentName,
                 data: {
                     taskType: currentTaskType,
-                    leadStatus: 'Requirement Collected',
+                    leadStatus: 'requirement collected',
                     tag: leadData.tag !== selectedTag ? [leadData.tag, selectedTag] : [selectedTag],
                     note: note.trim() || '',
                 },
             })
 
-            // 5. Add note to enquiry if provided
-            if (note.trim()) {
-                await enquiryService.addNote(enquiryId, {
-                    timestamp: currentTimestamp,
-                    agentId,
-                    agentName,
-                    note: note.trim(),
-                    taskType: currentTaskType,
-                })
-            }
+            const addNote = note.trim()
+                ? enquiryService.addNote(enquiryId, {
+                      timestamp: currentTimestamp,
+                      agentId,
+                      agentName,
+                      note: note.trim(),
+                      taskType: currentTaskType,
+                  })
+                : Promise.resolve()
 
-            // 6. Update lead with new status, stage, and tag
-            await leadService.update(leadId, {
+            const updateLead = leadService.update(leadId, {
                 tag: selectedTag,
-                leadStatus: 'Requirement Collected',
+                leadStatus: 'requirement collected',
                 state: leadState,
                 stage: leadStage,
                 lastModified: currentTimestamp,
             })
 
-            // 7. Refresh data and clean up
+            // Wait for all promises to complete in parallel
+            await Promise.all([updateTask, updateEnquiry, addActivity, addNote, updateLead])
 
+            // 3. Refresh data and clean up
+            refreshData()
+
+            // 4. Reset taskId in Redux store
             dispatch(clearTaskId())
-            navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
 
-            // 8. Show success message and close modal
+            // 5. Show success message and close modal
             toast.success('Requirements collected successfully!')
             onClose()
         } catch (err) {

@@ -19,15 +19,14 @@ interface CollectEOITaskProps {
     setActiveTab?: (tab: string) => void
     eoiEntries: any[]
     taskStatusOptions: Array<{ label: string; value: string }>
+    refreshData: () => void
 }
 
 const CollectEOITask: React.FC<CollectEOITaskProps> = ({
-    updateTaskState,
-    getTaskState,
     updating = false,
     setActiveTab,
     eoiEntries: existingEoiEntries = [],
-    taskStatusOptions,
+    refreshData,
 }) => {
     const dispatch = useDispatch<AppDispatch>()
     const taskId: string = useSelector((state: RootState) => state.taskId.taskId || '')
@@ -225,6 +224,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                                             triggerClassName='flex items-center w-[207px] h-8 justify-between px-2 py-1 border border-gray-300 rounded-sm text-xs text-gray-500 font-normal hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                                             placeholder='Select Type'
                                             disabled={updating}
+                                            state={true}
                                         />
                                     )}
                                 </div>
@@ -288,6 +288,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                     onClose={() => setShowRescheduleEventModal(false)}
                     taskType='eoi collection'
                     taskState='eoi not collected'
+                    refreshData={refreshData}
                 />
             )}
             <CloseLeadModal
@@ -295,11 +296,13 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                 onClose={() => setShowCloseLeadModal(false)}
                 taskType='eoi collection'
                 taskState='eoi not collected'
+                refreshData={refreshData}
             />
             <ChangePropertyModal
                 isOpen={showChangePropertyModal}
                 onClose={() => setShowChangePropertyModal(false)}
                 taskType='eoi collection'
+                refreshData={refreshData}
             />
             <TaskCompleteModal
                 isOpen={showTaskCompleteModal}
@@ -309,6 +312,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                 stage='eoi collected'
                 state='open'
                 taskType='eoi collection'
+                refreshData={refreshData}
             />
         </div>
     )

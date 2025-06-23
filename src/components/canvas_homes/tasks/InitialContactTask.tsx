@@ -10,20 +10,12 @@ import TaskCompleteModal from '../TaskCompleteModal'
 import CloseLeadModal from '../CloseLeadModal'
 
 interface InitialContactTaskProps {
-    updateTaskState: (taskId: string, field: string, value: string) => void
-    getTaskState?: (taskId: string) => any
-    updating?: boolean
+    refreshData?: any
     setActiveTab: (tab: string) => void
     taskStatusOptions: Array<{ label: string; value: string }>
 }
 
-const InitialContactTask: React.FC<InitialContactTaskProps> = ({
-    updateTaskState,
-    getTaskState,
-    updating = false,
-    setActiveTab,
-    taskStatusOptions,
-}) => {
+const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, refreshData }) => {
     const [isChangePropertyModalOpen, setIsChangePropertyModalOpen] = useState(false)
     const [isResheduleEventModalOpen, setIsRescheduleEventModalOpen] = useState(false)
     const [isCloseLeadModalOpen, setIsCloseLeadModalOpen] = useState(false)
@@ -127,6 +119,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                     isOpen={isChangePropertyModalOpen}
                     onClose={() => setIsChangePropertyModalOpen(false)}
                     taskType='initial contact'
+                    refreshData={refreshData}
                 />
             )}
             {isResheduleEventModalOpen && (
@@ -135,6 +128,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                     onClose={() => setIsRescheduleEventModalOpen(false)}
                     taskType='initial contact'
                     taskState={taskState}
+                    refreshData={refreshData}
                 />
             )}
             <CloseLeadModal
@@ -142,6 +136,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                 onClose={() => setIsCloseLeadModalOpen(false)}
                 taskType='initial contact'
                 taskState={taskState}
+                refreshData={refreshData}
             />
             <TaskCompleteModal
                 isOpen={isTaskCompleteModalOpen}
@@ -150,6 +145,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({
                 leadStatus='interested'
                 stage='initial contacted'
                 state='open'
+                refreshData={refreshData}
                 taskType='initial contact'
             />
         </div>

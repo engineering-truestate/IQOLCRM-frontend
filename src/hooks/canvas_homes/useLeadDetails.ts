@@ -248,7 +248,7 @@ export const useLeadDetails = (leadId: string) => {
                 loadTasksData()
             }
         }
-    }, [loadLeadData, loadEnquiriesData, loadTasksData, leadId, selectedEnquiryId])
+    }, [loadLeadData, loadEnquiriesData, loadTasksData, leadId, selectedEnquiryId, leadData])
 
     // Effects
     useEffect(() => {

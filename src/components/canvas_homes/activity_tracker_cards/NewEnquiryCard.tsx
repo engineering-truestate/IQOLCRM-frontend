@@ -95,8 +95,8 @@ const NewEnquiryCard = ({ activity }) => {
                 {/* Property Added/Changed */}
                 {propertyAdded && (
                     <div className='flex'>
-                        <div className='w-1/3 text-gray-500 text-[13px]'>Property added</div>
-                        <div className='w-2/3 flex items-center'>
+                        <div className='w-1/7 text-gray-500 text-[13px]'>Property added</div>
+                        <div className='flex items-center'>
                             <span className='text-gray-700 text-[13px]'>{capitalizeWords(propertyAdded)}</span>
 
                             {hasPropertyChange && (
@@ -114,16 +114,16 @@ const NewEnquiryCard = ({ activity }) => {
                 {/* Lead Status */}
                 {leadStatus && (
                     <div className='flex'>
-                        <div className='w-1/3 text-gray-500 text-[13px]'>Lead status</div>
-                        <div className='w-2/3 text-gray-700 text-[13px]'>{capitalizeWords(leadStatus)}</div>
+                        <div className='w-1/10 text-gray-500 text-[13px]'>Lead status</div>
+                        <div className=' text-gray-700 text-[13px]'>{capitalizeWords(leadStatus)}</div>
                     </div>
                 )}
 
                 {/* Tag (optional) */}
                 {tag && (
                     <div className='flex'>
-                        <div className='w-1/3 text-gray-500 text-[13px]'>Tag</div>
-                        <div className='w-2/3'>
+                        <div className='w-1/10 text-gray-500 text-[13px]'>Tag</div>
+                        <div className=''>
                             <span
                                 className={`inline-flex items-center px-2 py-1 rounded-sm text-xs ${getTagColorClass(tag)}`}
                             >

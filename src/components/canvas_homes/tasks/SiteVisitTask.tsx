@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import React, { useState } from 'react'
 import Dropdown from './Dropdown'
 import { useDispatch } from 'react-redux'
@@ -15,27 +16,17 @@ interface DropdownOption {
 }
 
 interface SiteVisitTaskProps {
-    taskId: string
-    updateTaskState: (taskId: string, field: string, value: string) => void
-    getTaskState?: (taskId: string) => any
-    updating?: boolean
     setActiveTab: (tab: string) => void
+    refreshData: () => void
 }
 
-const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
-    updateTaskState,
-    getTaskState,
-    updating = false,
-    setActiveTab,
-}) => {
+const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({ setActiveTab, refreshData }) => {
     const dispatch = useDispatch<AppDispatch>()
     const [showTaskCompleteModal, setShowTaskCompleteModal] = useState(false)
     const [showChangePropertyModal, setShowChangePropertyModal] = useState(false)
     const [showCloseLeadModal, setShowCloseLeadModal] = useState(false) // Fixed variable name
     const [showRescheduleEvent, setShowRescheduleEvent] = useState(false)
-    const [taskState, setTaskState] = useState('') // Renamed for clarity
-
-    const commonModalProps = {}
+    const [taskState, changeTaskState] = useState('') // Renamed for clarity
 
     // Define the dropdown options with appropriate handlers
     const visitedOptions: DropdownOption[] = [
@@ -51,17 +42,19 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
         },
         {
             label: 'Collect Requirement',
-            value: 'collect requirement',
-            modal: () => {
-                dispatch(setTaskState('Site Visit'))
-                setActiveTab('Requirements')
-            },
+            value: 'collect_requirement',
+            modal: useCallback(() => {
+                dispatch(setTaskState('site visit'))
+                if (setActiveTab) {
+                    setActiveTab('Requirements')
+                }
+            }, [dispatch, setActiveTab]),
         },
         {
             label: 'Close Lead',
             value: 'close lead',
             modal: () => {
-                setTaskState('visited')
+                changeTaskState('visited')
                 setShowCloseLeadModal(true)
             },
         },
@@ -82,7 +75,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
             label: 'Collect Requirement',
             value: 'collect requirement',
             modal: () => {
-                dispatch(setTaskState('Site Not Visit'))
+                dispatch(setTaskState('site not visit'))
                 setActiveTab('Requirements')
             },
         },
@@ -90,7 +83,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
             label: 'Close Lead',
             value: 'close lead',
             modal: () => {
-                setTaskState('not visited')
+                changeTaskState('not visited')
                 setShowCloseLeadModal(true)
             },
         },
@@ -132,12 +125,14 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
                 stage='site visited'
                 state='open'
                 taskType='site visit'
+                refreshData={refreshData}
             />
 
             <ChangePropertyModal
                 isOpen={showChangePropertyModal}
                 onClose={() => setShowChangePropertyModal(false)}
                 taskType='site visit'
+                refreshData={refreshData}
             />
 
             <CloseLeadModal
@@ -145,6 +140,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
                 onClose={() => setShowCloseLeadModal(false)}
                 taskType='site visit'
                 taskState={taskState}
+                refreshData={refreshData}
             />
 
             <RescheduleEventModal
@@ -152,6 +148,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({
                 onClose={() => setShowRescheduleEvent(false)}
                 taskType='site visit'
                 taskState='not visited'
+                refreshData={refreshData}
             />
         </>
     )

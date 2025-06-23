@@ -36,21 +36,34 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
     const [isRefreshingAlgolia, setIsRefreshingAlgolia] = useState(false)
     const [phoneError, setPhoneError] = useState('')
 
+    const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
     // Property options with IDs
-    const propertyOptions = [
-        // { label: 'Select property name', value: '' },
-        { label: 'Sunset Villa', value: 'prop001|Sunset Villa' },
-        { label: 'Ocean View Apartment', value: 'prop002|Ocean View Apartment' },
-        { label: 'Downtown Condo', value: 'prop003|Downtown Condo' },
-        { label: 'Garden Heights', value: 'prop004|Garden Heights' },
-        { label: 'Riverside Towers', value: 'prop005|Riverside Towers' },
-        { label: 'Sattva Hills', value: 'prop006|Sattva Hills' },
-        { label: 'Prestige Gardenia', value: 'prop007|Prestige Gardenia' },
-        { label: 'Brigade Cosmopolis', value: 'prop008|Brigade Cosmopolis' },
-        { label: 'Sobha City', value: 'prop009|Sobha City' },
-        { label: 'Embassy Springs', value: 'prop010|Embassy Springs' },
-        { label: 'Mantri Energia', value: 'prop011|Mantri Energia' },
-    ]
+
+    useEffect(() => {
+        // Reset form data when modal opens
+        const loadProperty = async () => {
+            if (!properties || properties.length === 0) {
+                await dispatch(fetchPreLaunchProperties())
+            }
+            console.log('Properties loaded:', properties)
+            return properties.map((property) => ({
+                label: property.projectName,
+                value: `${property.projectId}|${property.projectName}`,
+            }))
+        }
+        loadProperty()
+    }, [dispatch, properties, isOpen])
+
+    useEffect(() => {
+        // Set property options when properties are loaded
+        if (properties && properties.length > 0) {
+            const options = properties.map((property) => ({
+                label: property.projectName,
+                value: `${property.projectId}|${property.projectName}`,
+            }))
+            setPropertyOptions(options)
+        }
+    }, [properties])
 
     // Source options
     const sourceOptions = [
@@ -179,84 +192,69 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
             let userId: string | null = null
             let leadId: string | null = null
 
-            try {
-                userId = await userService.create(userData)
-                console.log('User created successfully with ID:', userId)
+            userId = await userService.create(userData)
 
-                const leadData: Omit<Lead, 'leadId'> = {
-                    agentId: formData.agentId || 'agent001',
-                    agentName: (formData.agentName || 'deepak goyal').toLowerCase(),
-                    name: formData.name.trim().toLowerCase(),
-                    phoneNumber: formattedPhoneNumber,
-                    propertyName: (formData.propertyName || 'sunset villa').toLowerCase(),
-                    tag: null,
-                    userId: userId,
-                    source: (formData.source || 'direct').toLowerCase(),
-                    stage: null,
-                    taskType: null,
-                    scheduledDate: null,
-                    leadStatus: null,
-                    state: 'fresh',
-                    added: getUnixDateTime(),
-                    lastModified: getUnixDateTime(),
-                }
+            const leadData: Omit<Lead, 'leadId'> = {
+                agentId: formData.agentId || 'agent001',
+                agentName: (formData.agentName || 'deepak goyal').toLowerCase(),
+                name: formData.name.trim().toLowerCase(),
+                phoneNumber: formattedPhoneNumber,
+                propertyName: (formData.propertyName || '').toLowerCase(),
+                tag: null,
+                userId: userId,
+                source: (formData.source || 'direct').toLowerCase(),
+                stage: null,
+                taskType: null,
+                scheduledDate: null,
+                leadStatus: null,
+                state: 'fresh',
+                added: getUnixDateTime(),
+                lastModified: getUnixDateTime(),
+            }
 
-                leadId = await leadService.create(leadData)
-                console.log('Lead created successfully with ID:', leadId)
+            leadId = await leadService.create(leadData)
 
-                const enquiryData: Omit<Enquiry, 'enquiryId'> = {
-                    leadId: leadId,
-                    agentId: formData.agentId || 'agent001',
-                    propertyId: formData.propertyId || 'prop001',
-                    propertyName: (formData.propertyName || 'sunset villa').toLowerCase(),
-                    source: (formData.source || 'direct').toLowerCase(),
-                    leadStatus: null,
-                    stage: null,
-                    agentHistory: [
-                        {
-                            agentId: formData.agentId,
-                            agentName: formData.agentName ? formData.agentName.toLowerCase() : '',
-                            timestamp: getUnixDateTime(),
-                            lastStage: null,
-                        },
-                    ],
-                    notes: [],
-                    activityHistory: [
-                        {
-                            activityType: 'lead added',
-                            timestamp: getUnixDateTime(),
-                            agentName: formData.agentName ? formData.agentName.toLowerCase() : '',
-                            data: {},
-                        },
-                    ],
-                    tag: null,
-                    documents: [],
-                    state: 'fresh',
-                    requirements: [],
-                    added: getUnixDateTime(),
-                    lastModified: getUnixDateTime(),
-                }
+            const enquiryData: Omit<Enquiry, 'enquiryId'> = {
+                leadId: leadId,
+                agentId: formData.agentId || 'agent001',
+                propertyId: formData.propertyId || 'prop001',
+                propertyName: (formData.propertyName || '').toLowerCase(),
+                source: (formData.source || 'direct').toLowerCase(),
+                leadStatus: null,
+                stage: null,
+                agentHistory: [
+                    {
+                        agentId: formData.agentId,
+                        agentName: formData.agentName ? formData.agentName.toLowerCase() : '',
+                        timestamp: getUnixDateTime(),
+                        lastStage: null,
+                    },
+                ],
+                notes: [],
+                activityHistory: [
+                    {
+                        activityType: 'lead added',
+                        timestamp: getUnixDateTime(),
+                        agentName: formData.agentName ? formData.agentName.toLowerCase() : '',
+                        data: {},
+                    },
+                ],
+                tag: null,
+                documents: [],
+                state: 'fresh',
+                requirements: [],
+                added: getUnixDateTime(),
+                lastModified: getUnixDateTime(),
+            }
 
-                await enquiryService.create(enquiryData)
-                console.log('Enquiry created successfully for lead ID:', leadId)
-
+            await enquiryService.create(enquiryData)
+            setTimeout(() => {
                 window.location.href = '/canvas-homes/sales'
                 handleDiscard()
-            } catch (error) {
-                console.error('Error in transaction:', error)
-                try {
-                    if (leadId) await leadService.delete(leadId)
-                    if (userId) await userService.delete(userId)
-                } catch (rollbackError) {
-                    console.error('Rollback failed:', rollbackError)
-                }
-                throw error
-            }
+                setIsLoading(false)
+            }, 1000)
         } catch (error) {
-            console.error('Error creating lead, user, or enquiry:', error)
             setError('Failed to create lead. Please try again.')
-        } finally {
-            setIsLoading(false)
         }
     }
 
@@ -279,7 +277,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
     return (
         <>
-            <div className='fixed top-0 left-0 w-[75%] h-full bg-black opacity-66 z-40' onClick={onClose} />
+            <div className='fixed top-0 left-0 w-[75%] h-full bg-black opacity-62 z-40' onClick={onClose} />
             <div className='fixed top-0 right-0 h-full w-[25%] bg-white z-50 shadow-2xl border-l border-gray-200'>
                 <div className='flex flex-col h-full'>
                     <div className='flex items-center justify-between p-6 pb-0'>

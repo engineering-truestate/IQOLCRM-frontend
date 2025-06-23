@@ -16,22 +16,16 @@ interface ChangePropertyModalProps {
     isOpen: boolean
     onClose: () => void
     taskType: string
+    refreshData: () => void
 }
 
-const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, taskType }) => {
+const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClose, taskType, refreshData }) => {
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { refreshData, setSelectedEnquiryId, leadData } = useLeadDetails(leadId || '')
+    const { leadData } = useLeadDetails(leadId || '')
     const navigate = useNavigate()
-
-    // Set selected enquiry ID when component mounts
-    React.useEffect(() => {
-        if (enquiryId) {
-            setSelectedEnquiryId(enquiryId)
-        }
-    }, [enquiryId, setSelectedEnquiryId])
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
@@ -122,42 +116,40 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
         try {
             if (enquiryId && leadId && taskIds) {
-                // Update existing enquiry using service
-                const enqData = {
-                    leadStatus: 'Property Changed',
+                const currentTimestamp = getUnixDateTime()
+
+                // Update existing enquiry and add activity in parallel
+                const enquiryUpdate = enquiryService.update(enquiryId, {
+                    leadStatus: 'property changed',
                     stage: null,
                     state: 'open',
                     lastModified: currentTimestamp,
-                }
-                await enquiryService.update(enquiryId, enqData)
+                })
 
-                // Add Property Change activity to old enquiry
-                await enquiryService.addActivity(enquiryId, {
+                const addActivity = enquiryService.addActivity(enquiryId, {
                     activityType: 'property change',
                     timestamp: currentTimestamp,
                     agentName: agentName,
                     data: {
                         propertyAdded: formData.propertyName,
                         propertyChanged: previousPropertyName,
-                        leadStatus: 'Property Changed',
+                        leadStatus: 'property changed',
                         reason: formData.reason,
                         note: formData.note || '',
                     },
                 })
 
-                // Add note to existing enquiry if provided
-                if (formData.note) {
-                    const newNote = {
-                        note: formData.note,
-                        timestamp: currentTimestamp,
-                        agentName: formData.agentName,
-                        agentId: formData.agentId,
-                        taskType: taskType,
-                    }
-                    await enquiryService.addNote(enquiryId, newNote)
-                }
+                const addNote = formData.note
+                    ? enquiryService.addNote(enquiryId, {
+                          note: formData.note,
+                          timestamp: currentTimestamp,
+                          agentName: formData.agentName,
+                          agentId: formData.agentId,
+                          taskType: taskType,
+                      })
+                    : Promise.resolve()
 
-                // Create new enquiry using service
+                // Prepare new enquiry data
                 const newEnquiry = {
                     leadId: leadId,
                     agentId: agentId,
@@ -191,13 +183,13 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     tag: formData.tag || 'cold',
                     documents: [],
                     requirements: [],
-                    added: enquiryDateTimestamp,
+                    added: currentTimestamp,
                     lastModified: currentTimestamp,
                 }
 
-                const newEnquiryResult = await enquiryService.create(newEnquiry)
+                const createNewEnquiry = enquiryService.create(newEnquiry)
 
-                // Update lead using service
+                // Prepare lead update data
                 const leadData = {
                     stage: null,
                     state: 'open',
@@ -207,29 +199,25 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     leadStatus: 'interested',
                     lastModified: currentTimestamp,
                 }
-                await leadService.update(leadId, leadData)
 
-                // Update task using service
-                await taskService.update(taskIds, {
+                const leadUpdate = leadService.update(leadId, leadData)
+
+                // Update task status in parallel
+                const taskUpdate = taskService.update(taskIds, {
                     status: 'complete',
                     completionDate: currentTimestamp,
                 })
 
+                // Wait for all promises to complete
+                await Promise.all([enquiryUpdate, addActivity, addNote, createNewEnquiry, leadUpdate, taskUpdate])
+
                 toast.success('Property changed successfully')
 
+                // Refresh data and reset form
                 onClose()
+                refreshData()
 
-                navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
-                // Reset form
-                setFormData((prev) => ({
-                    ...prev,
-                    reason: '',
-                    newProperty: '',
-                    propertyId: '',
-                    propertyName: '',
-                    tag: 'cold',
-                    note: '',
-                }))
+                handleDiscard()
             } else {
                 toast.error('Required IDs are missing')
             }
@@ -402,7 +390,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                             placeholder='Select tag'
                                             className='w-full'
                                             triggerClassName='w-full px-3 py-1 border border-gray-300 rounded-sm bg-white flex items-center justify-between text-left'
-                                            menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
+                                            menuClassName='absolute z-50 w-fit bg-white border border-gray-300 rounded-lg shadow-lg'
                                             optionClassName='px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer'
                                             disabled={isLoading}
                                         />

@@ -13,36 +13,28 @@ import coldIcon from '/icons/canvas_homes/coldicon.svg'
 //import meta from '/icons/canvas_homes/meta.svg'
 import { useNavigate } from 'react-router-dom'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import { getUnixDateTime, formatUnixDateTime } from '../../../components/helper/getUnixDateTime'
-
-const capitalizeFirst = (text: string) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : '')
+import { formatUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 // Task data type
 type SalesTask = {
-    id: string
+    taskId: string
+    enquiryId: string
+    agentId: string
+    agentName: string
     name: string
-    addedDate: string
-    added?: number | string
-    property: string
-    propertyName?: string
-    leadStage: string
-    stage?: string
-    leadStatus: string
-    tag: string
-    scheduleTask: {
-        type: string
-        date: string
-        time: string
-        avatar: string
-    }
-    scheduledDate?: number | string
-    taskType?: string
-    dueDays: number
-    taskStatus: 'complete' | 'open'
-    status?: string
-    completionDate: string
-    leadId?: string
-    agentName?: string
+    leadAddDate: number
+    propertyName: string
+    taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking' | string
+    eventName?: string
+    status: 'open' | 'complete'
+    stage: string // e.g., "Initial Contacted"
+    leadStatus: string // e.g., "Interested"
+    tag: string // e.g., "Hot"
+    scheduledDate: number
+    added: number
+    eoiEntries?: any
+    completionDate?: number
+    lastModified: number
 }
 
 // Status card component
@@ -91,6 +83,25 @@ const Tasks = () => {
     })
     const navigate = useNavigate()
 
+    // Active filters array
+    const activeFilters = [
+        selectedDateRange && { label: selectedDateRange, onClear: () => setSelectedDateRange('') },
+        customDateRange.startDate &&
+            customDateRange.endDate && {
+                label: `${customDateRange.startDate} to ${customDateRange.endDate}`,
+                onClear: () => setCustomDateRange({ startDate: null, endDate: null }),
+            },
+        selectedProperty && { label: toCapitalizedWords(selectedProperty), onClear: () => setSelectedProperty('') },
+        selectedAgent && { label: toCapitalizedWords(selectedAgent), onClear: () => setSelectedAgent('') },
+        selectedLeadStage && { label: toCapitalizedWords(selectedLeadStage), onClear: () => setSelectedLeadStage('') },
+        selectedTag && { label: toCapitalizedWords(selectedTag), onClear: () => setSelectedTag('') },
+        selectedTask && { label: toCapitalizedWords(selectedTask), onClear: () => setSelectedTask('') },
+        selectedLeadStatus && {
+            label: toCapitalizedWords(selectedLeadStatus),
+            onClear: () => setSelectedLeadStatus(''),
+        },
+    ].filter(Boolean) // remove falsy values
+
     // Task data state
     const [allTasksData, setAllTasksData] = useState<SalesTask[]>([])
     const [filteredTasksData, setFilteredTasksData] = useState<SalesTask[]>([])
@@ -118,6 +129,14 @@ const Tasks = () => {
             dateRange: selectedDateRange || undefined,
         }
 
+        // Handle custom date range from DateRangePicker
+        if (customDateRange.startDate || customDateRange.endDate) {
+            filters.addedRange = {
+                startDate: customDateRange.startDate || undefined,
+                endDate: customDateRange.endDate || undefined,
+            }
+        }
+
         return filters
     }, [
         selectedProperty,
@@ -127,6 +146,7 @@ const Tasks = () => {
         selectedTask,
         selectedLeadStatus,
         selectedDateRange,
+        customDateRange,
     ])
 
     // Task search function
@@ -148,22 +168,6 @@ const Tasks = () => {
             // Transform backend data to match the expected format with capitalization
             const transformedData = result.hits.map((task: any) => ({
                 ...task,
-                // Map backend fields to frontend fields with capitalization
-                name: toCapitalizedWords(task.name || ''),
-                property: toCapitalizedWords(task.propertyName || task.property || '-'),
-                leadStage: toCapitalizedWords(task.stage || task.leadStage || '-'),
-                leadStatus: toCapitalizedWords(task.leadStatus || '-'),
-                tag: task.tag || '-', // Tags handled specially in render function
-                agentName: toCapitalizedWords(task.agentName || '-'),
-                addedDate: task.added ? formatAddedDate(task.added) : '-',
-                scheduleTask: {
-                    type: toCapitalizedWords(task.taskType || task.scheduleTask?.type || '-'),
-                    date: task.scheduledDate ? formatScheduleDate(task.scheduledDate) : task.scheduleTask?.date || '-',
-                    time: task.scheduleTask?.time || '',
-                    avatar: task.scheduleTask?.avatar || task.name?.charAt(0) || 'U',
-                },
-                taskType: toCapitalizedWords(task.taskType || '-'),
-                taskStatus: determineTaskStatus(task),
                 dueDays: calculateDueDays(task.scheduledDate),
             }))
 
@@ -178,19 +182,6 @@ const Tasks = () => {
         }
     }, [searchValue, createTaskFilters])
 
-    // Helper functions for data transformation
-    const formatAddedDate = (timestamp: number | string) => {
-        const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp
-        const date = new Date(String(ts).length === 10 ? ts * 1000 : ts)
-        return `Added ${date.toLocaleDateString()}`
-    }
-
-    const formatScheduleDate = (timestamp: number | string) => {
-        const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp
-        const date = new Date(String(ts).length === 10 ? ts * 1000 : ts)
-        return date.toLocaleDateString()
-    }
-
     const calculateDueDays = (scheduledDate: number | string | undefined): number => {
         if (!scheduledDate) return 0
 
@@ -203,15 +194,6 @@ const Tasks = () => {
         return Math.floor(diffTime / (1000 * 60 * 60 * 24))
     }
 
-    const determineTaskStatus = (task: any): 'complete' | 'open' | 'Overdue' | 'Upcoming' => {
-        if (task.status === 'complete' || task.taskStatus === 'complete') return 'complete'
-
-        const dueDays = calculateDueDays(task.scheduledDate)
-        if (dueDays < 0) return 'Overdue'
-        if (dueDays === 0) return 'open'
-        return 'Upcoming'
-    }
-
     // Filter tasks based on status card selection
     useEffect(() => {
         if (activeStatusCard === 'All') {
@@ -219,13 +201,13 @@ const Tasks = () => {
         } else if (activeStatusCard === 'Upcoming') {
             const upcomingTasks = allTasksData.filter((task) => {
                 const dueDays = calculateDueDays(task.scheduledDate)
-                return dueDays >= 0
+                return dueDays >= 0 && !task?.completionDate
             })
             setFilteredTasksData(upcomingTasks)
         } else if (activeStatusCard === 'Missed') {
             const missedTasks = allTasksData.filter((task) => {
                 const dueDays = calculateDueDays(task.scheduledDate)
-                return dueDays < 0
+                return dueDays < 0 && !task?.completionDate
             })
             setFilteredTasksData(missedTasks)
         }
@@ -245,12 +227,18 @@ const Tasks = () => {
         selectedTask,
         selectedLeadStatus,
         selectedDateRange,
+        customDateRange,
     ])
 
     // Search on text input change (debounced)
     useEffect(() => {
         debouncedSearch()
     }, [searchValue, debouncedSearch])
+
+    // Initial search
+    useEffect(() => {
+        performSearch()
+    }, [])
 
     // Calculate the status counts manually
     const statusCounts = useMemo(() => {
@@ -263,9 +251,9 @@ const Tasks = () => {
         // Count each category
         allTasksData.forEach((task) => {
             const dueDays = calculateDueDays(task.scheduledDate)
-            if (dueDays < 0) {
+            if (dueDays < 0 && !task?.completionDate) {
                 counts.Missed++
-            } else {
+            } else if (!task?.completionDate) {
                 counts.Upcoming++
             }
         })
@@ -293,7 +281,7 @@ const Tasks = () => {
     const handleRowClick = (row: any) => {
         console.log('Row clicked:', row)
         if (row.leadId || row.id) {
-            navigate(`/sales/taskdetails/${row.leadId || row.id}`)
+            navigate(`/canvas-homes/sales/leaddetails/${row.leadId || row.id}`)
         }
     }
     const tagStyles: Record<
@@ -356,9 +344,9 @@ const Tasks = () => {
     const getTaskStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
             case 'complete':
-                return 'bg-[#E1F6DF] text-[#2E8E16]'
+                return 'bg-[#E1F6DF] font-medium'
             case 'open':
-                return 'bg-[#DADAE2] text-gray-700'
+                return 'bg-[#DADAE2] font-medium'
             default:
                 return 'bg-gray-100 text-gray-700'
         }
@@ -371,29 +359,45 @@ const Tasks = () => {
             header: 'Name',
             render: (value, row) => (
                 <div className='whitespace-nowrap'>
-                    <div className='max-w-[100px] text-sm font-medium text-gray-900'>{value || '-'}</div>
-                    <div className='max-w-[100px] text-xs text-gray-500 font-normal'>{row.addedDate}</div>
+                    <div className='max-w-[100px] text-sm font-medium text-gray-900'>
+                        {toCapitalizedWords(value) || '-'}
+                    </div>
+                    <div className='text-xs text-gray-500 font-normal'>
+                        {row.addedDate || `Added ${new Date(row.leadAddDate * 1000).toLocaleDateString()}`}
+                    </div>
                 </div>
             ),
         },
         {
-            key: 'property',
+            key: 'propertyName',
             header: 'Property',
             render: (value) => (
                 <span className='max-w-[100px] text-[14px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'>
-                    {value || '-'}
+                    {value ? toCapitalizedWords(value) : '-'}
                 </span>
             ),
         },
         {
-            key: 'leadStage',
+            key: 'leadStatus',
+            header: 'Lead Status',
+            render: (value) => (
+                <span
+                    className='inline-block max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    title={value}
+                >
+                    {value ? toCapitalizedWords(value) : '-'}
+                </span>
+            ),
+        },
+        {
+            key: 'stage',
             header: 'Lead Stage',
             render: (value) => (
                 <span
                     className='inline-block max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
                     title={value}
                 >
-                    {value || '-'}
+                    {value ? toCapitalizedWords(value) : '-'}
                 </span>
             ),
         },
@@ -403,7 +407,6 @@ const Tasks = () => {
             render: (value: string) => {
                 const key = value?.toLowerCase().replace(/\s+/g, '')
                 const style = tagStyles[key]
-                const capitalizeWords = (str: string) => str.replace(/\b\w/g, (char) => char.toUpperCase())
 
                 if (!style) return <div>-</div>
 
@@ -413,47 +416,66 @@ const Tasks = () => {
                             className={`inline-flex items-center min-w-max h-6 gap-1.5 px-2 py-1 rounded-[4px] text-xs font-medium ${style.bg} ${style.text}`}
                         >
                             <img src={style.icon} alt={value} className='w-3 h-3 object-contain' />
-                            <span className='text-xs font-medium'>{capitalizeWords(value || '-')}</span>
+                            <span className='text-xs font-medium'>{toCapitalizedWords(value || '-')}</span>
                         </div>
                     </div>
                 )
             },
         },
         {
-            key: 'scheduleTask',
+            key: 'taskType',
             header: 'Schedule Task',
-            render: (value, row) => (
-                <div className='flex items-center gap-3'>
-                    <div>
-                        <div className='text-sm font-medium text-gray-900'>
-                            {value?.type || toCapitalizedWords(row.taskType) || '-'}
-                        </div>
-                        <div className='text-xs text-gray-500'>
-                            {value?.date || '-'} {value?.time ? `| ${value.time}` : ''}
-                        </div>
+            render: (value, row) => {
+                const taskType = toCapitalizedWords(value || row?.taskType || '-')
+                const scheduleUnix = row?.scheduledDate
+
+                const formattedDate = scheduleUnix
+                    ? new Date(scheduleUnix * 1000).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                      })
+                    : ''
+
+                const formattedTime = scheduleUnix
+                    ? new Date(scheduleUnix * 1000).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true,
+                      })
+                    : ''
+
+                return (
+                    <div className='flex flex-col'>
+                        <div className='text-sm font-medium text-gray-900'>{taskType}</div>
+                        {(formattedDate || formattedTime) && (
+                            <div className='text-xs text-gray-500'>
+                                {formattedDate}
+                                {formattedDate && formattedTime ? ' | ' : ''}
+                                {formattedTime}
+                            </div>
+                        )}
                     </div>
-                </div>
-            ),
+                )
+            },
         },
+
         {
             key: 'dueDays',
             header: 'Due Days',
             render: (value) => {
                 const displayValue = Math.abs(value) < 10 ? `0${Math.abs(value)}` : `${Math.abs(value)}`
-                const textColor = value < 0 ? 'text-red-600' : value === 0 ? 'text-black' : 'text-gray-900'
 
-                return (
-                    <span className={`text-sm max-w-[97px] font-medium ${textColor}`}>
-                        {value === 0 ? '00' : displayValue}
-                    </span>
-                )
+                return <span className={`text-sm max-w-[97px] font-medium`}>{value === 0 ? '00' : displayValue}</span>
             },
         },
         {
-            key: 'taskStatus',
+            key: 'status',
             header: 'Task Status',
             render: (value) => (
-                <div className={`p-2 rounded-sm h-7 w-22.5 text-xs font-medium ${getTaskStatusColor(value)}`}>
+                <div
+                    className={`p-2 rounded-sm h-7 w-22.5 text-xs text-center font-medium ${getTaskStatusColor(value)}`}
+                >
                     {toCapitalizedWords(value) || '-'}
                 </div>
             ),
@@ -466,9 +488,29 @@ const Tasks = () => {
                 if (!rawDate || rawDate === '-') {
                     return <span className='text-[14px] text-gray-900'>-</span>
                 }
+                const formattedDate = rawDate
+                    ? new Date(rawDate * 1000).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                      })
+                    : ''
 
-                const formatted = formatUnixDateTime(rawDate)
-                return <span className='text-[14px] text-gray-900'>{formatted}</span>
+                const formattedTime = rawDate
+                    ? new Date(rawDate * 1000).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true,
+                      })
+                    : ''
+
+                return (
+                    <div className='text-[13px] text-gray-900'>
+                        {formattedDate}
+                        {formattedDate && formattedTime ? ' | ' : ''}
+                        {formattedTime}
+                    </div>
+                )
             },
         },
     ]
@@ -476,7 +518,7 @@ const Tasks = () => {
     return (
         <div className='w-full p-3 pb-0'>
             {/* Search and Filters */}
-            <div className='flex items-center gap-3 mb-5'>
+            <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-5'>
                 <StateBaseTextField
                     leftIcon={
                         <svg
@@ -514,8 +556,8 @@ const Tasks = () => {
                     onDateRangeChange={handleDateRangeChange}
                     placeholder='Date Range'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full min-w-[160px] bg-white border border-gray-300 rounded-md shadow-lg'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    menuClassName='absolute z-50 mt-1 w-full min-w-[300px] bg-white border border-gray-300 rounded-md shadow-lg'
                 />
 
                 <Dropdown
@@ -524,7 +566,7 @@ const Tasks = () => {
                     defaultValue={selectedProperty}
                     placeholder='Property'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -535,7 +577,7 @@ const Tasks = () => {
                     defaultValue={selectedLeadStage}
                     placeholder='Lead Stage'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -546,7 +588,7 @@ const Tasks = () => {
                     defaultValue={selectedTask}
                     placeholder='Task'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -557,7 +599,7 @@ const Tasks = () => {
                     defaultValue={selectedTag}
                     placeholder='Tag'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -568,7 +610,7 @@ const Tasks = () => {
                     defaultValue={selectedLeadStatus}
                     placeholder='Lead Status'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -579,7 +621,7 @@ const Tasks = () => {
                     defaultValue={selectedAgent}
                     placeholder='Agent'
                     className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                     optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                 />
@@ -599,6 +641,45 @@ const Tasks = () => {
                     ))}
                 </div>
             </div>
+            {/* Active Filters */}
+            {activeFilters.length > 0 && (
+                <div className='flex flex-wrap items-center gap-2 mb-4'>
+                    {activeFilters.map((filter, index) =>
+                        filter ? (
+                            <div
+                                key={index}
+                                className='flex items-center bg-gray-100 text-xs font-medium text-gray-700 px-3 py-1.5 rounded-md'
+                            >
+                                {filter.label}
+                                <button
+                                    onClick={filter.onClear}
+                                    className='ml-2 text-gray-500 hover:text-red-500 focus:outline-none'
+                                    aria-label={`Clear ${filter.label}`}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : null,
+                    )}
+
+                    {/* Clear All Button */}
+                    <button
+                        onClick={() => {
+                            setSelectedDateRange('')
+                            setCustomDateRange({ startDate: null, endDate: null })
+                            setSelectedProperty('')
+                            setSelectedAgent('')
+                            setSelectedLeadStage('')
+                            setSelectedTag('')
+                            setSelectedTask('')
+                            setSelectedLeadStatus('')
+                        }}
+                        className='ml-4 text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-1.5 px-4 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer'
+                    >
+                        Clear All
+                    </button>
+                </div>
+            )}
 
             {/* Table */}
             <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[63vh]'>
@@ -615,12 +696,12 @@ const Tasks = () => {
                         headerClassName='font-normal text-left px-0'
                         cellClassName='text-left'
                         onRowSelect={handleRowSelect}
-                        //onRowClick={handleRowClick}
                         className='rounded-lg'
                         stickyHeader={true}
                         hoverable={true}
                         maxHeight='63vh'
                         showCheckboxes={true}
+                        onRowClick={handleRowClick}
                     />
                 )}
             </div>

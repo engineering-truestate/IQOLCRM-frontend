@@ -190,8 +190,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                 lastModified: currentTimestamp,
             }
 
-            // Create the enquiry using the service
-            const enquiryId = await enquiryService.create(enquiryData)
+            // Prepare lead update data
             const updateData: any = {
                 propertyName: formData.propertyName,
                 agentId: formData.agentId,
@@ -203,7 +202,13 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                 lastModified: getUnixDateTime(),
             }
 
-            await leadService.update(leadId, updateData)
+            // Run both actions in parallel using Promise.all
+            const enquiryCreationPromise = enquiryService.create(enquiryData)
+            const leadUpdatePromise = leadService.update(leadId, updateData)
+
+            // Wait for both promises to finish
+            const [enquiryId] = await Promise.all([enquiryCreationPromise, leadUpdatePromise])
+
             console.log('Enquiry added successfully with ID:', enquiryId)
 
             // Call the callback to refresh the lead data or perform actions after enquiry creation
@@ -260,7 +265,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-62 z-40' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[433px] bg-white z-50 rounded-lg shadow-2xl'>
@@ -329,7 +334,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                                     triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
                                         formData.propertyName ? '[&>span]:font-medium text-black' : ''
                                     }`}
-                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                    menuClassName='absolute z-50 mt-1 max-h-40 overflow-y-auto w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                     optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                     disabled={isLoading}
                                 />
