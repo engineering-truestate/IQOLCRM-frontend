@@ -6,13 +6,8 @@ import { FlexibleTable, type TableColumn } from '../../../components/design-elem
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import {
-    projectTypes,
-    projectStages,
-    apartmentTypologies,
-    villaTypologies,
-    plotTypes,
-} from '../../../pages/dummy_data/restack_primary_details_dummy_data'
+import DateInput from '../../../components/design-elements/DateInputUnixTimestamps'
+import NumberInput from '../../../components/design-elements/StateBaseNumberField'
 import type {
     PrimaryProperty,
     DevelopmentDetail,
@@ -29,19 +24,101 @@ import type {
 } from '../../../data_types/restack/restack-primary'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '../../../firebase'
-import {
-    fetchPreReraPropertyRequest,
-    fetchPreReraPropertySuccess,
-    fetchPreReraPropertyFailure,
-    updateProperty,
-    updatePropertyField,
-} from '../../../store/reducers/restack/preReraProperties'
+import { clearCurrentProperty, updatePrimaryProperty } from '../../../store/actions/restack/primaryProperties'
 import type { RootState } from '../../../store/reducers'
 import { fetchPrimaryPropertyById } from '../../../store/actions/restack/primaryProperties'
-import { clearCurrentProperty } from '../../../store/reducers/restack/primaryProperties'
 import type { AppDispatch } from '../../../store'
+import Breadcrumb from '../../../components/acn/Breadcrumb'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+import { toast } from 'react-toastify'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+
+// Utility function to safely convert amenities from Firestore format to array
+const convertAmenitiesToArray = (amenities: any): string[] => {
+    if (Array.isArray(amenities)) {
+        return amenities
+    } else if (amenities && typeof amenities === 'object') {
+        // Convert object with numeric keys back to array
+        const keys = Object.keys(amenities).sort((a, b) => Number(a) - Number(b))
+        return keys.map((key) => amenities[key]).filter((item) => item !== undefined && item !== null)
+    }
+    return []
+}
+
+// Utility function to safely convert any array field from Firestore format
+const convertArrayField = (field: any): any[] => {
+    if (Array.isArray(field)) {
+        return field
+    } else if (field && typeof field === 'object') {
+        // Convert object with numeric keys back to array
+        const keys = Object.keys(field).sort((a, b) => Number(a) - Number(b))
+        return keys.map((key) => field[key]).filter((item) => item !== undefined && item !== null)
+    }
+    return []
+}
+
+// Options for dropdowns
+const projectTypes = [
+    { label: 'Residential', value: 'Residential' },
+    { label: 'Commercial', value: 'Commercial' },
+    { label: 'Mixed-Use', value: 'Mixed-Use' },
+    { label: 'plotted', value: 'plotted' },
+]
+
+const projectSubTypes = [
+    { label: 'Apartments', value: 'apartments' },
+    { label: 'Villa', value: 'villa' },
+    { label: 'Flat', value: 'flat' },
+    { label: 'Plot', value: 'plot' },
+    { label: 'Commercial', value: 'commercial' },
+]
+
+const projectStatuses = [
+    { label: 'Active', value: 'active' },
+    { label: 'Inactive', value: 'inactive' },
+    { label: 'Completed', value: 'completed' },
+    { label: 'On Hold', value: 'on-hold' },
+]
+
+const reraStatuses = [
+    { label: 'Approved', value: 'Approved' },
+    { label: 'Pending', value: 'Pending' },
+    { label: 'Rejected', value: 'Rejected' },
+    { label: 'Not Required', value: 'Not Required' },
+]
+
+const developerTiers = [
+    { label: 'A', value: 'A' },
+    { label: 'B', value: 'B' },
+    { label: 'C', value: 'C' },
+    { label: 'D', value: 'D' },
+]
+
+const areaUnits = [
+    { label: 'Square Meters', value: 'sqMtr' },
+    { label: 'Square Feet', value: 'sqft' },
+    { label: 'Acres', value: 'acres' },
+    { label: 'Hectares', value: 'hectares' },
+]
+
+const amenitiesOptions = [
+    { label: 'Swimming Pool', value: 'Swimming Pool' },
+    { label: 'Gym', value: 'Gym' },
+    { label: 'Playground', value: 'Playground' },
+    { label: 'Clubhouse', value: 'Clubhouse' },
+    { label: 'Security', value: 'Security' },
+    { label: 'Parking', value: 'Parking' },
+    { label: 'Garden', value: 'Garden' },
+    { label: 'Elevator', value: 'Elevator' },
+    { label: 'Power Backup', value: 'Power Backup' },
+    { label: 'Water Supply', value: 'Water Supply' },
+    { label: 'Waste Management', value: 'Waste Management' },
+    { label: 'CCTV Surveillance', value: 'CCTV Surveillance' },
+    { label: 'Fire Safety', value: 'Fire Safety' },
+    { label: 'Kids Play Area', value: 'Kids Play Area' },
+    { label: 'Senior Citizen Area', value: 'Senior Citizen Area' },
+    { label: 'Jogging Track', value: 'Jogging Track' },
+]
 
 // Floor plan image component
 const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
@@ -71,12 +148,24 @@ const PrimaryDetailsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
     const { currentProperty, loading, error } = useSelector((state: RootState) => state.primaryProperties)
 
-    const [isEditingGroundData, setIsEditingGroundData] = useState(false)
-    const [isEditingAmenities, setIsEditingAmenities] = useState(false)
-    const [isEditingClubhouse, setIsEditingClubhouse] = useState(false)
-    const [activeTab, setActiveTab] = useState<'apartment' | 'villa' | 'plot'>('apartment')
-    const [editingRowId, setEditingRowId] = useState<string | null>(null)
+    // Main state management
+    const [projectDetails, setProjectDetails] = useState<PrimaryProperty | null>(null)
+    const [originalDetails, setOriginalDetails] = useState<PrimaryProperty | null>(null)
+    const [isEditing, setIsEditing] = useState(false)
+    const [editingRowId, setEditingRowId] = useState<number | null>(null)
     const [isAddingRow, setIsAddingRow] = useState(false)
+
+    // States for managing sections
+    const [isAddingDevelopment, setIsAddingDevelopment] = useState(false)
+    const [isAddingTower, setIsAddingTower] = useState(false)
+    const [isAddingClubhouse, setIsAddingClubhouse] = useState(false)
+    const [newDevelopment, setNewDevelopment] = useState<Partial<DevelopmentDetail>>({})
+    const [newTower, setNewTower] = useState<Partial<TowerDetail>>({})
+    const [newClubhouse, setNewClubhouse] = useState<Partial<ClubhouseDetail>>({})
+    const [newAmenity, setNewAmenity] = useState('')
+    const [selectedAmenity, setSelectedAmenity] = useState('')
+
+    // Tower selection for floor plans and unit details
     const [selectedTowerForFloorPlan, setSelectedTowerForFloorPlan] = useState<TowerDetail | null>(null)
     const [selectedTowerForUnitDetails, setSelectedTowerForUnitDetails] = useState<TowerDetail | null>(null)
 
@@ -90,944 +179,1521 @@ const PrimaryDetailsPage = () => {
         }
     }, [id, dispatch])
 
-    // Handle field updates for main project details
-    const updateField = (field: string, value: string) => {
-        dispatch(updatePropertyField({ field, value }))
+    useEffect(() => {
+        if (currentProperty) {
+            // Convert Firestore data format to arrays
+            const convertedProperty = {
+                ...currentProperty,
+                amenities: convertAmenitiesToArray(currentProperty.amenities),
+                waterSource: convertArrayField(currentProperty.waterSource),
+                developmentDetails: convertArrayField(currentProperty.developmentDetails),
+                towerDetails: convertArrayField(currentProperty.towerDetails),
+                apartments: convertArrayField(currentProperty.apartments),
+                villas: convertArrayField(currentProperty.villas),
+                plots: convertArrayField(currentProperty.plots),
+                clubhouseDetails: convertArrayField(currentProperty.clubhouseDetails),
+                typologyAndUnitPlan: convertArrayField(currentProperty.typologyAndUnitPlan),
+                brochureURL: convertArrayField(currentProperty.brochureURL),
+                costSheetURL: convertArrayField(currentProperty.costSheetURL),
+            }
+
+            setProjectDetails(convertedProperty)
+            setOriginalDetails(convertedProperty)
+        }
+    }, [currentProperty])
+
+    const updateField = (field: string, value: string | number | null) => {
+        if (projectDetails) {
+            setProjectDetails((prev) => (prev ? { ...prev, [field]: value } : null))
+        }
     }
 
-    // Generic handle edit for sections
-    const handleEditSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
-        setter(true)
+    const handleEdit = () => {
+        setIsEditing(true)
     }
 
-    // Generic handle cancel for sections
-    const handleCancelSection = (
-        setter: React.Dispatch<React.SetStateAction<boolean>>,
-        originalData: PrimaryProperty | null,
-    ) => {
-        setter(false)
+    const handleCancel = () => {
+        setProjectDetails(originalDetails)
+        setIsEditing(false)
         setEditingRowId(null)
         setIsAddingRow(false)
+        setIsAddingDevelopment(false)
+        setIsAddingTower(false)
+        setIsAddingClubhouse(false)
+        setNewDevelopment({})
+        setNewTower({})
+        setNewClubhouse({})
+        setNewAmenity('')
+        setSelectedAmenity('')
         setSelectedTowerForFloorPlan(null)
         setSelectedTowerForUnitDetails(null)
     }
 
-    // Generic handle save for sections
-    const handleSaveSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
-        setter(false)
-        setEditingRowId(null)
-        setIsAddingRow(false)
+    const handleSave = async () => {
+        if (projectDetails && id) {
+            try {
+                const updates: Partial<PrimaryProperty> = {}
+
+                if (originalDetails) {
+                    Object.keys(projectDetails).forEach((key) => {
+                        const typedKey = key as keyof PrimaryProperty
+                        if (
+                            typedKey === 'developmentDetails' ||
+                            typedKey === 'towerDetails' ||
+                            typedKey === 'apartments' ||
+                            typedKey === 'villas' ||
+                            typedKey === 'plots' ||
+                            typedKey === 'clubhouseDetails' ||
+                            typedKey === 'amenities' ||
+                            typedKey === 'waterSource' ||
+                            typedKey === 'typologyAndUnitPlan' ||
+                            typedKey === 'brochureURL' ||
+                            typedKey === 'costSheetURL'
+                        ) {
+                            // Deep comparison for nested objects and arrays
+                            if (!deepCompare(projectDetails[typedKey], originalDetails[typedKey])) {
+                                ;(updates as any)[typedKey] = projectDetails[typedKey]
+                            }
+                        } else if (
+                            JSON.stringify(projectDetails[typedKey]) !== JSON.stringify(originalDetails[typedKey])
+                        ) {
+                            // Simple comparison for other properties
+                            ;(updates as any)[typedKey] = projectDetails[typedKey]
+                        }
+                    })
+                }
+
+                // Dispatch the updatePrimaryProperty action
+                await dispatch(
+                    updatePrimaryProperty({
+                        projectId: id,
+                        updates: updates,
+                    }),
+                )
+
+                setOriginalDetails(projectDetails)
+                setIsEditing(false)
+                setEditingRowId(null)
+                setIsAddingRow(false)
+                setIsAddingDevelopment(false)
+                setIsAddingTower(false)
+                setIsAddingClubhouse(false)
+                setNewDevelopment({})
+                setNewTower({})
+                setNewClubhouse({})
+                setNewAmenity('')
+                setSelectedAmenity('')
+                toast.success('Project details saved successfully')
+            } catch (error) {
+                toast.error('Error saving project details:' + (error as Error).message)
+            }
+        }
     }
 
-    // Handle data row updates for all tables
-    const updateDataRow = (
-        dataType:
-            | 'apartment'
-            | 'villa'
-            | 'plot'
-            | 'developmentDetails'
-            | 'towerDetails'
-            | 'clubhouseDetails'
-            | 'floorPlan'
-            | 'unitDetails',
-        rowId: string,
-        field: string,
-        value: string,
-    ) => {
-        if (!currentProperty) return
-
-        let fieldName: keyof PrimaryProperty | 'floorPlanDetails' | 'unitDetails'
-        let dataRows: any[] = []
-
-        switch (dataType) {
-            case 'apartment':
-                fieldName = 'apartmentUnits'
-                dataRows = currentProperty[fieldName] || []
-                break
-            case 'villa':
-                fieldName = 'villaUnits'
-                dataRows = currentProperty[fieldName] || []
-                break
-            case 'plot':
-                fieldName = 'plotUnits'
-                dataRows = currentProperty[fieldName] || []
-                break
-            case 'developmentDetails':
-                fieldName = 'developmentDetails'
-                dataRows = currentProperty[fieldName] || []
-                break
-            case 'towerDetails':
-                fieldName = 'towerDetails'
-                dataRows = currentProperty[fieldName] || []
-                break
-            case 'clubhouseDetails':
-                fieldName = 'clubhouseDetails'
-                dataRows = currentProperty[fieldName] || []
-                break
-            case 'floorPlan':
-                if (!selectedTowerForFloorPlan) return
-                fieldName = 'floorPlanDetails'
-                dataRows = selectedTowerForFloorPlan.floorPlanDetails || []
-                break
-            case 'unitDetails':
-                if (!selectedTowerForUnitDetails) return
-                fieldName = 'unitDetails'
-                dataRows = selectedTowerForUnitDetails.unitDetails || []
-                break
-            default:
-                return
+    // Deep comparison function
+    function deepCompare(obj1: any, obj2: any): boolean {
+        if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) {
+            return obj1 === obj2
         }
 
-        const updatedDataRows = dataRows.map((row) => (row.id === rowId ? { ...row, [field]: value } : row))
+        const keys1 = Object.keys(obj1)
+        const keys2 = Object.keys(obj2)
 
-        if (dataType === 'floorPlan' && selectedTowerForFloorPlan) {
-            const updatedTowerDetails = (currentProperty.towerDetails || []).map((tower: TowerDetail) =>
-                tower.id === selectedTowerForFloorPlan.id ? { ...tower, floorPlanDetails: updatedDataRows } : tower,
+        if (keys1.length !== keys2.length) {
+            return false
+        }
+
+        for (const key of keys1) {
+            if (!deepCompare(obj1[key], obj2[key])) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    // Development details management
+    const handleAddDevelopment = () => {
+        if (newDevelopment.typeOfInventory && newDevelopment.numberOfInventory) {
+            const development: DevelopmentDetail = {
+                typeOfInventory: newDevelopment.typeOfInventory,
+                numberOfInventory: newDevelopment.numberOfInventory,
+                carpetAreaSqMtr: newDevelopment.carpetAreaSqMtr || 0,
+                balconyVerandahSqMtr: newDevelopment.balconyVerandahSqMtr || 0,
+                openTerraceSqMtr: newDevelopment.openTerraceSqMtr || 0,
+            }
+
+            setProjectDetails((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          developmentDetails: [...(prev.developmentDetails || []), development],
+                      }
+                    : null,
             )
-            dispatch(updateProperty({ towerDetails: updatedTowerDetails }))
-        } else if (dataType === 'unitDetails' && selectedTowerForUnitDetails) {
-            const updatedTowerDetails = (currentProperty.towerDetails || []).map((tower: TowerDetail) =>
-                tower.id === selectedTowerForUnitDetails.id ? { ...tower, unitDetails: updatedDataRows } : tower,
-            )
-            dispatch(updateProperty({ towerDetails: updatedTowerDetails }))
-        } else {
-            dispatch(updateProperty({ [fieldName]: updatedDataRows }))
+
+            setNewDevelopment({})
+            setIsAddingDevelopment(false)
         }
     }
 
-    // Handle adding new unit
-    const addNewUnit = (unitType: 'apartment' | 'villa' | 'plot') => {
-        if (!currentProperty) return
-
-        const newId = `${unitType}_${Date.now()}`
-        let newUnit: ApartmentConfig | VillaConfig | PlotConfig
-
-        switch (unitType) {
-            case 'apartment':
-                newUnit = {
-                    id: newId,
-                    aptType: 'Simplex',
-                    typology: 'Studio',
-                    superBuiltUpArea: 0,
-                    carpetArea: 0,
-                    currentPricePerSqft: 0,
-                    totalPrice: 0,
-                }
-                break
-            case 'villa':
-                newUnit = {
-                    id: newId,
-                    villaType: 'UDS',
-                    typology: '2 BHK',
-                    plotSize: 0,
-                    builtUpArea: 0,
-                    carpetArea: 0,
-                    currentPricePerSqft: 0,
-                    totalPrice: 0,
-                    uds: '',
-                    udsPercentage: 0,
-                    udsArea: 0,
-                    numberOfFloors: 0,
-                }
-                break
-            case 'plot':
-                newUnit = {
-                    id: newId,
-                    plotType: 'ODD PLOT',
-                    plotArea: 0,
-                    currentPricePerSqft: 0,
-                    totalPrice: 0,
-                }
-                break
-            default:
-                return
-        }
-
-        const fieldName = `${unitType}Units` as keyof PrimaryProperty
-        const units = (currentProperty[fieldName] as any[]) || []
-        dispatch(updateProperty({ [fieldName]: [...units, newUnit] }))
-
-        setEditingRowId(newId)
-        setIsAddingRow(true)
-    }
-
-    // Handle delete unit
-    const deleteUnit = (unitType: 'apartment' | 'villa' | 'plot', unitId: string) => {
-        if (!currentProperty) return
-
-        const fieldName = `${unitType}Units` as keyof PrimaryProperty
-        const units = (currentProperty[fieldName] as any[]) || []
-        const updatedUnits = units.filter((unit) => unit.id !== unitId)
-        dispatch(updateProperty({ [fieldName]: updatedUnits }))
-    }
-
-    // Handle adding new clubhouse row
-    const addClubhouseRow = () => {
-        if (!currentProperty) return
-
-        const newId = `new-clubhouse-${Date.now()}`
-        const newRow: ClubhouseDetail = {
-            id: newId,
-            name: '',
-            sizeSqft: '',
-            floor: '',
-        }
-
-        const currentClubhouseDetails = currentProperty.clubhouseDetails || []
-        dispatch(updateProperty({ clubhouseDetails: [...currentClubhouseDetails, newRow] }))
-
-        setEditingRowId(newId)
-        setIsAddingRow(true)
-    }
-
-    // Handle delete clubhouse row
-    const deleteClubhouseRow = (rowId: string) => {
-        if (!currentProperty?.clubhouseDetails) return
-        dispatch(
-            updateProperty({
-                clubhouseDetails: currentProperty.clubhouseDetails.filter((r: ClubhouseDetail) => r.id !== rowId),
-            }),
+    const handleDeleteDevelopment = (index: number) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      developmentDetails: (prev.developmentDetails || []).filter((_, i) => i !== index),
+                  }
+                : null,
         )
     }
 
-    // Helper for rendering info rows (read-only and editable)
-    const renderInfoRow = (
-        label1: string,
-        value1: string | undefined,
-        label2: string,
-        value2: string | undefined,
-        fieldKey1?: string,
-        fieldKey2?: string,
-        options1?: { label: string; value: string }[],
-        options2?: { label: string; value: string }[],
-        type1: 'text' | 'date' | 'link' = 'text',
-        type2: 'text' | 'date' | 'link' = 'text',
-        onClick1?: () => void,
-        onClick2?: () => void,
-        classNameOverride?: string,
-        isSectionEditable: boolean = false,
-    ) => {
-        const renderField = (
-            label: string,
-            value: string | undefined,
-            fieldKey: string | undefined,
-            options?: { label: string; value: string }[],
-            type: 'text' | 'date' | 'link' = 'text',
-            onClick?: () => void,
-        ) => {
-            const displayValue = value || ''
-            return (
-                <div
-                    className={`flex flex-col gap-1 border-t border-solid border-t-[#d4dbe2] py-4 ${classNameOverride?.includes('pr-') ? '' : 'pr-2'}`}
-                >
-                    <p className='text-[#5c738a] text-sm font-normal leading-normal'>{label}</p>
-                    {isSectionEditable && fieldKey ? (
-                        options ? (
-                            <Dropdown
-                                options={options}
-                                defaultValue={value || ''}
-                                onSelect={(optionValue: string) => updateField(fieldKey, optionValue)}
-                                className='w-full'
-                                optionClassName='text-base'
-                            />
-                        ) : type === 'date' ? (
-                            <StateBaseTextField
-                                type='date'
-                                value={value || ''}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                    updateField(fieldKey, e.target.value)
-                                }
-                                className='h-9 text-base'
-                            />
-                        ) : (
-                            <StateBaseTextField
-                                value={value || ''}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                    updateField(fieldKey, e.target.value)
-                                }
-                                className='h-9 text-base'
-                            />
-                        )
-                    ) : type === 'link' &&
-                      value &&
-                      onClick &&
-                      (value.startsWith('http') ||
-                          (value.startsWith('/') && !onClick.toString().includes('navigate'))) ? (
-                        <a
-                            href={value}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            className='text-blue-600 underline text-sm font-medium leading-normal'
-                            onClick={onClick}
-                        >
-                            {displayValue}
-                        </a>
-                    ) : type === 'link' && onClick ? (
-                        <button
-                            onClick={onClick}
-                            className='text-blue-600 underline text-sm font-medium leading-normal text-left cursor-pointer'
-                        >
-                            {displayValue}
-                        </button>
-                    ) : (
-                        <p className='text-[#101418] text-sm font-normal leading-normal'>{displayValue}</p>
-                    )}
-                </div>
-            )
-        }
-
-        return (
-            <>
-                <div
-                    className={`${classNameOverride && classNameOverride.includes('col-span-2') ? classNameOverride : ''}`}
-                >
-                    {renderField(label1, value1, fieldKey1, options1, type1, onClick1)}
-                </div>
-                {!classNameOverride?.includes('col-span-2') && (
-                    <div className={'pl-2'}>{renderField(label2, value2, fieldKey2, options2, type2, onClick2)}</div>
-                )}
-            </>
+    const handleEditDevelopment = (index: number, field: string, value: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      developmentDetails: (prev.developmentDetails || []).map((dev, i) =>
+                          i === index ? { ...dev, [field]: value } : dev,
+                      ),
+                  }
+                : null,
         )
     }
 
-    // Render table cell (for editable and read-only states)
-    const renderTableCell = (
+    // Tower details management
+    const handleAddTower = () => {
+        if (newTower.towerName && newTower.typeOfTower) {
+            const tower: TowerDetail = {
+                id: Date.now().toString(),
+                towerName: newTower.towerName,
+                typeOfTower: newTower.typeOfTower,
+                floors: newTower.floors || 0,
+                units: newTower.units || 0,
+                stilts: newTower.stilts || 0,
+                slabs: newTower.slabs || 0,
+                basements: newTower.basements || 0,
+                totalParking: newTower.totalParking || 0,
+                towerHeightInMeters: newTower.towerHeightInMeters || 0,
+                floorplan: { floorNo: '', noOfUnits: '' },
+                floorPlanDetails: [],
+                unitDetails: [],
+            }
+
+            setProjectDetails((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          towerDetails: [...(prev.towerDetails || []), tower],
+                      }
+                    : null,
+            )
+
+            setNewTower({})
+            setIsAddingTower(false)
+        }
+    }
+
+    const handleDeleteTower = (towerId: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      towerDetails: (prev.towerDetails || []).filter((tower) => tower.id !== towerId),
+                  }
+                : null,
+        )
+    }
+
+    const handleEditTower = (towerId: string, field: string, value: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      towerDetails: (prev.towerDetails || []).map((tower) =>
+                          tower.id === towerId ? { ...tower, [field]: value } : tower,
+                      ),
+                  }
+                : null,
+        )
+    }
+
+    // Clubhouse details management
+    const handleAddClubhouse = () => {
+        if (newClubhouse.name && newClubhouse.sizeSqft) {
+            const clubhouse: ClubhouseDetail = {
+                id: Date.now().toString(),
+                name: newClubhouse.name,
+                sizeSqft: newClubhouse.sizeSqft.toString(),
+                floor: newClubhouse.floor || '',
+            }
+
+            setProjectDetails((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          clubhouseDetails: [...(prev.clubhouseDetails || []), clubhouse],
+                      }
+                    : null,
+            )
+
+            setNewClubhouse({})
+            setIsAddingClubhouse(false)
+        }
+    }
+
+    const handleDeleteClubhouse = (clubhouseId: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      clubhouseDetails: (prev.clubhouseDetails || []).filter((club) => club.id !== clubhouseId),
+                  }
+                : null,
+        )
+    }
+
+    const handleEditClubhouse = (clubhouseId: string, field: string, value: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      clubhouseDetails: (prev.clubhouseDetails || []).map((club) =>
+                          club.id === clubhouseId ? { ...club, [field]: value } : club,
+                      ),
+                  }
+                : null,
+        )
+    }
+
+    // Amenities management
+    const handleAddAmenityFromDropdown = () => {
+        if (selectedAmenity && projectDetails) {
+            const currentAmenities = projectDetails.amenities || []
+            if (!currentAmenities.includes(selectedAmenity)) {
+                setProjectDetails((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              amenities: [...currentAmenities, selectedAmenity],
+                          }
+                        : null,
+                )
+            }
+            setSelectedAmenity('')
+        }
+    }
+
+    const handleAddCustomAmenity = () => {
+        if (newAmenity.trim() && projectDetails) {
+            const currentAmenities = projectDetails.amenities || []
+            if (!currentAmenities.includes(newAmenity.trim())) {
+                setProjectDetails((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              amenities: [...currentAmenities, newAmenity.trim()],
+                          }
+                        : null,
+                )
+            }
+            setNewAmenity('')
+        }
+    }
+
+    const handleRemoveAmenity = (amenityToRemove: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      amenities: (prev.amenities || []).filter((amenity) => amenity !== amenityToRemove),
+                  }
+                : null,
+        )
+    }
+
+    const renderField = (
+        label: string,
         value: string | number | null,
-        row: any,
-        field: string,
-        dataType:
-            | 'apartment'
-            | 'villa'
-            | 'plot'
-            | 'developmentDetails'
-            | 'towerDetails'
-            | 'clubhouseDetails'
-            | 'floorPlan'
-            | 'unitDetails',
+        fieldKey: string,
         options?: { label: string; value: string }[],
-        type: 'text' | 'number' | 'image' | 'button' = 'text',
-        buttonType?: 'floorPlan' | 'unitDetails',
-        isSectionEditable: boolean = false,
-        isRowEditable: boolean = false,
+        fieldType: 'text' | 'date' | 'number' = 'text',
+        onClick?: () => void,
     ) => {
-        const uniqueKey = `${row.id}-${field}`
-
-        if (isSectionEditable && isRowEditable) {
-            return (
-                <StateBaseTextField
-                    key={uniqueKey}
-                    id={uniqueKey}
-                    name={field}
-                    value={value !== null ? String(value) : ''}
-                    onChange={(e) => updateDataRow(dataType, row.id, field, e.target.value)}
-                    type={type === 'number' ? 'number' : 'text'}
-                    className='w-full text-sm font-normal text-gray-700 leading-tight border-b border-gray-300 focus:border-blue-500 focus:outline-none py-1'
-                />
-            )
-        }
-
-        if (isSectionEditable && editingRowId === row.id) {
+        if (isEditing) {
             if (options) {
                 return (
-                    <Dropdown
-                        options={options}
-                        defaultValue={value !== null ? value.toString() : ''}
-                        onSelect={(optionValue: string) => updateDataRow(dataType, row.id, field, optionValue)}
-                        className='w-full'
-                        optionClassName='text-sm'
+                    <div>
+                        <label className='text-sm text-black block mb-1'>{label}</label>
+                        <Dropdown
+                            options={options}
+                            onSelect={(selectedValue: string) => updateField(fieldKey, selectedValue)}
+                            defaultValue={value as string}
+                            placeholder={`Select ${label}`}
+                            className='relative w-full'
+                            triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
+                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                            optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                        />
+                    </div>
+                )
+            } else if (fieldType === 'date') {
+                return (
+                    <DateInput
+                        label={label}
+                        placeholder='Select date'
+                        value={value as number | null}
+                        onChange={(timestamp: number | null) => {
+                            if (timestamp !== null) {
+                                updateField(fieldKey, timestamp)
+                            }
+                        }}
+                        minDate={new Date().toISOString().split('T')[0]}
+                        fullWidth
+                    />
+                )
+            } else if (fieldType === 'number') {
+                return (
+                    <NumberInput
+                        label={label}
+                        placeholder={`Enter ${label.toLowerCase()}`}
+                        value={value as number}
+                        onChange={(numValue: number | null, stringValue: string) => {
+                            updateField(fieldKey, numValue ?? 0)
+                        }}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
                     />
                 )
             } else {
                 return (
-                    <StateBaseTextField
-                        type={type === 'number' ? 'number' : 'text'}
-                        value={value !== null ? value.toString() : ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            updateDataRow(dataType, row.id, field, e.target.value)
-                        }
-                        className='h-9 text-sm'
-                    />
-                )
-            }
-        } else {
-            if (type === 'image') {
-                return <FloorPlanImage imageUrl={(value as string) || ''} size='small' />
-            } else if (type === 'button' && buttonType) {
-                return (
-                    <div className='flex gap-2'>
-                        <Button
-                            className='rounded-md bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600'
-                            onClick={() => {
-                                setSelectedTowerForFloorPlan(row)
-                                setSelectedTowerForUnitDetails(null)
-                            }}
-                        >
-                            View
-                        </Button>
-                        <Button
-                            className='rounded-md bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600'
-                            onClick={() => {
-                                setSelectedTowerForUnitDetails(row)
-                                setSelectedTowerForFloorPlan(null)
-                            }}
-                        >
-                            View
-                        </Button>
+                    <div>
+                        <label className='text-sm text-black block mb-1'>{label}</label>
+                        <StateBaseTextField
+                            value={value?.toString() ?? ''}
+                            onChange={(e: any) => updateField(fieldKey, e.target.value)}
+                            className='w-full text-sm'
+                        />
                     </div>
                 )
             }
-            return <span className='whitespace-nowrap text-sm text-gray-600'>{value !== null ? value : ''}</span>
+        } else {
+            let displayValue = value?.toString() ?? ''
+            if (fieldType === 'date' && typeof value === 'number') {
+                displayValue = formatUnixDate(value) ?? ''
+            }
+
+            return (
+                <div
+                    className={`border-b border-[#D4DBE2] gap-1 pb-2 mb-4 flex flex-col justify-between ${onClick ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                    onClick={onClick}
+                >
+                    <label className='text-sm text-gray-600 block mb-1'>{label} </label>
+                    <div className='text-sm text-black font-medium'>{displayValue}</div>
+                </div>
+            )
         }
     }
 
-    // Column definitions for Development Details
-    const getDevelopmentColumns = (): TableColumn[] => [
-        {
-            key: 'slNo',
-            header: 'Sl No.',
-            render: (value: any, row: any) =>
-                renderTableCell(value || '', row, 'slNo', 'developmentDetails', undefined, 'text'),
-        },
+    const getDevelopmentColumns = () => [
         {
             key: 'typeOfInventory',
             header: 'Type of Inventory',
-            render: (value: any, row: any) =>
-                renderTableCell(value || '', row, 'typeOfInventory', 'developmentDetails', undefined, 'text'),
+            render: (value: any, row: any) => {
+                const index =
+                    projectDetails?.developmentDetails?.findIndex(
+                        (dev, i) =>
+                            dev.typeOfInventory === row.typeOfInventory &&
+                            dev.numberOfInventory === row.numberOfInventory,
+                    ) ?? -1
+                return isEditing && editingRowId === index ? (
+                    <StateBaseTextField
+                        value={value}
+                        onChange={(e) => handleEditDevelopment(index, 'typeOfInventory', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span>{value}</span>
+                )
+            },
         },
         {
-            key: 'noOfInventory',
-            header: 'No. of Inventory',
-            render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'noOfInventory', 'developmentDetails', undefined, 'number'),
+            key: 'numberOfInventory',
+            header: 'Number of Inventory',
+            render: (value: any, row: any) => {
+                const index =
+                    projectDetails?.developmentDetails?.findIndex(
+                        (dev, i) =>
+                            dev.typeOfInventory === row.typeOfInventory &&
+                            dev.numberOfInventory === row.numberOfInventory,
+                    ) ?? -1
+                return isEditing && editingRowId === index ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter number'
+                        value={value}
+                        onChange={(numValue: number | null) => {
+                            handleEditDevelopment(index, 'numberOfInventory', (numValue || 0).toString())
+                        }}
+                        numberType='integer'
+                        min={0}
+                        fullWidth
+                    />
+                ) : (
+                    <span>{value}</span>
+                )
+            },
         },
         {
             key: 'carpetAreaSqMtr',
             header: 'Carpet Area (Sq Mtr)',
-            render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'carpetArea', 'developmentDetails', undefined, 'number'),
+            render: (value: any, row: any) => {
+                const index =
+                    projectDetails?.developmentDetails?.findIndex(
+                        (dev, i) =>
+                            dev.typeOfInventory === row.typeOfInventory &&
+                            dev.numberOfInventory === row.numberOfInventory,
+                    ) ?? -1
+                return isEditing && editingRowId === index ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter area'
+                        value={value}
+                        onChange={(numValue: number | null) => {
+                            handleEditDevelopment(index, 'carpetAreaSqMtr', (numValue || 0).toString())
+                        }}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
+                    />
+                ) : (
+                    <span>{value}</span>
+                )
+            },
         },
         {
-            key: 'areaOfExclusiveBalconyVerandahSqMtr',
-            header: 'Area of exclusive balcony/verandah (Sq Mtr)',
-            render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'areaOfAmenitiesSqMtrNos', 'developmentDetails', undefined, 'number'),
+            key: 'balconyVerandahSqMtr',
+            header: 'Balcony/Verandah (Sq Mtr)',
+            render: (value: any, row: any) => {
+                const index =
+                    projectDetails?.developmentDetails?.findIndex(
+                        (dev, i) =>
+                            dev.typeOfInventory === row.typeOfInventory &&
+                            dev.numberOfInventory === row.numberOfInventory,
+                    ) ?? -1
+                return isEditing && editingRowId === index ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter area'
+                        value={value || 0}
+                        onChange={(numValue: number | null) => {
+                            handleEditDevelopment(index, 'balconyVerandahSqMtr', (numValue || 0).toString())
+                        }}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
+                    />
+                ) : (
+                    <span>{value || 0}</span>
+                )
+            },
         },
         {
-            key: 'areaOfExclusiveOpenTerraceSqMtr',
-            header: 'Area of exclusive open Terrace (Sq Mtr)',
-            render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'areaOfParkingNo', 'developmentDetails', undefined, 'number'),
+            key: 'openTerraceSqMtr',
+            header: 'Open Terrace (Sq Mtr)',
+            render: (value: any, row: any) => {
+                const index =
+                    projectDetails?.developmentDetails?.findIndex(
+                        (dev, i) =>
+                            dev.typeOfInventory === row.typeOfInventory &&
+                            dev.numberOfInventory === row.numberOfInventory,
+                    ) ?? -1
+                return isEditing && editingRowId === index ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter area'
+                        value={value || 0}
+                        onChange={(numValue: number | null) => {
+                            handleEditDevelopment(index, 'openTerraceSqMtr', (numValue || 0).toString())
+                        }}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
+                    />
+                ) : (
+                    <span>{value || 0}</span>
+                )
+            },
         },
+        ...(isEditing
+            ? [
+                  {
+                      key: 'actions',
+                      header: 'Actions',
+                      render: (value: any, row: any) => {
+                          const index =
+                              projectDetails?.developmentDetails?.findIndex(
+                                  (dev, i) =>
+                                      dev.typeOfInventory === row.typeOfInventory &&
+                                      dev.numberOfInventory === row.numberOfInventory,
+                              ) ?? -1
+                          return (
+                              <div className='flex gap-2'>
+                                  {editingRowId === index ? (
+                                      <>
+                                          <Button
+                                              bgColor='bg-green-600'
+                                              textColor='text-white'
+                                              className='px-2 py-1 h-6 text-xs'
+                                              onClick={() => setEditingRowId(null)}
+                                          >
+                                              ✓
+                                          </Button>
+                                          <Button
+                                              bgColor='bg-gray-400'
+                                              textColor='text-white'
+                                              className='px-2 py-1 h-6 text-xs'
+                                              onClick={() => setEditingRowId(null)}
+                                          >
+                                              ✕
+                                          </Button>
+                                      </>
+                                  ) : (
+                                      <>
+                                          <Button
+                                              bgColor='bg-blue-600'
+                                              textColor='text-white'
+                                              className='px-2 py-1 h-6 text-xs'
+                                              onClick={() => setEditingRowId(index)}
+                                          >
+                                              Edit
+                                          </Button>
+                                          <Button
+                                              bgColor='bg-red-600'
+                                              textColor='text-white'
+                                              className='px-2 py-1 h-6 text-xs'
+                                              onClick={() => handleDeleteDevelopment(index)}
+                                          >
+                                              Delete
+                                          </Button>
+                                      </>
+                                  )}
+                              </div>
+                          )
+                      },
+                  },
+              ]
+            : []),
     ]
 
-    // Column definitions for Tower Details
     const getTowerColumns = (): TableColumn[] => [
         {
-            key: 'tower',
+            key: 'towerName',
             header: 'Tower Name',
             render: (value: any, row: any) =>
-                renderTableCell(value || '', row, 'tower', 'towerDetails', undefined, 'text'),
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        value={value}
+                        onChange={(e) => handleEditTower(row.id, 'towerName', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
         },
         {
-            key: 'type',
-            header: 'Type',
+            key: 'typeOfTower',
+            header: 'Type of Tower',
             render: (value: any, row: any) =>
-                renderTableCell(value || '', row, 'type', 'towerDetails', undefined, 'text'),
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        value={value}
+                        onChange={(e) => handleEditTower(row.id, 'typeOfTower', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
         },
         {
-            key: 'noOfFloors',
-            header: 'No. of Floors',
+            key: 'floors',
+            header: 'Floors',
             render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'noOfFloors', 'towerDetails', undefined, 'number'),
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        type='number'
+                        value={value}
+                        onChange={(e) => handleEditTower(row.id, 'floors', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
         },
         {
-            key: 'totalUnits',
-            header: 'Total Units',
+            key: 'units',
+            header: 'Units',
             render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'totalUnits', 'towerDetails', undefined, 'number'),
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        type='number'
+                        value={value}
+                        onChange={(e) => handleEditTower(row.id, 'units', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
         },
         {
-            key: 'stilts',
-            header: 'Stilts',
+            key: 'totalParking',
+            header: 'Total Parking',
             render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'stilts', 'towerDetails', undefined, 'number'),
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        type='number'
+                        value={value}
+                        onChange={(e) => handleEditTower(row.id, 'totalParking', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
         },
         {
-            key: 'slabs',
-            header: 'Slabs',
-            render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'slabs', 'towerDetails', undefined, 'number'),
-        },
-        {
-            key: 'basement',
-            header: 'Basement',
-            render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'basement', 'towerDetails', undefined, 'number'),
-        },
-        {
-            key: 'parking',
-            header: 'Parking',
-            render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'parking', 'towerDetails', undefined, 'number'),
-        },
-        {
-            key: 'heightFeet',
+            key: 'towerHeightInMeters',
             header: 'Height (m)',
             render: (value: any, row: any) =>
-                renderTableCell(value || 0, row, 'heightFeet', 'towerDetails', undefined, 'number'),
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        type='number'
+                        value={value}
+                        onChange={(e) => handleEditTower(row.id, 'towerHeightInMeters', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
         },
         {
             key: 'floorPlanAndUnits',
             header: 'Floor Plan / Units',
-            render: (_: unknown, row: any) =>
-                renderTableCell(null, row, '', 'towerDetails', undefined, 'button', 'floorPlan'),
+            render: (_: unknown, row: any) => (
+                <div className='flex gap-2'>
+                    <Button
+                        className='rounded-md bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600'
+                        onClick={() => {
+                            setSelectedTowerForFloorPlan(row)
+                            setSelectedTowerForUnitDetails(null)
+                        }}
+                    >
+                        Floor Plan
+                    </Button>
+                    <Button
+                        className='rounded-md bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600'
+                        onClick={() => {
+                            setSelectedTowerForUnitDetails(row)
+                            setSelectedTowerForFloorPlan(null)
+                        }}
+                    >
+                        Units
+                    </Button>
+                </div>
+            ),
         },
+        ...(isEditing
+            ? [
+                  {
+                      key: 'actions',
+                      header: 'Actions',
+                      render: (value: any, row: any) => (
+                          <div className='flex gap-2'>
+                              {editingRowId === row.id ? (
+                                  <>
+                                      <Button
+                                          bgColor='bg-green-600'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => setEditingRowId(null)}
+                                      >
+                                          ✓
+                                      </Button>
+                                      <Button
+                                          bgColor='bg-gray-400'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => setEditingRowId(null)}
+                                      >
+                                          ✕
+                                      </Button>
+                                  </>
+                              ) : (
+                                  <>
+                                      <Button
+                                          bgColor='bg-blue-600'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => setEditingRowId(row.id)}
+                                      >
+                                          Edit
+                                      </Button>
+                                      <Button
+                                          bgColor='bg-red-600'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => handleDeleteTower(row.id)}
+                                      >
+                                          Delete
+                                      </Button>
+                                  </>
+                              )}
+                          </div>
+                      ),
+                  },
+              ]
+            : []),
     ]
 
-    // Column definitions for Floor Plan Details
-    const getFloorPlanColumns = (): TableColumn[] => [
-        {
-            key: 'floorNo',
-            header: 'Floor No',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-        {
-            key: 'noOfUnits',
-            header: 'No of Units',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-    ]
-
-    // Column definitions for Unit Details
-    const getUnitDetailsColumns = (): TableColumn[] => [
-        {
-            key: 'slNo',
-            header: 'Sl No',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-        {
-            key: 'floorNo',
-            header: 'Floor No',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-        {
-            key: 'unitNo',
-            header: 'Unit No',
-            render: (value: any) => <span className='whitespace-nowrap text-sm font-medium'>{value || ''}</span>,
-        },
-        {
-            key: 'unitType',
-            header: 'Unit Type',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-        {
-            key: 'carpetArea',
-            header: 'Carpet Area',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-        {
-            key: 'exclusiveArea',
-            header: 'Exclusive Area',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-        {
-            key: 'associationArea',
-            header: 'Association Area',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-        {
-            key: 'uds',
-            header: 'UDS',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-        {
-            key: 'parking',
-            header: 'Parking',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value || ''}</span>,
-        },
-    ]
-
-    // Column definitions for Clubhouse Details
     const getClubhouseColumns = (): TableColumn[] => [
         {
             key: 'name',
             header: 'Name',
             render: (value: any, row: any) =>
-                renderTableCell(
-                    value || '',
-                    row,
-                    'name',
-                    'clubhouseDetails',
-                    undefined,
-                    'text',
-                    undefined,
-                    isEditingClubhouse,
-                    editingRowId === row.id,
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        value={value}
+                        onChange={(e) => handleEditClubhouse(row.id, 'name', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
                 ),
         },
         {
             key: 'sizeSqft',
-            header: 'Size (Sqft)',
+            header: 'Size (Sq Ft)',
             render: (value: any, row: any) =>
-                renderTableCell(
-                    value || 0,
-                    row,
-                    'sizeSqft',
-                    'clubhouseDetails',
-                    undefined,
-                    'number',
-                    undefined,
-                    isEditingClubhouse,
-                    editingRowId === row.id,
+                isEditing && editingRowId === row.id ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter size'
+                        value={parseFloat(value || '0')}
+                        onChange={(numValue: number | null) => {
+                            handleEditClubhouse(row.id, 'sizeSqft', (numValue || 0).toString())
+                        }}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
                 ),
         },
         {
             key: 'floor',
             header: 'Floor',
             render: (value: any, row: any) =>
-                renderTableCell(
-                    value || '',
-                    row,
-                    'floor',
-                    'clubhouseDetails',
-                    undefined,
-                    'text',
-                    undefined,
-                    isEditingClubhouse,
-                    editingRowId === row.id,
+                isEditing && editingRowId === row.id ? (
+                    <StateBaseTextField
+                        value={value}
+                        onChange={(e) => handleEditClubhouse(row.id, 'floor', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
                 ),
         },
+        ...(isEditing
+            ? [
+                  {
+                      key: 'actions',
+                      header: 'Actions',
+                      render: (value: any, row: any) => (
+                          <div className='flex gap-2'>
+                              {editingRowId === row.id ? (
+                                  <>
+                                      <Button
+                                          bgColor='bg-green-600'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => setEditingRowId(null)}
+                                      >
+                                          ✓
+                                      </Button>
+                                      <Button
+                                          bgColor='bg-gray-400'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => setEditingRowId(null)}
+                                      >
+                                          ✕
+                                      </Button>
+                                  </>
+                              ) : (
+                                  <>
+                                      <Button
+                                          bgColor='bg-blue-600'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => setEditingRowId(row.id)}
+                                      >
+                                          Edit
+                                      </Button>
+                                      <Button
+                                          bgColor='bg-red-600'
+                                          textColor='text-white'
+                                          className='px-2 py-1 h-6 text-xs'
+                                          onClick={() => handleDeleteClubhouse(row.id)}
+                                      >
+                                          Delete
+                                      </Button>
+                                  </>
+                              )}
+                          </div>
+                      ),
+                  },
+              ]
+            : []),
+    ]
+
+    const getFloorPlanColumns = (): TableColumn[] => [
         {
-            key: 'actions',
-            header: 'Actions',
-            render: (_, row) => {
-                if (!isEditingClubhouse) return null // Only show actions when the section is in edit mode
-
-                const isThisRowBeingEdited = editingRowId === row.id
-                const isAnyRowBeingEdited = editingRowId !== null
-
-                return (
-                    <div className='flex gap-1 justify-end'>
-                        {isThisRowBeingEdited ? (
-                            <>
-                                <button
-                                    className='text-green-600 hover:text-green-800 text-xs font-medium'
-                                    onClick={() => {
-                                        setEditingRowId(null)
-                                        if (isAddingRow) setIsAddingRow(false) // If we were adding, finish adding
-                                    }}
-                                >
-                                    Save
-                                </button>
-                                <button
-                                    className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
-                                    onClick={() => {
-                                        // If this was a newly added row, remove it on cancel
-                                        if (isAddingRow && row.id.startsWith('new-clubhouse-')) {
-                                            dispatch(
-                                                updateProperty({
-                                                    clubhouseDetails:
-                                                        currentProperty?.clubhouseDetails?.filter(
-                                                            (r: ClubhouseDetail) => r.id !== row.id,
-                                                        ) || [],
-                                                }),
-                                            )
-                                            setEditingRowId(null)
-                                            setIsAddingRow(false)
-                                        }
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </>
-                        ) : (
-                            <button
-                                className='text-gray-600 hover:text-gray-800 text-xs font-medium'
-                                onClick={() => {
-                                    setEditingRowId(row.id)
-                                    setIsAddingRow(false) // Ensure isAddingRow is false when editing an existing row
-                                }}
-                                disabled={isAnyRowBeingEdited} // Disable edit if another row is being edited
-                            >
-                                Edit
-                            </button>
-                        )}
-                        {!isAnyRowBeingEdited && !isThisRowBeingEdited && (
-                            <button
-                                className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
-                                onClick={() => deleteClubhouseRow(row.id)}
-                            >
-                                Delete
-                            </button>
-                        )}
-                    </div>
-                )
-            },
+            key: 'floorNo',
+            header: 'Floor No',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'noOfUnits',
+            header: 'No of Units',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
         },
     ]
 
-    if (loading || !currentProperty) {
+    const getUnitDetailsColumns = (): TableColumn[] => [
+        {
+            key: 'slNo',
+            header: 'Sl No',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'floorNo',
+            header: 'Floor No',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'unitNo',
+            header: 'Unit No',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'unitType',
+            header: 'Unit Type',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'carpetArea',
+            header: 'Carpet Area',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'exclusiveArea',
+            header: 'Exclusive Area',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'associationArea',
+            header: 'Association Area',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'uds',
+            header: 'UDS',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'parking',
+            header: 'Parking',
+            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        },
+    ]
+
+    if (loading || !projectDetails) {
         return <Layout loading={true}>Loading project details...</Layout>
+    }
+    if (error) {
+        return (
+            <Layout loading={false}>
+                <div className='text-red-600 font-bold p-8'>Error: {error}</div>
+            </Layout>
+        )
+    }
+    if (!projectDetails) {
+        return (
+            <Layout loading={false}>
+                <div className='text-gray-600 font-bold p-8'>No property data found.</div>
+            </Layout>
+        )
     }
 
     return (
         <Layout loading={false}>
             <div className='w-full overflow-hidden font-sans'>
-                <div className='py-4 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                <div className='pb-4 pt-[9px] bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                    {/* Success Message */}
+                    {/* {updateSuccess && (
+                        <div className='fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50'>
+                            {updateSuccess}
+                        </div>
+                    )}
+
+                    {/* Unsaved Changes Warning */}
+                    {/* {hasUnsavedChanges && (
+                        <div className='fixed top-4 left-4 bg-yellow-500 text-white px-4 py-2 rounded-md shadow-lg z-50'>
+                            You have unsaved changes
+                        </div>
+                    )} */}
+
                     {/* Header */}
-                    <div className='mb-2'>
-                        <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Project Details</h1>
+                    <div className=''>
+                        <div className='flex items-center justify-between px-6'>
+                            <Breadcrumb link='/restack/primary' parent='Primary' child={projectDetails?.projectName} />
+                            <div className='flex gap-2'>
+                                {isEditing ? (
+                                    <>
+                                        <Button
+                                            bgColor='bg-gray-200'
+                                            textColor='text-gray-700'
+                                            className='px-4 h-8 font-semibold'
+                                            onClick={handleCancel}
+                                        >
+                                            ✕ Cancel
+                                        </Button>
+                                        <Button
+                                            bgColor='bg-gray-600'
+                                            textColor='text-white'
+                                            className='px-4 h-8 font-semibold'
+                                            onClick={handleSave}
+                                        >
+                                            ✓ Save
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button
+                                        leftIcon={<img src={editic} alt='Edit' className='w-4 h-4' />}
+                                        bgColor='bg-[#F3F3F3]'
+                                        textColor='text-[#3A3A47]'
+                                        className='px-4 h-8 font-semibold'
+                                        onClick={handleEdit}
+                                    >
+                                        Edit
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
-                    <hr className='border-gray-200 mb-4 w-full' />
+                    <hr className='border-gray-200 w-full' />
 
                     {/* Project Overview */}
-                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Project Overview</h2>
-                    <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
+                    <h2 className='text-xl font-bold text-[32px] text-[#111518] px-4 py-4'>
+                        {projectDetails?.projectName}
+                    </h2>
+                    <div className='px-4 pt-5 pb-3 text-[22px] font-bold font-[Inter] text-[#111518]'>
+                        Project Overview
+                    </div>
+                    <div className='p-4 grid grid-cols-2 gap-0'>
+                        {renderField(
                             'Project Name (As per Rera)',
-                            currentProperty?.projectName,
-                            'Project Description',
-                            currentProperty?.projectDescription,
+                            projectDetails?.projectName,
                             'projectName',
-                            'projectDescription',
+                            undefined,
+                            'text',
                         )}
-                        {renderInfoRow(
-                            'Project Type',
-                            currentProperty?.projectType,
+                        {renderField('Project Type', projectDetails?.projectType, 'projectType', projectTypes, 'text')}
+                        {renderField(
                             'Project Sub Type',
-                            currentProperty?.projectSubType,
-                            'projectType',
+                            toCapitalizedWords(projectDetails?.projectSubType),
                             'projectSubType',
-                            projectTypes,
+                            projectSubTypes,
+                            'text',
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Project Status',
-                            currentProperty?.projectStatus,
-                            '',
-                            '',
+                            toCapitalizedWords(projectDetails?.projectStatus),
                             'projectStatus',
-                            undefined,
-                            projectStages,
-                            undefined,
+                            projectStatuses,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            'col-span-2 pr-[50%]',
                         )}
                     </div>
 
                     {/* Developer Details */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Developer Details</h2>
                     <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
+                        {renderField(
                             'Promoter Name',
-                            currentProperty?.promoterName,
-                            '',
-                            '',
+                            projectDetails?.promoterName || '',
                             'developerInfo.promoterName',
                             undefined,
+                            'text',
                         )}
                     </div>
 
                     {/* Project Address */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Project Address</h2>
                     <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
-                            'Project Address',
-                            currentProperty?.address,
-                            'District',
-                            currentProperty?.district,
-                            'address',
-                            'district',
-                        )}
-                        {renderInfoRow(
-                            'Latitude',
-                            currentProperty?.lat?.toString(),
-                            'Longitude',
-                            currentProperty?.long?.toString(),
-                            'lat',
-                            'long',
-                        )}
-                        {renderInfoRow(
+                        {renderField('Project Address', projectDetails?.address, 'address', undefined, 'text')}
+                        {renderField('District', projectDetails?.district || '', 'district', undefined, 'text')}
+                        {renderField('Latitude', projectDetails?.lat?.toString() || '', 'lat', undefined, 'number')}
+                        {renderField('Longitude', projectDetails?.long?.toString() || '', 'long', undefined, 'number')}
+                        {renderField(
                             'Pin Code',
-                            currentProperty?.pincode?.toString(),
-                            'Zone',
-                            currentProperty?.zone,
+                            projectDetails?.pincode?.toString() || '',
                             'pincode',
-                            'zone',
+                            undefined,
+                            'number',
                         )}
-                        {renderInfoRow(
+                        {renderField('Zone', projectDetails?.zone || '', 'zone', undefined, 'text')}
+                        {renderField(
                             'North Schedule',
-                            currentProperty?.northSchedule,
-                            'South Schedule',
-                            currentProperty?.southSchedule,
+                            projectDetails?.northSchedule || '',
                             'northSchedule',
-                            'southSchedule',
+                            undefined,
+                            'text',
                         )}
-                        {renderInfoRow(
+                        {renderField(
+                            'South Schedule',
+                            projectDetails?.southSchedule || '',
+                            'southSchedule',
+                            undefined,
+                            'text',
+                        )}
+                        {renderField(
                             'East Schedule',
-                            currentProperty?.eastSchedule,
-                            'West Schedule',
-                            currentProperty?.westSchedule,
+                            projectDetails?.eastSchedule || '',
                             'eastSchedule',
+                            undefined,
+                            'text',
+                        )}
+                        {renderField(
+                            'West Schedule',
+                            projectDetails?.westSchedule || '',
                             'westSchedule',
+                            undefined,
+                            'text',
                         )}
                     </div>
 
                     {/* Plan Details */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Plan Details</h2>
                     <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
+                        {renderField(
                             'Approving Authority',
-                            currentProperty?.approvingAuthority,
-                            'Approved Plan Number',
-                            currentProperty?.approvedPlanNumber,
+                            projectDetails?.approvingAuthority || '',
                             'approvingAuthority',
-                            'approvedPlanNumber',
-                        )}
-                        {renderInfoRow(
-                            'Plan Approval Date',
-                            currentProperty?.planApprovalDate,
-                            'RERA Registration Application Status',
-                            currentProperty?.reraStatus,
-                            'planApprovalDate',
-                            'reraStatus',
                             undefined,
-                            undefined,
-                            'date',
                             'text',
                         )}
-                        {renderInfoRow(
-                            'Total Number of Inventories/Flats/Villas',
-                            currentProperty?.totalInventories,
-                            'No. of Open Parking',
-                            currentProperty?.openParking,
+                        {renderField(
+                            'Approved Plan Number',
+                            projectDetails?.approvedPlanNumber || '',
+                            'approvedPlanNumber',
+                            undefined,
+                            'text',
                         )}
-                        {renderInfoRow(
-                            'No. of Covered Parking',
-                            currentProperty?.coveredParking,
-                            'No. of Garage',
-                            currentProperty?.numberOfGarage,
+                        {renderField(
+                            'Plan Approval Date',
+                            projectDetails?.planApprovalDate || '',
+                            'planApprovalDate',
+                            undefined,
+                            'date',
+                        )}
+                        {renderField(
+                            'RERA Registration Application Status',
+                            projectDetails?.reraStatus || '',
+                            'reraStatus',
+                            reraStatuses,
+                            'text',
                         )}
                     </div>
 
                     {/* Area Details */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Area Details</h2>
                     <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
+                        {renderField(
                             'Total Open Area (Sq Mtr)',
-                            currentProperty?.openArea?.toString(),
-                            'Total Covered Area (Sq Mtr)',
-                            currentProperty?.coveredArea?.toString(),
+                            projectDetails?.openArea?.toString() || '',
                             'openArea',
+                            undefined,
+                            'number',
+                        )}
+                        {renderField(
+                            'Total Covered Area (Sq Mtr)',
+                            projectDetails?.coveredArea?.toString() || '',
                             'coveredArea',
+                            undefined,
+                            'number',
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Total Area Of Land (Sq Mtr)',
-                            currentProperty?.landArea?.toString(),
-                            'Total Built-up Area of all the Floors (Sq Mtr)',
-                            currentProperty?.builtUpArea?.toString(),
+                            projectDetails?.landArea?.toString() || '',
                             'landArea',
+                            undefined,
+                            'number',
+                        )}
+                        {renderField(
+                            'Total Built-up Area of all the Floors (Sq Mtr)',
+                            projectDetails?.builtUpArea?.toString() || '',
                             'builtUpArea',
+                            undefined,
+                            'number',
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Total Carpet Area of all the Floors (Sq Mtr)',
-                            currentProperty?.carpetArea?.toString(),
-                            'Total Plinth Area (Sq Mtr)',
-                            currentProperty?.plinthArea?.toString(),
+                            projectDetails?.carpetArea?.toString() || '',
                             'carpetArea',
+                            undefined,
+                            'number',
+                        )}
+                        {renderField(
+                            'Total Plinth Area (Sq Mtr)',
+                            projectDetails?.plinthArea?.toString() || '',
                             'plinthArea',
+                            undefined,
+                            'number',
                         )}
-                        {renderInfoRow(
+                        {renderField(
                             'Area Of Open Parking (Sq Mtr)',
-                            currentProperty?.openParkingArea?.toString(),
-                            'Area Of Covered Parking (Sq Mtr)',
-                            currentProperty?.coveredParkingArea?.toString(),
+                            projectDetails?.openParkingArea?.toString() || '',
                             'openParkingArea',
-                            'coveredParkingArea',
+                            undefined,
+                            'number',
                         )}
-                        {renderInfoRow(
+                        {renderField(
+                            'Area Of Covered Parking (Sq Mtr)',
+                            projectDetails?.coveredParkingArea?.toString() || '',
+                            'coveredParkingArea',
+                            undefined,
+                            'number',
+                        )}
+                        {renderField(
                             'Area of Garage (Sq Mtr)',
-                            currentProperty?.garageArea?.toString(),
-                            '',
-                            '',
+                            projectDetails?.garageArea?.toString() || '',
                             'garageArea',
+                            undefined,
+                            'number',
                         )}
                     </div>
 
                     {/* Source of Water */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Source of Water</h2>
                     <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
+                        {renderField(
                             'Source',
-                            currentProperty?.waterSource?.join(', '),
-                            '',
-                            '',
+                            convertArrayField(projectDetails?.waterSource).join(', ') || '',
                             'waterSource',
                             undefined,
-                            undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            'col-span-2 pr-[50%]',
                         )}
                     </div>
 
-                    {/* Development Details Table */}
-                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Development Details</h2>
-                    <div className='px-4 py-3'>
-                        {/* Fix this [] after the data is cleaned according to the new schema*/}
-                        <FlexibleTable
-                            data={currentProperty?.developmentDetails ? [currentProperty?.developmentDetails] : []}
-                            columns={getDevelopmentColumns()}
-                            hoverable={true}
-                            borders={{
-                                table: true,
-                                header: true,
-                                rows: true,
-                                cells: false,
-                                outer: true,
-                            }}
-                        />
-                        <div className='flex justify-between items-center px-4 py-2 bg-gray-50 border-t border-[#d4dbe2] font-medium text-sm'>
-                            <span>Total</span>
-                            <span></span>
-                            <span>{currentProperty?.totalInventories}</span>
-                            <span></span>
-                            <span></span>
+                    {/* Development Details */}
+                    <div className='mb-8'>
+                        <div className='flex items-center justify-between mb-4'>
+                            <h2 className='text-lg font-semibold text-black'>Development Details</h2>
+                            {isEditing && (
+                                <Button
+                                    bgColor='bg-blue-600'
+                                    textColor='text-white'
+                                    className='px-3 py-1 h-8 text-sm'
+                                    onClick={() => setIsAddingDevelopment(true)}
+                                >
+                                    + Add Development
+                                </Button>
+                            )}
+                        </div>
+
+                        {isAddingDevelopment && (
+                            <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4'>
+                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Type of Inventory</label>
+                                        <StateBaseTextField
+                                            value={newDevelopment.typeOfInventory || ''}
+                                            onChange={(e) =>
+                                                setNewDevelopment((prev) => ({
+                                                    ...prev,
+                                                    typeOfInventory: e.target.value,
+                                                }))
+                                            }
+                                            className='w-full text-sm'
+                                            placeholder='Enter inventory type'
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Number of Inventory</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter number'
+                                            value={newDevelopment.numberOfInventory || 0}
+                                            onChange={(numValue: number | null) => {
+                                                setNewDevelopment((prev) => ({
+                                                    ...prev,
+                                                    numberOfInventory: numValue || 0,
+                                                }))
+                                            }}
+                                            numberType='integer'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Carpet Area (Sq Mtr)</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter area'
+                                            value={newDevelopment.carpetAreaSqMtr || 0}
+                                            onChange={(numValue: number | null) => {
+                                                setNewDevelopment((prev) => ({
+                                                    ...prev,
+                                                    carpetAreaSqMtr: numValue || 0,
+                                                }))
+                                            }}
+                                            numberType='decimal'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                </div>
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>
+                                            Balcony/Verandah (Sq Mtr)
+                                        </label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter area'
+                                            value={newDevelopment.balconyVerandahSqMtr || 0}
+                                            onChange={(numValue: number | null) => {
+                                                setNewDevelopment((prev) => ({
+                                                    ...prev,
+                                                    balconyVerandahSqMtr: numValue || 0,
+                                                }))
+                                            }}
+                                            numberType='decimal'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Open Terrace (Sq Mtr)</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter area'
+                                            value={newDevelopment.openTerraceSqMtr || 0}
+                                            onChange={(numValue: number | null) => {
+                                                setNewDevelopment((prev) => ({
+                                                    ...prev,
+                                                    openTerraceSqMtr: numValue || 0,
+                                                }))
+                                            }}
+                                            numberType='decimal'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                </div>
+                                <div className='flex gap-2'>
+                                    <Button
+                                        bgColor='bg-green-600'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={handleAddDevelopment}
+                                    >
+                                        Add Development
+                                    </Button>
+                                    <Button
+                                        bgColor='bg-gray-400'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={() => {
+                                            setIsAddingDevelopment(false)
+                                            setNewDevelopment({})
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+                            <FlexibleTable
+                                data={projectDetails?.developmentDetails || []}
+                                columns={getDevelopmentColumns()}
+                                hoverable={true}
+                                borders={{
+                                    table: false,
+                                    header: true,
+                                    rows: true,
+                                    cells: false,
+                                    outer: false,
+                                }}
+                                className='rounded-lg'
+                            />
                         </div>
                     </div>
-                    <div className='p-4 grid grid-cols-2'>
-                        {renderInfoRow(
-                            'FAR Sanctioned',
-                            currentProperty?.floorAreaRatio?.toString() || '0',
-                            'Number of Towers',
-                            currentProperty?.totalTowers?.toString() || '0',
-                            'floorAreaRatio',
-                            'totalTowers',
-                        )}
-                    </div>
 
-                    {/* Tower Details Table */}
-                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Tower Details</h2>
-                    <div className='px-4 py-3'>
-                        <FlexibleTable
-                            data={currentProperty?.towerDetails || []}
-                            columns={getTowerColumns()}
-                            hoverable={true}
-                            borders={{
-                                table: true,
-                                header: true,
-                                rows: true,
-                                cells: false,
-                                outer: true,
-                            }}
-                        />
+                    {/* Tower Details */}
+                    <div className='mb-8'>
+                        <div className='flex items-center justify-between mb-4'>
+                            <h2 className='text-lg font-semibold text-black'>Tower Details</h2>
+                            {isEditing && (
+                                <Button
+                                    bgColor='bg-blue-600'
+                                    textColor='text-white'
+                                    className='px-3 py-1 h-8 text-sm'
+                                    onClick={() => setIsAddingTower(true)}
+                                >
+                                    + Add Tower
+                                </Button>
+                            )}
+                        </div>
+
+                        {isAddingTower && (
+                            <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4'>
+                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Tower Name</label>
+                                        <StateBaseTextField
+                                            value={newTower.towerName || ''}
+                                            onChange={(e) =>
+                                                setNewTower((prev) => ({ ...prev, towerName: e.target.value }))
+                                            }
+                                            className='w-full text-sm'
+                                            placeholder='Enter tower name'
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Type of Tower</label>
+                                        <StateBaseTextField
+                                            value={newTower.typeOfTower || ''}
+                                            onChange={(e) =>
+                                                setNewTower((prev) => ({ ...prev, typeOfTower: e.target.value }))
+                                            }
+                                            className='w-full text-sm'
+                                            placeholder='Enter tower type'
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Floors</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter number of floors'
+                                            value={newTower.floors || 0}
+                                            onChange={(numValue: number | null) => {
+                                                setNewTower((prev) => ({
+                                                    ...prev,
+                                                    floors: numValue || 0,
+                                                }))
+                                            }}
+                                            numberType='integer'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                </div>
+                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Units</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter number of units'
+                                            value={newTower.units || 0}
+                                            onChange={(numValue: number | null) => {
+                                                setNewTower((prev) => ({
+                                                    ...prev,
+                                                    units: numValue || 0,
+                                                }))
+                                            }}
+                                            numberType='integer'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Total Parking</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter parking count'
+                                            value={newTower.totalParking || 0}
+                                            onChange={(numValue: number | null) => {
+                                                setNewTower((prev) => ({
+                                                    ...prev,
+                                                    totalParking: numValue || 0,
+                                                }))
+                                            }}
+                                            numberType='integer'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Height (m)</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter height'
+                                            value={newTower.towerHeightInMeters || 0}
+                                            onChange={(numValue: number | null) => {
+                                                setNewTower((prev) => ({
+                                                    ...prev,
+                                                    towerHeightInMeters: numValue || 0,
+                                                }))
+                                            }}
+                                            numberType='decimal'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                </div>
+                                <div className='flex gap-2'>
+                                    <Button
+                                        bgColor='bg-green-600'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={handleAddTower}
+                                    >
+                                        Add Tower
+                                    </Button>
+                                    <Button
+                                        bgColor='bg-gray-400'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={() => {
+                                            setIsAddingTower(false)
+                                            setNewTower({})
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+                            <FlexibleTable
+                                data={projectDetails?.towerDetails || []}
+                                columns={getTowerColumns()}
+                                hoverable={true}
+                                borders={{
+                                    table: false,
+                                    header: true,
+                                    rows: true,
+                                    cells: false,
+                                    outer: false,
+                                }}
+                                className='rounded-lg'
+                            />
+                        </div>
                     </div>
 
                     {/* Floor Plan Section (conditionally rendered) */}
@@ -1038,7 +1704,7 @@ const PrimaryDetailsPage = () => {
                             </h3>
                             <div className='overflow-x-auto px-4 py-3'>
                                 <FlexibleTable
-                                    data={selectedTowerForFloorPlan.floorPlanDetails || []}
+                                    data={convertArrayField(selectedTowerForFloorPlan.floorPlanDetails)}
                                     columns={getFloorPlanColumns()}
                                     hoverable={true}
                                     borders={{
@@ -1061,7 +1727,7 @@ const PrimaryDetailsPage = () => {
                             </h3>
                             <div className='overflow-x-auto px-4 py-3'>
                                 <FlexibleTable
-                                    data={selectedTowerForUnitDetails.unitDetails || []}
+                                    data={convertArrayField(selectedTowerForUnitDetails.unitDetails)}
                                     columns={getUnitDetailsColumns()}
                                     hoverable={true}
                                     borders={{
@@ -1080,96 +1746,67 @@ const PrimaryDetailsPage = () => {
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
                         <h2 className='text-xl font-semibold text-gray-900'>Ground Data</h2>
                         <div className='flex items-center gap-2'>
-                            {isEditingGroundData ? (
+                            {isEditing ? (
                                 <>
                                     <Button
                                         className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
-                                        onClick={() => handleCancelSection(setIsEditingGroundData, currentProperty)}
+                                        onClick={handleCancel}
                                     >
                                         Cancel
                                     </Button>
                                     <Button
                                         className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
-                                        onClick={() => handleSaveSection(setIsEditingGroundData)}
+                                        onClick={handleSave}
                                     >
                                         Save
                                     </Button>
                                 </>
                             ) : (
-                                <Button
-                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
-                                    onClick={() => handleEditSection(setIsEditingGroundData)}
-                                >
-                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
-                                    Edit
-                                </Button>
+                                <div className='flex flex-row items-center gap-2'>
+                                    <Button
+                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                                        leftIcon={<img src={editic} alt='edit' className='w-4 h-4' />}
+                                        onClick={handleEdit}
+                                        disabled={!isEditing}
+                                    >
+                                        Edit
+                                    </Button>
+                                </div>
                             )}
                         </div>
                     </div>
                     <div className='p-4 grid grid-cols-2 gap-x-6'>
-                        {renderInfoRow(
+                        {renderField(
                             'Price (at the time of launch) (per sqft)',
-                            currentProperty?.groundFloor?.findOutTheTypeOfLaunchPerYearWill,
-                            'Developer Name',
-                            currentProperty?.developerInfo?.promoterName,
+                            projectDetails?.groundFloor?.findOutTheTypeOfLaunchPerYearWill || '',
                             'groundFloor.findOutTheTypeOfLaunchPerYearWill',
+                            undefined,
+                            'number',
+                        )}
+                        {renderField(
+                            'Developer Name',
+                            projectDetails?.developerInfo?.promoterName || '',
                             'developerInfo.promoterName',
                             undefined,
-                            undefined,
                             'text',
-                            'text',
-                            undefined,
-                            undefined,
-                            undefined,
-                            isEditingGroundData,
                         )}
-                        {renderInfoRow(
-                            'Images',
-                            'View Images',
-                            'Typology & Unit Plan',
-                            'View Units plan',
-                            undefined,
-                            undefined,
-                            undefined,
-                            undefined,
-                            'text',
-                            'link',
-                            undefined,
-                            () => navigate(`/restack/primary/${id}/typology`),
-                            undefined,
-                            isEditingGroundData,
+                        {renderField('Images', 'View Images', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/documents`),
                         )}
-                        {renderInfoRow(
-                            'Master Plan',
-                            'View Master plan',
-                            'Brochure',
-                            'Download Brochure (PDF)',
-                            undefined,
-                            undefined,
-                            undefined,
-                            undefined,
-                            'link',
-                            'link',
-                            () => window.open(currentProperty?.typologyAndUnitPlan?.[0] || '', '_blank'),
-                            () => window.open(currentProperty?.brochureURL?.[0] || '', '_blank'),
-                            undefined,
-                            isEditingGroundData,
+                        {renderField('Typology & Unit Plan', 'View Units plan', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/typology`),
                         )}
-                        {renderInfoRow(
-                            'CDP Map',
-                            'CDP map (PDF)',
-                            'Cost Sheet',
-                            'Download Cost Sheet (PDF)',
-                            undefined,
-                            undefined,
-                            undefined,
-                            undefined,
-                            'link',
-                            'link',
-                            () => window.open(currentProperty?.typologyAndUnitPlan?.[1] || '', '_blank'),
-                            () => window.open(currentProperty?.costSheetURL?.[0] || '', '_blank'),
-                            undefined,
-                            isEditingGroundData,
+                        {renderField('Master Plan', 'View Master plan', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/masterplan`),
+                        )}
+                        {renderField('Brochure', 'Download Brochure (PDF)', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/brochure`),
+                        )}
+                        {renderField('CDP Map', 'CDP map (PDF)', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/cdp`),
+                        )}
+                        {renderField('Cost Sheet', 'Download Cost Sheet (PDF)', '', undefined, 'text', () =>
+                            navigate(`/restack/primary/${id}/costsheet`),
                         )}
                     </div>
 
@@ -1177,17 +1814,17 @@ const PrimaryDetailsPage = () => {
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
                         <h2 className='text-xl font-semibold text-gray-900'>Amenities</h2>
                         <div className='flex items-center gap-2'>
-                            {isEditingAmenities ? (
+                            {isEditing ? (
                                 <>
                                     <Button
                                         className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
-                                        onClick={() => handleCancelSection(setIsEditingAmenities, currentProperty)}
+                                        onClick={handleCancel}
                                     >
                                         Cancel
                                     </Button>
                                     <Button
                                         className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
-                                        onClick={() => handleSaveSection(setIsEditingAmenities)}
+                                        onClick={handleSave}
                                     >
                                         Save
                                     </Button>
@@ -1195,23 +1832,22 @@ const PrimaryDetailsPage = () => {
                             ) : (
                                 <Button
                                     className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
-                                    onClick={() => handleEditSection(setIsEditingAmenities)}
+                                    leftIcon={<img src={editic} alt='edit' className='w-4 h-4' />}
+                                    onClick={handleEdit}
+                                    disabled={!isEditing}
                                 >
-                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
                                     Edit
                                 </Button>
                             )}
                         </div>
                     </div>
-                    {isEditingAmenities ? (
+                    {isEditing ? (
                         <div className='flex flex-wrap gap-3 p-3 pr-4'>
                             <textarea
-                                value={currentProperty?.amenities?.join(', ')}
-                                onChange={(e) =>
-                                    dispatch(
-                                        updateProperty({ amenities: e.target.value.split(',').map((s) => s.trim()) }),
-                                    )
-                                }
+                                value={newAmenity}
+                                onChange={(e) => {
+                                    setNewAmenity(e.target.value)
+                                }}
                                 className='w-full h-auto text-base border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                                 placeholder='Enter amenities separated by commas'
                                 rows={3}
@@ -1219,7 +1855,7 @@ const PrimaryDetailsPage = () => {
                         </div>
                     ) : (
                         <div className='flex flex-wrap gap-3 p-3 pr-4'>
-                            {currentProperty?.amenities?.map((amenity: string, index: number) => (
+                            {convertArrayField(projectDetails?.amenities).map((amenity: string, index: number) => (
                                 <div
                                     key={index}
                                     className='flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#e9edf1] pl-4 pr-4'
@@ -1231,55 +1867,103 @@ const PrimaryDetailsPage = () => {
                     )}
 
                     {/* Clubhouse Details */}
-                    <div className='flex items-center justify-between px-4 pb-3 pt-5'>
-                        <h2 className='text-xl font-semibold text-gray-900'>Clubhouse Details</h2>
-                        <div className='flex items-center gap-2'>
-                            {isEditingClubhouse ? (
-                                <>
-                                    <Button
-                                        className='h-9 px-4 text-sm font-medium bg-green-500 text-white hover:bg-green-600 mr-2'
-                                        onClick={addClubhouseRow}
-                                    >
-                                        <img src={addcircleic} alt='add' className='w-4 h-4 mr-2' />
-                                        Add Row
-                                    </Button>
-                                    <Button
-                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
-                                        onClick={() => handleCancelSection(setIsEditingClubhouse, currentProperty)}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
-                                        onClick={() => handleSaveSection(setIsEditingClubhouse)}
-                                    >
-                                        Save
-                                    </Button>
-                                </>
-                            ) : (
+                    <div className='mb-8'>
+                        <div className='flex items-center justify-between mb-4'>
+                            <h2 className='text-lg font-semibold text-black'>Clubhouse Details</h2>
+                            {isEditing && (
                                 <Button
-                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
-                                    onClick={() => handleEditSection(setIsEditingClubhouse)}
+                                    bgColor='bg-blue-600'
+                                    textColor='text-white'
+                                    className='px-3 py-1 h-8 text-sm'
+                                    onClick={() => setIsAddingClubhouse(true)}
                                 >
-                                    <img src={editic} alt='edit' className='w-4 h-4 mr-2' />
-                                    Edit
+                                    + Add Clubhouse
                                 </Button>
                             )}
                         </div>
-                    </div>
-                    <div className='px-4'>
-                        <FlexibleTable
-                            data={currentProperty?.clubhouseDetails || []}
-                            columns={getClubhouseColumns()}
-                            hoverable={true}
-                            borders={{
-                                table: true,
-                                header: true,
-                                rows: true,
-                                cells: false,
-                                outer: true,
-                            }}
-                        />
+
+                        {isAddingClubhouse && (
+                            <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4'>
+                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Name</label>
+                                        <StateBaseTextField
+                                            value={newClubhouse.name || ''}
+                                            onChange={(e) =>
+                                                setNewClubhouse((prev) => ({ ...prev, name: e.target.value }))
+                                            }
+                                            className='w-full text-sm'
+                                            placeholder='Enter clubhouse name'
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Size (Sq Ft)</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter size'
+                                            value={parseFloat(newClubhouse.sizeSqft || '0')}
+                                            onChange={(numValue: number | null) => {
+                                                setNewClubhouse((prev) => ({
+                                                    ...prev,
+                                                    sizeSqft: (numValue || 0).toString(),
+                                                }))
+                                            }}
+                                            numberType='decimal'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Floor</label>
+                                        <StateBaseTextField
+                                            value={newClubhouse.floor || ''}
+                                            onChange={(e) =>
+                                                setNewClubhouse((prev) => ({ ...prev, floor: e.target.value }))
+                                            }
+                                            className='w-full text-sm'
+                                            placeholder='Enter floor'
+                                        />
+                                    </div>
+                                </div>
+                                <div className='flex gap-2'>
+                                    <Button
+                                        bgColor='bg-green-600'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={handleAddClubhouse}
+                                    >
+                                        Add Clubhouse
+                                    </Button>
+                                    <Button
+                                        bgColor='bg-gray-400'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={() => {
+                                            setIsAddingClubhouse(false)
+                                            setNewClubhouse({})
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+                            <FlexibleTable
+                                data={projectDetails?.clubhouseDetails || []}
+                                columns={getClubhouseColumns()}
+                                hoverable={true}
+                                borders={{
+                                    table: false,
+                                    header: true,
+                                    rows: true,
+                                    cells: false,
+                                    outer: false,
+                                }}
+                                className='rounded-lg'
+                            />
+                        </div>
                     </div>
 
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>
@@ -1293,7 +1977,7 @@ const PrimaryDetailsPage = () => {
                             </div>
                             <div className='w-3/4'>
                                 <p className='text-[#101418] text-sm font-normal leading-normal'>
-                                    {currentProperty?.litigation}
+                                    {projectDetails?.litigation}
                                 </p>
                             </div>
                         </div>
@@ -1306,7 +1990,7 @@ const PrimaryDetailsPage = () => {
                             <div className='w-3/4'>
                                 <button
                                     onClick={() => {
-                                        const url = currentProperty?.litigation || ''
+                                        const url = projectDetails?.litigation || ''
                                         if (url) window.open(url, '_blank')
                                     }}
                                     className='text-blue-600 underline text-sm font-normal leading-normal text-left cursor-pointer hover:text-blue-800'
