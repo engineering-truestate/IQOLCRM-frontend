@@ -72,7 +72,7 @@ const unflattenFromFirestore = (data: any): any => {
 // Action creators
 export const fetchPrimaryProperties = createAsyncThunk('primaryProperties/fetchPrimaryProperties', async () => {
     try {
-        const querySnapshot = await getDocs(collection(db, 'restack_primary_properties'))
+        const querySnapshot = await getDocs(collection(db, 'testRestackPrimary'))
         const properties: PrimaryProperty[] = []
 
         querySnapshot.forEach((doc) => {
@@ -106,7 +106,7 @@ export const fetchPrimaryPropertyById = createAsyncThunk(
     'primary/fetchPrimaryPropertyById',
     async (id: string, { rejectWithValue }) => {
         try {
-            const docRef = doc(db, 'restack_primary_properties', id)
+            const docRef = doc(db, 'testRestackPrimary', id)
             const docSnap = await getDoc(docRef)
 
             if (!docSnap.exists()) {
@@ -132,7 +132,7 @@ export const updatePrimaryProperty = createAsyncThunk(
     'primaryProperties/updatePrimaryProperty',
     async ({ projectId, updates }: { projectId: string; updates: Partial<PrimaryProperty> }) => {
         try {
-            const docRef = doc(db, 'restack_primary_properties', projectId)
+            const docRef = doc(db, 'testRestackPrimary', projectId)
 
             // Flatten the data for Firestore compatibility
             const flattenedUpdates = flattenForFirestore(updates)
