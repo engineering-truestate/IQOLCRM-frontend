@@ -16,9 +16,15 @@ import Button from '../../../components/design-elements/Button'
 import type { RestackRentalProperty } from '../../../data_types/restack/restack-rental.d'
 import {
     get99AcresRentalDataById,
+    getACNRentalDataById,
+    getHousingRentalDataById,
     getMagicBricksRentalDataById,
+    getMyGateRentalDataById,
     update99AcresRentalDataById,
+    updateACNRentalDataById,
+    updateHousingRentalDataById,
     updateMagicBricksRentalDataById,
+    updateMyGateRentalDataById,
 } from '../../../services/restack/rentalService'
 
 const configurationOptions = [
@@ -81,13 +87,22 @@ const RentalDetailsPage = () => {
             setLoading(true)
             try {
                 if (id) {
-                    let property = await get99AcresRentalDataById(id)
+                    let property: RestackRentalProperty | null = null
                     switch (type) {
                         case '99acres':
-                            property = await get99AcresRentalDataById(id)
+                            property = (await get99AcresRentalDataById(id)) ?? null
                             break
                         case 'magicbricks':
-                            property = await getMagicBricksRentalDataById(id)
+                            property = (await getMagicBricksRentalDataById(id)) ?? null
+                            break
+                        case 'ACN':
+                            property = (await getACNRentalDataById(id)) ?? null
+                            break
+                        case 'myGate':
+                            property = (await getMyGateRentalDataById(id)) ?? null
+                            break
+                        case 'Housing':
+                            property = (await getHousingRentalDataById(id)) ?? null
                             break
                         default:
                             break
@@ -152,6 +167,15 @@ const RentalDetailsPage = () => {
                             break
                         case 'magicbricks':
                             await updateMagicBricksRentalDataById(id, originalDetails || propertyDetails)
+                            break
+                        case 'ACN':
+                            await updateACNRentalDataById(id, originalDetails || propertyDetails)
+                            break
+                        case 'myGate':
+                            await updateMyGateRentalDataById(id, originalDetails || propertyDetails)
+                            break
+                        case 'Housing':
+                            await updateHousingRentalDataById(id, originalDetails || propertyDetails)
                             break
                         default:
                             break
@@ -267,7 +291,10 @@ const RentalDetailsPage = () => {
                         <div className='flex items-center justify-between mb-4'>
                             <div>
                                 <div className='text-sm text-gray-500 mb-1'>
-                                    <button onClick={() => navigate('/restack/rental')} className='hover:text-gray-700'>
+                                    <button
+                                        onClick={() => navigate(`/restack/rental/${type}`)}
+                                        className='hover:text-gray-700'
+                                    >
                                         Rental
                                     </button>
                                     <span className='mx-2'>/</span>

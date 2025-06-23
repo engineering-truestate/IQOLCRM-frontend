@@ -5,7 +5,7 @@ import { useParams } from 'react-router'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
@@ -26,7 +26,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { leadData } = useLeadDetails(leadId || '')
+    const { leadData } = UseLeadDetails(leadId || '')
     const navigate = useNavigate()
 
     const agentId = user?.uid || ''

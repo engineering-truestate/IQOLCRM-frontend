@@ -783,10 +783,13 @@ const LeadsPage = () => {
 
     return (
         <Layout loading={loading || reduxLoading}>
-            <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+            <div className='w-full overflow-hidden h-screen font-sans flex flex-col'>
+                <div
+                    className='flex flex-col gap-4 pt-2 bg-white flex-1 overflow-hidden'
+                    style={{ width: 'calc(100vw)', maxWidth: '100%' }}
+                >
                     {/* Header */}
-                    <div className='mb-4'>
+                    <div className='flex-shrink-0'>
                         <div className='flex items-center justify-between mb-2 px-6'>
                             <h1 className='text-lg font-semibold text-black'>Leads ({totalLeads})</h1>
                             <div className='flex items-center gap-4'>
@@ -894,32 +897,35 @@ const LeadsPage = () => {
                         )}
                     </div>
 
-                    {/* Table */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
-                        <div className='h-[69vh] overflow-y-auto'>
-                            <FlexibleTable
-                                data={leads}
-                                columns={columns}
-                                hoverable={true}
-                                borders={{
-                                    table: false,
-                                    header: true,
-                                    rows: true,
-                                    cells: false,
-                                    outer: false,
-                                }}
-                                maxHeight='69vh'
-                                className='rounded-lg'
-                                stickyHeader={true}
-                            />
+                    {/* Table Container - This will take remaining space */}
+                    <div className='flex-1 flex flex-col gap-[29px] overflow-hidden'>
+                        {/* Table */}
+                        <div className='bg-white rounded-lg overflow-hidden flex-1 pl-6'>
+                            <div className='h-full overflow-hidden'>
+                                <FlexibleTable
+                                    data={leads}
+                                    columns={columns}
+                                    hoverable={true}
+                                    borders={{
+                                        table: false,
+                                        header: true,
+                                        rows: true,
+                                        cells: false,
+                                        outer: false,
+                                    }}
+                                    maxHeight='100%'
+                                    className='rounded-lg h-full'
+                                    stickyHeader={true}
+                                />
+                            </div>
                         </div>
 
                         {/* Pagination */}
-                        <div className='flex items-center justify-between px-6 border-t border-gray-200'>
-                            <div className='text-sm text-gray-500 font-medium'>
+                        <div className='flex items-center justify-between px-6 border-t border-[#E3E3E3] flex-shrink-0'>
+                            {/* <div className='text-sm text-gray-500 font-medium'>
                                 Showing {(filterState.page - 1) * ITEMS_PER_PAGE + 1} to{' '}
                                 {Math.min(filterState.page * ITEMS_PER_PAGE, totalLeads)} of {totalLeads} leads
-                            </div>
+                            </div> */}
 
                             <CustomPagination
                                 currentPage={filterState.page}

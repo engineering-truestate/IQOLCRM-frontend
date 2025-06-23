@@ -168,6 +168,16 @@ const PropertiesPage = () => {
             assetType: searchParams.get('assetType')?.split(',').filter(Boolean) || [],
             micromarket: searchParams.get('micromarket')?.split(',').filter(Boolean) || [],
             kamName: searchParams.get('kamName')?.split(',').filter(Boolean) || [],
+            unitType: searchParams.get('unitType')?.split(',').filter(Boolean) || [],
+            noOfBathrooms: searchParams.get('noOfBathrooms')?.split(',').filter(Boolean) || [],
+            noOfBalcony: searchParams.get('noOfBalcony')?.split(',').filter(Boolean) || [],
+            facing: searchParams.get('facing')?.split(',').filter(Boolean) || [],
+            exactFloor: searchParams.get('exactFloor')?.split(',').filter(Boolean) || [],
+            area: searchParams.get('area')?.split(',').filter(Boolean) || [],
+            currentStatus: searchParams.get('currentStatus')?.split(',').filter(Boolean) || [],
+            landmark: searchParams.get('landmark') || '',
+            dateOfStatusLastCheckedFrom: searchParams.get('dateOfStatusLastCheckedFrom') || '',
+            dateOfStatusLastCheckedTo: searchParams.get('dateOfStatusLastCheckedTo') || '',
             sort: searchParams.get('sort') || '',
             page: parseInt(searchParams.get('page') || '1', 10),
         }),
@@ -180,6 +190,16 @@ const PropertiesPage = () => {
         assetType: urlParams.assetType || [],
         micromarket: urlParams.micromarket || [],
         kamName: urlParams.kamName || [],
+        unitType: urlParams.unitType || [],
+        noOfBathrooms: urlParams.noOfBathrooms || [],
+        noOfBalcony: urlParams.noOfBalcony || [],
+        facing: urlParams.facing || [],
+        exactFloor: urlParams.exactFloor || [],
+        area: urlParams.area || [],
+        currentStatus: urlParams.currentStatus || [],
+        landmark: urlParams.landmark || '',
+        dateOfStatusLastCheckedFrom: urlParams.dateOfStatusLastCheckedFrom || '',
+        dateOfStatusLastCheckedTo: urlParams.dateOfStatusLastCheckedTo || '',
         sort: urlParams.sort || '',
         page: urlParams.page || 1,
     }))
@@ -191,10 +211,150 @@ const PropertiesPage = () => {
             assetType: urlParams.assetType || [],
             micromarket: urlParams.micromarket || [],
             kamName: urlParams.kamName || [],
+            unitType: urlParams.unitType || [],
+            noOfBathrooms: urlParams.noOfBathrooms || [],
+            noOfBalcony: urlParams.noOfBalcony || [],
+            facing: urlParams.facing || [],
+            exactFloor: urlParams.exactFloor || [],
+            area: urlParams.area || [],
+            currentStatus: urlParams.currentStatus || [],
+            landmark: urlParams.landmark || '',
+            dateOfStatusLastCheckedFrom: urlParams.dateOfStatusLastCheckedFrom || '',
+            dateOfStatusLastCheckedTo: urlParams.dateOfStatusLastCheckedTo || '',
             sort: urlParams.sort || '',
             page: urlParams.page || 1,
         })
     }, [urlParams])
+
+    // Filter state
+    const [filters, setFilters] = useState<SearchFilters>({})
+    const [isModalUpdatingFilters, setIsModalUpdatingFilters] = useState(false)
+
+    // Effect to convert URL parameters to SearchFilters format for Algolia search
+    useEffect(() => {
+        // Skip conversion if modal is currently updating filters
+        if (isModalUpdatingFilters) {
+            return
+        }
+
+        const searchFilters: SearchFilters = {}
+
+        // Convert URL parameters to SearchFilters format
+        if (urlParams.status && urlParams.status.length > 0) {
+            searchFilters.status = urlParams.status
+        }
+
+        if (urlParams.assetType && urlParams.assetType.length > 0) {
+            searchFilters.assetType = urlParams.assetType
+        }
+
+        if (urlParams.micromarket && urlParams.micromarket.length > 0) {
+            searchFilters.micromarket = urlParams.micromarket
+        }
+
+        if (urlParams.kamName && urlParams.kamName.length > 0) {
+            searchFilters.kamName = urlParams.kamName
+        }
+
+        // Handle range filters from URL (if they exist)
+        const totalAskPriceMin = searchParams.get('totalAskPriceMin')
+        const totalAskPriceMax = searchParams.get('totalAskPriceMax')
+        if (totalAskPriceMin || totalAskPriceMax) {
+            searchFilters.totalAskPrice = {
+                min: totalAskPriceMin ? parseFloat(totalAskPriceMin) : undefined,
+                max: totalAskPriceMax ? parseFloat(totalAskPriceMax) : undefined,
+            }
+        }
+
+        const askPricePerSqftMin = searchParams.get('askPricePerSqftMin')
+        const askPricePerSqftMax = searchParams.get('askPricePerSqftMax')
+        if (askPricePerSqftMin || askPricePerSqftMax) {
+            searchFilters.askPricePerSqft = {
+                min: askPricePerSqftMin ? parseFloat(askPricePerSqftMin) : undefined,
+                max: askPricePerSqftMax ? parseFloat(askPricePerSqftMax) : undefined,
+            }
+        }
+
+        const sbuaMin = searchParams.get('sbuaMin')
+        const sbuaMax = searchParams.get('sbuaMax')
+        if (sbuaMin || sbuaMax) {
+            searchFilters.sbua = {
+                min: sbuaMin ? parseFloat(sbuaMin) : undefined,
+                max: sbuaMax ? parseFloat(sbuaMax) : undefined,
+            }
+        }
+
+        const carpetMin = searchParams.get('carpetMin')
+        const carpetMax = searchParams.get('carpetMax')
+        if (carpetMin || carpetMax) {
+            searchFilters.carpet = {
+                min: carpetMin ? parseFloat(carpetMin) : undefined,
+                max: carpetMax ? parseFloat(carpetMax) : undefined,
+            }
+        }
+
+        // Handle array filters from URL
+        const unitType = searchParams.get('unitType')?.split(',').filter(Boolean)
+        if (unitType && unitType.length > 0) {
+            searchFilters.unitType = unitType
+        }
+
+        const noOfBathrooms = searchParams.get('noOfBathrooms')?.split(',').filter(Boolean)
+        if (noOfBathrooms && noOfBathrooms.length > 0) {
+            searchFilters.noOfBathrooms = noOfBathrooms
+        }
+
+        const noOfBalcony = searchParams.get('noOfBalcony')?.split(',').filter(Boolean)
+        if (noOfBalcony && noOfBalcony.length > 0) {
+            searchFilters.noOfBalcony = noOfBalcony
+        }
+
+        const facing = searchParams.get('facing')?.split(',').filter(Boolean)
+        if (facing && facing.length > 0) {
+            searchFilters.facing = facing
+        }
+
+        const exactFloor = searchParams.get('exactFloor')?.split(',').filter(Boolean)
+        if (exactFloor && exactFloor.length > 0) {
+            searchFilters.exactFloor = exactFloor
+        }
+
+        const area = searchParams.get('area')?.split(',').filter(Boolean)
+        if (area && area.length > 0) {
+            searchFilters.area = area
+        }
+
+        const currentStatus = searchParams.get('currentStatus')?.split(',').filter(Boolean)
+        if (currentStatus && currentStatus.length > 0) {
+            searchFilters.currentStatus = currentStatus
+        }
+
+        // Handle single value filters
+        const landmark = searchParams.get('landmark')
+        if (landmark) {
+            searchFilters.landmark = landmark
+        }
+
+        const dateOfStatusLastCheckedFrom = searchParams.get('dateOfStatusLastCheckedFrom')
+        if (dateOfStatusLastCheckedFrom) {
+            searchFilters.dateOfStatusLastCheckedFrom = dateOfStatusLastCheckedFrom
+        }
+
+        const dateOfStatusLastCheckedTo = searchParams.get('dateOfStatusLastCheckedTo')
+        if (dateOfStatusLastCheckedTo) {
+            searchFilters.dateOfStatusLastCheckedTo = dateOfStatusLastCheckedTo
+        }
+
+        // Update the filters state for Algolia search
+        setFilters(searchFilters)
+    }, [
+        urlParams.status,
+        urlParams.assetType,
+        urlParams.micromarket,
+        urlParams.kamName,
+        searchParams,
+        isModalUpdatingFilters,
+    ])
 
     // Update URL parameters
     const updateURLParams = useCallback(
@@ -217,6 +377,8 @@ const PropertiesPage = () => {
 
     // Add mounted ref to prevent memory leaks
     const mounted = useRef(true)
+    const prevActiveTabRef = useRef(activeTab)
+
     useEffect(() => {
         mounted.current = true
         return () => {
@@ -229,7 +391,6 @@ const PropertiesPage = () => {
     const [searchError, setSearchError] = useState<string | null>(null)
 
     // Filter state
-    const [filters, setFilters] = useState<SearchFilters>({})
     const [originalFacets, setOriginalFacets] = useState<Record<string, FacetValue[]>>({})
     const [searchResultFacets, setSearchResultFacets] = useState<Record<string, FacetValue[]>>({})
     const [isAddFilterModalOpen, setIsAddFilterModalOpen] = useState(false)
@@ -320,7 +481,7 @@ const PropertiesPage = () => {
                             processingTimeMS: 0,
                         }),
                     )
-                    setSearchResultFacets({})
+                    setFilters({})
                 }
             } finally {
                 if (mounted.current) {
@@ -335,6 +496,16 @@ const PropertiesPage = () => {
     useEffect(() => {
         setSelectedRows(new Set())
     }, [activeTab])
+
+    // Effect to reset filters when tab changes (Resale vs Rental)
+    useEffect(() => {
+        // Only reset filters when switching between Resale and Rental tabs
+        if (prevActiveTabRef.current !== activeTab) {
+            setFilters({})
+            setSearchParams({})
+            prevActiveTabRef.current = activeTab
+        }
+    }, [activeTab, setSearchParams])
 
     // Effect to perform search when parameters change
     useEffect(() => {
@@ -371,6 +542,32 @@ const PropertiesPage = () => {
 
     const handleKAMChange = useCallback((kams: string[]) => updateURLParams('kamName', kams), [updateURLParams])
 
+    const handleUnitTypeChange = useCallback((types: string[]) => updateURLParams('unitType', types), [updateURLParams])
+
+    const handleBathroomChange = useCallback(
+        (bathrooms: string[]) => updateURLParams('noOfBathrooms', bathrooms),
+        [updateURLParams],
+    )
+
+    const handleBalconyChange = useCallback(
+        (balconies: string[]) => updateURLParams('noOfBalcony', balconies),
+        [updateURLParams],
+    )
+
+    const handleFacingChange = useCallback((facings: string[]) => updateURLParams('facing', facings), [updateURLParams])
+
+    const handleFloorChange = useCallback(
+        (floors: string[]) => updateURLParams('exactFloor', floors),
+        [updateURLParams],
+    )
+
+    const handleAreaChange = useCallback((areas: string[]) => updateURLParams('area', areas), [updateURLParams])
+
+    const handleCurrentStatusChange = useCallback(
+        (statuses: string[]) => updateURLParams('currentStatus', statuses),
+        [updateURLParams],
+    )
+
     const handleSortChange = useCallback((sort: string) => updateURLParams('sort', sort || null), [updateURLParams])
 
     // Handle page change
@@ -382,6 +579,7 @@ const PropertiesPage = () => {
     // Reset all filters
     const clearAllFilters = useCallback(() => {
         setSearchParams({})
+        setFilters({})
     }, [setSearchParams])
 
     // Helper function to get status config safely
@@ -1106,43 +1304,173 @@ const PropertiesPage = () => {
     // Handle filter changes from the modal
     const handleFiltersChange = useCallback(
         (newFilters: SearchFilters) => {
+            setIsModalUpdatingFilters(true)
             setFilters(newFilters)
 
             // Update URL parameters for the new filters
             const newParams = new URLSearchParams(searchParams)
 
-            // Update status filter
+            // Update all filters including basic ones
             if (newFilters.status && newFilters.status.length > 0) {
                 newParams.set('status', newFilters.status.join(','))
             } else {
                 newParams.delete('status')
             }
 
-            // Update assetType filter
             if (newFilters.assetType && newFilters.assetType.length > 0) {
                 newParams.set('assetType', newFilters.assetType.join(','))
             } else {
                 newParams.delete('assetType')
             }
 
-            // Update micromarket filter
             if (newFilters.micromarket && newFilters.micromarket.length > 0) {
                 newParams.set('micromarket', newFilters.micromarket.join(','))
             } else {
                 newParams.delete('micromarket')
             }
 
-            // Update kamName filter
             if (newFilters.kamName && newFilters.kamName.length > 0) {
                 newParams.set('kamName', newFilters.kamName.join(','))
             } else {
                 newParams.delete('kamName')
             }
 
+            // Handle range filters
+            if (newFilters.totalAskPrice) {
+                if (newFilters.totalAskPrice.min !== undefined) {
+                    newParams.set('totalAskPriceMin', newFilters.totalAskPrice.min.toString())
+                } else {
+                    newParams.delete('totalAskPriceMin')
+                }
+                if (newFilters.totalAskPrice.max !== undefined) {
+                    newParams.set('totalAskPriceMax', newFilters.totalAskPrice.max.toString())
+                } else {
+                    newParams.delete('totalAskPriceMax')
+                }
+            } else {
+                newParams.delete('totalAskPriceMin')
+                newParams.delete('totalAskPriceMax')
+            }
+
+            if (newFilters.askPricePerSqft) {
+                if (newFilters.askPricePerSqft.min !== undefined) {
+                    newParams.set('askPricePerSqftMin', newFilters.askPricePerSqft.min.toString())
+                } else {
+                    newParams.delete('askPricePerSqftMin')
+                }
+                if (newFilters.askPricePerSqft.max !== undefined) {
+                    newParams.set('askPricePerSqftMax', newFilters.askPricePerSqft.max.toString())
+                } else {
+                    newParams.delete('askPricePerSqftMax')
+                }
+            } else {
+                newParams.delete('askPricePerSqftMin')
+                newParams.delete('askPricePerSqftMax')
+            }
+
+            if (newFilters.sbua) {
+                if (newFilters.sbua.min !== undefined) {
+                    newParams.set('sbuaMin', newFilters.sbua.min.toString())
+                } else {
+                    newParams.delete('sbuaMin')
+                }
+                if (newFilters.sbua.max !== undefined) {
+                    newParams.set('sbuaMax', newFilters.sbua.max.toString())
+                } else {
+                    newParams.delete('sbuaMax')
+                }
+            } else {
+                newParams.delete('sbuaMin')
+                newParams.delete('sbuaMax')
+            }
+
+            if (newFilters.carpet) {
+                if (newFilters.carpet.min !== undefined) {
+                    newParams.set('carpetMin', newFilters.carpet.min.toString())
+                } else {
+                    newParams.delete('carpetMin')
+                }
+                if (newFilters.carpet.max !== undefined) {
+                    newParams.set('carpetMax', newFilters.carpet.max.toString())
+                } else {
+                    newParams.delete('carpetMax')
+                }
+            } else {
+                newParams.delete('carpetMin')
+                newParams.delete('carpetMax')
+            }
+
+            // Handle array filters
+            if (newFilters.unitType && newFilters.unitType.length > 0) {
+                newParams.set('unitType', newFilters.unitType.join(','))
+            } else {
+                newParams.delete('unitType')
+            }
+
+            if (newFilters.noOfBathrooms && newFilters.noOfBathrooms.length > 0) {
+                newParams.set('noOfBathrooms', newFilters.noOfBathrooms.join(','))
+            } else {
+                newParams.delete('noOfBathrooms')
+            }
+
+            if (newFilters.noOfBalcony && newFilters.noOfBalcony.length > 0) {
+                newParams.set('noOfBalcony', newFilters.noOfBalcony.join(','))
+            } else {
+                newParams.delete('noOfBalcony')
+            }
+
+            if (newFilters.facing && newFilters.facing.length > 0) {
+                newParams.set('facing', newFilters.facing.join(','))
+            } else {
+                newParams.delete('facing')
+            }
+
+            if (newFilters.exactFloor && newFilters.exactFloor.length > 0) {
+                newParams.set('exactFloor', newFilters.exactFloor.join(','))
+            } else {
+                newParams.delete('exactFloor')
+            }
+
+            if (newFilters.area && newFilters.area.length > 0) {
+                newParams.set('area', newFilters.area.join(','))
+            } else {
+                newParams.delete('area')
+            }
+
+            if (newFilters.currentStatus && newFilters.currentStatus.length > 0) {
+                newParams.set('currentStatus', newFilters.currentStatus.join(','))
+            } else {
+                newParams.delete('currentStatus')
+            }
+
+            // Handle single value filters
+            if (newFilters.landmark) {
+                newParams.set('landmark', newFilters.landmark)
+            } else {
+                newParams.delete('landmark')
+            }
+
+            if (newFilters.dateOfStatusLastCheckedFrom) {
+                newParams.set('dateOfStatusLastCheckedFrom', newFilters.dateOfStatusLastCheckedFrom)
+            } else {
+                newParams.delete('dateOfStatusLastCheckedFrom')
+            }
+
+            if (newFilters.dateOfStatusLastCheckedTo) {
+                newParams.set('dateOfStatusLastCheckedTo', newFilters.dateOfStatusLastCheckedTo)
+            } else {
+                newParams.delete('dateOfStatusLastCheckedTo')
+            }
+
             // Reset page when filters change
             newParams.set('page', '1')
 
             setSearchParams(newParams)
+
+            // Reset the flag after a short delay to allow URL update to complete
+            setTimeout(() => {
+                setIsModalUpdatingFilters(false)
+            }, 100)
         },
         [searchParams, setSearchParams],
     )
@@ -1219,10 +1547,13 @@ const PropertiesPage = () => {
                 onFiltersChange={handleFiltersChange}
                 propertyType={activeTab}
             />
-            <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+            <div className='w-full overflow-hidden font-sans h-screen flex flex-col'>
+                <div
+                    className='flex flex-col gap-4 pt-2 bg-white flex-1 overflow-hidden'
+                    style={{ width: 'calc(100vw)', maxWidth: '100%' }}
+                >
                     {/* Header */}
-                    <div className='mb-4'>
+                    <div className='flex-shrink-0'>
                         <div className='flex items-center justify-between mb-2 px-6'>
                             <h1 className='text-lg font-semibold text-black'>Properties ({nbHits || 0})</h1>
                             <div className='flex items-center gap-4'>
@@ -1340,7 +1671,7 @@ const PropertiesPage = () => {
                         </div>
 
                         {/* Show search info */}
-                        {searchLoading && <div className='mb-2 text-sm text-blue-600'>Searching...</div>}
+                        {searchLoading && <div className='mb-2 text-sm text-blue-600 flex-shrink-0'>Searching...</div>}
 
                         {/* {!searchLoading && totalItems > 0 && (
                             <div className='mb-2 text-sm text-gray-600'>
@@ -1350,7 +1681,7 @@ const PropertiesPage = () => {
                         )} */}
 
                         {searchError && (
-                            <div className='mb-2 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                            <div className='mb-2 p-3 bg-red-50 border border-red-200 rounded-lg flex-shrink-0'>
                                 <div className='text-sm text-red-700'>Error: {searchError}</div>
                                 <button
                                     onClick={() => performSearch(urlParams.query, filters, 0, urlParams.sort)}
@@ -1362,66 +1693,71 @@ const PropertiesPage = () => {
                         )}
                     </div>
 
-                    {/* Table with horizontal scrolling and fixed actions column */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
-                        <div className='h-[68] overflow-y-auto'>
-                            {searchLoading ? (
-                                <div className='flex items-center justify-center h-64'>
-                                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
-                                    <span className='ml-3 text-gray-600'>Loading properties...</span>
-                                </div>
-                            ) : searchError ? (
-                                <div className='flex items-center justify-center h-64'>
-                                    <div className='text-center'>
-                                        <div className='text-red-600 mb-4'>Error: {searchError}</div>
-                                        <Button
-                                            bgColor='bg-blue-600'
-                                            textColor='text-white'
-                                            onClick={() => performSearch(urlParams.query, filters, 0, urlParams.sort)}
-                                        >
-                                            Retry
-                                        </Button>
+                    {/* Table Container - This will take remaining space */}
+                    <div className='flex-1 flex flex-col gap-[29px] overflow-hidden'>
+                        {/* Table with horizontal scrolling and fixed actions column */}
+                        <div className='bg-white rounded-lg overflow-hidden flex-1 pl-6'>
+                            <div className='h-full overflow-hidden'>
+                                {searchLoading ? (
+                                    <div className='flex items-center justify-center h-64'>
+                                        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+                                        <span className='ml-3 text-gray-600'>Loading properties...</span>
                                     </div>
-                                </div>
-                            ) : properties?.length ? (
-                                <FlexibleTable
-                                    data={properties}
-                                    columns={getColumns()}
-                                    hoverable={true}
-                                    borders={{
-                                        table: false,
-                                        header: true,
-                                        rows: true,
-                                        cells: false,
-                                        outer: false,
-                                    }}
-                                    maxHeight='68vh'
-                                    className='rounded-lg'
-                                    stickyHeader={true}
-                                />
-                            ) : (
-                                <div className='flex items-center justify-center h-64'>
-                                    <div className='text-center'>
-                                        <div className='text-gray-500 text-lg font-medium'>No properties found</div>
-                                        <div className='text-gray-400 text-sm mt-1'>
-                                            Try adjusting your search or filters
+                                ) : searchError ? (
+                                    <div className='flex items-center justify-center h-64'>
+                                        <div className='text-center'>
+                                            <div className='text-red-600 mb-4'>Error: {searchError}</div>
+                                            <Button
+                                                bgColor='bg-blue-600'
+                                                textColor='text-white'
+                                                onClick={() =>
+                                                    performSearch(urlParams.query, filters, 0, urlParams.sort)
+                                                }
+                                            >
+                                                Retry
+                                            </Button>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                ) : properties?.length ? (
+                                    <FlexibleTable
+                                        data={properties}
+                                        columns={getColumns()}
+                                        hoverable={true}
+                                        borders={{
+                                            table: false,
+                                            header: true,
+                                            rows: true,
+                                            cells: false,
+                                            outer: false,
+                                        }}
+                                        maxHeight='100%'
+                                        className='rounded-lg h-full'
+                                        stickyHeader={true}
+                                    />
+                                ) : (
+                                    <div className='flex items-center justify-center h-64'>
+                                        <div className='text-center'>
+                                            <div className='text-gray-500 text-lg font-medium'>No properties found</div>
+                                            <div className='text-gray-400 text-sm mt-1'>
+                                                Try adjusting your search or filters
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Pagination */}
-                        {!searchLoading && totalPages > 1 && (
-                            <div className='flex items-center justify-between px-6 border-t border-gray-200'>
-                                <CustomPagination
-                                    currentPage={urlParams.page}
-                                    totalPages={totalPages}
-                                    onPageChange={handlePageChange}
-                                    className=''
-                                />
-                            </div>
-                        )}
+                        {/* {!searchLoading && totalPages > 1 && ( */}
+                        <div className='flex items-center justify-center flex-shrink-0'>
+                            <CustomPagination
+                                currentPage={urlParams.page}
+                                totalPages={totalPages}
+                                onPageChange={handlePageChange}
+                                className=''
+                            />
+                        </div>
+                        {/* )} */}
                     </div>
 
                     {/* Share Modal */}

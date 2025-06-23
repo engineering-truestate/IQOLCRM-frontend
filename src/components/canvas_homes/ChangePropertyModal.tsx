@@ -1,7 +1,7 @@
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
-import type { RootState } from '../../store'
+import type { AppDispatch, RootState } from '../../store'
 import { useParams } from 'react-router'
 import { enquiryService } from '../../services/canvas_homes'
 import { taskService } from '../../services/canvas_homes/taskService'
@@ -27,7 +27,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     const dispatch = useDispatch<AppDispatch>()
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { leadData } = useLeadDetails(leadId || '')
+    const { leadData } = UseLeadDetails(leadId || '')
     const { properties } = useSelector((state: RootState) => state.preLaunch)
     const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
 

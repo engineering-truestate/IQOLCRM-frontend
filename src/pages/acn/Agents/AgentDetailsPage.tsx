@@ -7,11 +7,7 @@ import Button from '../../../components/design-elements/Button'
 import addinventoryic from '/icons/acn/user-add.svg'
 import { useDispatch, useSelector } from 'react-redux'
 import type { IInventory, IRequirement } from '../../../data_types/acn/types'
-import {
-    fetchAgentDetails,
-    fetchAgentRequirementFilters,
-    updateEnquiryStatusThunk,
-} from '../../../services/acn/agents/agentThunkService'
+import { fetchAgentDetails, updateEnquiryStatusThunk } from '../../../services/acn/agents/agentThunkService'
 import { fetchAgentInfo } from '../../../store/thunks/agentDetailsThunk'
 import type { AppDispatch, RootState } from '../../../store'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
@@ -19,44 +15,16 @@ import { formatCost, formatExactCostToLacsOrCrs } from '../../../components/help
 import { formatUnixDate } from '../../../components/helper/formatDate'
 import AgentDetailsDropdown from '../../../components/acn/AgentDetailsDropdown'
 import React from 'react'
-import AgentInventoryTable from './AgentInventoryTable'
-import AgentRequirementTable from './AgentRequirementTable'
-import AgentEnquiryTable from './AgentEnquiryTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
-import type { Store } from 'redux'
 import algoliaAgentsService from '../../../services/acn/agents/algoliaAgentsService'
 import searchNormal from '/icons/acn/search-normal.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import { updatePropertyStatus } from '../../../services/acn/properties/propertiesService'
 import { toast } from 'react-toastify'
 import { updateRequirementStatus } from '../../../services/acn/requirements/requirementsService'
-import { formatUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
 import UpdateInventoryStatusModal from '../../../components/acn/UpdateInventoryModal'
 import BulkShareModal from '../../../components/acn/BulkShareModal'
-
-interface PropertyData {
-    inventories: IInventory[]
-    requirements: IRequirement[]
-    enquiries: any[]
-    qc: any[]
-}
-interface StatusSelectCellProps {
-    value: string
-    row: any
-    statusMap: Record<string, string>
-    setStatusMap: React.Dispatch<React.SetStateAction<Record<string, string>>>
-    options: { label: string; value: string }[]
-    idKey: string
-    getBgColor: (value: string) => string
-}
-
-interface AgentsState {
-    resale: PropertyData
-    rental: PropertyData
-    loading: boolean
-    error: string | null
-}
 
 const AgentDetailsPage = () => {
     const { agentId } = useParams()
@@ -80,7 +48,7 @@ const AgentDetailsPage = () => {
     const { loading: agentDetailsLoading } = useSelector((state: RootState) => state.agentDetails)
     const [agentData, setAgentData] = useState<any>(null)
     const [agentLoading, setAgentLoading] = useState(false)
-    const [statusMap, setStatusMap] = useState<Record<string, string>>({})
+    // const [statusMap, setStatusMap] = useState<Record<string, string>>({})
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [selectedProperty, setSelectedProperty] = useState<any>(null)
 
@@ -323,7 +291,6 @@ const AgentDetailsPage = () => {
                     id: rowId,
                     status: value,
                     type: field === 'requirementStatus' ? 'requirement' : 'internal',
-                    propertyType: activePropertyTab,
                 }),
             ).unwrap()
 
@@ -405,9 +372,9 @@ const AgentDetailsPage = () => {
         const selectedRowIds = Array.from(selectedRows)
         console.log('📤 Bulk sharing properties:', selectedRowIds)
         // Get the selected properties from filtered data
-        const selectedProperties = filteredData.filter((item: any) =>
-            selectedRowIds.includes(item.propertyId || item.id),
-        )
+        // const selectedProperties = filteredData.filter((item: any) =>
+        //     selectedRowIds.includes(item.propertyId || item.id),
+        // )
         setIsBulkShareModalOpen(true)
     }
 
@@ -525,7 +492,7 @@ const AgentDetailsPage = () => {
                     {
                         key: 'cpCode',
                         header: 'Agent',
-                        render: (value) => (
+                        render: (_) => (
                             <span className='whitespace-nowrap text-sm font-normal w-auto'>
                                 {agentData?.name || 'N/A'}
                             </span>
@@ -665,7 +632,7 @@ const AgentDetailsPage = () => {
                     {
                         key: 'agentCpid',
                         header: 'Agent Name',
-                        render: (value) => (
+                        render: (_) => (
                             <span className='whitespace-nowrap text-sm font-normal w-auto'>
                                 {agentData.name || 'N/A'}
                             </span>
@@ -674,7 +641,7 @@ const AgentDetailsPage = () => {
                     {
                         key: 'agentNumber',
                         header: 'Agent Number',
-                        render: (value) => (
+                        render: (_) => (
                             <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
                                 {agentData.phoneNumber || 'N/A'}
                             </span>

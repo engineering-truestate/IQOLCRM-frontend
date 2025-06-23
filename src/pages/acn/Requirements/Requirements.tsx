@@ -441,14 +441,17 @@ const RequirementsPage = () => {
 
     return (
         <Layout loading={false}>
-            <div className='w-full overflow-hidden font-sans'>
-                <div className='py-2 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+            <div className='w-full overflow-hidden font-sans h-screen flex flex-col'>
+                <div
+                    className='flex flex-col gap-4 pt-2 bg-white flex-1 overflow-hidden'
+                    style={{ width: 'calc(100vw)', maxWidth: '100%' }}
+                >
                     {/* Header */}
                     <AddRequirementModal
                         isOpen={isAddRequirementModalOpen}
                         onClose={() => setIsAddRequirementModalOpen(false)}
                     />
-                    <div className='mb-4'>
+                    <div className='flex-shrink-0'>
                         <div className='flex items-center justify-between mb-2 px-6'>
                             <h1 className='text-lg font-semibold text-black'>Requirement</h1>
                             <div className='flex items-center gap-4'>
@@ -572,76 +575,23 @@ const RequirementsPage = () => {
                         </div>
                     </div>
 
-                    {/* Active Filters Display */}
-                    {/* {hasActiveFilters() && (
-                        <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
-                            <div className='flex items-center justify-between mb-2'>
-                                <span className='text-sm font-medium text-blue-800'>Active Filters:</span>
-                                <button
-                                    onClick={resetFilters}
-                                    className='text-xs text-blue-600 hover:text-blue-800 font-medium'
-                                >
-                                    Clear All
-                                </button>
-                            </div>
-                            <div className='flex flex-wrap gap-2'>
-                                {filters.requirementStatus && filters.requirementStatus.length > 0 && (
-                                    <div className='flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs'>
-                                        <span>Status: {filters.requirementStatus.join(', ')}</span>
-                                        <button
-                                            onClick={() => clearFilter('requirementStatus')}
-                                            className='ml-1 text-blue-600 hover:text-blue-800'
-                                            title='Clear Status Filter'
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                )}
-                                {filters.internalStatus && filters.internalStatus.length > 0 && (
-                                    <div className='flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs'>
-                                        <span>Internal Status: {filters.internalStatus.join(', ')}</span>
-                                        <button
-                                            onClick={() => clearFilter('internalStatus')}
-                                            className='ml-1 text-blue-600 hover:text-blue-800'
-                                            title='Clear Internal Status Filter'
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                )}
-                                {filters.assetType && filters.assetType.length > 0 && (
-                                    <div className='flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs'>
-                                        <span>Asset Type: {filters.assetType.join(', ')}</span>
-                                        <button
-                                            onClick={() => clearFilter('assetType')}
-                                            className='ml-1 text-blue-600 hover:text-blue-800'
-                                            title='Clear Asset Type Filter'
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )} */}
-
                     {/* Search Info */}
                     {searchLoading && (
-                        <div className='mb-2 text-sm text-blue-600 flex items-center gap-2'>
+                        <div className='mb-2 text-sm text-blue-600 flex items-center gap-2 flex-shrink-0'>
                             <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
                             Searching...
                         </div>
                     )}
 
                     {!searchLoading && hasActiveFilters() && (
-                        <div className='mb-2 text-sm text-gray-600'>
+                        <div className='mb-2 text-sm text-gray-600 flex-shrink-0'>
                             Found {totalItems.toLocaleString()} requirements
                             {searchValue && ` for "${searchValue}"`}
                         </div>
                     )}
 
                     {searchError && (
-                        <div className='mb-2 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                        <div className='mb-2 p-3 bg-red-50 border border-red-200 rounded-lg flex-shrink-0'>
                             <div className='text-sm text-red-700'>Error: {searchError}</div>
                             <button
                                 onClick={() => performSearch()}
@@ -652,53 +602,58 @@ const RequirementsPage = () => {
                         </div>
                     )}
 
-                    {/* Table with fixed actions column and vertical scrolling */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden pl-6'>
-                        <div className='h-[68vh] overflow-y-auto'>
-                            {searchLoading ? (
-                                <div className='flex items-center justify-center h-64'>
-                                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
-                                    <span className='ml-3 text-gray-600'>Loading requirements...</span>
-                                </div>
-                            ) : currentData.length > 0 ? (
-                                <FlexibleTable
-                                    data={currentData}
-                                    columns={columns}
-                                    hoverable={true}
-                                    borders={{
-                                        table: false,
-                                        header: true,
-                                        rows: true,
-                                        cells: false,
-                                        outer: false,
-                                    }}
-                                    maxHeight='68vh'
-                                    className='rounded-lg'
-                                    stickyHeader={true}
-                                />
-                            ) : (
-                                <div className='flex items-center justify-center h-64'>
-                                    <div className='text-center'>
-                                        <div className='text-gray-500 text-lg font-medium'>No requirements found</div>
-                                        <div className='text-gray-400 text-sm mt-1'>
-                                            Try adjusting your search or filters
+                    {/* Table Container - This will take remaining space */}
+                    <div className='flex-1 flex flex-col gap-[29px] overflow-hidden'>
+                        {/* Table with fixed actions column and vertical scrolling */}
+                        <div className='bg-white rounded-lg overflow-hidden flex-1 pl-6'>
+                            <div className='h-full overflow-hidden'>
+                                {searchLoading ? (
+                                    <div className='flex items-center justify-center h-64'>
+                                        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+                                        <span className='ml-3 text-gray-600'>Loading requirements...</span>
+                                    </div>
+                                ) : currentData.length > 0 ? (
+                                    <FlexibleTable
+                                        data={currentData}
+                                        columns={columns}
+                                        hoverable={true}
+                                        borders={{
+                                            table: false,
+                                            header: true,
+                                            rows: true,
+                                            cells: false,
+                                            outer: false,
+                                        }}
+                                        maxHeight='100%'
+                                        className='rounded-lg h-full'
+                                        stickyHeader={true}
+                                    />
+                                ) : (
+                                    <div className='flex items-center justify-center h-64'>
+                                        <div className='text-center'>
+                                            <div className='text-gray-500 text-lg font-medium'>
+                                                No requirements found
+                                            </div>
+                                            <div className='text-gray-400 text-sm mt-1'>
+                                                Try adjusting your search or filters
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
 
                         {/* Pagination */}
-                        {!searchLoading && totalPages > 1 && (
-                            <div className='flex items-center justify-between px-6 border-t border-gray-200'>
-                                <CustomPagination
-                                    currentPage={currentPage + 1}
-                                    totalPages={totalPages}
-                                    onPageChange={(page) => handlePageChange(page - 1)}
-                                    className=''
-                                />
-                            </div>
-                        )}
+                        {/* {!searchLoading && totalPages > 1 && ( */}
+                        <div className='flex items-center justify-center flex-shrink-0'>
+                            <CustomPagination
+                                currentPage={currentPage + 1}
+                                totalPages={totalPages}
+                                onPageChange={(page) => handlePageChange(page - 1)}
+                                className=''
+                            />
+                        </div>
+                        {/* )} */}
                     </div>
                 </div>
             </div>

@@ -9,7 +9,7 @@ import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { taskService } from '../../services/canvas_homes/taskService'
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 import Dropdown from '../design-elements/Dropdown'
 
 interface RootState {
@@ -50,7 +50,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
     const { leadId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { user } = useAuth()
-    const { leadData } = useLeadDetails(leadId || '')
+    const { leadData } = UseLeadDetails(leadId || '')
 
     // Agent details from auth
     const agentId = user?.uid || ''

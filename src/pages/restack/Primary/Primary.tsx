@@ -6,7 +6,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import { fetchPrimaryProperties, setPrimaryPropertiesFilter } from '../../../store/actions/restack/primaryProperties'
+import { fetchPrimaryProperties } from '../../../store/actions/restack/primaryProperties'
+import { setFilter } from '../../../store/reducers/restack/primaryProperties'
 import type { RootState } from '../../../store'
 import type { AppDispatch } from '../../../store'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
@@ -72,7 +73,7 @@ const PrimaryPage = () => {
 
     // Filter data based on search
     useEffect(() => {
-        dispatch(setPrimaryPropertiesFilter(searchValue))
+        dispatch(setFilter(searchValue))
         setCurrentPage(1)
     }, [searchValue, dispatch])
 
@@ -123,7 +124,7 @@ const PrimaryPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm font-semibold text-gray-900'>{value}</span>,
         },
         {
-            key: 'reraId',
+            key: 'reraID',
             header: 'Registration Number',
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-mono'>{value}</span>,
         },
@@ -142,26 +143,19 @@ const PrimaryPage = () => {
             header: 'Project Start Date',
             render: (value) => (
                 <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value * 1000).toLocaleDateString('en-GB', {
+                    {/* {new Date(value * 1000).toLocaleDateString('en-GB', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
-                    })}
+                    })} */}
+                    {value}
                 </span>
             ),
         },
         {
             key: 'handoverDate',
             header: 'Handover Date',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm text-gray-600'>
-                    {new Date(value * 1000).toLocaleDateString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    })}
-                </span>
-            ),
+            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
             key: 'projectType',
@@ -193,15 +187,15 @@ const PrimaryPage = () => {
                         <div className='flex items-center justify-between mb-4'>
                             <h1 className='text-xl font-semibold text-gray-900'>Primary</h1>
                             <div className='flex items-center gap-4'>
-                                <SortFilter />
-                                <button
+                                {/* <SortFilter /> */}
+                                {/* <button
                                     className='px-3 py-1 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                     onClick={() => {
                                         // Add filter functionality here
                                     }}
                                 >
                                     Filter
-                                </button>
+                                </button> */}
                                 <div className='w-80'>
                                     <StateBaseTextField
                                         leftIcon={

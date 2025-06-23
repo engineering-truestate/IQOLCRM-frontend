@@ -11,6 +11,7 @@ import { formatUnixDate } from '../../../../components/helper/getUnixDateTime'
 import { fetchPostReraProperties } from '../../../../store/actions/restack/postReraActions'
 import type { PostReraProperty } from '../../../../store/reducers/restack/postReraTypes'
 import type { RootState } from '../../../../store'
+import Dropdown from '../../../../components/design-elements/Dropdown'
 
 const PostReraPage = () => {
     const [searchValue, setSearchValue] = useState('')
@@ -20,7 +21,7 @@ const PostReraPage = () => {
 
     const { properties, loading, error } = useSelector((state: RootState) => state.postRera)
 
-    const ITEMS_PER_PAGE = 5
+    const ITEMS_PER_PAGE = 50
 
     const [filteredProperties, setFilteredProperties] = useState<PostReraProperty[]>([])
     const [paginatedProperties, setPaginatedProperties] = useState<PostReraProperty[]>([])
@@ -98,6 +99,17 @@ const PostReraPage = () => {
                         <div className='flex items-center justify-between mb-4'>
                             <h1 className='text-xl font-semibold text-gray-900'>Stock</h1>
                             <div className='flex items-center gap-4'>
+                                <Dropdown
+                                    defaultValue=''
+                                    placeholder='Stock Type'
+                                    options={[
+                                        { label: 'All', value: '' },
+                                        { label: 'Pre-Rera', value: 'pre-rera' },
+                                        { label: 'Post-Rera', value: 'post-rera' },
+                                    ]}
+                                    onSelect={(value: string) => setSearchValue(value as 'Owner' | 'Broker')}
+                                    className='z-40'
+                                />
                                 <div className='w-80'>
                                     <StateBaseTextField
                                         leftIcon={

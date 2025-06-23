@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { collection, query, where, getDocs, doc, updateDoc, getDoc, arrayUnion } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, updateDoc, getDoc, arrayUnion, setDoc } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import type { IInventory, IRequirement } from '../../../data_types/acn/types'
 
@@ -534,6 +534,193 @@ export const updateEnquiryStatusThunk = createAsyncThunk(
                 success: false,
                 error: error instanceof Error ? error.message : 'Failed to update enquiry status',
             }
+        }
+    },
+)
+
+interface Note {
+    kamId: string
+    note: string
+    source: string
+    timestamp: number
+    archive: boolean
+}
+
+export const addNoteToAgent = createAsyncThunk(
+    'agents/addNoteToAgent',
+    async (
+        { cpId, noteData }: { cpId: string; noteData: { kamId: string; note: string; source: string; archive: false } },
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('📝 Adding note to agent:', cpId, noteData)
+
+            const docRef = doc(db, 'acnAgents', cpId)
+            const agentDoc = await getDoc(docRef)
+
+            if (!agentDoc.exists()) {
+                throw new Error('Agent not found')
+            }
+
+            const agentData = agentDoc.data()
+            const existingNotes = agentData.notes || []
+
+            const newNote: Note = {
+                ...noteData,
+                timestamp: Math.floor(Date.now() / 1000), // Unix timestamp in seconds
+                archive: false,
+            }
+
+            const updatedNotes = [...existingNotes, newNote]
+
+            await updateDoc(docRef, {
+                notes: updatedNotes,
+                lastModified: Date.now(),
+            })
+
+            console.log('✅ Note added to agent successfully')
+            return { cpId, note: newNote, allNotes: updatedNotes }
+        } catch (error: any) {
+            console.error('❌ Error adding note to agent:', error)
+            return rejectWithValue(error.message || 'Failed to add note to agent')
+        }
+    },
+)
+
+export const fetchAgentWithNotes = createAsyncThunk(
+    'agents/fetchAgentWithNotes',
+    async (cpId: string, { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching agent with notes:', cpId)
+
+            const docRef = doc(db, 'acnAgents', cpId)
+            const docSnap = await getDoc(docRef)
+
+            if (docSnap.exists()) {
+                const data = docSnap.data()
+                const notes = data.notes || []
+
+                // Sort notes by timestamp (newest first) and filter out archived notes
+                const sortedNotes = notes
+                    .filter((note: any) => !note.archive)
+                    .sort((a: any, b: any) => b.timestamp - a.timestamp)
+
+                console.log('✅ Agent notes fetched successfully:', sortedNotes.length)
+
+                // Return the notes directly
+                return sortedNotes
+            }
+
+            throw new Error(`Agent with ID ${cpId} not found`)
+        } catch (error: any) {
+            console.error('❌ Error fetching agent notes:', error)
+            return rejectWithValue(error.message || 'Failed to fetch agent notes')
+        }
+    },
+)
+
+export const addAgentWithVerification = createAsyncThunk(
+    'agents/addAgentWithVerification',
+    async (
+        { verificationData }: { verificationData: any }, // Use your AgentVerificationData type here
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('🔄 Starting agent creation via verification modal')
+
+            // Step 1: Get next CP ID from admin collection
+            const adminDocRef = doc(db, 'acn-admin', 'lastCpId')
+            const adminDoc = await getDoc(adminDocRef)
+
+            if (!adminDoc.exists()) {
+                throw new Error('Admin document not found')
+            }
+
+            const adminData = adminDoc.data()
+            const currentCount = adminData.count || 545
+            const prefix = adminData.prefix || 'B'
+            const label = adminData.label || 'CP'
+
+            const newCpId = `${label}${prefix}${currentCount + 1}`
+
+            // Step 2: Prepare agent data
+            const timestamp = Math.floor(Date.now() / 1000)
+
+            const agentData = {
+                cpId: newCpId,
+                name: verificationData.name,
+                phoneNumber: verificationData.phoneNumber,
+                emailAddress: verificationData.emailAddress,
+                workAddress: verificationData.workAddress || '',
+                reraId: verificationData.reraId || '',
+                firmName: verificationData.firmName || '',
+                firmSize: parseInt(verificationData.firmSize) || 0,
+                areaOfOperation: (verificationData.areaOfOperation as any[]) || [],
+                businessCategory: (verificationData.businessCategory as any[]) || [],
+                preferedMicromarket: '',
+                userType: 'basic',
+                activity: 'active',
+                agentStatus: 'not contact yet',
+                verified: true,
+                verficationDate: timestamp,
+                blackListed: false,
+                trialUsed: false,
+                trialStartedAt: 0,
+                noOfinventories: 0,
+                inventoryStatus: {
+                    available: false,
+                    delisted: false,
+                    hold: false,
+                    sold: false,
+                },
+                noOfEnquiries: 0,
+                noOfrequirements: 0,
+                noOfleagalLeads: 0,
+                lastEnquiry: 0,
+                payStatus: 'will not',
+                planExpiry: 0,
+                nextRenewal: 0,
+                paymentHistory: [],
+                monthlyCredits: 0,
+                boosterCredits: 0,
+                inboundEnqCredits: 0,
+                inboundReqCredits: 0,
+                contactStatus: 'not contact',
+                contactHistory: [],
+                lastTried: 0,
+                kamName: verificationData.kamName,
+                kamId: verificationData.kamId,
+                notes: [],
+                appInstalled: false,
+                communityJoined: false,
+                onBroadcast: false,
+                onboardingComplete: false,
+                source: 'direct',
+                lastSeen: 0,
+                added: timestamp,
+                lastModified: timestamp,
+                extraDetails: '',
+            }
+
+            // Step 3: Create agent document
+            const agentDocRef = doc(db, 'acnAgents', newCpId)
+            await setDoc(agentDocRef, agentData)
+
+            // Step 4: Update admin count
+            await updateDoc(adminDocRef, {
+                count: currentCount + 1,
+            })
+
+            console.log('✅ Agent created successfully:', newCpId)
+
+            return {
+                agentId: newCpId,
+                agentData,
+                message: `Agent ${newCpId} created successfully`,
+            }
+        } catch (error: any) {
+            console.error('❌ Error creating agent:', error)
+            return rejectWithValue(error.message || 'Failed to create agent')
         }
     },
 )

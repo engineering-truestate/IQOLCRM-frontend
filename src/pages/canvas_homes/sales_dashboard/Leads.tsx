@@ -9,12 +9,13 @@ import google from '/icons/canvas_homes/google.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
 import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
-import { useNavigate } from 'react-router-dom'
+import { useFetcher, useNavigate } from 'react-router-dom'
 import potentialIcon from '/icons/canvas_homes/potential-bulb.svg'
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import superHotIcon from '/icons/canvas_homes/super-hot.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import { calculateALSC } from '../../../components/helper/calculateALSC'
 
 // Status card component
 const StatusCard = ({
@@ -181,7 +182,7 @@ const Leads = () => {
             filtered = filtered.filter((lead) => lead.state?.toLowerCase() === stateValue)
         }
 
-        setFilteredLeadsData(filtered)
+        setFilteredLeadsData(filtered.map((lead, index) => ({ ...lead, index })))
     }, [allLeadsData, activeStatusCard, searchValue])
 
     // Search function - Updated to handle manual filtering
@@ -222,16 +223,37 @@ const Leads = () => {
     ])
 
     // Search on text input change (debounced)
-    useEffect(() => {
-        debouncedSearch()
-    }, [searchValue, debouncedSearch])
+    // useEffect(() => {
+    //     debouncedSearch()
+    // }, [searchValue, debouncedSearch])
 
     // Initial search
-    useEffect(() => {
-        performSearch()
-    }, [])
+    // useEffect(() => {
+    //     performSearch()
+    // }, [])
 
-    // Calculate status counts manually from allLeadsData
+    // Filter data based on active status card and other filters (keep existing logic)
+    // const filteredLeadsData = useMemo(() => {
+    //     let filtered = allLeadsData
+
+    //     // Apply additional client-side search filter if needed
+    //     if (searchValue) {
+    //         filtered = filtered.filter(
+    //             (lead) =>
+    //                 lead.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    //                 lead.phoneNumber?.includes(searchValue) ||
+    //                 lead.agentName?.toLowerCase().includes(searchValue.toLowerCase()),
+    //         )
+    //     }
+
+    //     return filtered
+    // }, [allLeadsData, searchValue])
+
+    // const indexedLeadsData = useEffect(() => {
+    //     return setFilteredLeadsData.map((lead, index) => ({ ...lead, index }))
+    // }, [filteredLeadsData])
+
+    // Calculate status counts from facets - Fixed case sensitivity
     const statusCounts = useMemo(() => {
         const counts = {
             All: allLeadsData.length,
@@ -316,7 +338,6 @@ const Leads = () => {
     const handleRowClick = (row: any) => {
         navigate(`leaddetails/${row.leadId}`)
     }
-
     // Status cards data with dynamic counts
     const statusCards = [
         { title: 'All', count: statusCounts.All },
@@ -334,6 +355,7 @@ const Leads = () => {
             render: (value, row) => (
                 <div className='whitespace-nowrap'>
                     <div
+                        onClick={() => handleRowClick(row)}
                         className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-semibold text-gray-900'
                         title={value || row.property || '-'} // optional: full text on hover
                     >
@@ -435,17 +457,9 @@ const Leads = () => {
             key: 'lastModified',
             header: 'ASLC',
             render: (value, row) => {
-                const lastModified = row.lastModified
-                const today = Math.floor(Date.now() / 1000) // in seconds
-
-                let daysDifference = 0
-                if (lastModified) {
-                    daysDifference = Math.floor((today - lastModified) / (60 * 60 * 24))
-                }
-
                 return (
                     <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {daysDifference || 0} days
+                        {calculateALSC(allLeadsData[row.index])}
                     </span>
                 )
             },
@@ -698,7 +712,6 @@ const Leads = () => {
                     headerClassName='font-normal text-left'
                     cellClassName='text-left'
                     onRowSelect={handleRowSelect}
-                    onRowClick={handleRowClick}
                     onSelectAll={handleSelectAllRows}
                     className='rounded-lg'
                     stickyHeader={true}

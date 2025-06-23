@@ -102,7 +102,7 @@ Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || pr
     return (
         <>
             <div className='fixed inset-0 bg-black/75 flex items-center justify-center z-50' onClick={onClose}>
-                <div className='flex flex-col gap-0 bg-white rounded-xl w-72 h-80 bg-baseWhite'>
+                <div className='flex flex-col gap-0 bg-white rounded-xl min-w-72 min-h-80  bg-baseWhite'>
                     {/* Header */}
                     <div className='flex items-center justify-between px-4 py-2'>
                         <h2 className='text-[16px] font-bold'>Share Inventory</h2>

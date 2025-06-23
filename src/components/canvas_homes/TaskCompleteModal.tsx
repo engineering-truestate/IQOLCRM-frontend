@@ -8,7 +8,7 @@ import type { AppDispatch } from '../../store'
 import { clearTaskId, setTaskState } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
-import { useLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
@@ -42,7 +42,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { leadData } = useLeadDetails(leadId || '')
+    const { leadData } = UseLeadDetails(leadId || '')
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''

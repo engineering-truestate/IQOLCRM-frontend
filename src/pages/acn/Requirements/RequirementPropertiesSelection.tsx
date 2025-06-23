@@ -689,7 +689,7 @@ const PropertiesSelectionPage = () => {
             ),
         },
         {
-            key: 'nameOfTheProperty',
+            key: 'propertyName',
             header: 'Property Name',
             render: (value) => (
                 <div className='max-w-[180px] truncate text-sm font-semibold' title={value || ''}>

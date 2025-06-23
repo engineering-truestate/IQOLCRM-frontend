@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useLeadDetails } from '../../../hooks/canvas_homes/useLeadDetails'
+import { UseLeadDetails } from '../../../hooks/canvas_homes/UseLeadDetails'
 import Layout from '../../../layout/Layout'
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
@@ -69,7 +69,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         updateEnquiry,
         updateLead,
         updateTask,
-    } = useLeadDetails(leadId || '') // Provide empty string as fallback
+    } = UseLeadDetails(leadId || '') // Provide empty string as fallback
 
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false)
     const [isAddDetailsModalOpen, setIsAddDetailsModalOpen] = useState(false)

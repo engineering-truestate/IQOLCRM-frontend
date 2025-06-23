@@ -35,18 +35,24 @@ import PreReraPage from './pages/restack/Stock/Pre-Rera/PreReraPage'
 import PreReraDetailsPage from './pages/restack/Stock/Pre-Rera/PreReraDetailsPage'
 import PreReraEditPage from './pages/restack/Stock/Pre-Rera/PreReraEditPage'
 
-import ErrorPage from './404'
-import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+// import ErrorPage from './404'
+// import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+// import ErrorPage from './404'
+// import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 // import ResalePage from './pages/restack/Resale/ResalePage'
 // import ResalePageDetails from './pages/restack/Resale/ResalePageDetails'
 
-import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+// import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 
 import ComplaintsPage from './pages/restack/Primary/ComplaintsPage'
 import DocumentsPage from './pages/restack/Primary/DocumentsPage'
 import TypologyPage from './pages/restack/Primary/TypologyPage'
 import RentalDetailsPage from './pages/restack/rental/RentalDetailsPage'
-import PrimaryPage from './pages/restack/Primary/Primary'
+// import PrimaryPage from './pages/restack/Primary/Primary'
+// import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
+// import ResalePage from './pages/restack/resale/ResalePage'
+// import Resale from './pages/restack/resale/Resale'
+// import PrimaryPage from './pages/restack/Primary/Primary'
 // import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
 // import ResalePage from './pages/restack/resale/ResalePage'
 // import Resale from './pages/restack/resale/Resale'
@@ -62,8 +68,13 @@ import Resale from './pages/restack/Resale/Resale'
 import MarketingDashboard from './pages/canvas_homes/marketing_dashboard/Marketing'
 import HomePage from './pages/canvas_homes/home/Home'
 import SalesDashboard from './pages/canvas_homes/sales_dashboard/Sales'
-import MarketingDetails from './pages/canvas_homes/marketing_dashboard/MarketingDetails'
+import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
+import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
+import PrimaryPage from './pages/restack/Primary/Primary'
 // import MarketingDashboard from './pages/canvas_homes/marketing_dashboard/Marketing'
+// import { ResaleDetailsPage } from './pages/restack/Resale/ResalePageDetails'
+// import ResalePage from './pages/restack/Resale/ResalePage'
+// import Resale from './pages/restack/Resale/Resale'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -264,14 +275,14 @@ export const protectedRoutes: RouteObject[] = [
         path: '/restack/stock/pre-rera/:id/edit',
         element: React.createElement(React.Suspense, null, React.createElement(PreReraEditPage, null)),
     },
-    // {
-    //     path: '/restack/resale/:type',
-    //     element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
-    // },
-    // {
-    //     path: '/restack/resale',
-    //     element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
-    // },
+    {
+        path: '/restack/resale/:type',
+        element: React.createElement(React.Suspense, null, React.createElement(ResalePage, null)),
+    },
+    {
+        path: '/restack/resale',
+        element: React.createElement(React.Suspense, null, React.createElement(Resale, null)),
+    },
     {
         path: '/acn/properties',
         element: React.createElement(

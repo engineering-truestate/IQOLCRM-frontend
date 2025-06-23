@@ -7,7 +7,14 @@ import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import type { RestackResaleProperty } from '../../../data_types/restack/restack-resale.d'
-import { get99AcresResaleData, getMagicBricksResaleData } from '../../../services/restack/resaleService'
+import {
+    get99AcresResaleData,
+    getACNResaleData,
+    getHousingResaleData,
+    getMagicBricksResaleData,
+    getMyGateResaleData,
+} from '../../../services/restack/resaleService'
+import Dropdown from '../../../components/design-elements/Dropdown'
 
 const ResalePage = () => {
     const location = useLocation()
@@ -38,6 +45,15 @@ const ResalePage = () => {
                 case 'magicbricks':
                     data = await getMagicBricksResaleData()
                     break
+                case 'ACN':
+                    data = await getACNResaleData()
+                    break
+                case 'myGate':
+                    data = await getMyGateResaleData()
+                    break
+                case 'Housing':
+                    data = await getHousingResaleData()
+                    break
                 default:
                     console.error('Invalid resale type:', resaleType)
                     return
@@ -60,14 +76,13 @@ const ResalePage = () => {
                     property.propertyId.toLowerCase().includes(searchValue.toLowerCase()) ||
                     property.propertyType.toLowerCase().includes(searchValue.toLowerCase()) ||
                     property.status.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    property.developer.toLowerCase().includes(searchValue.toLowerCase()),
+                    property.developerName.toLowerCase().includes(searchValue.toLowerCase()),
             )
         }
 
-        // Apply listedBy filter (This filter is not applicable to the new schema)
-        // if (listedByFilter !== 'All') {
-        //     filtered = filtered.filter((property) => property.listedBy === listedByFilter)
-        // }
+        if (listedByFilter !== 'All') {
+            filtered = filtered.filter((property) => property.postedBy === listedByFilter)
+        }
 
         setFilteredData(filtered)
         setCurrentPage(1) // Reset to first page when filtering
@@ -111,7 +126,7 @@ const ResalePage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value?.toLowerCase()}</span>,
         },
         {
-            key: 'developer',
+            key: 'developerName',
             header: 'Developer',
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
         },
@@ -138,6 +153,17 @@ const ResalePage = () => {
                         <div className='flex items-center justify-between mb-4'>
                             <h1 className='text-xl font-semibold text-gray-900'>Resale /{type}</h1>
                             <div className='flex items-center gap-4'>
+                                <Dropdown
+                                    defaultValue=''
+                                    placeholder='Listed by'
+                                    options={[
+                                        { label: 'All', value: 'All' },
+                                        { label: 'Listed by Owner', value: 'Owner' },
+                                        { label: 'Listed by Broker', value: 'Broker' },
+                                    ]}
+                                    onSelect={(value: string) => handleFilterClick(value as 'Owner' | 'Broker')}
+                                    className='z-40'
+                                />
                                 <div className='w-80'>
                                     <StateBaseTextField
                                         leftIcon={
@@ -166,7 +192,7 @@ const ResalePage = () => {
 
                         {/* Filter Buttons */}
                         <div className='flex items-center gap-3 mb-4'>
-                            <button
+                            {/* <button
                                 onClick={() => handleFilterClick('Owner')}
                                 className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
                                     listedByFilter === 'Owner'
@@ -185,15 +211,16 @@ const ResalePage = () => {
                                 }`}
                             >
                                 Listed by Broker
-                            </button>
-                            {(listedByFilter === 'Owner' || listedByFilter === 'Broker') && (
+                            </button> */}
+
+                            {/* {(listedByFilter === 'Owner' || listedByFilter === 'Broker') && (
                                 <button
                                     onClick={() => handleFilterClick('All')}
                                     className='px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors'
                                 >
                                     Clear Filter
                                 </button>
-                            )}
+                            )} */}
                         </div>
                     </div>
                     <hr className='border-gray-200 mb-4 w-full' />

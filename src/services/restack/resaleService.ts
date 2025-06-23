@@ -9,7 +9,7 @@ export const get99AcresResaleData = async (): Promise<RestackResaleProperty[]> =
     const data: RestackResaleProperty[] = querySnapshot.docs.map((doc) => {
         const docData = doc.data()
         return {
-            propertyId: doc.id,
+            propertyId: docData.propertyId,
             projectName: docData.projectName || '',
             propertyType: docData.propertyType || '',
             subType: docData.subType || '',
@@ -21,11 +21,12 @@ export const get99AcresResaleData = async (): Promise<RestackResaleProperty[]> =
             totalUnits: docData.totalUnits || 0,
             carpetArea: docData.carpetArea || '',
             reraId: docData.reraId || '',
-            developer: docData.developer || '',
+            developerName: docData.developerName || '',
             projectSize: docData.projectSize || '',
             ageOfProperty: docData.ageOfProperty || '',
-            projectAddress: docData.projectAddress || '',
+            projectAddress: docData.address || '',
             micromarket: docData.micromarket || '',
+            availabilityStatus: docData.availabilityStatus || '',
             area: docData.area || '',
             status: docData.status || '',
             images: docData.images || [],
@@ -55,6 +56,9 @@ export const get99AcresResaleData = async (): Promise<RestackResaleProperty[]> =
                 furnishing: '',
             },
             priceHistory: docData.priceHistory || [],
+            address: docData.address || '',
+            postedBy: docData.postedBy || '',
+            postedOn: docData.postedOn || '',
         } as RestackResaleProperty
     })
     return data
@@ -65,7 +69,7 @@ export const getMagicBricksResaleData = async (): Promise<RestackResaleProperty[
     const data: RestackResaleProperty[] = querySnapshot.docs.map((doc) => {
         const docData = doc.data()
         return {
-            propertyId: doc.id,
+            propertyId: docData.propertyId,
             projectName: docData.projectName || '',
             propertyType: docData.propertyType || '',
             subType: docData.subType || '',
@@ -77,14 +81,15 @@ export const getMagicBricksResaleData = async (): Promise<RestackResaleProperty[
             totalUnits: docData.totalUnits || 0,
             carpetArea: docData.carpetArea || '',
             reraId: docData.reraId || '',
-            images: docData.images || [],
-            developer: docData.developer || '',
+            developerName: docData.developerName || '',
             projectSize: docData.projectSize || '',
             ageOfProperty: docData.ageOfProperty || '',
-            projectAddress: docData.projectAddress || '',
+            projectAddress: docData.address || '',
             micromarket: docData.micromarket || '',
+            availabilityStatus: docData.availabilityStatus || '',
             area: docData.area || '',
             status: docData.status || '',
+            images: docData.images || [],
             handoverDate: docData.handoverDate || '',
             launchDate: docData.launchDate || '',
             maplink: docData.maplink || '',
@@ -111,6 +116,9 @@ export const getMagicBricksResaleData = async (): Promise<RestackResaleProperty[
                 furnishing: '',
             },
             priceHistory: docData.priceHistory || [],
+            address: docData.address || '',
+            postedBy: docData.postedBy || '',
+            postedOn: docData.postedOn || '',
         } as RestackResaleProperty
     })
     return data
@@ -124,7 +132,7 @@ export const get99AcresResaleDataById = async (id: string): Promise<RestackResal
         if (docSnap.exists()) {
             const docData = docSnap.data()
             return {
-                propertyId: docSnap.id,
+                propertyId: docData.propertyId,
                 projectName: docData.projectName || '',
                 propertyType: docData.propertyType || '',
                 subType: docData.subType || '',
@@ -135,21 +143,21 @@ export const get99AcresResaleDataById = async (id: string): Promise<RestackResal
                 superBuiltUpArea: docData.superBuiltUpArea || 0,
                 totalUnits: docData.totalUnits || 0,
                 carpetArea: docData.carpetArea || '',
-                images: docData.images || [],
                 reraId: docData.reraId || '',
-                developer: docData.developer || '',
+                developerName: docData.developerName || '',
                 projectSize: docData.projectSize || '',
                 ageOfProperty: docData.ageOfProperty || '',
-                projectAddress: docData.projectAddress || '',
+                projectAddress: docData.address || '',
                 micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
                 area: docData.area || '',
                 status: docData.status || '',
+                images: docData.images || [],
                 handoverDate: docData.handoverDate || '',
                 launchDate: docData.launchDate || '',
                 maplink: docData.maplink || '',
                 lat: docData.lat || 0,
                 long: docData.long || 0,
-                listedBy: docData.listedBy || '',
                 inventoryDetails: docData.inventoryDetails || {
                     availability: '',
                     ageOfInventory: '',
@@ -171,6 +179,9 @@ export const get99AcresResaleDataById = async (id: string): Promise<RestackResal
                     furnishing: '',
                 },
                 priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
             } as RestackResaleProperty
         } else {
             return undefined
@@ -189,7 +200,7 @@ export const getMagicBricksResaleDataById = async (id: string): Promise<RestackR
         if (docSnap.exists()) {
             const docData = docSnap.data()
             return {
-                propertyId: docSnap.id,
+                propertyId: docData.propertyId,
                 projectName: docData.projectName || '',
                 propertyType: docData.propertyType || '',
                 subType: docData.subType || '',
@@ -199,22 +210,22 @@ export const getMagicBricksResaleDataById = async (id: string): Promise<RestackR
                 acres: docData.acres || 0,
                 superBuiltUpArea: docData.superBuiltUpArea || 0,
                 totalUnits: docData.totalUnits || 0,
-                images: docData.images || [],
                 carpetArea: docData.carpetArea || '',
                 reraId: docData.reraId || '',
-                developer: docData.developer || '',
+                developerName: docData.developerName || '',
                 projectSize: docData.projectSize || '',
                 ageOfProperty: docData.ageOfProperty || '',
-                projectAddress: docData.projectAddress || '',
+                projectAddress: docData.address || '',
                 micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
                 area: docData.area || '',
                 status: docData.status || '',
+                images: docData.images || [],
                 handoverDate: docData.handoverDate || '',
                 launchDate: docData.launchDate || '',
                 maplink: docData.maplink || '',
                 lat: docData.lat || 0,
                 long: docData.long || 0,
-                listedBy: docData.listedBy || '',
                 inventoryDetails: docData.inventoryDetails || {
                     availability: '',
                     ageOfInventory: '',
@@ -236,6 +247,9 @@ export const getMagicBricksResaleDataById = async (id: string): Promise<RestackR
                     furnishing: '',
                 },
                 priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
             } as RestackResaleProperty
         } else {
             return undefined
@@ -258,7 +272,7 @@ export const update99AcresResaleDataById = async (
         if (docSnap.exists()) {
             const docData = docSnap.data()
             return {
-                propertyId: docSnap.id,
+                propertyId: docData.propertyId,
                 projectName: docData.projectName || '',
                 propertyType: docData.propertyType || '',
                 subType: docData.subType || '',
@@ -269,21 +283,21 @@ export const update99AcresResaleDataById = async (
                 superBuiltUpArea: docData.superBuiltUpArea || 0,
                 totalUnits: docData.totalUnits || 0,
                 carpetArea: docData.carpetArea || '',
-                images: docData.images || [],
                 reraId: docData.reraId || '',
-                developer: docData.developer || '',
+                developerName: docData.developerName || '',
                 projectSize: docData.projectSize || '',
                 ageOfProperty: docData.ageOfProperty || '',
-                projectAddress: docData.projectAddress || '',
+                projectAddress: docData.address || '',
                 micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
                 area: docData.area || '',
                 status: docData.status || '',
+                images: docData.images || [],
                 handoverDate: docData.handoverDate || '',
                 launchDate: docData.launchDate || '',
                 maplink: docData.maplink || '',
                 lat: docData.lat || 0,
                 long: docData.long || 0,
-                listedBy: docData.listedBy || '',
                 inventoryDetails: docData.inventoryDetails || {
                     availability: '',
                     ageOfInventory: '',
@@ -305,6 +319,9 @@ export const update99AcresResaleDataById = async (
                     furnishing: '',
                 },
                 priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
             } as RestackResaleProperty
         } else {
             return undefined
@@ -327,7 +344,7 @@ export const updateMagicBricksResaleDataById = async (
         if (docSnap.exists()) {
             const docData = docSnap.data()
             return {
-                propertyId: docSnap.id,
+                propertyId: docData.propertyId,
                 projectName: docData.projectName || '',
                 propertyType: docData.propertyType || '',
                 subType: docData.subType || '',
@@ -338,21 +355,21 @@ export const updateMagicBricksResaleDataById = async (
                 superBuiltUpArea: docData.superBuiltUpArea || 0,
                 totalUnits: docData.totalUnits || 0,
                 carpetArea: docData.carpetArea || '',
-                images: docData.images || [],
                 reraId: docData.reraId || '',
-                developer: docData.developer || '',
+                developerName: docData.developerName || '',
                 projectSize: docData.projectSize || '',
                 ageOfProperty: docData.ageOfProperty || '',
-                projectAddress: docData.projectAddress || '',
+                projectAddress: docData.address || '',
                 micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
                 area: docData.area || '',
                 status: docData.status || '',
+                images: docData.images || [],
                 handoverDate: docData.handoverDate || '',
                 launchDate: docData.launchDate || '',
                 maplink: docData.maplink || '',
                 lat: docData.lat || 0,
                 long: docData.long || 0,
-                listedBy: docData.listedBy || '',
                 inventoryDetails: docData.inventoryDetails || {
                     availability: '',
                     ageOfInventory: '',
@@ -374,12 +391,617 @@ export const updateMagicBricksResaleDataById = async (
                     furnishing: '',
                 },
                 priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
             } as RestackResaleProperty
         } else {
             return undefined
         }
     } catch (error) {
         console.error('Error patching MagicBricks resale data by ID:', error)
+        return undefined
+    }
+}
+
+export const getACNResaleData = async (): Promise<RestackResaleProperty[]> => {
+    const querySnapshot = await getDocs(collection(db, 'restackResale99AcresProperties'))
+
+    const data: RestackResaleProperty[] = querySnapshot.docs.map((doc) => {
+        const docData = doc.data()
+        return {
+            propertyId: docData.propertyId,
+            projectName: docData.projectName || '',
+            propertyType: docData.propertyType || '',
+            subType: docData.subType || '',
+            configuration: docData.configuration || '',
+            price: docData.price || '',
+            pricePerSqft: docData.pricePerSqft || 0,
+            acres: docData.acres || 0,
+            superBuiltUpArea: docData.superBuiltUpArea || 0,
+            totalUnits: docData.totalUnits || 0,
+            carpetArea: docData.carpetArea || '',
+            reraId: docData.reraId || '',
+            developerName: docData.developerName || '',
+            projectSize: docData.projectSize || '',
+            ageOfProperty: docData.ageOfProperty || '',
+            projectAddress: docData.address || '',
+            micromarket: docData.micromarket || '',
+            availabilityStatus: docData.availabilityStatus || '',
+            area: docData.area || '',
+            status: docData.status || '',
+            images: docData.images || [],
+            handoverDate: docData.handoverDate || '',
+            launchDate: docData.launchDate || '',
+            maplink: docData.maplink || '',
+            lat: docData.lat || 0,
+            long: docData.long || 0,
+            inventoryDetails: docData.inventoryDetails || {
+                availability: '',
+                ageOfInventory: '',
+                facing: '',
+                overlooking: '',
+                url: '',
+                floorNumber: 0,
+            },
+            amenities: docData.amenities || [],
+            aboutProject: docData.aboutProject || {
+                configuration: '',
+                towersandunits: '',
+                description: '',
+            },
+            extraDetails: docData.extraDetails || {
+                beds: 0,
+                baths: 0,
+                balconies: 0,
+                furnishing: '',
+            },
+            priceHistory: docData.priceHistory || [],
+            address: docData.address || '',
+            postedBy: docData.postedBy || '',
+            postedOn: docData.postedOn || '',
+        } as RestackResaleProperty
+    })
+    return data
+}
+
+export const getACNResaleDataById = async (id: string): Promise<RestackResaleProperty | undefined> => {
+    try {
+        const docRef = doc(db, 'restackResale99AcresProperties', id)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+            const docData = docSnap.data()
+            return {
+                propertyId: docData.propertyId,
+                projectName: docData.projectName || '',
+                propertyType: docData.propertyType || '',
+                subType: docData.subType || '',
+                configuration: docData.configuration || '',
+                price: docData.price || '',
+                pricePerSqft: docData.pricePerSqft || 0,
+                acres: docData.acres || 0,
+                superBuiltUpArea: docData.superBuiltUpArea || 0,
+                totalUnits: docData.totalUnits || 0,
+                carpetArea: docData.carpetArea || '',
+                reraId: docData.reraId || '',
+                developerName: docData.developerName || '',
+                projectSize: docData.projectSize || '',
+                ageOfProperty: docData.ageOfProperty || '',
+                projectAddress: docData.address || '',
+                micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
+                area: docData.area || '',
+                status: docData.status || '',
+                images: docData.images || [],
+                handoverDate: docData.handoverDate || '',
+                launchDate: docData.launchDate || '',
+                maplink: docData.maplink || '',
+                lat: docData.lat || 0,
+                long: docData.long || 0,
+                inventoryDetails: docData.inventoryDetails || {
+                    availability: '',
+                    ageOfInventory: '',
+                    facing: '',
+                    overlooking: '',
+                    url: '',
+                    floorNumber: 0,
+                },
+                amenities: docData.amenities || [],
+                aboutProject: docData.aboutProject || {
+                    configuration: '',
+                    towersandunits: '',
+                    description: '',
+                },
+                extraDetails: docData.extraDetails || {
+                    beds: 0,
+                    baths: 0,
+                    balconies: 0,
+                    furnishing: '',
+                },
+                priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
+            } as RestackResaleProperty
+        } else {
+            return undefined
+        }
+    } catch (error) {
+        console.error('Error fetching 99Acres resale data by ID:', error)
+        return undefined
+    }
+}
+
+export const updateACNResaleDataById = async (
+    id: string,
+    data: Partial<RestackResaleProperty>,
+): Promise<RestackResaleProperty | undefined> => {
+    try {
+        const docRef = doc(db, 'restackResale99AcresProperties', id)
+        await updateDoc(docRef, data)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+            const docData = docSnap.data()
+            return {
+                propertyId: docData.propertyId,
+                projectName: docData.projectName || '',
+                propertyType: docData.propertyType || '',
+                subType: docData.subType || '',
+                configuration: docData.configuration || '',
+                price: docData.price || '',
+                pricePerSqft: docData.pricePerSqft || 0,
+                acres: docData.acres || 0,
+                superBuiltUpArea: docData.superBuiltUpArea || 0,
+                totalUnits: docData.totalUnits || 0,
+                carpetArea: docData.carpetArea || '',
+                reraId: docData.reraId || '',
+                developerName: docData.developerName || '',
+                projectSize: docData.projectSize || '',
+                ageOfProperty: docData.ageOfProperty || '',
+                projectAddress: docData.address || '',
+                micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
+                area: docData.area || '',
+                status: docData.status || '',
+                images: docData.images || [],
+                handoverDate: docData.handoverDate || '',
+                launchDate: docData.launchDate || '',
+                maplink: docData.maplink || '',
+                lat: docData.lat || 0,
+                long: docData.long || 0,
+                inventoryDetails: docData.inventoryDetails || {
+                    availability: '',
+                    ageOfInventory: '',
+                    facing: '',
+                    overlooking: '',
+                    url: '',
+                    floorNumber: 0,
+                },
+                amenities: docData.amenities || [],
+                aboutProject: docData.aboutProject || {
+                    configuration: '',
+                    towersandunits: '',
+                    description: '',
+                },
+                extraDetails: docData.extraDetails || {
+                    beds: 0,
+                    baths: 0,
+                    balconies: 0,
+                    furnishing: '',
+                },
+                priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
+            } as RestackResaleProperty
+        } else {
+            return undefined
+        }
+    } catch (error) {
+        console.error('Error patching 99Acres resale data by ID:', error)
+        return undefined
+    }
+}
+export const getMyGateResaleData = async (): Promise<RestackResaleProperty[]> => {
+    const querySnapshot = await getDocs(collection(db, 'restackResale99AcresProperties'))
+
+    const data: RestackResaleProperty[] = querySnapshot.docs.map((doc) => {
+        const docData = doc.data()
+        return {
+            propertyId: docData.propertyId,
+            projectName: docData.projectName || '',
+            propertyType: docData.propertyType || '',
+            subType: docData.subType || '',
+            configuration: docData.configuration || '',
+            price: docData.price || '',
+            pricePerSqft: docData.pricePerSqft || 0,
+            acres: docData.acres || 0,
+            superBuiltUpArea: docData.superBuiltUpArea || 0,
+            totalUnits: docData.totalUnits || 0,
+            carpetArea: docData.carpetArea || '',
+            reraId: docData.reraId || '',
+            developerName: docData.developerName || '',
+            projectSize: docData.projectSize || '',
+            ageOfProperty: docData.ageOfProperty || '',
+            projectAddress: docData.address || '',
+            micromarket: docData.micromarket || '',
+            availabilityStatus: docData.availabilityStatus || '',
+            area: docData.area || '',
+            status: docData.status || '',
+            images: docData.images || [],
+            handoverDate: docData.handoverDate || '',
+            launchDate: docData.launchDate || '',
+            maplink: docData.maplink || '',
+            lat: docData.lat || 0,
+            long: docData.long || 0,
+            inventoryDetails: docData.inventoryDetails || {
+                availability: '',
+                ageOfInventory: '',
+                facing: '',
+                overlooking: '',
+                url: '',
+                floorNumber: 0,
+            },
+            amenities: docData.amenities || [],
+            aboutProject: docData.aboutProject || {
+                configuration: '',
+                towersandunits: '',
+                description: '',
+            },
+            extraDetails: docData.extraDetails || {
+                beds: 0,
+                baths: 0,
+                balconies: 0,
+                furnishing: '',
+            },
+            priceHistory: docData.priceHistory || [],
+            address: docData.address || '',
+            postedBy: docData.postedBy || '',
+            postedOn: docData.postedOn || '',
+        } as RestackResaleProperty
+    })
+    return data
+}
+
+export const getMyGateResaleDataById = async (id: string): Promise<RestackResaleProperty | undefined> => {
+    try {
+        const docRef = doc(db, 'restackResale99AcresProperties', id)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+            const docData = docSnap.data()
+            return {
+                propertyId: docData.propertyId,
+                projectName: docData.projectName || '',
+                propertyType: docData.propertyType || '',
+                subType: docData.subType || '',
+                configuration: docData.configuration || '',
+                price: docData.price || '',
+                pricePerSqft: docData.pricePerSqft || 0,
+                acres: docData.acres || 0,
+                superBuiltUpArea: docData.superBuiltUpArea || 0,
+                totalUnits: docData.totalUnits || 0,
+                carpetArea: docData.carpetArea || '',
+                reraId: docData.reraId || '',
+                developerName: docData.developerName || '',
+                projectSize: docData.projectSize || '',
+                ageOfProperty: docData.ageOfProperty || '',
+                projectAddress: docData.address || '',
+                micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
+                area: docData.area || '',
+                status: docData.status || '',
+                images: docData.images || [],
+                handoverDate: docData.handoverDate || '',
+                launchDate: docData.launchDate || '',
+                maplink: docData.maplink || '',
+                lat: docData.lat || 0,
+                long: docData.long || 0,
+                inventoryDetails: docData.inventoryDetails || {
+                    availability: '',
+                    ageOfInventory: '',
+                    facing: '',
+                    overlooking: '',
+                    url: '',
+                    floorNumber: 0,
+                },
+                amenities: docData.amenities || [],
+                aboutProject: docData.aboutProject || {
+                    configuration: '',
+                    towersandunits: '',
+                    description: '',
+                },
+                extraDetails: docData.extraDetails || {
+                    beds: 0,
+                    baths: 0,
+                    balconies: 0,
+                    furnishing: '',
+                },
+                priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
+            } as RestackResaleProperty
+        } else {
+            return undefined
+        }
+    } catch (error) {
+        console.error('Error fetching 99Acres resale data by ID:', error)
+        return undefined
+    }
+}
+
+export const updateMyGateResaleDataById = async (
+    id: string,
+    data: Partial<RestackResaleProperty>,
+): Promise<RestackResaleProperty | undefined> => {
+    try {
+        const docRef = doc(db, 'restackResale99AcresProperties', id)
+        await updateDoc(docRef, data)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+            const docData = docSnap.data()
+            return {
+                propertyId: docData.propertyId,
+                projectName: docData.projectName || '',
+                propertyType: docData.propertyType || '',
+                subType: docData.subType || '',
+                configuration: docData.configuration || '',
+                price: docData.price || '',
+                pricePerSqft: docData.pricePerSqft || 0,
+                acres: docData.acres || 0,
+                superBuiltUpArea: docData.superBuiltUpArea || 0,
+                totalUnits: docData.totalUnits || 0,
+                carpetArea: docData.carpetArea || '',
+                reraId: docData.reraId || '',
+                developerName: docData.developerName || '',
+                projectSize: docData.projectSize || '',
+                ageOfProperty: docData.ageOfProperty || '',
+                projectAddress: docData.address || '',
+                micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
+                area: docData.area || '',
+                status: docData.status || '',
+                images: docData.images || [],
+                handoverDate: docData.handoverDate || '',
+                launchDate: docData.launchDate || '',
+                maplink: docData.maplink || '',
+                lat: docData.lat || 0,
+                long: docData.long || 0,
+                inventoryDetails: docData.inventoryDetails || {
+                    availability: '',
+                    ageOfInventory: '',
+                    facing: '',
+                    overlooking: '',
+                    url: '',
+                    floorNumber: 0,
+                },
+                amenities: docData.amenities || [],
+                aboutProject: docData.aboutProject || {
+                    configuration: '',
+                    towersandunits: '',
+                    description: '',
+                },
+                extraDetails: docData.extraDetails || {
+                    beds: 0,
+                    baths: 0,
+                    balconies: 0,
+                    furnishing: '',
+                },
+                priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
+            } as RestackResaleProperty
+        } else {
+            return undefined
+        }
+    } catch (error) {
+        console.error('Error patching 99Acres resale data by ID:', error)
+        return undefined
+    }
+}
+
+export const getHousingResaleData = async (): Promise<RestackResaleProperty[]> => {
+    const querySnapshot = await getDocs(collection(db, 'restackResale99AcresProperties'))
+
+    const data: RestackResaleProperty[] = querySnapshot.docs.map((doc) => {
+        const docData = doc.data()
+        return {
+            propertyId: docData.propertyId,
+            projectName: docData.projectName || '',
+            propertyType: docData.propertyType || '',
+            subType: docData.subType || '',
+            configuration: docData.configuration || '',
+            price: docData.price || '',
+            pricePerSqft: docData.pricePerSqft || 0,
+            acres: docData.acres || 0,
+            superBuiltUpArea: docData.superBuiltUpArea || 0,
+            totalUnits: docData.totalUnits || 0,
+            carpetArea: docData.carpetArea || '',
+            reraId: docData.reraId || '',
+            developerName: docData.developerName || '',
+            projectSize: docData.projectSize || '',
+            ageOfProperty: docData.ageOfProperty || '',
+            projectAddress: docData.address || '',
+            micromarket: docData.micromarket || '',
+            availabilityStatus: docData.availabilityStatus || '',
+            area: docData.area || '',
+            status: docData.status || '',
+            images: docData.images || [],
+            handoverDate: docData.handoverDate || '',
+            launchDate: docData.launchDate || '',
+            maplink: docData.maplink || '',
+            lat: docData.lat || 0,
+            long: docData.long || 0,
+            inventoryDetails: docData.inventoryDetails || {
+                availability: '',
+                ageOfInventory: '',
+                facing: '',
+                overlooking: '',
+                url: '',
+                floorNumber: 0,
+            },
+            amenities: docData.amenities || [],
+            aboutProject: docData.aboutProject || {
+                configuration: '',
+                towersandunits: '',
+                description: '',
+            },
+            extraDetails: docData.extraDetails || {
+                beds: 0,
+                baths: 0,
+                balconies: 0,
+                furnishing: '',
+            },
+            priceHistory: docData.priceHistory || [],
+            address: docData.address || '',
+            postedBy: docData.postedBy || '',
+            postedOn: docData.postedOn || '',
+        } as RestackResaleProperty
+    })
+    return data
+}
+
+export const getHousingResaleDataById = async (id: string): Promise<RestackResaleProperty | undefined> => {
+    try {
+        const docRef = doc(db, 'restackResale99AcresProperties', id)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+            const docData = docSnap.data()
+            return {
+                propertyId: docData.propertyId,
+                projectName: docData.projectName || '',
+                propertyType: docData.propertyType || '',
+                subType: docData.subType || '',
+                configuration: docData.configuration || '',
+                price: docData.price || '',
+                pricePerSqft: docData.pricePerSqft || 0,
+                acres: docData.acres || 0,
+                superBuiltUpArea: docData.superBuiltUpArea || 0,
+                totalUnits: docData.totalUnits || 0,
+                carpetArea: docData.carpetArea || '',
+                reraId: docData.reraId || '',
+                developerName: docData.developerName || '',
+                projectSize: docData.projectSize || '',
+                ageOfProperty: docData.ageOfProperty || '',
+                projectAddress: docData.address || '',
+                micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
+                area: docData.area || '',
+                status: docData.status || '',
+                images: docData.images || [],
+                handoverDate: docData.handoverDate || '',
+                launchDate: docData.launchDate || '',
+                maplink: docData.maplink || '',
+                lat: docData.lat || 0,
+                long: docData.long || 0,
+                inventoryDetails: docData.inventoryDetails || {
+                    availability: '',
+                    ageOfInventory: '',
+                    facing: '',
+                    overlooking: '',
+                    url: '',
+                    floorNumber: 0,
+                },
+                amenities: docData.amenities || [],
+                aboutProject: docData.aboutProject || {
+                    configuration: '',
+                    towersandunits: '',
+                    description: '',
+                },
+                extraDetails: docData.extraDetails || {
+                    beds: 0,
+                    baths: 0,
+                    balconies: 0,
+                    furnishing: '',
+                },
+                priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
+            } as RestackResaleProperty
+        } else {
+            return undefined
+        }
+    } catch (error) {
+        console.error('Error fetching 99Acres resale data by ID:', error)
+        return undefined
+    }
+}
+
+export const updateHousingResaleDataById = async (
+    id: string,
+    data: Partial<RestackResaleProperty>,
+): Promise<RestackResaleProperty | undefined> => {
+    try {
+        const docRef = doc(db, 'restackResale99AcresProperties', id)
+        await updateDoc(docRef, data)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+            const docData = docSnap.data()
+            return {
+                propertyId: docData.propertyId,
+                projectName: docData.projectName || '',
+                propertyType: docData.propertyType || '',
+                subType: docData.subType || '',
+                configuration: docData.configuration || '',
+                price: docData.price || '',
+                pricePerSqft: docData.pricePerSqft || 0,
+                acres: docData.acres || 0,
+                superBuiltUpArea: docData.superBuiltUpArea || 0,
+                totalUnits: docData.totalUnits || 0,
+                carpetArea: docData.carpetArea || '',
+                reraId: docData.reraId || '',
+                developerName: docData.developerName || '',
+                projectSize: docData.projectSize || '',
+                ageOfProperty: docData.ageOfProperty || '',
+                projectAddress: docData.address || '',
+                micromarket: docData.micromarket || '',
+                availabilityStatus: docData.availabilityStatus || '',
+                area: docData.area || '',
+                status: docData.status || '',
+                images: docData.images || [],
+                handoverDate: docData.handoverDate || '',
+                launchDate: docData.launchDate || '',
+                maplink: docData.maplink || '',
+                lat: docData.lat || 0,
+                long: docData.long || 0,
+                inventoryDetails: docData.inventoryDetails || {
+                    availability: '',
+                    ageOfInventory: '',
+                    facing: '',
+                    overlooking: '',
+                    url: '',
+                    floorNumber: 0,
+                },
+                amenities: docData.amenities || [],
+                aboutProject: docData.aboutProject || {
+                    configuration: '',
+                    towersandunits: '',
+                    description: '',
+                },
+                extraDetails: docData.extraDetails || {
+                    beds: 0,
+                    baths: 0,
+                    balconies: 0,
+                    furnishing: '',
+                },
+                priceHistory: docData.priceHistory || [],
+                address: docData.address || '',
+                postedBy: docData.postedBy || '',
+                postedOn: docData.postedOn || '',
+            } as RestackResaleProperty
+        } else {
+            return undefined
+        }
+    } catch (error) {
+        console.error('Error patching 99Acres resale data by ID:', error)
         return undefined
     }
 }

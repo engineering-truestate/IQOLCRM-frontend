@@ -13,9 +13,15 @@ import type { ResaleData } from '../../../store/actionTypes/restack/resaleAction
 import type { RestackResaleProperty } from '../../../data_types/restack/restack-resale'
 import {
     get99AcresResaleDataById,
+    getACNResaleDataById,
+    getHousingResaleDataById,
     getMagicBricksResaleDataById,
+    getMyGateResaleDataById,
     update99AcresResaleDataById,
+    updateACNResaleDataById,
+    updateHousingResaleDataById,
     updateMagicBricksResaleDataById,
+    updateMyGateResaleDataById,
 } from '../../../services/restack/resaleService'
 import { FlexibleTable } from '../../../components/design-elements/FlexibleTable'
 
@@ -192,6 +198,21 @@ const ResaleDetailsPage = () => {
                             : []
                         break
                     }
+                    case 'ACN': {
+                        const resultACN = await getACNResaleDataById(String(id))
+                        data = resultACN ? (Array.isArray(resultACN) ? resultACN : [resultACN]) : []
+                        break
+                    }
+                    case 'myGate': {
+                        const resultmyGate = await getMyGateResaleDataById(String(id))
+                        data = resultmyGate ? (Array.isArray(resultmyGate) ? resultmyGate : [resultmyGate]) : []
+                        break
+                    }
+                    case 'Housing': {
+                        const resultHousing = await getHousingResaleDataById(String(id))
+                        data = resultHousing ? (Array.isArray(resultHousing) ? resultHousing : [resultHousing]) : []
+                        break
+                    }
                     default:
                         console.error('Invalid resale type:', type)
                         return
@@ -264,6 +285,15 @@ const ResaleDetailsPage = () => {
 
             case 'magicbricks':
                 await updateMagicBricksResaleDataById(String(id), originalDetails as RestackResaleProperty)
+                break
+            case 'ACN':
+                await updateACNResaleDataById(String(id), originalDetails as RestackResaleProperty)
+                break
+            case 'myGate':
+                await updateMyGateResaleDataById(String(id), originalDetails as RestackResaleProperty)
+                break
+            case 'Housing':
+                await updateHousingResaleDataById(String(id), originalDetails as RestackResaleProperty)
                 break
 
             default:
@@ -371,7 +401,7 @@ const ResaleDetailsPage = () => {
                                 {propertyDetails.status}
                             </span>
                             <span className='text-sm text-gray-600 border-1 rounded-[20px] border-[#0069D0] px-2 py-1'>
-                                Listed by {propertyDetails.listedBy}
+                                Listed by {propertyDetails.postedBy}
                             </span>
                         </div>
                         <div className='flex items-center justify-between mb-2'>
@@ -379,7 +409,7 @@ const ResaleDetailsPage = () => {
                             <span className='text-lg font-semibold text-black'>{propertyDetails.price}</span>
                         </div>
                         <div className='text-sm text-gray-500 mt-1'>
-                            <button onClick={() => navigate('/restack/resale')} className='hover:text-gray-700'>
+                            <button onClick={() => navigate(`/restack/resale/${type}`)} className='hover:text-gray-700'>
                                 Resale
                             </button>
                             <span className='mx-2'>/</span>
@@ -515,8 +545,8 @@ const ResaleDetailsPage = () => {
                         )}
                         {renderField(
                             'Developer',
-                            propertyDetails.developer || '',
-                            'developer',
+                            propertyDetails.developerName || '',
+                            'developerName',
                             undefined,
                             'text',
                             isEditingBasicInfo,
@@ -571,7 +601,7 @@ const ResaleDetailsPage = () => {
                     <div className='p-4 grid grid-cols-2 gap-4'>
                         {renderField(
                             'Project Address',
-                            propertyDetails.projectAddress || '',
+                            propertyDetails.address || '',
                             'projectAddress',
                             undefined,
                             'text',

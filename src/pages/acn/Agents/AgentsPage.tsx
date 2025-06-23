@@ -56,35 +56,33 @@ const payStatusOptions = [
 ]
 
 // Lead Source component with outlined design and SVG icons
-const LeadSourceCell = ({ source }: { source: string }) => {
-    const getSourceIcon = () => {
-        switch (source) {
-            case 'WhatsApp':
-                return <img src={whatsappic} alt='WhatsApp' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Instagram':
-                return <img src={instagramic} alt='Instagram' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Facebook':
-                return <img src={facebookic} alt='Facebook' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Classified':
-                return <img src={classifiedic} alt='Classified' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Organic':
-                return <img src={organicic} alt='Organic' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            case 'Referral':
-                return <img src={referic} alt='Referral' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-            default:
-                return (
-                    <svg className='w-4 h-4 text-gray-600 flex-shrink-0' fill='currentColor' viewBox='0 0 24 24'>
-                        <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' />
-                    </svg>
-                )
-        }
+const getSourceIcon = (source: string) => {
+    switch (source) {
+        case 'WhatsApp':
+            return <img src={whatsappic} alt='WhatsApp' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+        case 'Instagram':
+            return <img src={instagramic} alt='Instagram' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+        case 'Facebook':
+            return <img src={facebookic} alt='Facebook' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+        case 'Classified':
+            return <img src={classifiedic} alt='Classified' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+        case 'Organic':
+            return <img src={organicic} alt='Organic' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+        case 'Referral':
+            return <img src={referic} alt='Referral' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+        default:
+            return (
+                <svg className='w-4 h-4 text-gray-600 flex-shrink-0' fill='currentColor' viewBox='0 0 24 24'>
+                    <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' />
+                </svg>
+            )
     }
 
     return (
         <div className='flex items-center gap-2 whitespace-nowrap'>
             <span className='inline-flex items-center rounded-full border border-gray-300 px-3 py-2 text-xs font-medium bg-white'>
                 <span className='flex items-center gap-2'>
-                    {getSourceIcon()}
+                    {getSourceIcon(source)}
                     <span className='text-sm text-black'>{source}</span>
                 </span>
             </span>
@@ -125,7 +123,6 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
     kamOptions,
     planOptions,
     statusOptions,
-    locationOptions,
     appInstalledOptions,
     inventoryStatusOptions,
     selectedKam,
@@ -134,8 +131,6 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
     setSelectedPlan,
     selectedStatus,
     setSelectedStatus,
-    selectedLocation,
-    setSelectedLocation,
     selectedAppInstalled,
     setSelectedAppInstalled,
     selectedInventoryStatuses,
@@ -438,7 +433,7 @@ const AgentsPage = () => {
     // Dynamic dropdown options from Algolia facets
     const kamOptions = [
         { label: 'All Roles', value: '' },
-        ...Object.entries(facets.kamName || {}).map(([value, count]) => ({
+        ...Object.entries(facets.kamName || {}).map(([value, _]) => ({
             label: value,
             value: value,
         })),
@@ -446,7 +441,7 @@ const AgentsPage = () => {
 
     const planOptions = [
         { label: 'All Plans', value: '' },
-        ...Object.entries(facets.payStatus || {}).map(([value, count]) => ({
+        ...Object.entries(facets.payStatus || {}).map(([value, _]) => ({
             label: value,
             value: value,
         })),
@@ -454,7 +449,7 @@ const AgentsPage = () => {
 
     const statusOptions = [
         { label: 'All Status', value: '' },
-        ...Object.entries(facets.agentStatus || {}).map(([value, count]) => ({
+        ...Object.entries(facets.agentStatus || {}).map(([value, _]) => ({
             label: value,
             value: value,
         })),
@@ -462,7 +457,7 @@ const AgentsPage = () => {
 
     const locationOptions = [
         { label: 'All Locations', value: '' },
-        ...Object.entries(facets.areaOfOperation || {}).map(([value, count]) => ({
+        ...Object.entries(facets.areaOfOperation || {}).map(([value, _]) => ({
             label: value,
             value: value,
         })),
@@ -471,7 +466,7 @@ const AgentsPage = () => {
     // App Installed options from facets
     const appInstalledOptions = [
         { label: 'All', value: '' },
-        ...Object.entries(facets.appInstalled || {}).map(([value, count]) => ({
+        ...Object.entries(facets.appInstalled || {}).map(([value, _]) => ({
             label: value === 'true' ? 'Yes' : 'No',
             value: value,
         })),
@@ -523,7 +518,7 @@ const AgentsPage = () => {
             render: (value, row) => (
                 <button
                     onClick={() => handleAgentClick(row.objectID, row)}
-                    className='whitespace-nowrap text-sm font-semibold w-auto hover:text-blue-600'
+                    className='whitespace-nowrap text-sm font-semibold w-auto hover:text-blue-600 cursor-pointer'
                 >
                     {value}
                 </button>
@@ -585,7 +580,7 @@ const AgentsPage = () => {
         {
             key: 'contactHistory[0]',
             header: 'Last Connected',
-            render: (value, row) => {
+            render: (row) => {
                 // Handle different possible data structures
                 let timestamp = null
                 const contactHistory = row.contactHistory
@@ -608,16 +603,19 @@ const AgentsPage = () => {
             },
         },
         {
+            key: 'lastTried',
+            header: 'Last Tried',
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                    {' '}
+                    {value ? formatRelativeTime(value) : 'Never'}
+                </span>
+            ),
+        },
+        {
             key: 'contactStatus',
             header: 'Last Connected Status',
-            render: (value, row) => {
-                const contactHistory = row.contactHistory
-                let contactResult = null
-                if (Array.isArray(contactHistory) && contactHistory.length > 0) {
-                    contactResult = contactHistory[0].contactResult
-                } else if (contactHistory && typeof contactHistory === 'object') {
-                    contactResult = contactHistory.contactResult
-                }
+            render: (value) => {
                 return <StatusBadge status={value || 'N/A'} type='connect' />
             },
         },
@@ -697,13 +695,13 @@ const AgentsPage = () => {
 
     return (
         <Layout>
-            <div className='w-full overflow-hidden font-sans'>
+            <div className='w-full overflow-hidden font-sans h-screen flex flex-col'>
                 <div
-                    className='flex flex-col gap-4 py-2 bg-white min-h-screen'
+                    className='flex flex-col gap-4 pt-2 bg-white flex-1 overflow-hidden'
                     style={{ width: 'calc(100vw)', maxWidth: '100%' }}
                 >
                     {/* Header */}
-                    <div className=''>
+                    <div className='flex-shrink-0'>
                         <div className='flex items-center justify-between px-6'>
                             <h1 className='text-lg font-semibold text-black'>Agents {/*({totalAgents})*/}</h1>
                             <div className='flex items-center gap-4'>
@@ -716,7 +714,7 @@ const AgentsPage = () => {
                                         className='h-8'
                                     />
                                     <button
-                                        className='flex items-center justify-center rounded-sm px-2 py-[5px] hover:bg-gray-100 bg-[#24252E] gap-2'
+                                        className='flex items-center justify-center rounded-sm px-2 py-[5px] cursor-pointer hover:bg-gray-900 bg-[#24252E] gap-2'
                                         onClick={() => {
                                             setIsVerificationModalOpen(true)
                                         }}
@@ -731,12 +729,12 @@ const AgentsPage = () => {
                     </div>
 
                     {/* Metrics Cards */}
-                    <div className='px-6'>
+                    <div className='px-6 flex-shrink-0'>
                         <MetricsCards metrics={metrics} />
                     </div>
 
                     {/* Filters */}
-                    <div className='px-6'>
+                    <div className='px-6 flex-shrink-0'>
                         <FiltersBar
                             handleSortChange={handleSortChange}
                             sortBy={sortBy}
@@ -764,16 +762,16 @@ const AgentsPage = () => {
                         />
                     </div>
 
-                    {/* Table with loader overlay */}
-                    {loading === true ? (
-                        <div className='relative h-[69vh] overflow-y-auto pl-6'>
-                            <div className='absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-60'>
-                                <div className='w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+                    {/* Table Container - This will take remaining space */}
+                    <div className='flex-1 flex flex-col gap-[29px] overflow-hidden'>
+                        {loading === true ? (
+                            <div className='relative h-full overflow-y-auto'>
+                                <div className='absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-60'>
+                                    <div className='w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <div>
-                            <div className='relative h-[69vh] overflow-y-auto pl-6'>
+                        ) : (
+                            <div className='h-full overflow-hidden pl-6'>
                                 <FlexibleTable
                                     data={agentsData}
                                     columns={columns}
@@ -785,24 +783,24 @@ const AgentsPage = () => {
                                         cells: false,
                                         outer: false,
                                     }}
-                                    maxHeight='69vh'
-                                    className='rounded-lg'
+                                    maxHeight='100%'
+                                    className='rounded-lg h-full'
                                     stickyHeader={true}
                                 />
                             </div>
-                            {/* Pagination */}
-                            <div className='h-[6vh] flex items-center justify-center'>
-                                {totalAgents > ITEMS_PER_PAGE && (
-                                    <CustomPagination
-                                        currentPage={currentPage}
-                                        totalPages={Math.ceil(totalAgents / ITEMS_PER_PAGE)}
-                                        onPageChange={setCurrentPage}
-                                        className='mt-4'
-                                    />
-                                )}
-                            </div>
+                        )}
+                        {/* Pagination */}
+                        <div className='flex items-center justify-center flex-shrink-0'>
+                            {/* {totalAgents > ITEMS_PER_PAGE && ( */}
+                            <CustomPagination
+                                currentPage={currentPage}
+                                totalPages={Math.ceil(totalAgents / ITEMS_PER_PAGE)}
+                                onPageChange={setCurrentPage}
+                                className=''
+                            />
+                            {/* )} */}
                         </div>
-                    )}
+                    </div>
 
                     {/* Modals */}
                     <NotesModal

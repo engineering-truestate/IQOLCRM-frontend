@@ -2,14 +2,15 @@ import { configureStore } from '@reduxjs/toolkit'
 import { persistStore, persistReducer } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 import { combineReducers } from 'redux'
+import { activityLoggerMiddleware } from './middleware/acn/loggerMiddleware'
 import propertiesReducer from './reducers/acn/propertiesReducers'
 import platformReducer from './reducers/platformSlice'
 import preLaunchReducer from './reducers/restack/preLaunchReducer'
 import preReraReducer from './reducers/restack/preReraReducer'
 import primaryPropertiesReducer from './reducers/restack/primaryProperties'
 import requirementsReducer from './reducers/acn/requirementsReducers'
-import userReducer from './reducers/user/userReducer' // Updated path
-import qcReducer from './reducers/acn/qcReducer' // Updated path
+import userReducer from './reducers/user/userReducer'
+import qcReducer from './reducers/acn/qcReducer'
 import postReraReducer from './reducers/restack/postReraReducer'
 import leadsReducer from './reducers/acn/leadsReducers'
 import agentsReducer from './slices/agentsSlice'
@@ -46,6 +47,9 @@ interface AgentsState {
     connectHistoryLoading: boolean
     connectHistoryError: string | null
     currentAgentConnectHistory: any[]
+    notesLoading: boolean
+    notesError: string | null
+    agentNotes: Record<string, any[]>
 }
 
 const persistConfig = {
@@ -102,7 +106,7 @@ export const store = configureStore({
                 ],
                 ignoredPaths: ['user.lastFetch'], // Ignore Date objects in user state
             },
-        }),
+        }).concat(activityLoggerMiddleware), // ✅ Added activity logger middleware
 })
 
 export const persistor = persistStore(store)

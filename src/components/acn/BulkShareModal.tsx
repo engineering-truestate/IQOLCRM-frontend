@@ -3,6 +3,7 @@ import React from 'react'
 import CopyIcon from '/icons/acn/copy-button.svg'
 import WhatsappIcon from '/icons/acn/whatsapp-black.svg'
 import { type IInventory } from '../../store/reducers/acn/propertiesTypes'
+import { toast } from 'react-toastify'
 
 interface BulkShareModalProps {
     isOpen: boolean
@@ -44,7 +45,7 @@ ${index + 1}. ${prop.nameOfTheProperty || prop.area || 'Unknown Property'}
    SBUA: ${prop.sbua ? `${prop.sbua} sq ft` : 'N/A'}
    Price: ${formatCurrency(prop.totalAskPrice)}
    Status: ${prop.status || 'Unknown'}
-   Agent: ${prop.cpCode || 'N/A'}
+   Agent: ${prop.cpId || 'N/A'}
 `,
     )
     .join('\n')}
@@ -56,10 +57,12 @@ Shared via Property Management System
             .writeText(shareText)
             .then(() => {
                 console.log('Copied to clipboard')
+                toast.success('Copied to clipboard')
                 // You can add a toast notification here
             })
             .catch((err) => {
                 console.error('Failed to copy to clipboard:', err)
+                toast.error('Failed to copy to clipboard:')
             })
     }
 
@@ -81,7 +84,7 @@ ${properties
    📐 *SBUA:* ${prop.sbua ? `${prop.sbua} sq ft` : 'N/A'}
    💰 *Price:* ${formatCurrency(prop.totalAskPrice)}
    📊 *Status:* ${prop.status || 'Unknown'}
-   👤 *Agent:* ${prop.cpCode || 'N/A'}
+   👤 *Agent:* ${prop.cpId || 'N/A'}
 `,
     )
     .join('\n\n')}
@@ -112,7 +115,7 @@ ${index + 1}. ${prop.nameOfTheProperty || prop.area || 'Unknown Property'}
    SBUA: ${prop.sbua ? `${prop.sbua} sq ft` : 'N/A'}
    Price: ${formatCurrency(prop.totalAskPrice)}
    Status: ${prop.status || 'Unknown'}
-   Agent: ${prop.cpCode || 'N/A'}
+   Agent: ${prop.cpId || 'N/A'}
 `,
     )
     .join('\n')}
@@ -128,7 +131,7 @@ Property Management Team
     return (
         <>
             <div
-                className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+                className='fixed inset-0 bg-black/75 bg-opacity-50 flex items-center justify-center z-50'
                 onClick={onClose}
             >
                 <div className='flex flex-col gap-0 bg-white rounded-xl w-fit h-fit bg-baseWhite'>
