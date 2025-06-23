@@ -110,6 +110,29 @@ class TaskService {
             throw error
         }
     }
+    async getEarliestTaskByLeadId(leadId: string): Promise<Task | null> {
+        try {
+            const q = query(
+                collection(db, this.collectionName),
+                where('leadId', '==', leadId),
+                where('scheduledDate', '!=', null),
+                where('status', '==', 'open'),
+                orderBy('scheduledDate', 'asc'),
+                limit(1),
+            )
+            const snapshot = await getDocs(q)
+
+            if (snapshot.empty) {
+                return null
+            }
+
+            const docSnap = snapshot.docs[0]
+            return { taskId: docSnap.id, ...docSnap.data() } as Task
+        } catch (error) {
+            console.error('Error fetching earliest task by lead ID:', error)
+            throw error
+        }
+    }
 }
 
 export const taskService = new TaskService()

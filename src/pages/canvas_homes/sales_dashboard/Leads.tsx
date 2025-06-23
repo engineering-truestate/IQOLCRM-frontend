@@ -9,7 +9,7 @@ import google from '/icons/canvas_homes/google.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
 import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
-import { useFetcher, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import potentialIcon from '/icons/canvas_homes/potential-bulb.svg'
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import superHotIcon from '/icons/canvas_homes/super-hot.svg'
@@ -182,7 +182,7 @@ const Leads = () => {
             filtered = filtered.filter((lead) => lead.state?.toLowerCase() === stateValue)
         }
 
-        setFilteredLeadsData(filtered.map((lead, index) => ({ ...lead, index })))
+        setFilteredLeadsData(filtered)
     }, [allLeadsData, activeStatusCard, searchValue])
 
     // Search function - Updated to handle manual filtering
@@ -223,37 +223,16 @@ const Leads = () => {
     ])
 
     // Search on text input change (debounced)
-    // useEffect(() => {
-    //     debouncedSearch()
-    // }, [searchValue, debouncedSearch])
+    useEffect(() => {
+        debouncedSearch()
+    }, [searchValue, debouncedSearch])
 
     // Initial search
-    // useEffect(() => {
-    //     performSearch()
-    // }, [])
+    useEffect(() => {
+        performSearch()
+    }, [])
 
-    // Filter data based on active status card and other filters (keep existing logic)
-    // const filteredLeadsData = useMemo(() => {
-    //     let filtered = allLeadsData
-
-    //     // Apply additional client-side search filter if needed
-    //     if (searchValue) {
-    //         filtered = filtered.filter(
-    //             (lead) =>
-    //                 lead.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
-    //                 lead.phoneNumber?.includes(searchValue) ||
-    //                 lead.agentName?.toLowerCase().includes(searchValue.toLowerCase()),
-    //         )
-    //     }
-
-    //     return filtered
-    // }, [allLeadsData, searchValue])
-
-    // const indexedLeadsData = useEffect(() => {
-    //     return setFilteredLeadsData.map((lead, index) => ({ ...lead, index }))
-    // }, [filteredLeadsData])
-
-    // Calculate status counts from facets - Fixed case sensitivity
+    // Calculate status counts manually from allLeadsData
     const statusCounts = useMemo(() => {
         const counts = {
             All: allLeadsData.length,
@@ -338,6 +317,7 @@ const Leads = () => {
     const handleRowClick = (row: any) => {
         navigate(`leaddetails/${row.leadId}`)
     }
+
     // Status cards data with dynamic counts
     const statusCards = [
         { title: 'All', count: statusCounts.All },
@@ -355,7 +335,6 @@ const Leads = () => {
             render: (value, row) => (
                 <div className='whitespace-nowrap'>
                     <div
-                        onClick={() => handleRowClick(row)}
                         className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-semibold text-gray-900'
                         title={value || row.property || '-'} // optional: full text on hover
                     >
@@ -459,7 +438,7 @@ const Leads = () => {
             render: (value, row) => {
                 return (
                     <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {calculateALSC(allLeadsData[row.index])}
+                        {calculateALSC(row)}
                     </span>
                 )
             },
@@ -468,7 +447,7 @@ const Leads = () => {
             key: 'taskType',
             header: 'Schedule Task',
             render: (value, row) => {
-                if (row?.completionDate) {
+                if (row?.completionDate && row?.completionDate < row?.scheduledDate) {
                     return <div className='text-sm text-gray-500'>-</div>
                 }
 
@@ -712,6 +691,7 @@ const Leads = () => {
                     headerClassName='font-normal text-left'
                     cellClassName='text-left'
                     onRowSelect={handleRowSelect}
+                    onRowClick={handleRowClick}
                     onSelectAll={handleSelectAllRows}
                     className='rounded-lg'
                     stickyHeader={true}
