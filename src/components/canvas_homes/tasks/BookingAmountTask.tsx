@@ -68,7 +68,6 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({ refreshData, setA
                     onClick={handleSuccessfulClick}
                     className='flex items-center h-8 px-3 justify-center border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer hover:bg-green-600'
                     type='button'
-                    disabled={updating}
                 >
                     Successful
                 </button>
@@ -79,7 +78,6 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({ refreshData, setA
                     onSelect={handleUnsuccessfulOptionSelect}
                     triggerClassName='flex items-center h-8 justify-between px-3 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white min-w-[100px] cursor-pointer hover:bg-red-600'
                     placeholder='Unsuccessful'
-                    disabled={updating}
                 />
             </div>
 

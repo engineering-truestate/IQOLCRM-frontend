@@ -271,6 +271,26 @@ const Leads = () => {
         menu: 'absolute z-50 mt-1 w-fit min-w-[300px] bg-white border border-gray-300 rounded-md shadow-lg',
         option: 'px-3 py-2 text-sm w-fit text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
     }
+    function getAslcColor(aslcString: string): string {
+        if (!aslcString) return 'text-gray-500'
+
+        const dayMatch = aslcString.match(/(\d+)\s+days?/)
+        const hourMatch = aslcString.match(/(\d+)\s+hrs?/)
+
+        const days = dayMatch ? parseInt(dayMatch[1], 10) : 0
+        const hours = hourMatch ? parseInt(hourMatch[1], 10) : 0
+        const totalHours = days * 24 + hours
+
+        if (totalHours <= 6) {
+            return 'bg-[#EFEFEF] border border-[#8F8FA2]' // Very recent
+        } else if (totalHours > 6 && totalHours <= 12) {
+            return 'bg-[#FFF1D4] border border-[#FCCE74]'
+        } else if (totalHours > 13 && totalHours <= 24) {
+            return 'bg-[#FFDDDE] border border-[#F02532]'
+        } else if (totalHours > 24) {
+            return 'bg-[#FAC8C9] border border-[#A4151E]'
+        }
+    }
 
     // Generate dropdown options from facets - Fixed to extract correct values
     const generateDropdownOptions = useCallback(
@@ -439,7 +459,11 @@ const Leads = () => {
             render: (value, row) => {
                 const aslc = calculateALSC(row)
                 return (
-                    <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium '>{aslc}</span>
+                    <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getAslcColor(aslc)}`}
+                    >
+                        {aslc}
+                    </span>
                 )
             },
         },

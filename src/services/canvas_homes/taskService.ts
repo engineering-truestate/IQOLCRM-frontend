@@ -44,20 +44,27 @@ class TaskService {
 
     async create(taskData: Omit<Task, 'taskId' | 'added' | 'lastModified'>): Promise<string> {
         try {
-            const q = query(collection(db, this.collectionName), orderBy('taskId', 'desc'), limit(1))
+            // Query by numeric field for proper sorting
+            const q = query(collection(db, this.collectionName), orderBy('taskNumber', 'desc'), limit(1))
             const snapshot = await getDocs(q)
 
-            let nextTaskId = 'task01'
+            let nextTaskNumber = 1
+
             if (!snapshot.empty) {
-                const lastTaskId = snapshot.docs[0].data().taskId
-                const newNumber = parseInt(lastTaskId.replace('task', '')) + 1
-                nextTaskId = `task${newNumber.toString().padStart(2, '0')}`
+                const lastTaskNumber = snapshot.docs[0].data().taskNumber || 0
+
+                nextTaskNumber = lastTaskNumber + 1
+                console.log(nextTaskNumber)
             }
+
+            // Generate taskId without padding - just task1, task2, task100, etc.
+            const nextTaskId = `task${nextTaskNumber}`
 
             const timestamp = getUnixDateTime()
             const newTask = {
                 ...taskData,
                 taskId: nextTaskId,
+                taskNumber: nextTaskNumber, // Numeric field for proper sorting
                 added: timestamp,
                 lastModified: timestamp,
             }

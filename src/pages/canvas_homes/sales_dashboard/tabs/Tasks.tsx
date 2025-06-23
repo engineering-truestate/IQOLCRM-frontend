@@ -47,6 +47,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                 date: firebaseTask.added,
                 scheduledInfo: firebaseTask?.eventName ? firebaseTask.eventName : getScheduledInfo(firebaseTask),
                 scheduledDate: firebaseTask.scheduledDate,
+                completionDate: firebaseTask.completionDate,
                 status: firebaseTask.status,
                 firebaseTask: firebaseTask,
                 eoiEntries: firebaseTask.eoiEntries || [],

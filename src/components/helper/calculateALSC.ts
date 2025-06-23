@@ -20,12 +20,12 @@ export function calculateALSC(data: Lead): string | null {
         }
 
         // Prevent negative result
-        if (timeDifferenceSeconds < 0) return '0 Hours'
+        if (timeDifferenceSeconds < 0) return '0 hrs'
 
         const days = Math.floor(timeDifferenceSeconds / (60 * 60 * 24))
         const remainingHours = Math.floor((timeDifferenceSeconds % (60 * 60 * 24)) / (60 * 60))
 
-        return days === 0 ? `${remainingHours} Hours` : `${days} Days : ${remainingHours} Hours`
+        return days === 0 ? `${remainingHours} hrs` : `${days} days : ${remainingHours} hrs`
     } catch (error) {
         console.error('Error calculating ALSC:', error)
         return null
