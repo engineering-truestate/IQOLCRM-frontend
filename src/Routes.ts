@@ -5,6 +5,7 @@ import RentalPage from './pages/restack/rental/RentalPage'
 import type { RouteObject } from 'react-router-dom'
 import React from 'react'
 import ProtectedRoute from './components/ProtectedRoute'
+
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import Dashboard from './pages/canvas-homes/Dashboard'
@@ -59,7 +60,9 @@ import { ResaleDetailsPage } from './pages/restack/Resale/ResalePageDetails'
 import ResalePage from './pages/restack/Resale/ResalePage'
 import Resale from './pages/restack/Resale/Resale'
 import MarketingDashboard from './pages/canvas_homes/marketing_dashboard/Marketing'
+import HomePage from './pages/canvas_homes/home/Home'
 import SalesDashboard from './pages/canvas_homes/sales_dashboard/Sales'
+import MarketingDetails from './pages/canvas_homes/marketing_dashboard/MarketingDetails'
 // import MarketingDashboard from './pages/canvas_homes/marketing_dashboard/Marketing'
 
 export const authRoutes: RouteObject[] = [
@@ -113,6 +116,14 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/canvas-homes/marketing',
         element: React.createElement(React.Suspense, null, React.createElement(MarketingDashboard, null)),
+    },
+    {
+        path: '/canvas-homes/home',
+        element: React.createElement(React.Suspense, null, React.createElement(HomePage, null)),
+    },
+    {
+        path: '/canvas-homes/marketingdetails',
+        element: React.createElement(React.Suspense, null, React.createElement(MarketingDetails, null)),
     },
 
     {
