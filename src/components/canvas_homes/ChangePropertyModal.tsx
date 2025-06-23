@@ -212,6 +212,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     propertyId: formData.propertyId,
                     tag: formData.tag,
                     leadStatus: 'interested',
+                    completionDate: currentTimestamp,
                     lastModified: currentTimestamp,
                 }
 

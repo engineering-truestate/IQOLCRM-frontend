@@ -15,6 +15,7 @@ import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import superHotIcon from '/icons/canvas_homes/super-hot.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import { calculateALSC } from '../../../components/helper/calculateALSC'
 
 // Status card component
 const StatusCard = ({
@@ -435,17 +436,9 @@ const Leads = () => {
             key: 'lastModified',
             header: 'ASLC',
             render: (value, row) => {
-                const lastModified = row.lastModified
-                const today = Math.floor(Date.now() / 1000) // in seconds
-
-                let daysDifference = 0
-                if (lastModified) {
-                    daysDifference = Math.floor((today - lastModified) / (60 * 60 * 24))
-                }
-
                 return (
                     <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {daysDifference || 0} days
+                        {calculateALSC(row)}
                     </span>
                 )
             },
@@ -454,7 +447,7 @@ const Leads = () => {
             key: 'taskType',
             header: 'Schedule Task',
             render: (value, row) => {
-                if (row?.completionDate) {
+                if (row?.completionDate && row?.completionDate < row?.scheduledDate) {
                     return <div className='text-sm text-gray-500'>-</div>
                 }
 
