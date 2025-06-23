@@ -82,7 +82,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             {/* Trigger Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center justify-between h-7 border bg-gray-100 border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer transition-colors duration-200 ${triggerClassName}`}
+                className={`flex items-center justify-between h-7 border bg-gray-100 border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-0.5 focus:ring-black focus:border-black-500 min-w-[100px] cursor-pointer transition-colors duration-200 ${triggerClassName}`}
             >
                 <span className='truncate'>{displayText}</span>
                 <svg

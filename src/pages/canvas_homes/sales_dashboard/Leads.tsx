@@ -278,7 +278,7 @@ const Leads = () => {
             if (staticOptions) return staticOptions // Use static options if provided
 
             const facetData = facets[facetKey] || {}
-            const options = [{ label: defaultLabel, value: '' }]
+            const options = []
 
             Object.entries(facetData)
                 .sort(([, a], [, b]) => b - a)
@@ -303,6 +303,7 @@ const Leads = () => {
             setSelectedRows(selectedRows.filter((id) => id !== rowId))
         }
     }
+
     const handleSelectAllRows = (selected: boolean) => {
         if (selected) {
             // Select all rows by adding all available leadIds to selectedRows
@@ -436,10 +437,9 @@ const Leads = () => {
             key: 'lastModified',
             header: 'ASLC',
             render: (value, row) => {
+                const aslc = calculateALSC(row)
                 return (
-                    <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {calculateALSC(row)}
-                    </span>
+                    <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium '>{aslc}</span>
                 )
             },
         },
@@ -527,7 +527,7 @@ const Leads = () => {
                     onDateRangeChange={handleDateRangeChange}
                     placeholder='Date Range'
                     className={dropdownClasses.container}
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    triggerClassName={dropdownClasses.trigger(!!selectedDateRange)}
                     menuClassName={dropdownClasses.menu}
                 />
                 <Dropdown

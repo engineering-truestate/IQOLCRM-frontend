@@ -378,6 +378,15 @@ const Tasks = () => {
             ),
         },
         {
+            key: 'agentName',
+            header: 'Agent Name',
+            render: (value) => (
+                <span className='max-w-[100px] text-[14px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'>
+                    {value ? toCapitalizedWords(value) : '-'}
+                </span>
+            ),
+        },
+        {
             key: 'leadStatus',
             header: 'Lead Status',
             render: (value) => (
