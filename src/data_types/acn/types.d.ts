@@ -59,7 +59,7 @@ interface HighlightResult {
 
 // ==================== ENQUIRY TYPES ====================
 
-interface IEnquiry {
+export interface IEnquiry {
     enquiryId: string
     propertyId: string
     cpId: string

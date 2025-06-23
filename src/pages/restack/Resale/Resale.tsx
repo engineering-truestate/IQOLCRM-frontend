@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
-import { get99AcresResaleData, getMagicBricksResaleData } from '../../../services/restack/resaleService'
+import {
+    get99AcresResaleData,
+    getACNResaleData,
+    getHousingResaleData,
+    getMagicBricksResaleData,
+    getMyGateResaleData,
+} from '../../../services/restack/resaleService'
 import type { RestackResaleProperty } from '../../../data_types/restack/restack-resale.d'
 import { FlexibleTable } from '../../../components/design-elements/FlexibleTable'
 
@@ -19,6 +25,9 @@ const Resale: React.FC = () => {
         const fetchOverviewData = async () => {
             const acresData = await get99AcresResaleData()
             const magicBricksData = await getMagicBricksResaleData()
+            const acnData = await getACNResaleData()
+            const myGateData = await getMyGateResaleData()
+            const HousingData = await getHousingResaleData()
 
             const calculateOverview = (data: RestackResaleProperty[]): OverviewData => {
                 const totalProperties = data.length
@@ -26,8 +35,8 @@ const Resale: React.FC = () => {
                 let soldOutUnits = 0
 
                 data.forEach((item: any) => {
-                    availableUnits += item.inventoryDetails?.availability === 'Yes' ? 1 : 0
-                    soldOutUnits += item.inventoryDetails?.soldOutUnits || 0 // Assuming there's a soldOutUnits property
+                    availableUnits += item.availabilityStatus === 'Available' ? 1 : 0
+                    soldOutUnits += item.availabilityStatus === 'SoldOut' ? 1 : 0 // Assuming there's a soldOutUnits property
                 })
 
                 return {
@@ -40,7 +49,9 @@ const Resale: React.FC = () => {
             setOverviewData({
                 '99acres': calculateOverview(acresData),
                 magicbricks: calculateOverview(magicBricksData),
-                other: { totalProperties: 0, availableUnits: 0, soldOutUnits: 0 }, // Placeholder for other sources
+                ACN: calculateOverview(acnData), // Placeholder for other sources
+                myGate: calculateOverview(myGateData),
+                Housing: calculateOverview(HousingData),
             })
         }
         fetchOverviewData()
@@ -81,7 +92,7 @@ const Resale: React.FC = () => {
                                 />
                                 <button
                                     onClick={() => handleResaleTypeSelect('99acres')}
-                                    className='mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
+                                    className='mt-3 inline-flex items-center px-4 cursor-pointer py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
                                 >
                                     View Properties
                                 </button>
@@ -114,7 +125,7 @@ const Resale: React.FC = () => {
                                 />
                                 <button
                                     onClick={() => handleResaleTypeSelect('magicbricks')}
-                                    className='mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
+                                    className='mt-3 inline-flex items-center cursor-pointer px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
                                 >
                                     View Properties
                                 </button>
@@ -123,19 +134,19 @@ const Resale: React.FC = () => {
                     )}
 
                     {/* Other Sources Section */}
-                    {overviewData['other'] && (
+                    {overviewData['ACN'] && (
                         <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-8'>
                             <div className='px-6 py-4 border-b border-gray-200'>
-                                <h2 className='text-xl font-semibold text-gray-900'>Other Sources</h2>
+                                <h2 className='text-xl font-semibold text-gray-900'>ACN</h2>
                             </div>
                             <div className='p-6'>
                                 <FlexibleTable
                                     data={[
                                         {
                                             month: 'November',
-                                            totalProperties: overviewData['other']?.totalProperties || 0,
-                                            availableUnits: overviewData['other']?.availableUnits || 0,
-                                            soldOutUnits: overviewData['other']?.soldOutUnits || 0,
+                                            totalProperties: overviewData['ACN']?.totalProperties || 0,
+                                            availableUnits: overviewData['ACN']?.availableUnits || 0,
+                                            soldOutUnits: overviewData['ACN']?.soldOutUnits || 0,
                                         },
                                     ]}
                                     columns={[
@@ -146,9 +157,73 @@ const Resale: React.FC = () => {
                                     ]}
                                 />
                                 <button
-                                    onClick={() => handleResaleTypeSelect('other')}
-                                    className='mt-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
-                                    disabled={overviewData['other']?.totalProperties === 0}
+                                    onClick={() => handleResaleTypeSelect('ACN')}
+                                    className='mt-3 inline-flex items-center cursor-pointer px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
+                                    // disabled={overviewData['ACN']?.totalProperties === 0}
+                                >
+                                    View Properties
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    {overviewData['myGate'] && (
+                        <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-8'>
+                            <div className='px-6 py-4 border-b border-gray-200'>
+                                <h2 className='text-xl font-semibold text-gray-900'>myGate</h2>
+                            </div>
+                            <div className='p-6'>
+                                <FlexibleTable
+                                    data={[
+                                        {
+                                            month: 'November',
+                                            totalProperties: overviewData['myGate']?.totalProperties || 0,
+                                            availableUnits: overviewData['myGate']?.availableUnits || 0,
+                                            soldOutUnits: overviewData['myGate']?.soldOutUnits || 0,
+                                        },
+                                    ]}
+                                    columns={[
+                                        { key: 'month', header: 'Month' },
+                                        { key: 'totalProperties', header: 'Total Properties' },
+                                        { key: 'availableUnits', header: 'Available Units' },
+                                        { key: 'soldOutUnits', header: 'Sold Out Units' },
+                                    ]}
+                                />
+                                <button
+                                    onClick={() => handleResaleTypeSelect('myGate')}
+                                    className='mt-3 inline-flex items-center cursor-pointer px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
+                                    // disabled={overviewData['myGate']?.totalProperties === 0}
+                                >
+                                    View Properties
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    {overviewData['Housing'] && (
+                        <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-8'>
+                            <div className='px-6 py-4 border-b border-gray-200'>
+                                <h2 className='text-xl font-semibold text-gray-900'>Housing</h2>
+                            </div>
+                            <div className='p-6'>
+                                <FlexibleTable
+                                    data={[
+                                        {
+                                            month: 'November',
+                                            totalProperties: overviewData['Housing']?.totalProperties || 0,
+                                            availableUnits: overviewData['Housing']?.availableUnits || 0,
+                                            soldOutUnits: overviewData['Housing']?.soldOutUnits || 0,
+                                        },
+                                    ]}
+                                    columns={[
+                                        { key: 'month', header: 'Month' },
+                                        { key: 'totalProperties', header: 'Total Properties' },
+                                        { key: 'availableUnits', header: 'Available Units' },
+                                        { key: 'soldOutUnits', header: 'Sold Out Units' },
+                                    ]}
+                                />
+                                <button
+                                    onClick={() => handleResaleTypeSelect('Housing')}
+                                    className='mt-3 inline-flex items-center cursor-pointer px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'
+                                    // disabled={overviewData['myGate']?.totalProperties === 0}
                                 >
                                     View Properties
                                 </button>

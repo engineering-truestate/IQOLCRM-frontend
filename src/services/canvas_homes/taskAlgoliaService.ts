@@ -1,35 +1,36 @@
-// leadAlgoliaService.ts - Fixed version
+// leadAlgoliaService.ts - Complete version with calendar range filter
 
 import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
 // Algolia client configuration
-const searchClient = algoliasearch('QUHXD0ALIH', 'ab4ed159b314f08fe68510f5ed955583')
-const INDEX_NAME = 'canvashomeleads'
+const searchClient = algoliasearch('L763N3TAOO', 'b6f11b06dd4ca0d7ba4b8e4599205a5c')
+const INDEX_NAME = 'canvashomestasks'
 
 // Types for search parameters
-export interface LeadSearchFilters {
-    leadState?: string[]
+export interface TaskSearchFilters {
     propertyName?: string[]
     agentName?: string[]
     agentId?: string[]
-    source?: string[]
     stage?: string[]
     tag?: string[]
     taskType?: string[]
     leadStatus?: string[]
-    userId?: string[]
     dateRange?: string
+    addedRange?: {
+        startDate?: string | Date | number
+        endDate?: string | Date | number
+    }
 }
 
-export interface LeadSearchParams {
+export interface TaskSearchParams {
     query?: string
-    filters?: LeadSearchFilters
+    filters?: TaskSearchFilters
     page?: number
     hitsPerPage?: number
     sortBy?: string
 }
 
-export interface AlgoliaLeadSearchResponse {
+export interface AlgoliaTaskSearchResponse {
     hits: any[]
     nbHits: number
     page: number
@@ -39,22 +40,31 @@ export interface AlgoliaLeadSearchResponse {
     facets?: Record<string, Record<string, number>>
 }
 
-export interface LeadFacetValue {
+export interface TaskFacetValue {
     value: string
     count: number
     highlighted?: string
 }
 
-const buildLeadFilterString = (filters: LeadSearchFilters): string => {
-    const filterParts: string[] = []
-
-    console.log('Building filters from:', filters) // Debug log
-
-    if (filters.leadState && filters.leadState.length > 0) {
-        const stateFilters = filters.leadState.map((state) => `leadState:'${state}'`).join(' OR ')
-        filterParts.push(`(${stateFilters})`)
-        console.log('Added leadState filter:', stateFilters)
+// Helper function to convert date to timestamp
+const convertToTimestamp = (date: string | Date | number): number => {
+    if (typeof date === 'number') {
+        return date
     }
+
+    if (typeof date === 'string') {
+        return new Date(date).getTime() / 1000
+    }
+
+    if (date instanceof Date) {
+        return date.getTime()
+    }
+
+    return 0
+}
+
+const buildTaskFilterString = (filters: TaskSearchFilters): string => {
+    const filterParts: string[] = []
 
     if (filters.propertyName && filters.propertyName.length > 0) {
         const propertyFilters = filters.propertyName.map((property) => `propertyName:'${property}'`).join(' OR ')
@@ -72,12 +82,6 @@ const buildLeadFilterString = (filters: LeadSearchFilters): string => {
         const agentIdFilters = filters.agentId.map((id) => `agentId:'${id}'`).join(' OR ')
         filterParts.push(`(${agentIdFilters})`)
         console.log('Added agentId filter:', agentIdFilters)
-    }
-
-    if (filters.source && filters.source.length > 0) {
-        const sourceFilters = filters.source.map((source) => `source:'${source}'`).join(' OR ')
-        filterParts.push(`(${sourceFilters})`)
-        console.log('Added source filter:', sourceFilters)
     }
 
     if (filters.stage && filters.stage.length > 0) {
@@ -102,12 +106,6 @@ const buildLeadFilterString = (filters: LeadSearchFilters): string => {
         const statusFilters = filters.leadStatus.map((status) => `leadStatus:'${status}'`).join(' OR ')
         filterParts.push(`(${statusFilters})`)
         console.log('Added leadStatus filter:', statusFilters)
-    }
-
-    if (filters.userId && filters.userId.length > 0) {
-        const userFilters = filters.userId.map((id) => `userId:'${id}'`).join(' OR ')
-        filterParts.push(`(${userFilters})`)
-        console.log('Added userId filter:', userFilters)
     }
 
     // Date range filter - Fixed for millisecond timestamps and case block scoping
@@ -142,13 +140,37 @@ const buildLeadFilterString = (filters: LeadSearchFilters): string => {
         }
     }
 
+    // Calendar-based range filter for 'added' field
+    if (filters.addedRange) {
+        const rangeFilters: string[] = []
+
+        if (filters.addedRange.startDate) {
+            const startTimestamp = convertToTimestamp(filters.addedRange.startDate)
+            if (startTimestamp > 0) {
+                rangeFilters.push(`added >= ${startTimestamp}`)
+            }
+        }
+
+        if (filters.addedRange.endDate) {
+            const endTimestamp = convertToTimestamp(filters.addedRange.endDate)
+            if (endTimestamp > 0) {
+                rangeFilters.push(`added <= ${endTimestamp}`)
+            }
+        }
+
+        if (rangeFilters.length > 0) {
+            filterParts.push(`(${rangeFilters.join(' AND ')})`)
+            console.log('Added calendar range filter:', rangeFilters.join(' AND '))
+        }
+    }
+
     const finalFilter = filterParts.join(' AND ')
     console.log('Final filter string:', finalFilter)
     return finalFilter
 }
 
 // Helper function to get the correct index name for sorting
-const getLeadIndexNameForSort = (sortBy?: string): string => {
+const getTaskIndexNameForSort = (sortBy?: string): string => {
     if (!sortBy || sortBy === 'relevance') {
         return INDEX_NAME
     }
@@ -166,15 +188,15 @@ const getLeadIndexNameForSort = (sortBy?: string): string => {
     return sortIndexMap[sortBy] || INDEX_NAME
 }
 
-// Main search function for leads
-export const searchLeads = async (params: LeadSearchParams = {}): Promise<AlgoliaLeadSearchResponse> => {
+// Main search function for Tasks
+export const searchTasks = async (params: TaskSearchParams = {}): Promise<AlgoliaTaskSearchResponse> => {
     try {
         const { query = '', filters = {}, page = 0, hitsPerPage = 20, sortBy } = params
 
-        const indexName = getLeadIndexNameForSort(sortBy)
-        const filterString = buildLeadFilterString(filters)
+        const indexName = getTaskIndexNameForSort(sortBy)
+        const filterString = buildTaskFilterString(filters)
 
-        console.log('Algolia leads search params:', {
+        console.log('Algolia taskss search params:', {
             indexName,
             query,
             page,
@@ -190,16 +212,7 @@ export const searchLeads = async (params: LeadSearchParams = {}): Promise<Algoli
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: [
-                        'leadState',
-                        'propertyName',
-                        'agentName',
-                        'source',
-                        'stage',
-                        'tag',
-                        'taskType',
-                        'leadStatus',
-                    ],
+                    facets: ['propertyName', 'agentName', 'stage', 'tag', 'taskType', 'leadStatus'],
                     maxValuesPerFacet: 100,
                     analytics: true,
                 },
@@ -218,17 +231,17 @@ export const searchLeads = async (params: LeadSearchParams = {}): Promise<Algoli
             facets: result.facets || {},
         }
     } catch (error) {
-        console.error('Algolia leads search error:', error)
-        throw new Error(`Leads search failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('Algolia taskss search error:', error)
+        throw new Error(`taskss search failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
 
 // Get facet values for a specific attribute
-export const getLeadFacetValues = async (
+export const getTaskFacetValues = async (
     facetName: string,
     query?: string,
     maxFacetHits: number = 100,
-): Promise<LeadFacetValue[]> => {
+): Promise<TaskFacetValue[]> => {
     try {
         const response = await searchClient.search({
             requests: [
@@ -252,13 +265,13 @@ export const getLeadFacetValues = async (
             }))
             .sort((a, b) => b.count - a.count)
     } catch (error) {
-        console.error('Get lead facet values error:', error)
-        throw new Error(`Failed to get lead facet values: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('Get task facet values error:', error)
+        throw new Error(`Failed to get task facet values: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
 
-// Get all facets for leads filters initialization
-export const getAllLeadFacets = async (): Promise<Record<string, LeadFacetValue[]>> => {
+// Get all facets for Tasks filters initialization
+export const getAllTaskFacets = async (): Promise<Record<string, TaskFacetValue[]>> => {
     try {
         const response = await searchClient.search({
             requests: [
@@ -266,23 +279,14 @@ export const getAllLeadFacets = async (): Promise<Record<string, LeadFacetValue[
                     indexName: INDEX_NAME,
                     query: '',
                     hitsPerPage: 0, // We only want facets, not hits
-                    facets: [
-                        'leadState',
-                        'propertyName',
-                        'agentName',
-                        'source',
-                        'stage',
-                        'tag',
-                        'taskType',
-                        'leadStatus',
-                    ],
+                    facets: ['propertyName', 'agentName', 'stage', 'tag', 'taskType', 'TaskStatus'],
                     maxValuesPerFacet: 100,
                 },
             ],
         })
 
         const result = response.results[0] as SearchResponse<any>
-        const facets: Record<string, LeadFacetValue[]> = {}
+        const facets: Record<string, TaskFacetValue[]> = {}
 
         if (result.facets) {
             Object.entries(result.facets).forEach(([facetName, facetValues]) => {
@@ -297,13 +301,13 @@ export const getAllLeadFacets = async (): Promise<Record<string, LeadFacetValue[
 
         return facets
     } catch (error) {
-        console.error('Get all lead facets error:', error)
-        throw new Error(`Failed to get lead facets: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('Get all task facets error:', error)
+        throw new Error(`Failed to get task facets: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
 
-// Search with autocomplete suggestions for leads
-export const getLeadSearchSuggestions = async (query: string): Promise<string[]> => {
+// Search with autocomplete suggestions for tasks
+export const getTaskSearchSuggestions = async (query: string): Promise<string[]> => {
     try {
         const response = await searchClient.search({
             requests: [
@@ -311,7 +315,7 @@ export const getLeadSearchSuggestions = async (query: string): Promise<string[]>
                     indexName: INDEX_NAME,
                     query,
                     hitsPerPage: 5,
-                    attributesToRetrieve: ['objectId', 'name', 'phoneNumber', 'agentName', 'propertyName'],
+                    attributesToRetrieve: ['objectId', 'name', 'taskType', 'agentName', 'propertyName'],
                     analytics: false,
                 },
             ],
@@ -322,20 +326,19 @@ export const getLeadSearchSuggestions = async (query: string): Promise<string[]>
 
         result.hits.forEach((hit: any) => {
             if (hit.name) suggestions.add(hit.name)
-            if (hit.phoneNumber) suggestions.add(hit.phoneNumber)
             if (hit.agentName) suggestions.add(hit.agentName)
             if (hit.propertyName) suggestions.add(hit.propertyName)
         })
 
         return Array.from(suggestions).slice(0, 10)
     } catch (error) {
-        console.error('Get lead search suggestions error:', error)
+        console.error('Get task search suggestions error:', error)
         return []
     }
 }
 
-// Get lead by ID
-export const getLeadById = async (objectID: string): Promise<any | null> => {
+// Get task by ID
+export const getTaskById = async (objectID: string): Promise<any | null> => {
     try {
         const response = await searchClient.getObject({
             indexName: INDEX_NAME,
@@ -344,13 +347,13 @@ export const getLeadById = async (objectID: string): Promise<any | null> => {
 
         return response
     } catch (error) {
-        console.error('Get lead by ID error:', error)
+        console.error('Get task by ID error:', error)
         return null
     }
 }
 
-// Update lead (for status changes etc.)
-export const updateLead = async (objectID: string, updates: Record<string, any>): Promise<boolean> => {
+// Update task (for status changes etc.)
+export const updateTask = async (objectID: string, updates: Record<string, any>): Promise<boolean> => {
     try {
         await searchClient.partialUpdateObject({
             indexName: INDEX_NAME,
@@ -363,13 +366,13 @@ export const updateLead = async (objectID: string, updates: Record<string, any>)
 
         return true
     } catch (error) {
-        console.error('Update lead error:', error)
+        console.error('Update task error:', error)
         return false
     }
 }
 
-// Batch operations for getting multiple leads
-export const getLeadsByIds = async (objectIDs: string[]): Promise<any[]> => {
+// Batch operations for getting multiple tasks
+export const getTasksByIds = async (objectIDs: string[]): Promise<any[]> => {
     try {
         const response = await searchClient.getObjects({
             requests: objectIDs.map((objectID) => ({
@@ -380,31 +383,40 @@ export const getLeadsByIds = async (objectIDs: string[]): Promise<any[]> => {
 
         return response.results.filter((result) => result !== null)
     } catch (error) {
-        console.error('Get leads by IDs error:', error)
-        throw new Error(`Failed to get leads: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('Get tasks by IDs error:', error)
+        throw new Error(`Failed to get tasks: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
 
-// Analytics - track search events for leads
-export const trackLeadSearchEvent = async (eventName: string, properties: Record<string, any>): Promise<void> => {
+// Analytics - track search events for tasks
+export const trackTaskSearchEvent = async (eventName: string, properties: Record<string, any>): Promise<void> => {
     try {
-        console.log('Lead search event tracked:', eventName, properties)
+        console.log('task search event tracked:', eventName, properties)
     } catch (error) {
-        console.error('Track lead search event error:', error)
+        console.error('Track task search event error:', error)
     }
 }
 
 // Helper function to format filters for debugging
-export const formatLeadFiltersForDisplay = (filters: LeadSearchFilters): string => {
+export const formatTaskFiltersForDisplay = (filters: TaskSearchFilters): string => {
     const parts: string[] = []
 
     Object.entries(filters).forEach(([key, value]) => {
         if (Array.isArray(value) && value.length > 0) {
             parts.push(`${key}: ${value.join(', ')}`)
-        } else if (value && typeof value === 'object' && 'min' in value) {
-            const range = value as { min?: number; max?: number }
-            if (range.min !== undefined || range.max !== undefined) {
-                parts.push(`${key}: ${range.min || 0} - ${range.max || '∞'}`)
+        } else if (value && typeof value === 'object') {
+            if ('startDate' in value || 'endDate' in value) {
+                const range = value as { startDate?: string | Date | number; endDate?: string | Date | number }
+                const start = range.startDate
+                    ? new Date(convertToTimestamp(range.startDate)).toLocaleDateString()
+                    : 'Start'
+                const end = range.endDate ? new Date(convertToTimestamp(range.endDate)).toLocaleDateString() : 'End'
+                parts.push(`${key}: ${start} - ${end}`)
+            } else if ('min' in value) {
+                const range = value as { min?: number; max?: number }
+                if (range.min !== undefined || range.max !== undefined) {
+                    parts.push(`${key}: ${range.min || 0} - ${range.max || '∞'}`)
+                }
             }
         }
     })
@@ -413,13 +425,13 @@ export const formatLeadFiltersForDisplay = (filters: LeadSearchFilters): string 
 }
 
 export default {
-    searchLeads,
-    getLeadFacetValues,
-    getAllLeadFacets,
-    getLeadSearchSuggestions,
-    getLeadById,
-    updateLead,
-    getLeadsByIds,
-    trackLeadSearchEvent,
-    formatLeadFiltersForDisplay,
+    searchTasks,
+    getTaskFacetValues,
+    getAllTaskFacets,
+    getTaskSearchSuggestions,
+    getTaskById,
+    updateTask,
+    getTasksByIds,
+    trackTaskSearchEvent,
+    formatTaskFiltersForDisplay,
 }

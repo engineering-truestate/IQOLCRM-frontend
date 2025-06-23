@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
-import type { IRequirement } from '../../../store/reducers/types'
+import type { IRequirement } from '../../../data_types/acn/types'
 
 interface AgentRequirementTableProps {
     requirementsData: IRequirement[]
     agentId: string | undefined
 }
 
-const AgentRequirementTable: React.FC<AgentRequirementTableProps> = ({ requirementsData, agentId }) => {
+const AgentRequirementTable: React.FC<AgentRequirementTableProps> = ({ requirementsData }) => {
     const navigate = useNavigate()
 
     const getRequirementColumns = (): TableColumn[] => {

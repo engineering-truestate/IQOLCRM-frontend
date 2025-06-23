@@ -6,11 +6,16 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 import DateRangePicker from '../../../components/design-elements/DateRangePicker'
 import { searchLeads, type LeadSearchFilters } from '../../../services/canvas_homes/leadAlgoliaService'
 import google from '/icons/canvas_homes/google.svg'
-import hot from '/icons/canvas_homes/hoticon.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
 import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
-import { useNavigate } from 'react-router-dom'
+import { useFetcher, useNavigate } from 'react-router-dom'
+import potentialIcon from '/icons/canvas_homes/potential-bulb.svg'
+import hotIcon from '/icons/canvas_homes/hoticon.svg'
+import superHotIcon from '/icons/canvas_homes/super-hot.svg'
+import coldIcon from '/icons/canvas_homes/coldicon.svg'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import { calculateALSC } from '../../../components/helper/calculateALSC'
 
 // Status card component
 const StatusCard = ({
@@ -41,6 +46,36 @@ const StatusCard = ({
     )
 }
 
+const tagStyles: Record<
+    string,
+    {
+        icon: string
+        bg: string
+        text: string
+    }
+> = {
+    potential: {
+        icon: potentialIcon, // e.g. /icons/potential.svg
+        bg: 'bg-[#DCFCE7]',
+        text: 'text-[#15803D]',
+    },
+    hot: {
+        icon: hotIcon,
+        bg: 'bg-[#FFEDD5]',
+        text: 'text-[#9A3412]',
+    },
+    superhot: {
+        icon: superHotIcon,
+        bg: 'bg-[#FECACA]',
+        text: 'text-[#991B1B]',
+    },
+    cold: {
+        icon: coldIcon,
+        bg: 'bg-[#DBEAFE]',
+        text: 'text-[#1D4ED8]',
+    },
+}
+
 const Leads = () => {
     const [activeStatusCard, setActiveStatusCard] = useState('All')
     const [selectedRows, setSelectedRows] = useState<string[]>([])
@@ -59,9 +94,28 @@ const Leads = () => {
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
     const navigate = useNavigate()
+    const activeFilters = [
+        selectedDateRange && { label: selectedDateRange, onClear: () => setSelectedDateRange('') },
+        customDateRange.startDate &&
+            customDateRange.endDate && {
+                label: `${customDateRange.startDate} to ${customDateRange.endDate}`,
+                onClear: () => setCustomDateRange({ startDate: null, endDate: null }),
+            },
+        selectedProperty && { label: toCapitalizedWords(selectedProperty), onClear: () => setSelectedProperty('') },
+        selectedAgent && { label: toCapitalizedWords(selectedAgent), onClear: () => setSelectedAgent('') },
+        selectedSource && { label: toCapitalizedWords(selectedSource), onClear: () => setSelectedSource('') },
+        selectedLeadStage && { label: toCapitalizedWords(selectedLeadStage), onClear: () => setSelectedLeadStage('') },
+        selectedTag && { label: toCapitalizedWords(selectedTag), onClear: () => setSelectedTag('') },
+        selectedTask && { label: toCapitalizedWords(selectedTask), onClear: () => setSelectedTask('') },
+        selectedLeadStatus && {
+            label: toCapitalizedWords(selectedLeadStatus),
+            onClear: () => setSelectedLeadStatus(''),
+        },
+    ].filter(Boolean) // remove falsy values
 
     // Algolia state
     const [allLeadsData, setAllLeadsData] = useState<any[]>([])
+    const [filteredLeadsData, setFilteredLeadsData] = useState<any[]>([])
     const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
 
     // ✅ FIXED: Properly typed debounce function
@@ -73,10 +127,10 @@ const Leads = () => {
         }
     }, [])
 
-    // Create filters object - Fixed to use actual values from dropdowns
+    // Create filters object - Removed state filter from Algolia
     const createFilters = useCallback((): LeadSearchFilters => {
         const filters: LeadSearchFilters = {
-            leadState: activeStatusCard !== 'All' ? [activeStatusCard.toLowerCase()] : undefined,
+            // Remove state from Algolia filters
             propertyName: selectedProperty ? [selectedProperty] : undefined,
             agentName: selectedAgent ? [selectedAgent] : undefined,
             source: selectedSource ? [selectedSource] : undefined,
@@ -97,7 +151,6 @@ const Leads = () => {
 
         return filters
     }, [
-        activeStatusCard,
         selectedProperty,
         selectedAgent,
         selectedSource,
@@ -109,12 +162,33 @@ const Leads = () => {
         customDateRange,
     ])
 
-    // Search function - Added debugging
+    // Apply manual filtering based on the active status card
+    useEffect(() => {
+        // Apply client-side search filter if needed
+        let filtered = allLeadsData
+
+        if (searchValue) {
+            filtered = filtered.filter(
+                (lead) =>
+                    lead.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+                    lead.phoneNumber?.includes(searchValue) ||
+                    lead.agentName?.toLowerCase().includes(searchValue.toLowerCase()),
+            )
+        }
+
+        // Filter by state (status card)
+        if (activeStatusCard !== 'All') {
+            const stateValue = activeStatusCard.toLowerCase()
+            filtered = filtered.filter((lead) => lead.state?.toLowerCase() === stateValue)
+        }
+
+        setFilteredLeadsData(filtered.map((lead, index) => ({ ...lead, index })))
+    }, [allLeadsData, activeStatusCard, searchValue])
+
+    // Search function - Updated to handle manual filtering
     const performSearch = useCallback(async () => {
         try {
             const filters = createFilters()
-            console.log('Searching with filters:', filters) // Debug log
-
             const result = await searchLeads({
                 query: searchValue,
                 filters,
@@ -122,12 +196,11 @@ const Leads = () => {
                 hitsPerPage: 1000, // Get all results for now
             })
 
-            console.log('Search result:', result) // Debug log
             setAllLeadsData(result.hits)
             setFacets(result.facets || {})
         } catch (error) {
-            console.error('Search error:', error)
             setAllLeadsData([])
+            setFilteredLeadsData([])
         }
     }, [searchValue, createFilters])
 
@@ -138,7 +211,6 @@ const Leads = () => {
     useEffect(() => {
         performSearch()
     }, [
-        activeStatusCard,
         selectedProperty,
         selectedAgent,
         selectedSource,
@@ -151,48 +223,75 @@ const Leads = () => {
     ])
 
     // Search on text input change (debounced)
-    useEffect(() => {
-        debouncedSearch()
-    }, [searchValue, debouncedSearch])
+    // useEffect(() => {
+    //     debouncedSearch()
+    // }, [searchValue, debouncedSearch])
 
     // Initial search
-    useEffect(() => {
-        performSearch()
-    }, [])
+    // useEffect(() => {
+    //     performSearch()
+    // }, [])
 
     // Filter data based on active status card and other filters (keep existing logic)
-    const filteredLeadsData = useMemo(() => {
-        let filtered = allLeadsData
+    // const filteredLeadsData = useMemo(() => {
+    //     let filtered = allLeadsData
 
-        // Apply additional client-side search filter if needed
-        if (searchValue) {
-            filtered = filtered.filter(
-                (lead) =>
-                    lead.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    lead.phoneNumber?.includes(searchValue) ||
-                    lead.agentName?.toLowerCase().includes(searchValue.toLowerCase()),
-            )
-        }
+    //     // Apply additional client-side search filter if needed
+    //     if (searchValue) {
+    //         filtered = filtered.filter(
+    //             (lead) =>
+    //                 lead.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+    //                 lead.phoneNumber?.includes(searchValue) ||
+    //                 lead.agentName?.toLowerCase().includes(searchValue.toLowerCase()),
+    //         )
+    //     }
 
-        return filtered
-    }, [allLeadsData, searchValue])
+    //     return filtered
+    // }, [allLeadsData, searchValue])
+
+    // const indexedLeadsData = useEffect(() => {
+    //     return setFilteredLeadsData.map((lead, index) => ({ ...lead, index }))
+    // }, [filteredLeadsData])
 
     // Calculate status counts from facets - Fixed case sensitivity
     const statusCounts = useMemo(() => {
-        const stateFacets = facets.leadState || {}
-        const totalHits = allLeadsData.length
-
-        console.log('Status facets:', stateFacets) // Debug log
-        console.log('All facets:', facets) // Debug log
-
-        return {
-            All: totalHits,
-            Fresh: stateFacets.fresh || 0,
-            Open: stateFacets.open || 0,
-            Closed: stateFacets.closed || 0,
-            Dropped: stateFacets.dropped || 0,
+        const counts = {
+            All: allLeadsData.length,
+            Fresh: 0,
+            Open: 0,
+            Closed: 0,
+            Dropped: 0,
         }
-    }, [facets, allLeadsData])
+
+        // Count each state
+        allLeadsData.forEach((lead) => {
+            const state = lead.state?.toLowerCase() || ''
+            if (state === 'fresh') counts.Fresh++
+            else if (state === 'open') counts.Open++
+            else if (state === 'closed') counts.Closed++
+            else if (state === 'dropped') counts.Dropped++
+        })
+
+        return counts
+    }, [allLeadsData])
+
+    // Handle date range changes from DateRangePicker
+    const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
+        setCustomDateRange({ startDate, endDate })
+        // Clear preset selection when using custom range
+        if (startDate || endDate) {
+            setSelectedDateRange('')
+        }
+    }, [])
+
+    // Define reusable dropdown CSS classes
+    const dropdownClasses = {
+        container: 'relative inline-block w-full sm:w-auto',
+        trigger: (isSelected: boolean) =>
+            `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
+        menu: 'absolute z-50 mt-1 w-fit min-w-[300px] bg-white border border-gray-300 rounded-md shadow-lg',
+        option: 'px-3 py-2 text-sm w-fit text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
+    }
 
     // Generate dropdown options from facets - Fixed to extract correct values
     const generateDropdownOptions = useCallback(
@@ -207,7 +306,7 @@ const Leads = () => {
                 .forEach(([key, count]) => {
                     if (count > 0) {
                         options.push({
-                            label: `${key} (${count})`,
+                            label: `${toCapitalizedWords(key)} (${count})`,
                             value: key, // Use actual facet value, not transformed
                         })
                     }
@@ -218,15 +317,6 @@ const Leads = () => {
         [facets],
     )
 
-    // Handle date range changes from DateRangePicker
-    const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
-        setCustomDateRange({ startDate, endDate })
-        // Clear preset selection when using custom range
-        if (startDate || endDate) {
-            setSelectedDateRange('')
-        }
-    }, [])
-
     const handleRowSelect = (rowId: string, selected: boolean) => {
         if (selected) {
             setSelectedRows([...selectedRows, rowId])
@@ -234,12 +324,20 @@ const Leads = () => {
             setSelectedRows(selectedRows.filter((id) => id !== rowId))
         }
     }
-
-    const handleRowClick = (row: any) => {
-        console.log('Row clicked:', row)
-        window.location.href = `/sales/leaddetails/${row.objectId || row.id}`
+    const handleSelectAllRows = (selected: boolean) => {
+        if (selected) {
+            // Select all rows by adding all available leadIds to selectedRows
+            const allLeadIds = allLeadsData.map((lead) => lead.leadId) // Make sure to replace `leadId` with the actual unique field
+            setSelectedRows(allLeadIds)
+        } else {
+            // Deselect all rows
+            setSelectedRows([])
+        }
     }
 
+    const handleRowClick = (row: any) => {
+        navigate(`leaddetails/${row.leadId}`)
+    }
     // Status cards data with dynamic counts
     const statusCards = [
         { title: 'All', count: statusCounts.All },
@@ -249,18 +347,22 @@ const Leads = () => {
         { title: 'Dropped', count: statusCounts.Dropped },
     ]
 
-    const capitalizeFirst = (text: string) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : '')
-
     // Table columns (updated field names to match Algolia data)
     const columns: TableColumn[] = [
         {
             key: 'name',
             header: 'Name',
             render: (value, row) => (
-                <div className='whitespace-nowrap' onClick={() => navigate(`leaddetails/${row.leadId}`)}>
-                    <div className='text-sm font-medium text-gray-900'>{capitalizeFirst(value || row.name || '-')}</div>
+                <div className='whitespace-nowrap'>
+                    <div
+                        onClick={() => handleRowClick(row)}
+                        className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-semibold text-gray-900'
+                        title={value || row.property || '-'} // optional: full text on hover
+                    >
+                        {toCapitalizedWords(value || row.name || '-')}
+                    </div>
                     <div className='text-xs text-gray-500 font-normal'>
-                        {row.addedDate || `Added ${new Date(row.added).toLocaleDateString()}`}
+                        {row.addedDate || `Added ${new Date(row.added * 1000).toLocaleDateString()}`}
                     </div>
                 </div>
             ),
@@ -269,24 +371,29 @@ const Leads = () => {
             key: 'propertyName',
             header: 'Property',
             render: (value, row) => (
-                <span className='text-sm font-normal text-gray-900'>
-                    {capitalizeFirst(value || row.property || '-')}
-                </span>
+                <div
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
+                    {toCapitalizedWords(value || row.property || '-')}
+                </div>
             ),
         },
         {
             key: 'source',
             header: 'Source',
             render: (value) => (
-                <div className='w-full h-full flex items-center justify-center'>
-                    {value === 'Google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
-                    {value === 'LinkedIn' && <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />}
-                    {value === 'META' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
-                    {!['Google', 'LinkedIn', 'META'].includes(value) && (
-                        <span className='text-xs font-medium px-2 py-1 bg-gray-100 rounded'>
-                            {capitalizeFirst(value || '-')}
-                        </span>
-                    )}
+                <div className='flex justify-start'>
+                    <div className='inline-flex items-center min-w-max rounded-[20px] gap-[6px] h-8 px-2 whitespace-nowrap border border-gray-300 w-fit'>
+                        {value === 'google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
+                        {value === 'linkedin' && (
+                            <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />
+                        )}
+                        {value === 'meta' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
+                        {!['Google', 'LinkedIn', 'META'].includes(value) && (
+                            <span className='text-sm font-norma'>{toCapitalizedWords(value || '-')}</span>
+                        )}
+                    </div>
                 </div>
             ),
         },
@@ -299,42 +406,60 @@ const Leads = () => {
             key: 'agentName',
             header: 'Agent',
             render: (value, row) => (
-                <span className='text-sm font-normal'>{capitalizeFirst(value || row.agent || '-')}</span>
+                <div
+                    className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
+                    {toCapitalizedWords(value || row.agent || '-')}
+                </div>
             ),
         },
         {
             key: 'stage',
             header: 'Lead Stage',
             render: (value, row) => (
-                <span className='text-sm text-gray-900'>{capitalizeFirst(value || row.leadStage || '-')}</span>
+                <div
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
+                    {toCapitalizedWords(value || row.leadStage || '-')}
+                </div>
             ),
         },
         {
             key: 'leadStatus',
             header: 'Lead Status',
-            render: (value) => <span className='text-sm text-gray-900'>{capitalizeFirst(value || '-')}</span>,
+            render: (value) => <span className='text-sm text-gray-900'>{toCapitalizedWords(value || '-')}</span>,
         },
         {
             key: 'tag',
             header: 'Tag',
-            render: (value) => (
-                <div className='inline-flex items-center min-w-17 w-full h-6 gap-2 px-2 py-1 rounded-[4px] text-xs font-medium bg-[#FFEDD5] text-[#9A3412]'>
-                    <img src={hot} alt='Hot' className='w-3 h-3 object-contain' />
-                    <span className='text-sm font-normal'>{capitalizeFirst(value || '-')}</span>
-                </div>
-            ),
-        },
-        {
-            key: 'aslc',
-            header: 'ASLC',
-            render: (value, row) => {
-                const today = Date.now()
-                const dateToUse = row.leadState === 'fresh' ? row.added : row.scheduledDate
-                const daysDifference = Math.floor((today - dateToUse) / (1000 * 60 * 60 * 24))
+            render: (value: string) => {
+                const key = value?.toLowerCase().replace(/\s+/g, '')
+                const style = tagStyles[key]
+                const capitalizeWords = (str: string) => str.replace(/\b\w/g, (char) => char.toUpperCase())
+
+                if (!style) return <div>-</div>
 
                 return (
+                    <div className='flex justify-start'>
+                        <div
+                            className={`inline-flex items-center min-w-max h-6 gap-1.5 px-2 py-1 rounded-[4px] text-xs font-medium ${style.bg} ${style.text}`}
+                        >
+                            <img src={style.icon} alt={value} className='w-3 h-3 object-contain' />
+                            <span className='text-xs font-medium'>{capitalizeWords(value || '-')}</span>
+                        </div>
+                    </div>
+                )
+            },
+        },
+        {
+            key: 'lastModified',
+            header: 'ASLC',
+            render: (value, row) => {
+                return (
                     <span className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800'>
-                        {daysDifference || 0} days
+                        {calculateALSC(allLeadsData[row.index])}
                     </span>
                 )
             },
@@ -343,20 +468,39 @@ const Leads = () => {
             key: 'taskType',
             header: 'Schedule Task',
             render: (value, row) => {
-                const taskType = capitalizeFirst(value || row.scheduleTask?.type || '-')
-                const date = row.scheduledDate
-                    ? new Date(row.scheduledDate).toLocaleDateString()
-                    : row.scheduleTask?.date
-                const time = row.scheduleTask?.time
+                if (row?.completionDate) {
+                    return <div className='text-sm text-gray-500'>-</div>
+                }
+
+                const taskType = toCapitalizedWords(value || row?.taskType || '-')
+                const scheduleUnix = row?.scheduledDate
+
+                const formattedDate = scheduleUnix
+                    ? new Date(scheduleUnix * 1000).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                      })
+                    : ''
+
+                const formattedTime = scheduleUnix
+                    ? new Date(scheduleUnix * 1000).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true,
+                      })
+                    : ''
 
                 return (
-                    <div className='flex items-center gap-3'>
-                        <div>
-                            <div className='text-sm font-medium text-gray-900'>{taskType}</div>
+                    <div className='flex flex-col'>
+                        <div className='text-sm font-medium text-gray-900'>{taskType}</div>
+                        {(formattedDate || formattedTime) && (
                             <div className='text-xs text-gray-500'>
-                                {date || time ? `${date || ''}${date && time ? ' | ' : ''}${time || ''}` : ''}
+                                {formattedDate}
+                                {formattedDate && formattedTime ? ' | ' : ''}
+                                {formattedTime}
                             </div>
-                        </div>
+                        )}
                     </div>
                 )
             },
@@ -397,98 +541,105 @@ const Leads = () => {
                     placeholder='Search name and number'
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className='h-7 w-full sm:w-68'
+                    className='h-7 w-full sm:w-68 bg-gray-300'
                 />
 
                 <DateRangePicker
                     onDateRangeChange={handleDateRangeChange}
                     placeholder='Date Range'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full min-w-[160px] bg-white border border-gray-300 rounded-md shadow-lg'
+                    className={dropdownClasses.container}
+                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 min-w-[100px] w-full sm:w-auto cursor-pointer'
+                    menuClassName={dropdownClasses.menu}
                 />
-
                 <Dropdown
                     options={generateDropdownOptions('propertyName', 'Property')}
                     onSelect={setSelectedProperty}
                     defaultValue={selectedProperty}
+                    value={selectedProperty}
+                    forcePlaceholderAlways
                     placeholder='Property'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedProperty)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
-
                 <Dropdown
                     options={generateDropdownOptions('agentName', 'Agent')}
                     onSelect={setSelectedAgent}
                     defaultValue={selectedAgent}
+                    value={selectedAgent}
+                    forcePlaceholderAlways
                     placeholder='Agent'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedAgent)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
-
                 <Dropdown
                     options={generateDropdownOptions('source', 'Source')}
                     onSelect={setSelectedSource}
                     defaultValue={selectedSource}
+                    value={selectedSource}
+                    forcePlaceholderAlways
                     placeholder='Source'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedSource)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
-
                 <Dropdown
                     options={generateDropdownOptions('stage', 'Lead Stage')}
                     onSelect={setSelectedLeadStage}
                     defaultValue={selectedLeadStage}
+                    value={selectedLeadStage}
+                    forcePlaceholderAlways
                     placeholder='Lead Stage'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedLeadStage)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
-
                 <Dropdown
                     options={generateDropdownOptions('tag', 'Tag')}
                     onSelect={setSelectedTag}
                     defaultValue={selectedTag}
+                    value={selectedTag}
+                    forcePlaceholderAlways
                     placeholder='Tag'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedTag)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
-
                 <Dropdown
                     options={generateDropdownOptions('taskType', 'Task')}
                     onSelect={setSelectedTask}
                     defaultValue={selectedTask}
+                    value={selectedTask}
+                    forcePlaceholderAlways
                     placeholder='Task'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedTask)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
-
                 <Dropdown
                     options={generateDropdownOptions('leadStatus', 'Lead Status')}
                     onSelect={setSelectedLeadStatus}
                     defaultValue={selectedLeadStatus}
+                    value={selectedLeadStatus}
+                    forcePlaceholderAlways
                     placeholder='Lead Status'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between px-3 py-1 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedLeadStatus)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
             </div>
 
             {/* Status Cards */}
-            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7'>
-                <div className='grid grid-cols-2 sm:flex sm:gap-2'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
+                <div className='grid grid-cols-2 gap-2 sm:flex sm:flex-wrap md:flex-nowrap'>
                     {statusCards.map((card) => (
                         <StatusCard
                             key={card.title}
@@ -509,16 +660,59 @@ const Leads = () => {
                 </Button>
             </div>
 
+            {/* Active Filters */}
+            {activeFilters.length > 0 && (
+                <div className='flex flex-wrap items-center gap-2 mb-4'>
+                    {activeFilters.map((filter, index) =>
+                        filter ? (
+                            <div
+                                key={index}
+                                className='flex items-center bg-gray-100 text-xs font-medium text-gray-700 px-3 py-1.5 rounded-md'
+                            >
+                                {filter.label}
+                                <button
+                                    onClick={filter.onClear}
+                                    className='ml-2 text-gray-500 hover:text-red-500 focus:outline-none'
+                                    aria-label={`Clear ${filter.label}`}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : null,
+                    )}
+
+                    {/* Clear All Button */}
+                    <button
+                        onClick={() => {
+                            setSelectedDateRange('')
+                            setCustomDateRange({ startDate: null, endDate: null })
+                            setSelectedProperty('')
+                            setSelectedAgent('')
+                            setSelectedSource('')
+                            setSelectedLeadStage('')
+                            setSelectedTag('')
+                            setSelectedTask('')
+                            setSelectedLeadStatus('')
+                        }}
+                        className='ml-4 text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-1.5 px-4 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer'
+                    >
+                        Clear All
+                    </button>
+                </div>
+            )}
+
             {/* Table */}
-            <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[63vh]'>
+            <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[calc(100vh-280px)] md:h-[63vh]'>
                 <FlexibleTable
+                    showCheckboxes={true}
                     data={filteredLeadsData}
                     columns={columns}
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                     selectedRows={selectedRows}
-                    headerClassName='font-normal'
+                    headerClassName='font-normal text-left'
+                    cellClassName='text-left'
                     onRowSelect={handleRowSelect}
-                    onRowClick={handleRowClick}
+                    onSelectAll={handleSelectAllRows}
                     className='rounded-lg'
                     stickyHeader={true}
                     hoverable={true}

@@ -139,163 +139,155 @@ Agent's Phone Number`)
 
     // Get modal classes based on state
     const getModalClasses = () => {
-        if (isMinimized) {
-            return 'fixed bottom-4 right-4 w-80 shadow-xl bg-white rounded-lg z-50'
-        } else if (isExpanded) {
+        if (isExpanded) {
             return 'fixed inset-4 z-50 bg-white rounded-lg shadow-xl'
-        } else {
-            return 'bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 overflow-hidden'
         }
     }
 
     // Get container classes
-    const getContainerClasses = () => {
-        if (isMinimized || isExpanded) {
-            return 'flex items-start justify-end' // For positioned modals
-        } else {
-            return 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'
-        }
-    }
 
     return (
-        <div className={getContainerClasses()}>
-            <div className={getModalClasses()} onClick={(e) => e.stopPropagation()}>
-                {/* Header */}
-                <div className='bg-blue-500 px-6 py-2 flex justify-between items-center'>
-                    <h2 className='text-white text-md font-medium'>New Message</h2>
-                    <div className='flex items-center space-x-4'>
-                        <button
-                            onClick={handleMinimize}
-                            className='text-white hover:text-gray-200 text-xl'
-                            title={isMinimized ? 'Restore' : 'Minimize'}
-                        >
-                            {isMinimized ? '☐' : '−'}
-                        </button>
-                        <button
-                            onClick={handleExpand}
-                            className='text-white hover:text-gray-200 text-lg'
-                            title={isExpanded ? 'Restore' : 'Expand'}
-                        >
-                            {isExpanded ? '⤡' : '⤢'}
-                        </button>
-                        <button onClick={onClose} className='text-white hover:text-gray-200 text-xl font-light'>
-                            ×
-                        </button>
+        <>
+            <div className='fixed inset-0 z-50 flex items-center justify-center bg-black opacity-50 ' />
+            <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[608px] bg-white z-50 rounded-lg shadow-2xl'>
+                <div className={getModalClasses()} onClick={(e) => e.stopPropagation()}>
+                    {/* Header */}
+                    <div className='bg-blue-500 px-6 py-2 flex justify-between items-center'>
+                        <h2 className='text-white text-md font-medium'>New Message</h2>
+                        <div className='flex items-center space-x-4'>
+                            <button
+                                onClick={handleMinimize}
+                                className='text-white hover:text-gray-200 text-xl'
+                                title={isMinimized ? 'Restore' : 'Minimize'}
+                            >
+                                {isMinimized ? '☐' : '−'}
+                            </button>
+                            <button
+                                onClick={handleExpand}
+                                className='text-white hover:text-gray-200 text-lg'
+                                title={isExpanded ? 'Restore' : 'Expand'}
+                            >
+                                {isExpanded ? '⤡' : '⤢'}
+                            </button>
+                            <button onClick={onClose} className='text-white hover:text-gray-200 text-xl font-light'>
+                                ×
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Form Content - Hide when minimized */}
+                    {!isMinimized && (
+                        <>
+                            <div className='p-4 space-y-3'>
+                                {/* To Field */}
+                                <div className='flex items-start'>
+                                    <label className='text-gray-600 text-sm w-12 pt-2'>To</label>
+                                    <div className='flex-1'>
+                                        <div className='flex flex-wrap items-center gap-2 min-h-[40px] p-2 border border-gray-200 rounded focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'>
+                                            {toEmail && (
+                                                <div className='flex items-center border border-gray-300 rounded-full px-3 py-1'>
+                                                    <div className='w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center mr-2'>
+                                                        <span className='text-white text-xs'>👤</span>
+                                                    </div>
+                                                    <span className='text-sm text-gray-700'>{toEmail}</span>
+                                                    <button
+                                                        onClick={removeToEmail}
+                                                        className='text-gray-500 hover:text-gray-700 ml-2 text-sm'
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <input
+                                                type='email'
+                                                value={toInput}
+                                                onChange={(e) => setToInput(e.target.value)}
+                                                onKeyPress={handleToKeyPress}
+                                                className='flex-1 min-w-[200px] outline-none text-sm'
+                                                placeholder={!toEmail ? 'Type email and press Enter' : ''}
+                                                disabled={!!toEmail}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* CC Field */}
+                                <div className='flex items-start'>
+                                    <label className='text-gray-600 text-sm w-12 pt-2'>CC</label>
+                                    <div className='flex-1'>
+                                        <div className='flex flex-wrap items-center gap-2 min-h-[40px] p-2 border border-gray-200 rounded focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'>
+                                            {ccEmails.map((emailChip) => (
+                                                <div
+                                                    key={emailChip.id}
+                                                    className='flex items-center border border-gray-300 rounded-full px-3 py-1'
+                                                >
+                                                    <div className='w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center mr-2'>
+                                                        <span className='text-white text-xs'>👤</span>
+                                                    </div>
+                                                    <span className='text-sm text-gray-700'>{emailChip.email}</span>
+                                                    <button
+                                                        onClick={() => removeCcEmail(emailChip.id)}
+                                                        className='text-gray-500 hover:text-gray-700 ml-2 text-sm'
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <input
+                                                type='email'
+                                                value={ccInput}
+                                                onChange={(e) => setCcInput(e.target.value)}
+                                                onKeyPress={handleCcKeyPress}
+                                                className='flex-1 min-w-[200px] outline-none text-sm'
+                                                placeholder={ccEmails.length === 0 ? 'Type email and press Enter' : ''}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Subject Field */}
+                                <div className='border-b border-gray-200'>
+                                    <input
+                                        type='text'
+                                        value={subject}
+                                        onChange={(e) => setSubject(e.target.value)}
+                                        className='w-full text-base font-medium text-gray-800 outline-none pb-[11px]'
+                                        placeholder='Subject'
+                                    />
+                                </div>
+
+                                {/* Content Area */}
+                                <div className='pt-4'>
+                                    <textarea
+                                        value={content}
+                                        onChange={(e) => setContent(e.target.value)}
+                                        rows={isExpanded ? 20 : 13}
+                                        className='w-full text-sm text-gray-700 outline-none resize-none leading-relaxed'
+                                        placeholder='Compose your message...'
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Footer Buttons */}
+                            <div className='bg-gray-50 px-6 py-4 flex justify-center space-x-3 border-t border-gray-200'>
+                                <button
+                                    onClick={onDiscard}
+                                    className='px-6 py-2 bg-gray-300 text-gray-700 rounded font-medium hover:bg-gray-400 transition-colors'
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    onClick={onSend}
+                                    className='px-8 py-2 bg-blue-500 text-white rounded font-medium hover:bg-blue-600 transition-colors'
+                                >
+                                    Send
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
-
-                {/* Form Content - Hide when minimized */}
-                {!isMinimized && (
-                    <>
-                        <div className='p-4 space-y-3'>
-                            {/* To Field */}
-                            <div className='flex items-start'>
-                                <label className='text-gray-600 text-sm w-12 pt-2'>To</label>
-                                <div className='flex-1'>
-                                    <div className='flex flex-wrap items-center gap-2 min-h-[40px] p-2 border border-gray-200 rounded focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'>
-                                        {toEmail && (
-                                            <div className='flex items-center border border-gray-300 rounded-full px-3 py-1'>
-                                                <div className='w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center mr-2'>
-                                                    <span className='text-white text-xs'>👤</span>
-                                                </div>
-                                                <span className='text-sm text-gray-700'>{toEmail}</span>
-                                                <button
-                                                    onClick={removeToEmail}
-                                                    className='text-gray-500 hover:text-gray-700 ml-2 text-sm'
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        )}
-                                        <input
-                                            type='email'
-                                            value={toInput}
-                                            onChange={(e) => setToInput(e.target.value)}
-                                            onKeyPress={handleToKeyPress}
-                                            className='flex-1 min-w-[200px] outline-none text-sm'
-                                            placeholder={!toEmail ? 'Type email and press Enter' : ''}
-                                            disabled={!!toEmail}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* CC Field */}
-                            <div className='flex items-start'>
-                                <label className='text-gray-600 text-sm w-12 pt-2'>CC</label>
-                                <div className='flex-1'>
-                                    <div className='flex flex-wrap items-center gap-2 min-h-[40px] p-2 border border-gray-200 rounded focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'>
-                                        {ccEmails.map((emailChip) => (
-                                            <div
-                                                key={emailChip.id}
-                                                className='flex items-center border border-gray-300 rounded-full px-3 py-1'
-                                            >
-                                                <div className='w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center mr-2'>
-                                                    <span className='text-white text-xs'>👤</span>
-                                                </div>
-                                                <span className='text-sm text-gray-700'>{emailChip.email}</span>
-                                                <button
-                                                    onClick={() => removeCcEmail(emailChip.id)}
-                                                    className='text-gray-500 hover:text-gray-700 ml-2 text-sm'
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        ))}
-                                        <input
-                                            type='email'
-                                            value={ccInput}
-                                            onChange={(e) => setCcInput(e.target.value)}
-                                            onKeyPress={handleCcKeyPress}
-                                            className='flex-1 min-w-[200px] outline-none text-sm'
-                                            placeholder={ccEmails.length === 0 ? 'Type email and press Enter' : ''}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Subject Field */}
-                            <div className='border-b border-gray-200'>
-                                <input
-                                    type='text'
-                                    value={subject}
-                                    onChange={(e) => setSubject(e.target.value)}
-                                    className='w-full text-base font-medium text-gray-800 outline-none pb-[11px]'
-                                    placeholder='Subject'
-                                />
-                            </div>
-
-                            {/* Content Area */}
-                            <div className='pt-4'>
-                                <textarea
-                                    value={content}
-                                    onChange={(e) => setContent(e.target.value)}
-                                    rows={isExpanded ? 20 : 13}
-                                    className='w-full text-sm text-gray-700 outline-none resize-none leading-relaxed'
-                                    placeholder='Compose your message...'
-                                />
-                            </div>
-                        </div>
-
-                        {/* Footer Buttons */}
-                        <div className='bg-gray-50 px-6 py-4 flex justify-center space-x-3 border-t border-gray-200'>
-                            <button
-                                onClick={onDiscard}
-                                className='px-6 py-2 bg-gray-300 text-gray-700 rounded font-medium hover:bg-gray-400 transition-colors'
-                            >
-                                Discard
-                            </button>
-                            <button
-                                onClick={onSend}
-                                className='px-8 py-2 bg-blue-500 text-white rounded font-medium hover:bg-blue-600 transition-colors'
-                            >
-                                Send
-                            </button>
-                        </div>
-                    </>
-                )}
             </div>
-        </div>
+        </>
     )
 }
 

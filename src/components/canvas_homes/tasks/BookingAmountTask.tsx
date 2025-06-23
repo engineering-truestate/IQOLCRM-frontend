@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState } from 'react'
 import Dropdown from './Dropdown'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../../store'
@@ -6,6 +6,7 @@ import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer
 import TaskCompleteModal from '../TaskCompleteModal'
 import ChangePropertyModal from '../ChangePropertyModal'
 import CloseLeadModal from '../CloseLeadModal'
+import { ref } from 'firebase/storage'
 
 interface DropdownOption {
     label: string
@@ -14,47 +15,23 @@ interface DropdownOption {
 }
 
 interface BookingAmountTaskProps {
-    taskId: string
-    updateTaskState: (taskId: string, field: string, value: string) => void
-    getTaskState?: (taskId: string) => any
-    onUpdateLead?: () => void
-    onUpdateEnquiry?: () => void
-    onUpdateTask?: (taskId: string, updates: any) => Promise<void>
-    onTaskStatusUpdate?: () => void
-    onAddNote?: () => void
-    updating?: boolean
+    refreshData: () => void
+
     setActiveTab: (tab: string) => void
 }
 
-const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
-    taskId,
-    updateTaskState,
-    getTaskState,
-    onUpdateLead,
-    onUpdateEnquiry,
-    onUpdateTask,
-    onAddNote,
-    onTaskStatusUpdate,
-    updating = false,
-    setActiveTab,
-}) => {
+const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({ refreshData, setActiveTab }) => {
     const dispatch = useDispatch<AppDispatch>()
     const [showTaskCompleteModal, setShowTaskCompleteModal] = useState(false)
     const [showChangePropertyModal, setShowChangePropertyModal] = useState(false)
     const [showCloseLeadModal, setShowCloseLeadModal] = useState(false)
-    const [isDebounced, setIsDebounced] = useState(false)
 
-    const commonModalProps = {
-        onUpdateLead,
-        onUpdateEnquiry,
-        onUpdateTask,
-        onAddNote,
-    }
-
+    // Define dropdown options with their actions
     const unsuccessfulOptions: DropdownOption[] = [
         {
             label: 'Change Property',
             value: 'change property',
+            modal: () => setShowChangePropertyModal(true),
         },
         {
             label: 'Collect Requirement',
@@ -67,19 +44,21 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
         {
             label: 'Close Lead',
             value: 'close lead',
+            modal: () => setShowCloseLeadModal(true),
         },
     ]
 
     const handleSuccessfulClick = (e: React.MouseEvent) => {
         e.stopPropagation()
-        console.log('Successful button clicked')
         setShowTaskCompleteModal(true)
     }
 
-    const handleUnsuccessfulOptionAction = (value: string) => {
-        console.log('Unsuccessful option selected:', value)
-        if (value === 'change property') setShowChangePropertyModal(true)
-        if (value === 'close lead') setShowCloseLeadModal(true)
+    const handleUnsuccessfulOptionSelect = (value: string) => {
+        // Find and execute the modal function for the selected option
+        const option = unsuccessfulOptions.find((opt) => opt.value === value)
+        if (option && option.modal) {
+            option.modal()
+        }
     }
 
     return (
@@ -89,6 +68,7 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                     onClick={handleSuccessfulClick}
                     className='flex items-center h-8 px-3 justify-center border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer hover:bg-green-600'
                     type='button'
+                    disabled={updating}
                 >
                     Successful
                 </button>
@@ -96,9 +76,10 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                 <Dropdown
                     defaultValue=''
                     options={unsuccessfulOptions}
-                    onSelect={handleUnsuccessfulOptionAction}
+                    onSelect={handleUnsuccessfulOptionSelect}
                     triggerClassName='flex items-center h-8 justify-between px-3 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white min-w-[100px] cursor-pointer hover:bg-red-600'
                     placeholder='Unsuccessful'
+                    disabled={updating}
                 />
             </div>
 
@@ -111,14 +92,14 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                 stage='booking confirmed'
                 state='closed'
                 taskType='booking'
-                {...commonModalProps}
+                refreshData={refreshData}
             />
 
             <ChangePropertyModal
                 isOpen={showChangePropertyModal}
                 onClose={() => setShowChangePropertyModal(false)}
                 taskType='booking'
-                {...commonModalProps}
+                refreshData={refreshData}
             />
 
             <CloseLeadModal
@@ -126,7 +107,7 @@ const BookingAmountTask: React.FC<BookingAmountTaskProps> = ({
                 onClose={() => setShowCloseLeadModal(false)}
                 taskType='booking'
                 taskState='booking unsuccessful'
-                {...commonModalProps}
+                refreshData={refreshData}
             />
         </>
     )

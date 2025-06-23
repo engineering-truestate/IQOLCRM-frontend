@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
-import type { IInventory } from '../../../store/reducers/types'
+import type { IInventory } from '../../../data_types/acn/types'
 import { useNavigate } from 'react-router-dom'
 
 interface AgentInventoryTableProps {
@@ -9,7 +9,7 @@ interface AgentInventoryTableProps {
     agentId: string | undefined
 }
 
-const AgentInventoryTable: React.FC<AgentInventoryTableProps> = ({ inventoryData, agentId }) => {
+const AgentInventoryTable: React.FC<AgentInventoryTableProps> = ({ inventoryData }) => {
     const [selectedInventoryStatus, setSelectedInventoryStatus] = useState('')
     const navigate = useNavigate()
 
