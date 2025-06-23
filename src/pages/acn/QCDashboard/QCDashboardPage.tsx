@@ -36,7 +36,7 @@ const QCDashboardPage = () => {
     const [totalPages, setTotalPages] = useState(0)
     const [facets, setFacets] = useState<Record<string, { value: string; count: number }[]>>({})
     const [kamCounts, setKamCounts] = useState({ kam: 0, data: 0, notApproved: 0 })
-    const [selectedKAM, setSelectedKAM] = useState<string[]>(['INT104'])
+    const [selectedKAM, setSelectedKAM] = useState<string[]>(['CURRENT_USER_ID'])
     const [selectedAssetType, setSelectedAssetType] = useState<string[]>(['all'])
     const [selectedStage, setSelectedStage] = useState<string[]>(['all'])
     const [selectedKamStatus, setSelectedKamStatus] = useState<string[]>(['all'])
@@ -291,7 +291,7 @@ const QCDashboardPage = () => {
     // Generate dropdown options from facets
     const kamOptions = [
         { label: 'All KAMs', value: 'all' },
-        ...(facets.kamId || []).map((facet) => ({
+        ...(facets.kamName || []).map((facet) => ({
             label: `${facet.value} (${facet.count})`,
             value: facet.value,
         })),
@@ -522,7 +522,7 @@ const QCDashboardPage = () => {
     }, [selectedKAM]) // Add this to update counts when KAM filter changes
 
     return (
-        <Layout loading={loading}>
+        <Layout loading={false}>
             <div className='w-full overflow-hidden font-sans h-screen flex flex-col'>
                 <div
                     className='flex flex-col gap-4 pt-2 px-6 bg-white flex-1 overflow-hidden'
