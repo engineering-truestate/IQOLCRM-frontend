@@ -111,6 +111,11 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(LeadDetails, null)),
     },
     {
+        path: '/canvas-homes/marketing',
+        element: React.createElement(React.Suspense, null, React.createElement(MarketingDashboard, null)),
+    },
+
+    {
         path: '/acn/leads',
         element: React.createElement(React.Suspense, null, React.createElement(LeadsPage, null)),
     },
