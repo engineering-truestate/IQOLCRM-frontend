@@ -20,7 +20,7 @@ interface FetchAgentDetailsParams {
 
 interface AgentData {
     cpId: string
-    agentName: string
+    name: string
     phoneNumber: string
     kamId: string
     kamName: string
@@ -49,7 +49,7 @@ export const fetchAgentByPhone = createAsyncThunk(
             // Return the agent details
             return {
                 cpId: agentData.cpId,
-                agentName: agentData.agentName,
+                name: agentData.name,
                 phoneNumber: agentData.phoneNumber,
                 kamId: agentData.kamId,
                 kamName: agentData.kamName,
@@ -646,13 +646,20 @@ export const addAgentWithVerification = createAsyncThunk(
 
             const newCpId = `${label}${prefix}${currentCount + 1}`
 
+            let formattedPhoneNumber = verificationData.phoneNumber
+            if (formattedPhoneNumber && !formattedPhoneNumber.startsWith('+91')) {
+                // Remove any existing country code or leading zeros
+                formattedPhoneNumber = formattedPhoneNumber.replace(/^(\+91|91|0+)/, '')
+                formattedPhoneNumber = `+91${formattedPhoneNumber}`
+            }
+
             // Step 2: Prepare agent data
             const timestamp = Math.floor(Date.now() / 1000)
 
             const agentData = {
                 cpId: newCpId,
                 name: verificationData.name,
-                phoneNumber: verificationData.phoneNumber,
+                phoneNumber: formattedPhoneNumber,
                 emailAddress: verificationData.emailAddress,
                 workAddress: verificationData.workAddress || '',
                 reraId: verificationData.reraId || '',

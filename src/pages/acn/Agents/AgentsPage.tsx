@@ -77,7 +77,9 @@ const getSourceIcon = (source: string) => {
                 </svg>
             )
     }
+}
 
+const LeadSource = ({ source }: { source: string }) => {
     return (
         <div className='flex items-center gap-2 whitespace-nowrap'>
             <span className='inline-flex items-center rounded-full border border-gray-300 px-3 py-2 text-xs font-medium bg-white'>
@@ -579,7 +581,7 @@ const AgentsPage = () => {
         },
         {
             key: 'lastConnected',
-            header: 'Last Connected',
+            header: 'Last Tried',
             render: (value) => (
                 <span className='whitespace-nowrap text-sm font-normal w-auto'>
                     {' '}

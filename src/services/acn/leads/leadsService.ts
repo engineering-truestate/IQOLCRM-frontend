@@ -996,6 +996,12 @@ export const addBulkLeads = createAsyncThunk(
                 } catch (error) {
                     console.log('Pipeline doc not found for:', leadData.Number)
                 }
+                let formattedPhoneNumber = leadData.Number
+                if (formattedPhoneNumber && !formattedPhoneNumber.startsWith('+91')) {
+                    // Remove any existing country code or leading zeros
+                    formattedPhoneNumber = formattedPhoneNumber.replace(/^(\+91|91|0+)/, '')
+                    formattedPhoneNumber = `+91${formattedPhoneNumber}`
+                }
 
                 const newLead: ProcessedLeadData = {
                     leadId,
@@ -1099,10 +1105,17 @@ export const addManualLead = createAsyncThunk(
                 })
             }
 
+            let formattedPhoneNumber = phone
+            if (formattedPhoneNumber && !formattedPhoneNumber.startsWith('+91')) {
+                // Remove any existing country code or leading zeros
+                formattedPhoneNumber = formattedPhoneNumber.replace(/^(\+91|91|0+)/, '')
+                formattedPhoneNumber = `+91${formattedPhoneNumber}`
+            }
+
             const newLead: ProcessedLeadData = {
                 leadId,
                 name: manualData.name,
-                phonenumber: phone,
+                phonenumber: formattedPhoneNumber,
                 emailAddress: manualData.email,
                 source: manualData.leadSource,
                 kamId: manualData.kamId,

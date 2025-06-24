@@ -235,7 +235,6 @@ const RequirementsPage = () => {
                     id: rowId,
                     status: value,
                     type: field === 'requirementStatus' ? 'requirement' : 'internal',
-                    propertyType: activeTab === 'rental' ? 'Rental' : 'Resale',
                 }),
             ).unwrap()
 
@@ -406,12 +405,12 @@ const RequirementsPage = () => {
             ),
         },
         {
-            key: 'agentCpid',
+            key: 'name',
             header: 'Agent Name',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
-            key: 'agentNumber',
+            key: 'agentPhone',
             header: 'Agent Number',
             render: (value) => (
                 <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
