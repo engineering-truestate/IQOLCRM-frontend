@@ -4,7 +4,6 @@ import Breadcrumb from '../../../components/acn/Breadcrumb'
 import { useState, useEffect, useMemo } from 'react'
 import StateBaseTextFieldTest from '../../../components/design-elements/StateBaseTextField'
 import Button from '../../../components/design-elements/Button'
-import addinventoryic from '/icons/acn/user-add.svg'
 import { useDispatch, useSelector } from 'react-redux'
 import type { IInventory, IRequirement } from '../../../data_types/acn/types'
 import {
@@ -32,6 +31,8 @@ import BulkShareModal from '../../../components/acn/BulkShareModal'
 import NotesModal from '../../../components/acn/NotesModal'
 import CallModal from '../../../components/acn/CallModal'
 import AddCredits from '../../../components/acn/AddCredits'
+import { AddRequirementModal } from '../../../components/acn/AddRequirementModal'
+import addIcon from '/icons/acn/add-icon.svg'
 
 const AgentDetailsPage = () => {
     const { agentId } = useParams()
@@ -66,7 +67,7 @@ const AgentDetailsPage = () => {
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
     const [isBulkShareModalOpen, setIsBulkShareModalOpen] = useState(false)
     const [pageLoading, setPageLoading] = useState(true)
-
+    const [isAddRequirementModalOpen, setIsAddRequirementModalOpen] = useState(false)
     // Get current property data based on active tab
     const currentPropertyData = activePropertyTab === 'Resale' ? resale : rental
 
@@ -906,17 +907,31 @@ const AgentDetailsPage = () => {
                                             className='h-8'
                                         />
                                     </div>
-                                    <Button
-                                        leftIcon={
-                                            <img src={addinventoryic} alt='Add Inventory Icon' className='w-5 h-5' />
-                                        }
-                                        bgColor='bg-[#24252E]'
-                                        textColor='text-white'
-                                        className='px-4 h-8 font-semibold'
-                                        onClick={() => navigate('/acn/properties/addinv')}
-                                    >
-                                        Add Inventory
-                                    </Button>
+                                    {activeTab === 'Inventory' ? (
+                                        <Button
+                                            leftIcon={
+                                                <img src={addIcon} alt='Add Inventory Icon' className='w-5 h-5' />
+                                            }
+                                            bgColor='bg-[#24252E]'
+                                            textColor='text-white'
+                                            className='p-2 h-8 font-semibold'
+                                            onClick={() => navigate('/acn/properties/addinv')}
+                                        >
+                                            Add Inventory
+                                        </Button>
+                                    ) : activeTab === 'Requirement' ? (
+                                        <Button
+                                            leftIcon={
+                                                <img src={addIcon} alt='Add Inventory Icon' className='w-5 h-5' />
+                                            }
+                                            bgColor='bg-[#24252E]'
+                                            textColor='text-white'
+                                            className='px-4 h-8 font-semibold'
+                                            onClick={() => setIsAddRequirementModalOpen(true)}
+                                        >
+                                            Add Requirement
+                                        </Button>
+                                    ) : null}
                                 </div>
                             </div>
                             <div className='border-b-1 border-[#F3F3F3]'></div>
@@ -1155,6 +1170,13 @@ const AgentDetailsPage = () => {
                         isOpen={isBulkShareModalOpen}
                         onClose={() => setIsBulkShareModalOpen(false)}
                         properties={filteredData.filter((item: any) => selectedRows.has(item.propertyId || item.id))}
+                    />
+
+                    {/* Add Requirement Modal */}
+                    <AddRequirementModal
+                        cpId={agentData?.cpId || ''}
+                        isOpen={isAddRequirementModalOpen}
+                        onClose={() => setIsAddRequirementModalOpen(false)}
                     />
                 </div>
             </div>

@@ -263,7 +263,7 @@ export default function AgentDetailsDropdown({
                                         >
                                             <span className='text-xs text-gray-600'>{formatFieldName(key)}</span>
                                             <div className='w-[50%]'>
-                                                <span className='text-xs text-gray-900 font-medium truncate'>
+                                                <span className='text-xs text-gray-900 font-medium'>
                                                     {(key === 'inWhatsappCommunity' || key === 'inWhatsappBroadcast') &&
                                                     (value === 'true' || value === true)
                                                         ? 'Yes'
