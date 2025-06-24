@@ -9,7 +9,7 @@ import {
     fetchPropertyById,
     updatePropertyStatus,
     addNoteToProperty,
-    removeNoteFromProperty,
+    // removeNoteFromProperty,
 } from '../../../services/acn/properties/propertiesService'
 import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
 import Layout from '../../../layout/Layout'
@@ -18,14 +18,11 @@ import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
 import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import { toast } from 'react-toastify'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import Button from '../../../components/design-elements/Button'
-import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import { formatUnixDateTime } from '../../../components/helper/formatDate'
 
 // Icons
 import shareIcon from '/icons/acn/share-1.svg'
 import editIcon from '/icons/acn/edit.svg'
-import priceDropIcon from '/icons/acn/share.svg'
 import noteIcon from '/icons/acn/note.svg'
 import useAuth from '../../../hooks/useAuth'
 
@@ -43,10 +40,10 @@ const PropertyDetailsPage = () => {
 
     // Redux state
     const { currentProperty: property, loading, error } = useSelector((state: RootState) => state.properties)
-    const { user, role, platform } = useAuth()
+    const { user } = useAuth()
 
     // Local state
-    const [currentImageIndex, setCurrentImageIndex] = useState(0)
+    const [_, setCurrentImageIndex] = useState(0)
     const [newNote, setNewNote] = useState('')
     const [localProperty, setLocalProperty] = useState<IInventory | null>(null)
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
@@ -73,19 +70,19 @@ const PropertyDetailsPage = () => {
     }, [id, dispatch])
 
     // Get current user info for notes
-    const getCurrentUserInfo = () => {
-        if (user?.displayName && user?.email) {
-            return {
-                name: user.displayName,
-                email: user.email,
-            }
-        } else {
-            return {
-                name: 'Unknown User',
-                email: 'unknown@example.com',
-            }
-        }
-    }
+    // const getCurrentUserInfo = () => {
+    //     if (user?.displayName && user?.email) {
+    //         return {
+    //             name: user.displayName,
+    //             email: user.email,
+    //         }
+    //     } else {
+    //         return {
+    //             name: 'Unknown User',
+    //             email: 'unknown@example.com',
+    //         }
+    //     }
+    // }
 
     // Handle status change
     const handleStatusChange = async (option: string) => {
@@ -151,29 +148,29 @@ const PropertyDetailsPage = () => {
     }
 
     // Handle removing a note
-    const handleRemoveNote = async (noteId: string) => {
-        if (localProperty?.propertyId) {
-            console.log('🗑️ Removing note:', noteId)
-            try {
-                await dispatch(
-                    removeNoteFromProperty({
-                        propertyId: localProperty.propertyId,
-                        noteId,
-                    }),
-                ).unwrap()
+    // const handleRemoveNote = async (noteId: string) => {
+    //     if (localProperty?.propertyId) {
+    //         console.log('🗑️ Removing note:', noteId)
+    //         try {
+    //             await dispatch(
+    //                 removeNoteFromProperty({
+    //                     propertyId: localProperty.propertyId,
+    //                     noteId,
+    //                 }),
+    //             ).unwrap()
 
-                // Refetch property details to update the UI
-                if (id) {
-                    dispatch(fetchPropertyById(id))
-                }
+    //             // Refetch property details to update the UI
+    //             if (id) {
+    //                 dispatch(fetchPropertyById(id))
+    //             }
 
-                toast.success('Note removed successfully')
-            } catch (error: any) {
-                console.error('Error removing note:', error)
-                toast.error(error.message || 'Failed to remove note')
-            }
-        }
-    }
+    //             toast.success('Note removed successfully')
+    //         } catch (error: any) {
+    //             console.error('Error removing note:', error)
+    //             toast.error(error.message || 'Failed to remove note')
+    //         }
+    //     }
+    // }
 
     // Status dropdown options
     const getStatusOptions = () => [

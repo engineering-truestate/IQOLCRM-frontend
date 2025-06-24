@@ -1,16 +1,14 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
-import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import AlgoliaFacetMultiSelect from '../../../components/design-elements/AlgoliaFacetMultiSelect'
 import MetricCards from '../../../components/design-elements/MetricCards'
 import CustomPagination from '../../../components/design-elements/CustomPagination'
-import NotesModal from '../../../components/acn/NotesModal'
 // import { generateRequirements, type RequirementData } from '../../dummy_data/acn_requirements_dummy_data'
 import resetic from '/icons/acn/rotate-left.svg'
 import leadaddic from '/icons/acn/user-add.svg'
@@ -32,7 +30,7 @@ const RequirementsPage = () => {
     const [searchValue, setSearchValue] = useState('')
     const [activeTab, setActiveTab] = useState('resale')
     const [currentPage, setCurrentPage] = useState(0)
-    const [paginatedData, setPaginatedData] = useState<IRequirement[]>([])
+    const [_, setPaginatedData] = useState<IRequirement[]>([])
     const [filteredData, setFilteredData] = useState<IRequirement[]>([])
     const [isAddRequirementModalOpen, setIsAddRequirementModalOpen] = useState(false)
     const navigate = useNavigate()
@@ -77,9 +75,6 @@ const RequirementsPage = () => {
             { label: 'Pending', value: internalStatusCounts['pending'] || 0 },
         ]
     }, [searchResults, facets])
-
-    // Use imported data generation function
-    const [requirementsData, setRequirementsData] = useState<IRequirement[]>([])
 
     const dispatch = useDispatch<AppDispatch>()
 
@@ -186,15 +181,6 @@ const RequirementsPage = () => {
         setFilters({})
     }
 
-    // Clear individual filter
-    const clearFilter = (filterType: keyof RequirementSearchFilters) => {
-        setFilters((prev) => {
-            const newFilters = { ...prev }
-            delete newFilters[filterType]
-            return newFilters
-        })
-    }
-
     // Check if any filters are active
     const hasActiveFilters = () => {
         return (
@@ -257,17 +243,6 @@ const RequirementsPage = () => {
                 }
             })
         }
-    }
-
-    // Helper function to convert facets to dropdown options
-    const getFacetOptions = (facetName: string) => {
-        const facetOptions = (facets[facetName] || []).map(({ value, count }) => ({
-            label: `${value} (${count})`,
-            value,
-        }))
-
-        // Add "Clear All" option at the beginning
-        return [{ label: 'Clear All', value: '' }, ...facetOptions]
     }
 
     // Helper function to get facet options for AlgoliaFacetMultiSelect
@@ -447,6 +422,7 @@ const RequirementsPage = () => {
                 >
                     {/* Header */}
                     <AddRequirementModal
+                        cpId={''}
                         isOpen={isAddRequirementModalOpen}
                         onClose={() => setIsAddRequirementModalOpen(false)}
                     />

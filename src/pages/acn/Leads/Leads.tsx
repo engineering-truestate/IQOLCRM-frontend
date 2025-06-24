@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { createSelector } from '@reduxjs/toolkit'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
@@ -14,14 +13,9 @@ import CallResultModal from '../../../components/acn/CallModal'
 import VerificationModal from '../../../components/acn/VerificationModal'
 import AddLeadModal from '../../../components/acn/AddLeadModal'
 import MetricsCards from '../../../components/design-elements/MetricCards'
-import leadSearchService, { type ILead, type SearchFilters } from '../../../services/acn/leads/algoliaLeadsService'
+import leadSearchService, { type ILead } from '../../../services/acn/leads/algoliaLeadsService'
 import { updateLeadStatus, updateLeadKAM, updateLeadBooleanField } from '../../../services/acn/leads/leadsService'
-import {
-    selectAllLeads,
-    selectLeadsLoading,
-    selectLeadsError,
-    setLeads as setReduxLeads,
-} from '../../../store/reducers/acn/leadsReducers'
+import { selectLeadsError, setLeads as setReduxLeads } from '../../../store/reducers/acn/leadsReducers'
 import type { RootState, AppDispatch } from '../../../store/index'
 import { useSearchParams } from 'react-router-dom'
 import CustomPagination from '../../../components/design-elements/CustomPagination'
@@ -81,8 +75,8 @@ const ALL_SOURCE_OPTIONS = [
 const ITEMS_PER_PAGE = 50
 
 // Memoized selectors
-const selectLeadsState = (state: RootState) => state.leads
-const selectFilteredLeads = createSelector([selectLeadsState], (leadsState) => Object.values(leadsState.leads))
+// const selectLeadsState = (state: RootState) => state.leads
+// const selectFilteredLeads = createSelector([selectLeadsState], (leadsState) => Object.values(leadsState.leads))
 
 // Lead Source component
 const LeadSourceCell = React.memo(({ source }: { source: string }) => {
@@ -271,8 +265,8 @@ const LeadsPage = () => {
     const [searchParams] = useSearchParams()
 
     // Redux selectors
-    const reduxLeads = useSelector(selectFilteredLeads)
-    const reduxLoading = useSelector((state: RootState) => selectLeadsLoading(state))
+    // const reduxLeads = useSelector(selectFilteredLeads)
+    // const reduxLoading = useSelector((state: RootState) => selectLeadsLoading(state))
     const reduxError = useSelector((state: RootState) => selectLeadsError(state))
 
     // Filter state with proper typing
@@ -400,7 +394,7 @@ const LeadsPage = () => {
     // Local state
     const [leads, setLeads] = useState<ILead[]>([])
     const [totalLeads, setTotalLeads] = useState(0)
-    const [loading, setLoading] = useState(false)
+    const [_, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
     const [kamOptions, setKamOptions] = useState<Array<{ value: string; count: number }>>([])
@@ -536,7 +530,7 @@ const LeadsPage = () => {
     }, [])
 
     // Debounced search with proper cleanup
-    const debouncedSearchRef = useRef<NodeJS.Timeout>()
+    const debouncedSearchRef = useRef<NodeJS.Timeout | null>(null)
 
     useEffect(() => {
         // Clear previous timeout

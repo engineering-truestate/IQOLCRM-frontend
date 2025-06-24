@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
-import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
+import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import CustomPagination from '../../../components/design-elements/CustomPagination'
@@ -32,15 +32,12 @@ import crossicon from '/icons/acn/cross.svg'
 // Import our Algolia service
 import algoliaService, {
     type SearchFilters,
-    type AlgoliaSearchResponse,
     type FacetValue,
 } from '../../../services/acn/properties/algoliaPropertiesService'
 import { formatCost } from '../../../components/helper/formatCost'
-import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import StatusSelectCell from '../../../components/acn/Status'
-import { toast } from 'react-toastify'
 import filter from '/icons/acn/filter.svg'
 import BulkShareModal from '../../../components/acn/BulkShareModal'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 
 type PropertyType = 'Resale' | 'Rental'
 type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'De-listed' | 'Pending QC' | 'Rented'
@@ -53,45 +50,11 @@ interface StatusOption {
     slug?: string
 }
 
-const getMetrics = (activeTab: PropertyType, searchResultFacets: Record<string, FacetValue[]>) => {
-    const statusFacets = searchResultFacets.status || []
-    const statusCounts = statusFacets.reduce(
-        (acc, facet) => {
-            acc[facet.value] = facet.count
-            return acc
-        },
-        {} as Record<string, number>,
-    )
-
-    const totalListings = statusFacets.reduce((sum, facet) => sum + facet.count, 0)
-
-    if (activeTab === 'Resale') {
-        return [
-            { label: 'Total Listings', value: totalListings },
-            { label: 'Available', value: statusCounts['Available'] || 0 },
-            { label: 'Sold', value: statusCounts['Sold'] || 0 },
-            { label: 'Hold', value: statusCounts['Hold'] || 0 },
-            { label: 'De-listed', value: statusCounts['De-listed'] || 0 },
-            { label: 'Pending QC', value: statusCounts['Pending QC'] || 0 },
-        ]
-    } else {
-        return [
-            { label: 'Total Listings', value: totalListings },
-            { label: 'Available', value: statusCounts['Available'] || 0 },
-            { label: 'Rented', value: statusCounts['Rented'] || 0 },
-            { label: 'Hold', value: statusCounts['Hold'] || 0 },
-            { label: 'De-listed', value: statusCounts['De-listed'] || 0 },
-            { label: 'Pending QC', value: statusCounts['Pending QC'] || 0 },
-        ]
-    }
-}
-
 const PropertiesPage = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch<AppDispatch>()
     const [searchParams, setSearchParams] = useSearchParams()
     const [activeTab, setActiveTab] = useState<PropertyType>('Resale')
-    const [statusMap, setStatusMap] = useState<Record<string, string>>({})
     const properties = useSelector((state: RootState) => state.properties.searchResults)
     const nbHits = useSelector((state: RootState) => state.properties.totalHits)
     const nbPages = useSelector((state: RootState) => state.properties.totalPages)
@@ -185,7 +148,7 @@ const PropertiesPage = () => {
     )
 
     // Initialize state from URL parameters
-    const [filterState, setFilterState] = useState(() => ({
+    const [_, setFilterState] = useState(() => ({
         status: urlParams.status || [],
         assetType: urlParams.assetType || [],
         micromarket: urlParams.micromarket || [],
@@ -396,7 +359,7 @@ const PropertiesPage = () => {
     const [isAddFilterModalOpen, setIsAddFilterModalOpen] = useState(false)
 
     // UI state
-    const [currentPage, setCurrentPage] = useState(0)
+    // const [currentPage, setCurrentPage] = useState(0)
     const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
@@ -542,31 +505,31 @@ const PropertiesPage = () => {
 
     const handleKAMChange = useCallback((kams: string[]) => updateURLParams('kamName', kams), [updateURLParams])
 
-    const handleUnitTypeChange = useCallback((types: string[]) => updateURLParams('unitType', types), [updateURLParams])
+    // const handleUnitTypeChange = useCallback((types: string[]) => updateURLParams('unitType', types), [updateURLParams])
 
-    const handleBathroomChange = useCallback(
-        (bathrooms: string[]) => updateURLParams('noOfBathrooms', bathrooms),
-        [updateURLParams],
-    )
+    // const handleBathroomChange = useCallback(
+    //     (bathrooms: string[]) => updateURLParams('noOfBathrooms', bathrooms),
+    //     [updateURLParams],
+    // )
 
-    const handleBalconyChange = useCallback(
-        (balconies: string[]) => updateURLParams('noOfBalcony', balconies),
-        [updateURLParams],
-    )
+    // const handleBalconyChange = useCallback(
+    //     (balconies: string[]) => updateURLParams('noOfBalcony', balconies),
+    //     [updateURLParams],
+    // )
 
-    const handleFacingChange = useCallback((facings: string[]) => updateURLParams('facing', facings), [updateURLParams])
+    // const handleFacingChange = useCallback((facings: string[]) => updateURLParams('facing', facings), [updateURLParams])
 
-    const handleFloorChange = useCallback(
-        (floors: string[]) => updateURLParams('exactFloor', floors),
-        [updateURLParams],
-    )
+    // const handleFloorChange = useCallback(
+    //     (floors: string[]) => updateURLParams('exactFloor', floors),
+    //     [updateURLParams],
+    // )
 
-    const handleAreaChange = useCallback((areas: string[]) => updateURLParams('area', areas), [updateURLParams])
+    // const handleAreaChange = useCallback((areas: string[]) => updateURLParams('area', areas), [updateURLParams])
 
-    const handleCurrentStatusChange = useCallback(
-        (statuses: string[]) => updateURLParams('currentStatus', statuses),
-        [updateURLParams],
-    )
+    // const handleCurrentStatusChange = useCallback(
+    //     (statuses: string[]) => updateURLParams('currentStatus', statuses),
+    //     [updateURLParams],
+    // )
 
     const handleSortChange = useCallback((sort: string) => updateURLParams('sort', sort || null), [updateURLParams])
 
@@ -1072,36 +1035,6 @@ const PropertiesPage = () => {
         )
     }
 
-    // Utility functions
-    const formatCurrency = (amount: number | undefined | null) => {
-        if (!amount) return '₹0'
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0,
-        }).format(amount)
-    }
-    const formatDate = (date: any) => {
-        if (!date) return '-'
-        let dateObj: Date
-
-        if (date?.toDate) {
-            dateObj = date.toDate()
-        } else if (typeof date === 'string') {
-            dateObj = new Date(date)
-        } else if (date instanceof Date) {
-            dateObj = date
-        } else {
-            return '-'
-        }
-
-        return dateObj.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        })
-    }
-
     // Table columns
     const getColumns = (): TableColumn[] => {
         const baseColumns: TableColumn[] = [
@@ -1211,7 +1144,7 @@ const PropertiesPage = () => {
                 key: 'dateOfStatusLastChecked',
                 header: 'Last Check',
                 render: (value) => (
-                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatDate(value)}</span>
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDate(value)}</span>
                 ),
             },
             {
@@ -1523,7 +1456,7 @@ const PropertiesPage = () => {
     }
 
     const currentData = getCurrentData()
-    const totalItems = nbHits || 0
+    // const totalItems = nbHits || 0
     const totalPages = nbPages || 0
 
     // Helper function to get facet count for a specific value

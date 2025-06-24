@@ -4,11 +4,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../../store/index'
-import {
-    fetchPropertyById,
-    updateProperty,
-    getNextPropertyId,
-} from '../../../services/acn/properties/propertiesService'
+import { fetchPropertyById, updateProperty } from '../../../services/acn/properties/propertiesService'
 import { addQCInventory, updateQCInventory, fetchQCInventoryById } from '../../../services/acn/qc/qcService'
 import { fetchAgentByPhone } from '../../../services/acn/agents/agentThunkService'
 import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
@@ -493,7 +489,7 @@ const AddEditInventoryPage = () => {
                     // Property edit flow
                     const propertyData = mapFormDataToProperty(formData, selectedAssetType)
                     console.log('📝 Updating property:', property.id, propertyData)
-                    const updatedProperty = await dispatch(
+                    await dispatch(
                         updateProperty({
                             id: property.id,
                             updates: propertyData,
@@ -522,7 +518,7 @@ const AddEditInventoryPage = () => {
                     // QC edit flow
                     const qcData = mapFormDataToQC(formData, selectedAssetType)
                     console.log('📝 Updating QC:', qcInventory.propertyId, qcData)
-                    const updatedQC = await dispatch(
+                    await dispatch(
                         updateQCInventory({
                             id: qcInventory.propertyId,
                             updates: qcData,

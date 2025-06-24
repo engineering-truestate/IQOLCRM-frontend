@@ -8,7 +8,6 @@ import {
     updateRequirement,
     updateRequirementStatus,
     addNoteToRequirement,
-    removeNoteFromRequirement,
 } from '../../../services/acn/requirements/requirementsService'
 import { clearCurrentRequirement, clearError } from '../../../store/reducers/acn/requirementsReducers'
 import Layout from '../../../layout/Layout'
@@ -19,7 +18,6 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
 import { fetchPropertiesByIds } from '../../../services/acn/properties/propertiesService'
 import { clearProperties } from '../../../store/reducers/acn/propertiesReducers'
-import Breadcrumb from '../../../components/acn/Breadcrumb'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
 import noteic from '/icons/acn/note.svg'
@@ -28,8 +26,6 @@ import { formatUnixDate, formatUnixDateTime } from '../../../components/helper/f
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import useAuth from '../../../hooks/useAuth'
-import tickic from '/icons/acn/tick-circle.svg'
-import crossic from '/icons/acn/close-circle.svg'
 
 // Note interface for local notes
 interface Note {
@@ -112,7 +108,7 @@ const RequirementDetailsPage = () => {
     const [originalRequirement, setOriginalRequirement] = useState<IRequirement | null>(null)
     const [matchingProperties, setMatchingProperties] = useState<any[]>([])
     const [newNote, setNewNote] = useState('')
-    const [notes, setNotes] = useState<Note[]>([])
+    const [_, setNotes] = useState<Note[]>([])
     const [isEditing, setIsEditing] = useState(false)
 
     // Add state for editable ranges
@@ -449,19 +445,6 @@ const RequirementDetailsPage = () => {
                 }),
             )
             setNewNote('')
-        }
-    }
-
-    // Handle removing a note
-    const removeNote = (noteId: string) => {
-        if (localRequirement) {
-            console.log('🗑️ Removing note:', noteId)
-            dispatch(
-                removeNoteFromRequirement({
-                    requirementId: localRequirement.requirementId,
-                    noteId,
-                }),
-            )
         }
     }
 
