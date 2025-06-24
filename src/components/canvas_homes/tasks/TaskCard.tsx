@@ -111,10 +111,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
             onClick={handleCardClick}
             className={`rounded-md border border-gray-300 ${
                 task?.status === 'complete' ? 'cursor-not-allowed' : 'cursor-pointer'
-            } transition-all duration-200 hover:bg-[#F3F3F3]`}
+            } transition-all duration-200 ]`}
         >
             <div
-                className={`grid grid-cols-3 rounded-t-md gap-40 px-3 py-2.5 items-start ${isExpanded ? 'bg-gray-100' : ''}`}
+                className={`grid grid-cols-3 rounded-t-md gap-40 px-3 py-2.5 items-start hover:bg-[#F3F3F3] ${isExpanded ? 'bg-gray-100' : ''}`}
             >
                 {/* Task Title & Date */}
                 <div className='flex items-center justify-between'>
@@ -130,13 +130,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
                 {/* Status Dropdown */}
                 <div>
-                    <div className='text-sm font-medium text-gray-900 mb-[5px]'>Task Status</div>
+                    <div className='text-sm font-medium text-gray-900 '>Task Status</div>
                     <Dropdown
                         onSelect={handleStatusChange}
                         disabled={task.type !== 'lead registration' || task.status === 'complete'}
                         options={taskStatusOptions}
                         defaultValue={task.status}
-                        className='w-22 inline-block'
+                        className='w-22 inline-block '
                         triggerClassName={`relative w-full h-4.5 px-2 py-1 border border-gray-300 rounded-sm text-xs text-gray-700 bg-white flex items-center justify-between focus:outline-none 
   ${task.type !== 'lead registration' || task.status === 'complete' ? 'opacity-50 cursor-not-allowed [&>svg]:hidden' : 'cursor-pointer'}
   ${task.status ? '[&>span]:font-medium text-black capitalize' : ''}`}

@@ -6,6 +6,7 @@ import { useSelector /*, useDispatch */ } from 'react-redux'
 // import type { AppDispatch } from '../../../../store'
 // import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 import Dropdown from '../../../../components/design-elements/Dropdown'
+import { toCapitalizedWords } from '../../../../components/helper/toCapitalize'
 
 // Types
 interface Requirement {
@@ -558,13 +559,15 @@ const Requirements: React.FC<RequirementsProps> = ({
 
                         <div>
                             <label className={labelClassName}>Zone</label>
-                            <div className={readOnlyFieldClassName}>{currentRequirement.zone || 'Not specified'}</div>
+                            <div className={readOnlyFieldClassName}>
+                                {toCapitalizedWords(currentRequirement.zone) || 'Not specified'}
+                            </div>
                         </div>
 
                         <div>
                             <label className={labelClassName}>Micro Market</label>
                             <div className={readOnlyFieldClassName}>
-                                {currentRequirement.microMarket || 'Not specified'}
+                                {toCapitalizedWords(currentRequirement.microMarket) || 'Not specified'}
                             </div>
                         </div>
 
@@ -572,7 +575,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                         <div>
                             <label className={labelClassName}>Property Type</label>
                             <div className={readOnlyFieldClassName}>
-                                {currentRequirement.propertyType || 'Not specified'}
+                                {toCapitalizedWords(currentRequirement.propertyType) || 'Not specified'}
                             </div>
                         </div>
 
