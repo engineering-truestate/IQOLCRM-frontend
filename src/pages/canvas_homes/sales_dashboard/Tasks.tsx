@@ -270,6 +270,17 @@ const Tasks = () => {
         }
     }
 
+    const handleSelectAllRows = (selected: boolean) => {
+        if (selected) {
+            // Select all rows by adding all available leadIds to selectedRows
+            const allLeadIds = allTasksData.map((task) => task.taskId) // Make sure to replace `leadId` with the actual unique field
+            setSelectedRows(allLeadIds)
+        } else {
+            // Deselect all rows
+            setSelectedRows([])
+        }
+    }
+
     const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
         setCustomDateRange({ startDate, endDate })
         if (startDate || endDate) {
@@ -359,11 +370,14 @@ const Tasks = () => {
             header: 'Name',
             render: (value, row) => (
                 <div className='whitespace-nowrap'>
-                    <div className='max-w-[100px] text-sm font-medium text-gray-900'>
-                        {toCapitalizedWords(value) || '-'}
+                    <div
+                        className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-semibold text-gray-900'
+                        title={value || row.property || '-'} // optional: full text on hover
+                    >
+                        {toCapitalizedWords(value || row.name || '-')}
                     </div>
                     <div className='text-xs text-gray-500 font-normal'>
-                        {row.addedDate || `Added ${new Date(row.leadAddDate * 1000).toLocaleDateString()}`}
+                        {row.addedDate || `Added ${new Date(row.added * 1000).toLocaleDateString()}`}
                     </div>
                 </div>
             ),
@@ -373,7 +387,7 @@ const Tasks = () => {
             header: 'Property',
             render: (value, row) => (
                 <div
-                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    className='max-w-[85px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.property || '-')}
@@ -385,7 +399,7 @@ const Tasks = () => {
             header: 'Agent',
             render: (value, row) => (
                 <div
-                    className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    className='max-w-[80px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.agent || '-')}
@@ -395,13 +409,21 @@ const Tasks = () => {
         {
             key: 'leadStatus',
             header: 'Lead Status',
-            render: (value) => (
-                <span
-                    className='inline-block max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value}
+            // render: (value) => (
+            //     <span
+            //         className='inline-block max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+            //         title={value}
+            //     >
+            //         {value ? toCapitalizedWords(value) : '-'}
+            //     </span>
+            // ),
+            render: (value, row) => (
+                <div
+                    className='max-w-[80px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
                 >
-                    {value ? toCapitalizedWords(value) : '-'}
-                </span>
+                    {toCapitalizedWords(value || '-')}
+                </div>
             ),
         },
         {
@@ -409,7 +431,7 @@ const Tasks = () => {
             header: 'Lead Stage',
             render: (value) => (
                 <span
-                    className='inline-block max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    className='inline-block max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value}
                 >
                     {value ? toCapitalizedWords(value) : '-'}
@@ -500,30 +522,27 @@ const Tasks = () => {
             header: 'Completion Date',
             render: (value, row) => {
                 const rawDate = value || row.completionDate
+
                 if (!rawDate || rawDate === '-') {
                     return <span className='text-[14px] text-gray-900'>-</span>
                 }
-                const formattedDate = rawDate
-                    ? new Date(rawDate * 1000).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                      })
-                    : ''
 
-                const formattedTime = rawDate
-                    ? new Date(rawDate * 1000).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: true,
-                      })
-                    : ''
+                const formattedDate = new Date(rawDate * 1000).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                })
+
+                const formattedTime = new Date(rawDate * 1000).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                })
 
                 return (
-                    <div className='text-[13px] text-gray-900'>
-                        {formattedDate}
-                        {formattedDate && formattedTime ? ' | ' : ''}
-                        {formattedTime}
+                    <div className='flex flex-col text-[13px] text-gray-900 leading-none whitespace-nowrap gap-[2px]'>
+                        <span>{formattedDate}</span>
+                        <span>{formattedTime}</span>
                     </div>
                 )
             },
@@ -711,12 +730,13 @@ const Tasks = () => {
                         headerClassName='font-normal text-left px-0'
                         cellClassName='text-left'
                         onRowSelect={handleRowSelect}
-                        className='rounded-lg'
+                        className='rounded-lg overflow-x-hidden'
                         stickyHeader={true}
                         hoverable={true}
                         maxHeight='63vh'
                         showCheckboxes={true}
                         onRowClick={handleRowClick}
+                        onSelectAll={handleSelectAllRows}
                     />
                 )}
             </div>

@@ -46,7 +46,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
         propertyName: '',
         agentId: agentId,
         agentName: agentName,
-        tag: 'cold',
+        tag: '',
         status: 'complete',
         note: '',
         newProperty: '',
@@ -317,15 +317,17 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                             {/* Reason and New Property */}
                             <div className='grid grid-cols-2 gap-4'>
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Reason</label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Reason<span className='text-red-500'> *</span>
+                                    </label>
                                     <Dropdown
                                         options={reasonOptions}
                                         onSelect={(value) => handleInputChange('reason', value)}
                                         defaultValue={formData.reason}
-                                        placeholder='Select reason'
+                                        placeholder='Select Reason'
                                         className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.reason ? '[&>span]:font-medium text-black' : ''
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.reason ? '[&>span]:text-black' : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -334,16 +336,16 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                 </div>
                                 <div>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                        Add New Property
+                                        Add New Property<span className='text-red-500'> *</span>
                                     </label>
                                     <Dropdown
                                         options={propertyOptions}
                                         onSelect={(value) => handleInputChange('newProperty', value)}
                                         defaultValue={formData.newProperty}
-                                        placeholder='Select new property'
+                                        placeholder='Select New Property'
                                         className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.propertyName ? '[&>span]:font-medium text-black' : ''
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.propertyName ? '[&>span]:text-black' : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -354,24 +356,17 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
                             {/* Current Enquiry Section */}
                             <div>
-                                <h3 className='text-sm font-medium text-gray-700 mb-2'>Current Enquiry</h3>
-                                <div className='grid grid-cols-2 gap-4'>
+                                <h3 className='text-base font-medium text-gray-700 mb-2 '>Current Enquiry</h3>
+                                <div className='grid grid-cols-2 gap-4 w-[70%]'>
                                     <div>
                                         <label className='block text-sm font-medium text-gray-700 mb-2'>
                                             Task Status
                                         </label>
-                                        <Dropdown
-                                            options={taskStatusOptions}
-                                            onSelect={() => {}}
-                                            defaultValue='Complete'
-                                            placeholder='Complete'
-                                            className='w-full relative inline-block'
-                                            triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                                taskStatusOptions ? '[&>span]:font-medium text-black' : ''
-                                            }`}
-                                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                            optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
-                                            disabled={isLoading}
+                                        <input
+                                            type='text'
+                                            value='Complete'
+                                            disabled
+                                            className='w-full px-3 py-1 border border-gray-300 rounded-sm bg-gray-50 text-gray-500 text-sm'
                                         />
                                     </div>
                                     <div>
@@ -382,7 +377,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                             type='text'
                                             value='Property Changed'
                                             disabled
-                                            className='w-full px-3 py-1 border border-gray-300 rounded-sm bg-gray-50 text-gray-500'
+                                            className='w-full px-3 py-1 border border-gray-300 rounded-sm bg-gray-50 text-gray-500 text-sm'
                                         />
                                     </div>
                                 </div>
@@ -390,8 +385,8 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
                             {/* New Enquiry Section */}
                             <div>
-                                <h3 className='text-sm font-medium text-gray-700 mb-2'>New Enquiry</h3>
-                                <div className='grid grid-cols-2 gap-4'>
+                                <h3 className='text-base font-medium text-gray-700 mb-2'>New Enquiry</h3>
+                                <div className='grid grid-cols-2 gap-4 w-[70%]'>
                                     <div>
                                         <label className='block text-sm font-medium text-gray-700 mb-2'>
                                             Lead Status
@@ -400,19 +395,21 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                             type='text'
                                             value='Interested'
                                             disabled
-                                            className='w-full px-3 py-1 border border-gray-300 rounded-sm bg-gray-50 text-gray-500'
+                                            className='w-full px-3 py-1 border border-gray-300 rounded-sm bg-gray-50 text-gray-500 text-sm'
                                         />
                                     </div>
                                     <div>
-                                        <label className='block text-sm font-medium text-gray-700 mb-2'>Tag</label>
+                                        <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                            Tag<span className='text-red-500'> *</span>
+                                        </label>
                                         <Dropdown
                                             options={tagOptions}
                                             onSelect={(value) => handleInputChange('tag', value)}
-                                            defaultValue={formData.tag}
-                                            placeholder='Select tag'
+                                            // defaultValue={formData.tag}
+                                            placeholder='Select Tag'
                                             className='w-full relative inline-block'
-                                            triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                                formData.tag ? '[&>span]:font-medium text-black' : ''
+                                            triggerClassName={`relative w-full h-8 px-3  border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none disabled:opacity-50 ${
+                                                formData.tag ? '[&>span]:text-black' : ''
                                             }`}
                                             menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                             optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -432,7 +429,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                     onChange={(e) => handleNoteChange(e.target.value)}
                                     rows={4}
                                     disabled={isLoading}
-                                    className='w-full px-3 py-1 border border-gray-300 rounded-sm resize-none'
+                                    className='w-full px-4 py-1.5 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-black focus:ring-0'
                                 ></textarea>
                             </div>
                         </div>
@@ -449,7 +446,12 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isLoading}
+                            disabled={
+                                isLoading ||
+                                !formData.reason?.trim() ||
+                                !formData.tag?.trim() ||
+                                !formData.propertyName?.trim()
+                            }
                             className='px-6 py-2 w-fit bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (

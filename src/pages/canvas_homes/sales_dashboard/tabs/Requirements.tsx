@@ -373,7 +373,9 @@ const Requirements: React.FC<RequirementsProps> = ({
                     <div className='grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-7 mb-6 w-fit'>
                         {/* Row 1 */}
                         <div>
-                            <label className={labelClassName}>Expected Budget</label>
+                            <label className={labelClassName}>
+                                Expected Budget<span className='text-red-500'> *</span>
+                            </label>
                             <Dropdown
                                 options={BUDGET_OPTIONS}
                                 onSelect={(value) => handleInputChange('expectedBudget', value)}
@@ -419,7 +421,9 @@ const Requirements: React.FC<RequirementsProps> = ({
 
                         {/* Row 2 */}
                         <div>
-                            <label className={labelClassName}>Property Type</label>
+                            <label className={labelClassName}>
+                                Property Type<span className='text-red-500'> *</span>
+                            </label>
                             <Dropdown
                                 options={PROPERTY_TYPE_OPTIONS}
                                 onSelect={(value) => handleInputChange('propertyType', value)}
@@ -459,7 +463,9 @@ const Requirements: React.FC<RequirementsProps> = ({
 
                         {/* Row 3 */}
                         <div>
-                            <label className={labelClassName}>Property Stage</label>
+                            <label className={labelClassName}>
+                                Property Stage<span className='text-red-500'> *</span>
+                            </label>
                             <Dropdown
                                 options={PROPERTY_STAGE_OPTIONS}
                                 onSelect={(value) => handleInputChange('propertyStage', value)}
@@ -513,7 +519,9 @@ const Requirements: React.FC<RequirementsProps> = ({
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={saving}
+                            disabled={
+                                saving || !formData.expectedBudget || !formData.propertyType || !formData.propertyStage
+                            }
                             className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {saving && (

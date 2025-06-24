@@ -303,15 +303,17 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
                             {/* Reason Field */}
                             <div>
-                                <label className='block text-sm font-medium text-gray-700 mb-2'>Reason</label>
+                                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                    Reason<span className='text-red-500'> *</span>
+                                </label>
                                 <Dropdown
                                     options={reasonOptions}
                                     onSelect={(value) => handleInputChange('reason', value)}
                                     defaultValue={formData.reason}
-                                    placeholder='Select reason'
+                                    placeholder='Select Reason'
                                     className='w-full relative inline-block'
-                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                        formData.reason ? '[&>span]:font-medium text-black' : ''
+                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                        formData.reason ? '[&>span]:text-black' : ''
                                     }`}
                                     menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                     optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -323,15 +325,17 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                             <div className='grid grid-cols-3 gap-4'>
                                 {/* Event Name */}
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Event Name</label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Event Name<span className='text-red-500'> *</span>
+                                    </label>
                                     <Dropdown
                                         options={eventNameOptions}
                                         onSelect={(value) => handleInputChange('eventName', value)}
                                         defaultValue={formData.eventName}
                                         placeholder='Select Event '
                                         className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.eventName ? '[&>span]:font-medium text-black' : ''
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.eventName ? '[&>span]:text-black' : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -342,7 +346,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                                 {/* Date and Time */}
                                 <div>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                        Date and Time
+                                        Date and Time<span className='text-red-500'> *</span>
                                     </label>
                                     <input
                                         type='datetime-local'
@@ -381,7 +385,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                                     onChange={(e) => handleInputChange('note', e.target.value)}
                                     rows={4}
                                     disabled={isLoading}
-                                    className='w-full px-4 py-2 border border-gray-300 rounded-lg resize-none'
+                                    className='w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-black focus:ring-0'
                                 ></textarea>
                             </div>
                         </div>

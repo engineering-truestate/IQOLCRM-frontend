@@ -220,6 +220,7 @@ const Leads = () => {
         selectedLeadStatus,
         selectedDateRange,
         customDateRange,
+        performSearch,
     ])
 
     // Search on text input change (debounced)
@@ -230,7 +231,7 @@ const Leads = () => {
     // Initial search
     useEffect(() => {
         performSearch()
-    }, [])
+    }, [performSearch])
 
     // Calculate status counts manually from allLeadsData
     const statusCounts = useMemo(() => {
@@ -290,6 +291,7 @@ const Leads = () => {
         } else if (totalHours > 24) {
             return 'bg-[#FAC8C9] border border-[#A4151E]'
         }
+        return 'text-gray-500'
     }
 
     // Generate dropdown options from facets - Fixed to extract correct values
@@ -298,7 +300,7 @@ const Leads = () => {
             if (staticOptions) return staticOptions // Use static options if provided
 
             const facetData = facets[facetKey] || {}
-            const options = []
+            const options: { label: string; value: string }[] = []
 
             Object.entries(facetData)
                 .sort(([, a], [, b]) => b - a)
@@ -356,7 +358,7 @@ const Leads = () => {
             render: (value, row) => (
                 <div className='whitespace-nowrap'>
                     <div
-                        className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-semibold text-gray-900'
+                        className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-semibold text-gray-900'
                         title={value || row.property || '-'} // optional: full text on hover
                     >
                         {toCapitalizedWords(value || row.name || '-')}
@@ -372,7 +374,7 @@ const Leads = () => {
             header: 'Property',
             render: (value, row) => (
                 <div
-                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.property || '-')}
@@ -407,7 +409,7 @@ const Leads = () => {
             header: 'Agent',
             render: (value, row) => (
                 <div
-                    className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    className='max-w-[60px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.agent || '-')}
@@ -419,7 +421,7 @@ const Leads = () => {
             header: 'Lead Stage',
             render: (value, row) => (
                 <div
-                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.leadStage || '-')}
@@ -429,7 +431,15 @@ const Leads = () => {
         {
             key: 'leadStatus',
             header: 'Lead Status',
-            render: (value) => <span className='text-sm text-gray-900'>{toCapitalizedWords(value || '-')}</span>,
+            // render: (value) => <span className='text-sm text-gray-900'>{toCapitalizedWords(value || '-')}</span>,
+            render: (value, row) => (
+                <div
+                    className='max-w-[60px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
+                    {toCapitalizedWords(value || '-')}
+                </div>
+            ),
         },
         {
             key: 'tag',
@@ -460,7 +470,7 @@ const Leads = () => {
                 const aslc = calculateALSC(row)
                 return (
                     <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getAslcColor(aslc)}`}
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getAslcColor(aslc ?? '')}`}
                     >
                         {aslc}
                     </span>
@@ -713,11 +723,11 @@ const Leads = () => {
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                     selectedRows={selectedRows}
                     headerClassName='font-normal text-left'
-                    cellClassName='text-left'
+                    cellClassName='text-left px-1'
                     onRowSelect={handleRowSelect}
                     onRowClick={handleRowClick}
                     onSelectAll={handleSelectAllRows}
-                    className='rounded-lg'
+                    className='rounded-lg overflow-x-hidden'
                     stickyHeader={true}
                     hoverable={true}
                     maxHeight='63vh'

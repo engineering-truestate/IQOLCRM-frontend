@@ -319,8 +319,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                     type='text'
                                     value={formData.name}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
-                                    placeholder='Enter lead name'
-                                    className='w-full px-4 py-2 border font-medium border-gray-300 rounded-lg focus:outline-none focus:border-black text-sm'
+                                    placeholder='Enter Lead Name'
+                                    className='w-full px-4 py-2 border  border-gray-300 rounded-lg focus:outline-none focus:border-black text-sm placeholder:text-gray-500 text-black'
                                     disabled={isLoading}
                                     required
                                     maxLength={50}
@@ -333,9 +333,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                 </label>
 
                                 <div className='relative w-full'>
-                                    <div className='absolute inset-y-0 left-0 flex items-center pl-2 text-xs font-medium'>
-                                        +91
-                                    </div>
+                                    <div className='absolute inset-y-0 left-0 flex items-center pl-2 text-sm '>+91</div>
                                     <input
                                         type='tel'
                                         inputMode='numeric'
@@ -359,10 +357,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                                 setPhoneError('')
                                             }
                                         }}
-                                        placeholder='Enter phone no.'
-                                        className={`w-full pl-10 pr-4 py-2 border font-medium ${
+                                        placeholder='Enter Phone No.'
+                                        className={`w-full pl-10 pr-4 py-2 border  ${
                                             phoneError ? 'border-red-500' : 'border-gray-300'
-                                        } rounded-lg focus:outline-none focus:border-black text-sm`}
+                                        } rounded-lg focus:outline-none focus:border-black text-sm placeholder:text-gray-500`}
                                         disabled={isLoading || isRefreshingAlgolia}
                                         required
                                     />
@@ -382,11 +380,11 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                         defaultValue={
                                             formData.propertyId ? `${formData.propertyId}|${formData.propertyName}` : ''
                                         }
-                                        placeholder='Select property name'
+                                        placeholder='Select Property Name'
                                         // className='w-full' // No 'relative' here
                                         className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white flex items-center justify-between disabled:opacity-50 ${
-                                            formData.propertyName ? '[&>span]:font-medium  text-black' : ''
+                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm font-mediun text-gray-500 bg-white flex items-center justify-between disabled:opacity-50 ${
+                                            formData.propertyName ? '[&>span]:text-black' : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -406,8 +404,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                         defaultValue={formData.source}
                                         placeholder='Select Source'
                                         className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.source ? '[&>span]:font-medium  text-black' : ''
+                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.source ? '[&>span]:text-black' : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -427,8 +425,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                         }
                                         placeholder='Select Agent'
                                         className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-black disabled:opacity-50 ${
-                                            formData.agentName ? '[&>span]:font-medium  text-black' : ''
+                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-black disabled:opacity-50 ${
+                                            formData.agentName ? '[&>span]:text-black' : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'

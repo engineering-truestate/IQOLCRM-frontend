@@ -22,10 +22,13 @@ export function calculateALSC(data: Lead): string | null {
         // Prevent negative result
         if (timeDifferenceSeconds < 0) return '0 hrs'
 
-        const days = Math.floor(timeDifferenceSeconds / (60 * 60 * 24))
-        const remainingHours = Math.floor((timeDifferenceSeconds % (60 * 60 * 24)) / (60 * 60))
+        const secondsInDay = 60 * 60 * 24
+        const secondsInHour = 60 * 60
 
-        return days === 0 ? `${remainingHours} hrs` : `${days} days : ${remainingHours} hrs`
+        const days = Math.floor(timeDifferenceSeconds / secondsInDay)
+        const hours = Math.floor(timeDifferenceSeconds / secondsInHour)
+
+        return days >= 1 ? `${days} days` : `${hours} hrs`
     } catch (error) {
         console.error('Error calculating ALSC:', error)
         return null
