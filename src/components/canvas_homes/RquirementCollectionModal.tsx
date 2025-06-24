@@ -164,6 +164,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                 leadStatus: 'requirement collected',
                 state: leadState,
                 stage: leadStage,
+                completionDate: currentTimestamp,
                 lastModified: currentTimestamp,
             })
 

@@ -44,20 +44,27 @@ class TaskService {
 
     async create(taskData: Omit<Task, 'taskId' | 'added' | 'lastModified'>): Promise<string> {
         try {
-            const q = query(collection(db, this.collectionName), orderBy('taskId', 'desc'), limit(1))
+            // Query by numeric field for proper sorting
+            const q = query(collection(db, this.collectionName), orderBy('taskNumber', 'desc'), limit(1))
             const snapshot = await getDocs(q)
 
-            let nextTaskId = 'task01'
+            let nextTaskNumber = 1
+
             if (!snapshot.empty) {
-                const lastTaskId = snapshot.docs[0].data().taskId
-                const newNumber = parseInt(lastTaskId.replace('task', '')) + 1
-                nextTaskId = `task${newNumber.toString().padStart(2, '0')}`
+                const lastTaskNumber = snapshot.docs[0].data().taskNumber || 0
+
+                nextTaskNumber = lastTaskNumber + 1
+                console.log(nextTaskNumber)
             }
+
+            // Generate taskId without padding - just task1, task2, task100, etc.
+            const nextTaskId = `task${nextTaskNumber}`
 
             const timestamp = getUnixDateTime()
             const newTask = {
                 ...taskData,
                 taskId: nextTaskId,
+                taskNumber: nextTaskNumber, // Numeric field for proper sorting
                 added: timestamp,
                 lastModified: timestamp,
             }
@@ -107,6 +114,29 @@ class TaskService {
             await deleteDoc(doc(db, this.collectionName, taskId))
         } catch (error) {
             console.error('Error deleting task:', error)
+            throw error
+        }
+    }
+    async getEarliestTaskByLeadId(leadId: string): Promise<Task | null> {
+        try {
+            const q = query(
+                collection(db, this.collectionName),
+                where('leadId', '==', leadId),
+                where('scheduledDate', '!=', null),
+                where('status', '==', 'open'),
+                orderBy('scheduledDate', 'asc'),
+                limit(1),
+            )
+            const snapshot = await getDocs(q)
+
+            if (snapshot.empty) {
+                return null
+            }
+
+            const docSnap = snapshot.docs[0]
+            return { taskId: docSnap.id, ...docSnap.data() } as Task
+        } catch (error) {
+            console.error('Error fetching earliest task by lead ID:', error)
             throw error
         }
     }

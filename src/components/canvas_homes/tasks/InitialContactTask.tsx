@@ -109,7 +109,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
                 <Dropdown
                     options={notConnectedOptions}
                     onSelect={handleSelect}
-                    triggerClassName='flex items-center h-8 w-full justify-between p-2 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center h-8 w-full justify-between p-2 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none min-w-[100px] cursor-pointer'
                     placeholder='Not Connected'
                     defaultValue=''
                 />

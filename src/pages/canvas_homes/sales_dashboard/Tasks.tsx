@@ -371,10 +371,25 @@ const Tasks = () => {
         {
             key: 'propertyName',
             header: 'Property',
-            render: (value) => (
-                <span className='max-w-[100px] text-[14px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'>
-                    {value ? toCapitalizedWords(value) : '-'}
-                </span>
+            render: (value, row) => (
+                <div
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
+                    {toCapitalizedWords(value || row.property || '-')}
+                </div>
+            ),
+        },
+        {
+            key: 'agentName',
+            header: 'Agent',
+            render: (value, row) => (
+                <div
+                    className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
+                    {toCapitalizedWords(value || row.agent || '-')}
+                </div>
             ),
         },
         {

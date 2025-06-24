@@ -58,9 +58,9 @@ const ActivityTracker: React.FC = (enquiryId) => {
 
                     activityList.forEach((activity) => {
                         // Convert Unix timestamp to milliseconds if needed
-                        const timestamp = activity.timestamp * 1000 // Assuming Unix timestamp in seconds
-                        const date = new Date(timestamp)
-                        const dateStr = date.toLocaleDateString('en-US', {
+                        const timestamp = activity.timestamp // Assuming Unix timestamp in seconds
+                        const date = new Date(timestamp * 1000)
+                        const dateStr = date.toLocaleDateString('en-IN', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -79,7 +79,7 @@ const ActivityTracker: React.FC = (enquiryId) => {
 
                     // Sort activities within each date group by timestamp (ascending order)
                     Object.keys(groups).forEach((date) => {
-                        groups[date].sort((a, b) => a.timestamp - b.timestamp)
+                        groups[date].sort((a, b) => b.timestamp - a.timestamp)
                     })
 
                     return groups
@@ -116,7 +116,7 @@ const ActivityTracker: React.FC = (enquiryId) => {
                 return <LeadAddedCard key={index} activity={activity} />
             default:
                 return (
-                    <div key={index} className='bg-gray-50 p-3 rounded-md border'>
+                    <div key={index} className='bg-gray-50 rounded-md border'>
                         <div className='text-sm font-medium text-gray-800'>{activity.activityType}</div>
                         <div className='text-xs text-gray-600 mt-1'>
                             By {activity.agentName} • {new Date(activity.timestamp).toLocaleTimeString()}

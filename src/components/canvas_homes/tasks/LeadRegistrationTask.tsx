@@ -30,6 +30,7 @@ const LeadRegistrationTask = ({ propertyLink = '' }) => {
                     options={emailOptions}
                     placeholder='Select Builder Email'
                     triggerClassName='flex items-center w-fit h-8 justify-between px-3 py-2 border border-gray-300 p-2 rounded-sm text-xs text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer font-medium'
+                    state={true}
                 />
 
                 <div className='text-left'>

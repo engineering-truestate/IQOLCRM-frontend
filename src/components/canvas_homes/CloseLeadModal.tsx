@@ -181,6 +181,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     state: 'dropped',
                     stage: formData.stage,
                     leadStatus: formData.leadStatus,
+                    completionDate: currentTimestamp,
                     tag: formData.tag,
                     lastModified: currentTimestamp,
                 }

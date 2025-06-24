@@ -46,7 +46,7 @@ const TaskCreatedCard = ({ activity }) => {
     const { taskType = '', scheduledDate = '' } = data || {}
 
     return (
-        <div className='bg-white shadow-sm border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm px-4'>
+        <div className='bg-white shadow-sm border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm'>
             <div className='flex justify-between items-start'>
                 <div className='font-semibold text-gray-800'>
                     {capitalizeWords(activityType)}{' '}

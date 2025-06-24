@@ -96,7 +96,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         )
     }
 
-    const tabs = ['Task', 'Properties', 'Requirements', 'Notes', 'Activity tracker', 'Documents']
+    const tabs = ['Task', 'Properties', 'Requirements', 'Notes', 'Documents', 'Activity tracker']
 
     // Event Handlers
     const handleCreateTaskClick = () => {
@@ -502,7 +502,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                     </div>
                                 </div>
                                 <div className='mt-0'>
-                                    <button className='w-full h-6 text-sm border border-gray-700 rounded-md pb-1 bg-gray-100 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors'>
+                                    <button className='w-full h-6 text-sm rounded-md pb-1 bg-gray-100 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors'>
                                         Details From Sign 3
                                     </button>
                                 </div>

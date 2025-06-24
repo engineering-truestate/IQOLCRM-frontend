@@ -121,6 +121,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
             // Create promises for each async operation
             const updateLead = leadService.update(leadId, {
+                state: 'open',
                 taskType: formData.task.toLowerCase(),
                 lastModified: getUnixDateTime(),
                 scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
