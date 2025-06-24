@@ -17,44 +17,47 @@ const LeadRegistrationTask = ({ propertyLink = '' }) => {
     }
 
     return (
-        <div>
-            <div className='flex justify-between items-center'>
-                <label className='block text-sm font-medium mb-2'>Builder Email</label>
-                <div className='text-sm font-medium text-gray-700'>Registration Portal</div>
-            </div>
+        <div className='flex justify-between items-start mb-2 gap-6'>
+            {/* LEFT SIDE: Builder Email + Dropdown + Proceed */}
+            <div className='flex flex-col gap-2 w-[40%]'>
+                <label className='text-sm font-medium text-gray-900'>Builder Email</label>
 
-            <div className='flex justify-between items-center mb-3'>
                 <Dropdown
                     defaultValue='Select Builder Email'
                     onSelect={handleEmailSelect}
                     options={emailOptions}
                     placeholder='Select Builder Email'
-                    triggerClassName='flex items-center w-fit h-8 justify-between px-3 py-2 border border-gray-300 p-2 rounded-sm text-xs text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer font-medium'
-                    state={true}
+                    className='w-full'
+                    triggerClassName={`relative w-full h-9 px-3 py-2 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none`}
+                    menuClassName='absolute z-50 mt-0.5 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                 />
 
-                <div className='text-left'>
-                    <a
-                        href={propertyLink}
-                        onClick={(e) => e.stopPropagation()}
-                        className='text-blue-500 text-sm hover:underline'
-                        target='_blank'
-                        rel='noopener noreferrer'
-                    >
-                        Link website
-                    </a>
-                </div>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        setModalOpen(true)
+                    }}
+                    className='w-fit px-4 h-8 bg-blue-500 text-white text-sm rounded-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                >
+                    Proceed
+                </button>
             </div>
 
-            <button
-                onClick={(e) => {
-                    e.stopPropagation()
-                    setModalOpen(true)
-                }}
-                className='px-2 bg-blue-500 w-26.5 h-8 text-white text-sm rounded-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-                Proceed
-            </button>
+            {/* RIGHT SIDE: Registration Portal + Link */}
+            <div className='flex flex-col text-left px-3 py-1'>
+                <span className='text-sm font-medium text-gray-700 mb-1'>Registration Portal</span>
+                <a
+                    href={propertyLink}
+                    onClick={(e) => e.stopPropagation()}
+                    className='text-blue-500 text-sm hover:underline'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                >
+                    Link website
+                </a>
+            </div>
+
             {isModalOpen && <SendEmailModal onClose={() => setModalOpen(false)} />}
         </div>
     )

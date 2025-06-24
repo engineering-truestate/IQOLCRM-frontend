@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { enquiryService } from '../../../../services/canvas_homes'
 import RequirementCollectedModal from '../../../../components/canvas_homes/RquirementCollectionModal'
 import { toast } from 'react-toastify'
-import { useSelector, useDispatch } from 'react-redux'
-import type { AppDispatch } from '../../../../store'
-import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
+import { useSelector /*, useDispatch */ } from 'react-redux'
+// import type { AppDispatch } from '../../../../store'
+// import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 import Dropdown from '../../../../components/design-elements/Dropdown'
 
 // Types
@@ -76,14 +76,14 @@ const PROPERTY_TYPE_OPTIONS = [
     { label: 'Farm House', value: 'farm house' },
 ]
 
-const TYPOLOGY_OPTIONS = [
-    { label: '1 BHK', value: '1 BHK' },
-    { label: '2 BHK', value: '2 BHK' },
-    { label: '3 BHK', value: '3 BHK' },
-    { label: '4 BHK', value: '4 BHK' },
-    { label: '5 BHK', value: '5 BHK' },
-    { label: 'Penthouse', value: 'penthouse' },
-]
+// const _TYPOLOGY_OPTIONS = [
+//     { label: '1 BHK', value: '1 BHK' },
+//     { label: '2 BHK', value: '2 BHK' },
+//     { label: '3 BHK', value: '3 BHK' },
+//     { label: '4 BHK', value: '4 BHK' },
+//     { label: '5 BHK', value: '5 BHK' },
+//     { label: 'Penthouse', value: 'penthouse' },
+// ]
 
 const PROPERTY_STAGE_OPTIONS = [
     { label: 'Pre Launch', value: 'Pre Launch' },
@@ -110,7 +110,7 @@ const Requirements: React.FC<RequirementsProps> = ({
     enquiryId,
     requirements: existingRequirements = [],
     onRequirementsUpdate,
-    refreshData,
+    // refreshData,
 }) => {
     // State management
     const [activeRequirement, setActiveRequirement] = useState<string | null>(null)
@@ -120,7 +120,7 @@ const Requirements: React.FC<RequirementsProps> = ({
     const [requirements, setRequirements] = useState<Requirement[]>(existingRequirements)
     const [isRequirementModalOpen, setIsRequirementModalOpen] = useState(false)
 
-    const dispatch = useDispatch<AppDispatch>()
+    // const dispatch = useDispatch<AppDispatch>()
     const { taskState } = useSelector((state: RootState) => state.taskId)
 
     // Update local requirements when props change
@@ -310,15 +310,15 @@ const Requirements: React.FC<RequirementsProps> = ({
     }
 
     // Common styling
-    const labelClassName = 'block text-sm font-medium text-gray-900 mb-1.5'
+    const labelClassName = 'block text-sm font-medium text-gray-900 mb-1.5 text-sm placeholder:text-sm'
     const readOnlyFieldClassName =
-        'w-63.5 border border-gray-200 rounded-md px-3 py-2 text-gray-500 bg-gray-50 text-gray-700 h-[32px] flex items-center '
-    const dropdownClassName = 'w-full focus:outline-none focus:border-black rounded-md '
+        'w-63.5 border border-gray-200 rounded-md px-3 py-2 text-gray-500 bg-gray-50 text-gray-700 h-[32px] flex items-center text-sm'
+    const dropdownClassName = 'w-full focus:outline-none focus:border-black rounded-md text-sm'
     const dropdownMenuClassName =
         'absolute z-10 top-full w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[200px] overflow-auto'
     const dropdownOptionClassName = 'px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer'
     const inputClassName =
-        'border border-gray-300 rounded-md px-3 py-2 text-gray-900 w-63.5 h-[32px] focus:outline-none focus:border-black'
+        'border border-gray-300 rounded-md px-3 py-2 text-gray-900 w-63.5 h-[32px] focus:outline-none focus:border-black text-sm'
 
     return (
         <div className='bg-white rounded-lg p-5'>
