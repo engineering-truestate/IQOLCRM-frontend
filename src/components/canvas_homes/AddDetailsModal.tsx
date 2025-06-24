@@ -74,8 +74,15 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
 
     const validateForm = (): boolean => {
         const number = formData.phoneNumber.trim()
+        const email = formData.emailAddress.trim()
 
-        if (!number || number.length !== 10) {
+        // ✅ Check that at least one is present
+        if (!number && !email) {
+            setError('Please provide at least a phone number or an email address')
+            return false
+        }
+
+        if (number && number.length !== 10) {
             setError('Phone number must be exactly 10 digits')
             return false
         }
@@ -93,9 +100,9 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             return false
         }
 
-        if (formData.emailAddress.trim()) {
+        if (email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-            if (!emailRegex.test(formData.emailAddress.trim())) {
+            if (!emailRegex.test(email)) {
                 setError('Please enter a valid email address')
                 return false
             }
@@ -117,27 +124,36 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
         setIsLoading(true)
 
         try {
-            const formattedPhoneNumber = `+91${formData.phoneNumber.trim()}`
-
-            const newPhoneEntry = {
-                number: formattedPhoneNumber,
-                label: formData.label,
-                addedAt: getUnixDateTime(),
-            }
+            const number = formData.phoneNumber.trim()
+            const email = formData.emailAddress.trim()
+            const hasPhone = number.length === 10
+            const hasEmail = email !== ''
 
             const updateData: any = {
                 lastModified: getUnixDateTime(),
             }
 
-            if (formData.emailAddress.trim()) {
-                updateData.emailAddress = formData.emailAddress.trim()
+            // ✅ Add email only if present
+            if (hasEmail) {
+                updateData.emailAddress = email
             }
 
-            if (additionalPhoneNumbers.length > 0 || currentPhoneNumber) {
-                updateData.phoneNumbers = [...additionalPhoneNumbers, newPhoneEntry]
-            } else {
-                updateData.phoneNumber = formattedPhoneNumber
-                updateData.label = formData.label
+            // ✅ Add phone only if 10-digit valid number
+            if (hasPhone) {
+                const formattedPhoneNumber = `+91${number}`
+
+                const newPhoneEntry = {
+                    number: formattedPhoneNumber,
+                    label: formData.label,
+                    addedAt: getUnixDateTime(),
+                }
+
+                if (additionalPhoneNumbers.length > 0 || currentPhoneNumber) {
+                    updateData.phoneNumbers = [...additionalPhoneNumbers, newPhoneEntry]
+                } else {
+                    updateData.phoneNumber = formattedPhoneNumber
+                    updateData.label = formData.label
+                }
             }
 
             console.log('Updating lead with data:', updateData)

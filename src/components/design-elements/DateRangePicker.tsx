@@ -2,43 +2,69 @@ import React, { useState, useRef, useEffect } from 'react'
 
 interface DateRangePickerProps {
     onDateRangeChange: (startDate: string | null, endDate: string | null) => void
+    onApply?: () => void
+    onCancel?: () => void
     placeholder?: string
     className?: string
     triggerClassName?: string
     menuClassName?: string
+    showApplyCancel?: boolean
 }
 
 const DateRangePicker: React.FC<DateRangePickerProps> = ({
     onDateRangeChange,
+    onApply,
+    onCancel,
     placeholder = 'Select Date Range',
     className = '',
     triggerClassName = '',
     menuClassName = '',
+    showApplyCancel = false,
 }) => {
     const [isOpen, setIsOpen] = useState(false)
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
     const [displayText, setDisplayText] = useState(placeholder)
     const [selectedPreset, setSelectedPreset] = useState('')
+    const [borderClass, setBorderClass] = useState('')
 
     const dropdownRef = useRef<HTMLDivElement>(null)
 
-    // Handle custom date changes
+    // Handle custom date changes - now calls onDateRangeChange immediately for preview
     const handleCustomDateChange = () => {
-        if (startDate && endDate) {
-            const start = new Date(startDate)
-            const end = new Date(endDate)
-
-            if (start <= end) {
-                setDisplayText(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`)
-                setSelectedPreset('')
-                onDateRangeChange(startDate, endDate)
-            }
-        } else if (startDate || endDate) {
-            // Partial selection
-            setDisplayText(startDate || endDate ? 'Custom Range' : placeholder)
-            setSelectedPreset('')
+        if (showApplyCancel) {
+            // In apply/cancel mode, just update the preview
             onDateRangeChange(startDate || null, endDate || null)
+
+            if (startDate && endDate) {
+                const start = new Date(startDate)
+                const end = new Date(endDate)
+                if (start <= end) {
+                    setDisplayText(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`)
+                    setSelectedPreset('')
+                }
+            } else if (startDate || endDate) {
+                setDisplayText(startDate || endDate ? 'Custom Range' : placeholder)
+                setSelectedPreset('')
+            } else {
+                setDisplayText(placeholder)
+            }
+        } else {
+            // Legacy behavior - immediate application
+            if (startDate && endDate) {
+                const start = new Date(startDate)
+                const end = new Date(endDate)
+
+                if (start <= end) {
+                    setDisplayText(`${start.toLocaleDateString()} - ${end.toLocaleDateString()}`)
+                    setSelectedPreset('')
+                    onDateRangeChange(startDate, endDate)
+                }
+            } else if (startDate || endDate) {
+                setDisplayText(startDate || endDate ? 'Custom Range' : placeholder)
+                setSelectedPreset('')
+                onDateRangeChange(startDate || null, endDate || null)
+            }
         }
     }
 
@@ -54,7 +80,20 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
     // Apply custom range
     const handleApply = () => {
-        handleCustomDateChange()
+        if (showApplyCancel && onApply) {
+            onApply()
+        } else {
+            handleCustomDateChange()
+        }
+
+        setIsOpen(false)
+    }
+
+    // Cancel selection
+    const handleCancel = () => {
+        if (showApplyCancel && onCancel) {
+            onCancel()
+        }
         setIsOpen(false)
     }
 
@@ -62,13 +101,17 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false)
+                if (showApplyCancel) {
+                    handleCancel()
+                } else {
+                    setIsOpen(false)
+                }
             }
         }
 
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
+    }, [showApplyCancel])
 
     // Update display when dates change
     useEffect(() => {
@@ -84,7 +127,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center justify-between h-7 border bg-gray-100 border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-0.5 focus:ring-black focus:border-black-500 min-w-[100px] cursor-pointer transition-colors duration-200 ${triggerClassName}`}
             >
-                <span className='truncate'>{displayText}</span>
+                <span className='truncate'>Date Range</span>
                 <svg
                     className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                     fill='none'
@@ -102,7 +145,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 >
                     <div className='p-4'>
                         {/* Custom Date Range */}
-                        <div className='border-t border-gray-200 pt-4'>
+                        <div>
                             <h3 className='text-sm font-medium text-gray-700 mb-3'>Custom Range</h3>
                             <div className='grid grid-cols-2 gap-3 mb-4'>
                                 <div>
@@ -111,7 +154,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                                         type='date'
                                         value={startDate}
                                         onChange={(e) => setStartDate(e.target.value)}
-                                        className='w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                        className='w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-black-500'
                                         max={endDate || undefined}
                                     />
                                 </div>
@@ -121,7 +164,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                                         type='date'
                                         value={endDate}
                                         onChange={(e) => setEndDate(e.target.value)}
-                                        className='w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                        className='w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-black-500'
                                         min={startDate || undefined}
                                     />
                                 </div>
@@ -135,13 +178,15 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                                 >
                                     Clear
                                 </button>
-                                <button
-                                    onClick={handleApply}
-                                    disabled={!startDate || !endDate}
-                                    className='px-4 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-150'
-                                >
-                                    Apply
-                                </button>
+                                <div className='flex gap-2'>
+                                    <button
+                                        onClick={handleApply}
+                                        disabled={!startDate || !endDate}
+                                        className='px-4 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-150'
+                                    >
+                                        Apply
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

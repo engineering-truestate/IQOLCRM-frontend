@@ -596,6 +596,7 @@ export const verifyLeadAndCreateAgent = createAsyncThunk(
                 monthlyCredits: 0,
                 boosterCredits: 0,
                 inboundEnqCredits: 0,
+
                 inboundReqCredits: 0,
                 contactStatus: leadData.contactStatus || 'not contact',
                 contactHistory: leadData.connectHistory || [],

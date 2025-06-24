@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
@@ -9,8 +10,6 @@ import potentialIcon from '/icons/canvas_homes/potential-bulb.svg'
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import superHotIcon from '/icons/canvas_homes/super-hot.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
-//import linkedin from '/icons/canvas_homes/linkedin.svg'
-//import meta from '/icons/canvas_homes/meta.svg'
 import { useNavigate } from 'react-router-dom'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import { formatUnixDateTime } from '../../../components/helper/getUnixDateTime'
@@ -27,9 +26,9 @@ type SalesTask = {
     taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking' | string
     eventName?: string
     status: 'open' | 'complete'
-    stage: string // e.g., "Initial Contacted"
-    leadStatus: string // e.g., "Interested"
-    tag: string // e.g., "Hot"
+    stage: string
+    leadStatus: string
+    tag: string
     scheduledDate: number
     added: number
     eoiEntries?: any
@@ -67,6 +66,10 @@ const StatusCard = ({
 }
 
 const Tasks = () => {
+    const [searchParams, setSearchParams] = useSearchParams()
+    const navigate = useNavigate()
+
+    // Initialize state from URL params
     const [activeStatusCard, setActiveStatusCard] = useState('All')
     const [selectedRows, setSelectedRows] = useState<string[]>([])
     const [searchValue, setSearchValue] = useState('')
@@ -77,11 +80,64 @@ const Tasks = () => {
     const [selectedTag, setSelectedTag] = useState('')
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
     const [selectedAgent, setSelectedAgent] = useState('')
+
+    // Separate state for date range picker (not applied until user confirms)
+    const [pendingDateRange, setPendingDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
+        startDate: null,
+        endDate: null,
+    })
+
     const [customDateRange, setCustomDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
         startDate: null,
         endDate: null,
     })
-    const navigate = useNavigate()
+
+    // Update URL when filters change
+    const updateURL = useCallback(
+        (newFilters: Record<string, string | null>) => {
+            const newSearchParams = new URLSearchParams(searchParams)
+
+            Object.entries(newFilters).forEach(([key, value]) => {
+                if (value) {
+                    newSearchParams.set(key, value)
+                } else {
+                    newSearchParams.delete(key)
+                }
+            })
+
+            setSearchParams(newSearchParams)
+        },
+        [searchParams, setSearchParams],
+    )
+
+    // Update URL when individual filters change
+    useEffect(() => {
+        updateURL({
+            status: activeStatusCard !== 'All' ? activeStatusCard : null,
+            search: searchValue || null,
+            dateRange: selectedDateRange || null,
+            startDate: customDateRange.startDate,
+            endDate: customDateRange.endDate,
+            property: selectedProperty || null,
+            agent: selectedAgent || null,
+            leadStage: selectedLeadStage || null,
+            tag: selectedTag || null,
+            task: selectedTask || null,
+            leadStatus: selectedLeadStatus || null,
+        })
+    }, [
+        activeStatusCard,
+        searchValue,
+        selectedDateRange,
+        customDateRange,
+        selectedProperty,
+        selectedAgent,
+        selectedLeadStage,
+        selectedTag,
+        selectedTask,
+        selectedLeadStatus,
+        updateURL,
+    ])
 
     // Active filters array
     const activeFilters = [
@@ -100,15 +156,15 @@ const Tasks = () => {
             label: toCapitalizedWords(selectedLeadStatus),
             onClear: () => setSelectedLeadStatus(''),
         },
-    ].filter(Boolean) // remove falsy values
+    ].filter(Boolean)
 
     // Task data state
     const [allTasksData, setAllTasksData] = useState<SalesTask[]>([])
     const [filteredTasksData, setFilteredTasksData] = useState<SalesTask[]>([])
     const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
+    const [initialFacets, setInitialFacets] = useState<Record<string, Record<string, number>>>({})
     const [loading, setLoading] = useState(false)
 
-    // ✅ FIXED: Properly typed debounce function
     const debounce = useCallback(<T extends (...args: any[]) => any>(func: T, delay: number) => {
         let timeoutId: NodeJS.Timeout
         return (...args: Parameters<T>) => {
@@ -129,7 +185,6 @@ const Tasks = () => {
             dateRange: selectedDateRange || undefined,
         }
 
-        // Handle custom date range from DateRangePicker
         if (customDateRange.startDate || customDateRange.endDate) {
             filters.addedRange = {
                 startDate: customDateRange.startDate || undefined,
@@ -165,7 +220,6 @@ const Tasks = () => {
 
             console.log('Search result:', result)
 
-            // Transform backend data to match the expected format with capitalization
             const transformedData = result.hits.map((task: any) => ({
                 ...task,
                 dueDays: calculateDueDays(task.scheduledDate),
@@ -173,6 +227,11 @@ const Tasks = () => {
 
             setAllTasksData(transformedData)
             setFacets(result.facets || {})
+
+            // Store initial facets on first load to maintain consistent filter options
+            if (Object.keys(initialFacets).length === 0) {
+                setInitialFacets(result.facets || {})
+            }
         } catch (error) {
             console.error('Search error:', error)
             setAllTasksData([])
@@ -180,7 +239,7 @@ const Tasks = () => {
         } finally {
             setLoading(false)
         }
-    }, [searchValue, createTaskFilters])
+    }, [searchValue, createTaskFilters, initialFacets])
 
     const calculateDueDays = (scheduledDate: number | string | undefined): number => {
         if (!scheduledDate) return 0
@@ -197,18 +256,23 @@ const Tasks = () => {
     // Filter tasks based on status card selection
     useEffect(() => {
         if (activeStatusCard === 'All') {
-            setFilteredTasksData(allTasksData)
+            const sorted = [...allTasksData].sort((a, b) => b.added - a.added)
+            setFilteredTasksData(sorted)
         } else if (activeStatusCard === 'Upcoming') {
-            const upcomingTasks = allTasksData.filter((task) => {
-                const dueDays = calculateDueDays(task.scheduledDate)
-                return dueDays >= 0 && !task?.completionDate
-            })
+            const upcomingTasks = allTasksData
+                .filter((task) => {
+                    const dueDays = calculateDueDays(task.scheduledDate)
+                    return dueDays >= 0 && !task?.completionDate
+                })
+                .sort((a, b) => a.scheduledDate - b.scheduledDate)
             setFilteredTasksData(upcomingTasks)
         } else if (activeStatusCard === 'Missed') {
-            const missedTasks = allTasksData.filter((task) => {
-                const dueDays = calculateDueDays(task.scheduledDate)
-                return dueDays < 0 && !task?.completionDate
-            })
+            const missedTasks = allTasksData
+                .filter((task) => {
+                    const dueDays = calculateDueDays(task.scheduledDate)
+                    return dueDays < 0 && !task?.completionDate
+                })
+                .sort((a, b) => b.scheduledDate - a.scheduledDate)
             setFilteredTasksData(missedTasks)
         }
     }, [allTasksData, activeStatusCard])
@@ -248,7 +312,6 @@ const Tasks = () => {
             Missed: 0,
         }
 
-        // Count each category
         allTasksData.forEach((task) => {
             const dueDays = calculateDueDays(task.scheduledDate)
             if (dueDays < 0 && !task?.completionDate) {
@@ -270,12 +333,32 @@ const Tasks = () => {
         }
     }
 
+    // Modified date range handler - doesn't apply immediately
     const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
-        setCustomDateRange({ startDate, endDate })
-        if (startDate || endDate) {
+        setPendingDateRange({ startDate, endDate })
+    }, [])
+
+    // Apply pending date range
+    const applyDateRange = useCallback(() => {
+        setCustomDateRange(pendingDateRange)
+        if (pendingDateRange.startDate || pendingDateRange.endDate) {
             setSelectedDateRange('')
         }
-    }, [])
+    }, [pendingDateRange])
+
+    // Cancel pending date range
+    const cancelDateRange = useCallback(() => {
+        setPendingDateRange(customDateRange)
+    }, [customDateRange])
+
+    // Define reusable dropdown CSS classes (same as Leads component)
+    const dropdownClasses = {
+        container: 'relative inline-block w-full sm:w-auto',
+        trigger: (isSelected: boolean) =>
+            `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
+        menu: 'absolute z-50 mt-1 w-fit min-w-[300px] bg-white border border-gray-300 rounded-md shadow-lg',
+        option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
+    }
 
     // Handle row click
     const handleRowClick = (row: any) => {
@@ -284,6 +367,7 @@ const Tasks = () => {
             navigate(`/canvas-homes/sales/leaddetails/${row.leadId || row.id}`)
         }
     }
+
     const tagStyles: Record<
         string,
         {
@@ -293,7 +377,7 @@ const Tasks = () => {
         }
     > = {
         potential: {
-            icon: potentialIcon, // e.g. /icons/potential.svg
+            icon: potentialIcon,
             bg: 'bg-[#DCFCE7]',
             text: 'text-[#15803D]',
         },
@@ -321,24 +405,29 @@ const Tasks = () => {
         { title: 'Missed', count: statusCounts.Missed },
     ]
 
-    // Generate dropdown options dynamically from facets with capitalization
-    const generateDropdownOptions = (facetKey: string, defaultLabel: string) => {
-        const facetData = facets[facetKey] || {}
-        const options = [{ label: defaultLabel, value: '' }]
+    // Keep initial facet options and order, only update counts
+    const generateDropdownOptions = useCallback(
+        (facetKey: string, defaultLabel: string) => {
+            const initialFacetData = initialFacets[facetKey] || {}
+            const currentFacetData = facets[facetKey] || {}
+            const options = []
 
-        Object.entries(facetData)
-            .sort(([, a], [, b]) => b - a)
-            .forEach(([key, count]) => {
-                if (count > 0) {
+            // Use initial facets for options and sorting, current facets only for counts
+            Object.entries(initialFacetData)
+                .sort(([, a], [, b]) => b - a) // Keep original sort order from initial load
+                .forEach(([key, initialCount]) => {
+                    // Use current count if available, otherwise 0
+                    const currentCount = currentFacetData[key] || 0
                     options.push({
-                        label: `${toCapitalizedWords(key)} (${count})`,
+                        label: `${toCapitalizedWords(key)} (${currentCount})`,
                         value: key,
                     })
-                }
-            })
+                })
 
-        return options
-    }
+            return options
+        },
+        [initialFacets, facets],
+    )
 
     // Helper function to get task status badge color
     const getTaskStatusColor = (status: string) => {
@@ -374,7 +463,7 @@ const Tasks = () => {
             render: (value, row) => (
                 <div
                     className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'} // optional: full text on hover
+                    title={value || row.property || '-'}
                 >
                     {toCapitalizedWords(value || row.property || '-')}
                 </div>
@@ -386,7 +475,7 @@ const Tasks = () => {
             render: (value, row) => (
                 <div
                     className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'} // optional: full text on hover
+                    title={value || row.property || '-'}
                 >
                     {toCapitalizedWords(value || row.agent || '-')}
                 </div>
@@ -474,13 +563,11 @@ const Tasks = () => {
                 )
             },
         },
-
         {
             key: 'dueDays',
             header: 'Due Days',
             render: (value) => {
                 const displayValue = Math.abs(value) < 10 ? `0${Math.abs(value)}` : `${Math.abs(value)}`
-
                 return <span className={`text-sm max-w-[97px] font-medium`}>{value === 0 ? '00' : displayValue}</span>
             },
         },
@@ -564,81 +651,96 @@ const Tasks = () => {
                     placeholder='Search name and number'
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className='h-7 w-[240px] h-[28px]'
+                    className='h-7 w-full sm:w-68 bg-gray-300 '
                 />
 
                 <DateRangePicker
                     onDateRangeChange={handleDateRangeChange}
+                    onApply={applyDateRange}
+                    onCancel={cancelDateRange}
                     placeholder='Date Range'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full min-w-[300px] bg-white border border-gray-300 rounded-md shadow-lg'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedDateRange)}
+                    menuClassName={dropdownClasses.menu}
+                    showApplyCancel={true}
                 />
 
                 <Dropdown
                     options={generateDropdownOptions('propertyName', 'Property')}
                     onSelect={setSelectedProperty}
                     defaultValue={selectedProperty}
+                    value={selectedProperty}
+                    forcePlaceholderAlways
                     placeholder='Property'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedProperty)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
 
                 <Dropdown
                     options={generateDropdownOptions('stage', 'Lead Stage')}
                     onSelect={setSelectedLeadStage}
                     defaultValue={selectedLeadStage}
+                    value={selectedLeadStage}
+                    forcePlaceholderAlways
                     placeholder='Lead Stage'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedLeadStage)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
 
                 <Dropdown
                     options={generateDropdownOptions('taskType', 'Task')}
                     onSelect={setSelectedTask}
                     defaultValue={selectedTask}
+                    value={selectedTask}
+                    forcePlaceholderAlways
                     placeholder='Task'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedTask)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
 
                 <Dropdown
                     options={generateDropdownOptions('tag', 'Tag')}
                     onSelect={setSelectedTag}
                     defaultValue={selectedTag}
+                    value={selectedTag}
+                    forcePlaceholderAlways
                     placeholder='Tag'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedTag)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
 
                 <Dropdown
                     options={generateDropdownOptions('leadStatus', 'Lead Status')}
                     onSelect={setSelectedLeadStatus}
                     defaultValue={selectedLeadStatus}
+                    value={selectedLeadStatus}
+                    forcePlaceholderAlways
                     placeholder='Lead Status'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedLeadStatus)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
 
                 <Dropdown
                     options={generateDropdownOptions('agentName', 'Agent')}
                     onSelect={setSelectedAgent}
                     defaultValue={selectedAgent}
+                    value={selectedAgent}
+                    forcePlaceholderAlways
                     placeholder='Agent'
-                    className='relative inline-block w-full sm:w-auto'
-                    triggerClassName='flex items-center justify-between p-2 h-7 border border-gray-300 rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer'
-                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                    optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedAgent)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
                 />
             </div>
 
@@ -656,6 +758,7 @@ const Tasks = () => {
                     ))}
                 </div>
             </div>
+
             {/* Active Filters */}
             {activeFilters.length > 0 && (
                 <div className='flex flex-wrap items-center gap-2 mb-4'>
@@ -682,6 +785,7 @@ const Tasks = () => {
                         onClick={() => {
                             setSelectedDateRange('')
                             setCustomDateRange({ startDate: null, endDate: null })
+                            setPendingDateRange({ startDate: null, endDate: null })
                             setSelectedProperty('')
                             setSelectedAgent('')
                             setSelectedLeadStage('')
@@ -723,4 +827,5 @@ const Tasks = () => {
         </div>
     )
 }
+
 export default Tasks

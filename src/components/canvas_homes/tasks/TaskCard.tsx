@@ -109,7 +109,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
     return (
         <div
             onClick={handleCardClick}
-            className='rounded-md border border-gray-300 cursor-pointer transition-all duration-200 '
+            className={`rounded-md border border-gray-300 ${
+                task?.status === 'complete' ? 'cursor-not-allowed' : 'cursor-pointer'
+            } transition-all duration-200 hover:bg-[#F3F3F3]`}
         >
             <div
                 className={`grid grid-cols-3 rounded-t-md gap-40 px-3 py-2.5 items-start ${isExpanded ? 'bg-gray-100' : ''}`}
@@ -121,14 +123,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
                             Task {index + 1}: {formatValue(task.title)}
                         </div>
                         <div className='text-xs text-gray-500'>
-                            Date: {task.date ? formatUnixDateTime(task.date) : 'Not Available'}
+                            Created: {task.date ? formatUnixDateTime(task.date) : 'Not Available'}
                         </div>
                     </div>
                 </div>
 
                 {/* Status Dropdown */}
                 <div>
-                    <div className='text-sm font-medium text-gray-900'>Task Status</div>
+                    <div className='text-sm font-medium text-gray-900 mb-[5px]'>Task Status</div>
                     <Dropdown
                         onSelect={handleStatusChange}
                         disabled={task.status === 'complete' || task.type !== 'lead registration'}

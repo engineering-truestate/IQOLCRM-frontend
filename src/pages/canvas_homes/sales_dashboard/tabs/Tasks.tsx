@@ -53,15 +53,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                 eoiEntries: firebaseTask.eoiEntries || [],
             }))
             .sort((a, b) => {
-                const taskOrder: { [key: string]: number } = {
-                    'lead registration': 1,
-                    'initial contact': 2,
-                    'site visit': 3,
-                    'eoi collection': 4,
-                    booking: 5,
-                }
-
-                return (taskOrder[a.type] ?? 999) - (taskOrder[b.type] ?? 999)
+                return a.date - b.date
             })
     }
 

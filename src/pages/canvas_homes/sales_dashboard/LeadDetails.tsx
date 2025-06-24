@@ -4,6 +4,7 @@ import { UseLeadDetails } from '../../../hooks/canvas_homes/UseLeadDetails'
 import Layout from '../../../layout/Layout'
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
+import mailIcon from '/icons/canvas_homes/mailicon.svg'
 import potentialIcon from '/icons/canvas_homes/bulbicon.svg'
 import superhotIcon from '/icons/canvas_homes/superhoticon.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
@@ -16,6 +17,7 @@ import CreateTaskModal from '../../../components/canvas_homes/CreateTaskModal'
 import AddDetailsModal from '../../../components/canvas_homes/AddDetailsModal'
 import AddEnquiryModal from '../../../components/canvas_homes/AddEnquiryModal'
 import ChangeAgentModal from '../../../components/canvas_homes/ChangeAgentModal'
+import ReopenLeadModal from '../../../components/canvas_homes/ReopenLeadModal'
 import type { AgentHistoryItem } from '../../../services/canvas_homes/types'
 import google from '/icons/canvas_homes/google.svg'
 import manualIcon from '/icons/canvas_homes/manualicon.svg'
@@ -63,12 +65,8 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         setActiveTab,
         setSelectedEnquiryId,
         refreshData,
-        updateTaskStatus,
         addNote,
         createNewTask,
-        updateEnquiry,
-        updateLead,
-        updateTask,
     } = UseLeadDetails(leadId || '') // Provide empty string as fallback
 
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false)
@@ -76,6 +74,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     const [isCloseLeadSideModalOpen, setIsCloseLeadSideModalOpen] = useState(false)
     const [isAddEnquiryModalOpen, setIsAddEnquiryModalOpen] = useState(false)
     const [isChangeAgentModalOpen, setIsChangeAgentModalOpen] = useState(false)
+    const [isReopenLeadModalOpen, setIsReopenLeadModalOpen] = useState(false)
 
     // Early return AFTER hooks are called
     if (!leadId) {
@@ -85,7 +84,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                     <div className='text-center'>
                         <p className='text-red-600 mb-4'>No lead ID provided</p>
                         <button
-                            onClick={() => navigate('/leads')}
+                            onClick={() => navigate('/canvas-homes/sales')}
                             className='bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700'
                         >
                             Back to Leads
@@ -119,7 +118,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         if (onClose) {
             onClose()
         } else {
-            navigate('/canvas-homes/sales')
+            window.location.href = '/canvas-homes/sales'
         }
     }
 
@@ -278,7 +277,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
         const sourceType = String(source).toLowerCase()
         return (
-            <div className='flex items-center justify-center h-5 rounded-[20px] px-2 py-4'>
+            <div className='flex items-center justify-center h-5 rounded-[20px] py-4'>
                 {sourceType === 'google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
                 {sourceType === 'linkedin' && <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />}
                 {sourceType === 'meta' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
@@ -368,7 +367,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                     <div className='flex flex-1 overflow-hidden flex-col md:flex-row'>
                         {/* Main Content - Left Side */}
-                        <div className='w-full md:w-[75%]'>
+                        <div className='w-full md:w-[72%]'>
                             {/* Tabs Navigation */}
                             <div className='bg-white border-b border-gray-200 flex-shrink-0 overflow-x-auto'>
                                 <div className='px-2 md:px-6'>
@@ -418,7 +417,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                         {/* Right Sidebar - Customer Details, Enquiry Details, Agent Details */}
                         <div
-                            className='w-full md:w-[25%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
+                            className='w-full md:w-[28%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
                             style={{ height: 'auto', minHeight: '40vh', maxHeight: 'calc(100vh - 44.6px)' }}
                         >
                             <div className='flex-1 p-4 space-y-6 flex flex-col overflow-hidden'>
@@ -436,7 +435,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                     </div>
 
                                     {/* Scrollable container for customer details */}
-                                    <div className='overflow-y-auto pr-1 scrollbar-hide'>
+                                    <div className='overflow-y-auto pr-1 scrollbar-thin'>
                                         <div className='space-y-[11px]'>
                                             <div className='flex justify-between'>
                                                 <span className='text-[13px] w-[60%] font-normal text-gray-600'>
@@ -449,9 +448,20 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                                             <div className='flex justify-between'>
                                                 <span className='text-[13px] w-[60%] text-gray-600'>Phone No.</span>
-                                                <div className='w-[40%] text-left'>
-                                                    <span className='text-[13px] text-gray-900'>
-                                                        {formatValue(leadData?.phoneNumber || userData?.phoneNumber)}
+                                                <div className='w-[40%] text-left flex items-center'>
+                                                    {
+                                                        <span className='mr-1 flex-shrink-0'>
+                                                            <img
+                                                                src={leadData?.label == 'whatsapp' ? whatsapp : call}
+                                                                alt={
+                                                                    leadData.label === 'whatsapp' ? 'WhatsApp' : 'Call'
+                                                                }
+                                                                className='w-4 h-4'
+                                                            />
+                                                        </span>
+                                                    }
+                                                    <span className='text-[13px] text-gray-900 truncate'>
+                                                        {formatValue(userData?.phoneNumber)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -461,26 +471,21 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                 leadData.phoneNumbers.length > 0 &&
                                                 leadData.phoneNumbers.map((phone, index) => (
                                                     <div key={index} className='flex justify-between'>
-                                                        <span className='text-[13px] w-[53%] text-gray-600'>
+                                                        <span className='text-[13px] w-[60%] text-gray-600'>
                                                             Phone No. {index + 2}
                                                         </span>
 
-                                                        <div className='w-[47%] text-left flex items-center'>
-                                                            {phone?.label && (
-                                                                <span className='mr-1 flex-shrink-0'>
-                                                                    <img
-                                                                        src={
-                                                                            phone.label == 'whatsapp' ? whatsapp : call
-                                                                        }
-                                                                        alt={
-                                                                            phone.label === 'whatsapp'
-                                                                                ? 'WhatsApp'
-                                                                                : 'Call'
-                                                                        }
-                                                                        className='w-4 h-4'
-                                                                    />
-                                                                </span>
-                                                            )}
+                                                        <div className='w-[40%] text-left flex items-center'>
+                                                            <span className='mr-1 flex-shrink-0'>
+                                                                <img
+                                                                    src={phone.label == 'whatsapp' ? whatsapp : call}
+                                                                    alt={
+                                                                        phone.label === 'whatsapp' ? 'WhatsApp' : 'Call'
+                                                                    }
+                                                                    className='w-4 h-4'
+                                                                />
+                                                            </span>
+
                                                             <span className='text-[13px] text-gray-900 truncate'>
                                                                 {formatValue(phone.number)}
                                                             </span>
@@ -491,9 +496,16 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                             {userData?.emailAddress && (
                                                 <div className='flex justify-between'>
                                                     <span className='text-[13px] w-[60%] text-gray-600'>Email Id</span>
-                                                    <div className='w-[40%] text-left'>
-                                                        <span className='text-[13px] text-gray-900 truncate block'>
-                                                            {formatValue(userData?.emailAddress)}
+                                                    <div className='w-[40%] text-left flex items-center'>
+                                                        <span className='mr-1 flex-shrink-0'>
+                                                            <img src={mailIcon} alt='Email' className='w-4 h-4' />
+                                                        </span>
+
+                                                        <span
+                                                            className='text-[13px] text-gray-900 truncate under 
+text-decoration-line: underline'
+                                                        >
+                                                            {userData?.emailAddress}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -502,7 +514,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                     </div>
                                 </div>
                                 <div className='mt-0'>
-                                    <button className='w-full h-6 text-sm rounded-md pb-1 bg-gray-100 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors'>
+                                    <button className='w-full py-1 text-sm rounded-md pb-1 bg-[#F3F3F3] text-sm font-normal text-[#3A3A47] hover:bg-gray-200 transition-colors'>
                                         Details From Sign 3
                                     </button>
                                 </div>
@@ -591,7 +603,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                         <span className='text-[13px] w-[60%] text-gray-600 font-normal'>
                                                             Source
                                                         </span>
-                                                        <div className='text-[13px] w-[40%] flex items-center gap-2 text-left font-normal'>
+                                                        <div className='text-[13px] w-[40%] flex items-start gap-2 font-normal'>
                                                             <SourceIcon source={currentEnquiry.source} />
                                                         </div>
                                                     </div>
@@ -647,9 +659,9 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                                                         .map((agent, index, filteredArray) => (
                                                             <div key={index} className='relative space-y-2 mb-4'>
-                                                                <div className='flex items-center gap-2'>
+                                                                <div className='flex items-center'>
                                                                     <div className='w-3 h-3 bg-blue-500 rounded-[100%] z-10 border border-gray-200'></div>
-                                                                    <span className='text-[13px] w-[60%] text-gray-600'>
+                                                                    <span className='text-[13px] w-[60%] text-gray-600 ml-1'>
                                                                         Agent Name
                                                                     </span>
                                                                     <span className='text-[13px] w-[40%] text-left text-gray-900 ml-auto'>
@@ -687,14 +699,25 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                             {/* Close Lead Button */}
                             <div className='p-4 border-t border-gray-200 flex-shrink-0'>
-                                <button
-                                    className='w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors'
-                                    onClick={() => {
-                                        setIsCloseLeadSideModalOpen(true)
-                                    }}
-                                >
-                                    Close lead
-                                </button>
+                                {leadData?.state === 'dropped' ? (
+                                    <button
+                                        className='w-full  bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors'
+                                        onClick={() => {
+                                            setIsReopenLeadModalOpen(true)
+                                        }}
+                                    >
+                                        Reopen Lead
+                                    </button>
+                                ) : (
+                                    <button
+                                        className='w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors'
+                                        onClick={() => {
+                                            setIsCloseLeadSideModalOpen(true)
+                                        }}
+                                    >
+                                        Close lead
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -750,6 +773,14 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 leadId={leadId}
                 enquiryId={selectedEnquiryId}
                 onLeadClosed={refreshData}
+                agentName={leadData?.agentName}
+            />
+            <ReopenLeadModal
+                isOpen={isReopenLeadModalOpen}
+                onClose={() => setIsReopenLeadModalOpen(false)}
+                leadId={leadId}
+                enquiryId={selectedEnquiryId}
+                onLeadReopen={refreshData}
                 agentName={leadData?.agentName}
             />
         </Layout>

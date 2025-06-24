@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
@@ -55,7 +56,7 @@ const tagStyles: Record<
     }
 > = {
     potential: {
-        icon: potentialIcon, // e.g. /icons/potential.svg
+        icon: potentialIcon,
         bg: 'bg-[#DCFCE7]',
         text: 'text-[#15803D]',
     },
@@ -77,14 +78,26 @@ const tagStyles: Record<
 }
 
 const Leads = () => {
+    const [searchParams, setSearchParams] = useSearchParams()
+    const navigate = useNavigate()
+
+    // Initialize state from URL params
     const [activeStatusCard, setActiveStatusCard] = useState('All')
     const [selectedRows, setSelectedRows] = useState<string[]>([])
     const [searchValue, setSearchValue] = useState('')
     const [selectedDateRange, setSelectedDateRange] = useState('')
+
+    // Separate state for date range picker (not applied until user confirms)
+    const [pendingDateRange, setPendingDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
+        startDate: null,
+        endDate: null,
+    })
+
     const [customDateRange, setCustomDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
         startDate: null,
         endDate: null,
     })
+
     const [selectedProperty, setSelectedProperty] = useState('')
     const [selectedAgent, setSelectedAgent] = useState('')
     const [selectedSource, setSelectedSource] = useState('')
@@ -93,7 +106,62 @@ const Leads = () => {
     const [selectedTask, setSelectedTask] = useState('')
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
-    const navigate = useNavigate()
+
+    // Store initial facets to prevent filter options from changing
+    const [initialFacets, setInitialFacets] = useState<Record<string, Record<string, number>>>({})
+    const [allLeadsData, setAllLeadsData] = useState<any[]>([])
+    const [filteredLeadsData, setFilteredLeadsData] = useState<any[]>([])
+    const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
+
+    // Update URL when filters change
+    const updateURL = useCallback(
+        (newFilters: Record<string, string | null>) => {
+            const newSearchParams = new URLSearchParams(searchParams)
+
+            Object.entries(newFilters).forEach(([key, value]) => {
+                if (value) {
+                    newSearchParams.set(key, value)
+                } else {
+                    newSearchParams.delete(key)
+                }
+            })
+
+            setSearchParams(newSearchParams)
+        },
+        [searchParams, setSearchParams],
+    )
+
+    // Update URL when individual filters change
+    useEffect(() => {
+        updateURL({
+            status: activeStatusCard !== 'All' ? activeStatusCard : null,
+            search: searchValue || null,
+            dateRange: selectedDateRange || null,
+            startDate: customDateRange.startDate,
+            endDate: customDateRange.endDate,
+            property: selectedProperty || null,
+            agent: selectedAgent || null,
+            source: selectedSource || null,
+            leadStage: selectedLeadStage || null,
+            tag: selectedTag || null,
+            task: selectedTask || null,
+            leadStatus: selectedLeadStatus || null,
+        })
+    }, [
+        activeStatusCard,
+        searchValue,
+        selectedDateRange,
+        customDateRange,
+        selectedProperty,
+        selectedAgent,
+        selectedSource,
+        selectedLeadStage,
+        selectedTag,
+        selectedTask,
+        selectedLeadStatus,
+        updateURL,
+    ])
+
     const activeFilters = [
         selectedDateRange && { label: selectedDateRange, onClear: () => setSelectedDateRange('') },
         customDateRange.startDate &&
@@ -111,26 +179,18 @@ const Leads = () => {
             label: toCapitalizedWords(selectedLeadStatus),
             onClear: () => setSelectedLeadStatus(''),
         },
-    ].filter(Boolean) // remove falsy values
+    ].filter(Boolean)
 
-    // Algolia state
-    const [allLeadsData, setAllLeadsData] = useState<any[]>([])
-    const [filteredLeadsData, setFilteredLeadsData] = useState<any[]>([])
-    const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
-
-    // ✅ FIXED: Properly typed debounce function
     const debounce = useCallback(<T extends (...args: any[]) => any>(func: T, delay: number) => {
         let timeoutId: NodeJS.Timeout
         return (...args: Parameters<T>) => {
             clearTimeout(timeoutId)
-            timeoutId = setTimeout(() => func(...args), delay) // ✅ Use spread operator instead of .apply()
+            timeoutId = setTimeout(() => func(...args), delay)
         }
     }, [])
 
-    // Create filters object - Removed state filter from Algolia
     const createFilters = useCallback((): LeadSearchFilters => {
         const filters: LeadSearchFilters = {
-            // Remove state from Algolia filters
             propertyName: selectedProperty ? [selectedProperty] : undefined,
             agentName: selectedAgent ? [selectedAgent] : undefined,
             source: selectedSource ? [selectedSource] : undefined,
@@ -141,7 +201,6 @@ const Leads = () => {
             dateRange: selectedDateRange || undefined,
         }
 
-        // Handle custom date range from DateRangePicker
         if (customDateRange.startDate || customDateRange.endDate) {
             filters.addedRange = {
                 startDate: customDateRange.startDate || undefined,
@@ -162,9 +221,7 @@ const Leads = () => {
         customDateRange,
     ])
 
-    // Apply manual filtering based on the active status card
     useEffect(() => {
-        // Apply client-side search filter if needed
         let filtered = allLeadsData
 
         if (searchValue) {
@@ -176,7 +233,6 @@ const Leads = () => {
             )
         }
 
-        // Filter by state (status card)
         if (activeStatusCard !== 'All') {
             const stateValue = activeStatusCard.toLowerCase()
             filtered = filtered.filter((lead) => lead.state?.toLowerCase() === stateValue)
@@ -185,7 +241,6 @@ const Leads = () => {
         setFilteredLeadsData(filtered)
     }, [allLeadsData, activeStatusCard, searchValue])
 
-    // Search function - Updated to handle manual filtering
     const performSearch = useCallback(async () => {
         try {
             const filters = createFilters()
@@ -193,21 +248,24 @@ const Leads = () => {
                 query: searchValue,
                 filters,
                 page: 0,
-                hitsPerPage: 1000, // Get all results for now
+                hitsPerPage: 1000,
             })
 
             setAllLeadsData(result.hits)
             setFacets(result.facets || {})
+
+            // Store initial facets on first load to maintain consistent filter options
+            if (Object.keys(initialFacets).length === 0) {
+                setInitialFacets(result.facets || {})
+            }
         } catch (error) {
             setAllLeadsData([])
             setFilteredLeadsData([])
         }
-    }, [searchValue, createFilters])
+    }, [searchValue, createFilters, initialFacets])
 
-    // Debounced search for text input
     const debouncedSearch = useMemo(() => debounce(performSearch, 300), [performSearch, debounce])
 
-    // Search on filter changes (immediate)
     useEffect(() => {
         performSearch()
     }, [
@@ -222,17 +280,14 @@ const Leads = () => {
         customDateRange,
     ])
 
-    // Search on text input change (debounced)
     useEffect(() => {
         debouncedSearch()
     }, [searchValue, debouncedSearch])
 
-    // Initial search
     useEffect(() => {
         performSearch()
     }, [])
 
-    // Calculate status counts manually from allLeadsData
     const statusCounts = useMemo(() => {
         const counts = {
             All: allLeadsData.length,
@@ -242,7 +297,6 @@ const Leads = () => {
             Dropped: 0,
         }
 
-        // Count each state
         allLeadsData.forEach((lead) => {
             const state = lead.state?.toLowerCase() || ''
             if (state === 'fresh') counts.Fresh++
@@ -254,23 +308,32 @@ const Leads = () => {
         return counts
     }, [allLeadsData])
 
-    // Handle date range changes from DateRangePicker
+    // Modified date range handler - doesn't apply immediately
     const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
-        setCustomDateRange({ startDate, endDate })
-        // Clear preset selection when using custom range
-        if (startDate || endDate) {
-            setSelectedDateRange('')
-        }
+        setPendingDateRange({ startDate, endDate })
     }, [])
 
-    // Define reusable dropdown CSS classes
+    // New function to apply pending date range
+    const applyDateRange = useCallback(() => {
+        setCustomDateRange(pendingDateRange)
+        if (pendingDateRange.startDate || pendingDateRange.endDate) {
+            setSelectedDateRange('')
+        }
+    }, [pendingDateRange])
+
+    // New function to cancel pending date range
+    const cancelDateRange = useCallback(() => {
+        setPendingDateRange(customDateRange)
+    }, [customDateRange])
+
     const dropdownClasses = {
         container: 'relative inline-block w-full sm:w-auto',
         trigger: (isSelected: boolean) =>
-            `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
+            `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
         menu: 'absolute z-50 mt-1 w-fit min-w-[300px] bg-white border border-gray-300 rounded-md shadow-lg',
-        option: 'px-3 py-2 text-sm w-fit text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
+        option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
     }
+
     function getAslcColor(aslcString: string): string {
         if (!aslcString) return 'text-gray-500'
 
@@ -282,7 +345,7 @@ const Leads = () => {
         const totalHours = days * 24 + hours
 
         if (totalHours <= 6) {
-            return 'bg-[#EFEFEF] border border-[#8F8FA2]' // Very recent
+            return 'bg-[#EFEFEF] border border-[#8F8FA2]'
         } else if (totalHours > 6 && totalHours <= 12) {
             return 'bg-[#FFF1D4] border border-[#FCCE74]'
         } else if (totalHours > 13 && totalHours <= 24) {
@@ -292,28 +355,30 @@ const Leads = () => {
         }
     }
 
-    // Generate dropdown options from facets - Fixed to extract correct values
+    // Keep initial facet options and order, only update counts
     const generateDropdownOptions = useCallback(
         (facetKey: string, defaultLabel: string, staticOptions?: any[]) => {
-            if (staticOptions) return staticOptions // Use static options if provided
+            if (staticOptions) return staticOptions
 
-            const facetData = facets[facetKey] || {}
+            const initialFacetData = initialFacets[facetKey] || {}
+            const currentFacetData = facets[facetKey] || {}
             const options = []
 
-            Object.entries(facetData)
-                .sort(([, a], [, b]) => b - a)
-                .forEach(([key, count]) => {
-                    if (count > 0) {
-                        options.push({
-                            label: `${toCapitalizedWords(key)} (${count})`,
-                            value: key, // Use actual facet value, not transformed
-                        })
-                    }
+            // Use initial facets for options and sorting, current facets only for counts
+            Object.entries(initialFacetData)
+                .sort(([, a], [, b]) => b - a) // Keep original sort order from initial load
+                .forEach(([key]) => {
+                    // Use current count if available, otherwise 0
+                    const currentCount = currentFacetData[key] || 0
+                    options.push({
+                        label: `${toCapitalizedWords(key)} (${currentCount})`,
+                        value: key,
+                    })
                 })
 
             return options
         },
-        [facets],
+        [initialFacets, facets],
     )
 
     const handleRowSelect = (rowId: string, selected: boolean) => {
@@ -326,11 +391,9 @@ const Leads = () => {
 
     const handleSelectAllRows = (selected: boolean) => {
         if (selected) {
-            // Select all rows by adding all available leadIds to selectedRows
-            const allLeadIds = allLeadsData.map((lead) => lead.leadId) // Make sure to replace `leadId` with the actual unique field
+            const allLeadIds = allLeadsData.map((lead) => lead.leadId)
             setSelectedRows(allLeadIds)
         } else {
-            // Deselect all rows
             setSelectedRows([])
         }
     }
@@ -339,7 +402,6 @@ const Leads = () => {
         navigate(`leaddetails/${row.leadId}`)
     }
 
-    // Status cards data with dynamic counts
     const statusCards = [
         { title: 'All', count: statusCounts.All },
         { title: 'Fresh', count: statusCounts.Fresh },
@@ -348,7 +410,6 @@ const Leads = () => {
         { title: 'Dropped', count: statusCounts.Dropped },
     ]
 
-    // Table columns (updated field names to match Algolia data)
     const columns: TableColumn[] = [
         {
             key: 'name',
@@ -357,7 +418,7 @@ const Leads = () => {
                 <div className='whitespace-nowrap'>
                     <div
                         className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-semibold text-gray-900'
-                        title={value || row.property || '-'} // optional: full text on hover
+                        title={value || row.property || '-'}
                     >
                         {toCapitalizedWords(value || row.name || '-')}
                     </div>
@@ -373,7 +434,7 @@ const Leads = () => {
             render: (value, row) => (
                 <div
                     className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'} // optional: full text on hover
+                    title={value || row.property || '-'}
                 >
                     {toCapitalizedWords(value || row.property || '-')}
                 </div>
@@ -408,7 +469,7 @@ const Leads = () => {
             render: (value, row) => (
                 <div
                     className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'} // optional: full text on hover
+                    title={value || row.property || '-'}
                 >
                     {toCapitalizedWords(value || row.agent || '-')}
                 </div>
@@ -420,7 +481,7 @@ const Leads = () => {
             render: (value, row) => (
                 <div
                     className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'} // optional: full text on hover
+                    title={value || row.property || '-'}
                 >
                     {toCapitalizedWords(value || row.leadStage || '-')}
                 </div>
@@ -544,15 +605,18 @@ const Leads = () => {
                     placeholder='Search name and number'
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className='h-7 w-full sm:w-68 bg-gray-300 '
+                    className='h-7 w-full sm:w-68 bg-gray-300 focus-within:border-black'
                 />
 
                 <DateRangePicker
                     onDateRangeChange={handleDateRangeChange}
+                    onApply={applyDateRange}
+                    onCancel={cancelDateRange}
                     placeholder='Date Range'
                     className={dropdownClasses.container}
                     triggerClassName={dropdownClasses.trigger(!!selectedDateRange)}
                     menuClassName={dropdownClasses.menu}
+                    showApplyCancel={true}
                 />
                 <Dropdown
                     options={generateDropdownOptions('propertyName', 'Property')}
@@ -653,14 +717,23 @@ const Leads = () => {
                         />
                     ))}
                 </div>
-                <Button
-                    bgColor='bg-blue-600'
-                    textColor='text-white'
-                    className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-blue-700'
-                    onClick={() => setIsAddLeadModalOpen(true)}
-                >
-                    <span>+ Add Lead</span>
-                </Button>
+                <div className='flex flex-row gap-4.5'>
+                    <Button
+                        bgColor='bg-gray-200'
+                        textColor='text-gray-700'
+                        className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-gray-300'
+                    >
+                        <span>Junk Lead</span>
+                    </Button>
+                    <Button
+                        bgColor='bg-blue-600'
+                        textColor='text-white'
+                        className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-blue-700'
+                        onClick={() => setIsAddLeadModalOpen(true)}
+                    >
+                        <span>+ Add Lead</span>
+                    </Button>
+                </div>
             </div>
 
             {/* Active Filters */}
@@ -689,6 +762,7 @@ const Leads = () => {
                         onClick={() => {
                             setSelectedDateRange('')
                             setCustomDateRange({ startDate: null, endDate: null })
+                            setPendingDateRange({ startDate: null, endDate: null })
                             setSelectedProperty('')
                             setSelectedAgent('')
                             setSelectedSource('')
