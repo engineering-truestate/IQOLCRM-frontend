@@ -266,7 +266,7 @@ const useAgentFilters = () => {
     }
 }
 
-const ITEMS_PER_PAGE = 50
+const ITEMS_PER_PAGE = 100
 
 const AgentsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
