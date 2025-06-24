@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import type { IInventory, IQCInventory, IRequirement } from '../../data_types/acn/types'
-import { fetchAgentDetails } from '../../services/acn/agents/agentThunkService'
+import type { IAgent, IInventory, IQCInventory, IRequirement } from '../../data_types/acn/types'
+import { fetchAgentByCpId, fetchAgentDetails } from '../../services/acn/agents/agentThunkService'
 
 interface PropertyData {
     inventories: IInventory[]
@@ -15,6 +15,7 @@ interface AgentsState {
     rental: PropertyData
     loading: boolean
     error: string | null
+    agentDetails: IAgent
 }
 
 const initialState: AgentsState = {
@@ -32,6 +33,7 @@ const initialState: AgentsState = {
     },
     loading: false,
     error: null,
+    agentDetails: {} as IAgent,
 }
 
 const agentsSlice = createSlice({
@@ -42,6 +44,7 @@ const agentsSlice = createSlice({
             state.resale = initialState.resale
             state.rental = initialState.rental
             state.error = null
+            state.agentDetails = initialState.agentDetails
         },
     },
     extraReducers: (builder) => {
@@ -61,6 +64,18 @@ const agentsSlice = createSlice({
                 state.error = action.payload.error || null
             })
             .addCase(fetchAgentDetails.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.error.message || 'Failed to fetch agent details'
+            })
+            .addCase(fetchAgentByCpId.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(fetchAgentByCpId.fulfilled, (state, action) => {
+                state.loading = false
+                state.agentDetails = action.payload
+            })
+            .addCase(fetchAgentByCpId.rejected, (state, action) => {
                 state.loading = false
                 state.error = action.error.message || 'Failed to fetch agent details'
             })

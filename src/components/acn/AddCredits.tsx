@@ -2,25 +2,38 @@ import { useState } from 'react'
 import StateBaseTextField from '../design-elements/StateBaseTextField'
 import CrossIcon from '/icons/acn/cross.svg'
 import { updateAgentCreditsThunk } from '../../services/acn/agents/agentThunkService'
-import { useDispatch } from 'react-redux'
-import type { AppDispatch } from '../../store'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '../../store'
 import type { IAgent } from '../../data_types/acn/types'
+import { toast } from 'react-toastify'
+import { updateCurrentAgent } from '../../store/reducers/acn/agentsReducer'
 
-const AddCredits = ({
-    isOpen,
-    onClose,
-    agentDetails,
-}: {
-    isOpen: boolean
-    onClose: () => void
-    agentDetails: IAgent
-}) => {
+const AddCredits = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const [amount, setAmount] = useState<number>(0)
     const dispatch = useDispatch<AppDispatch>()
+    const { agentDetails: agentDetails } = useSelector((state: RootState) => state.agents)
+
     const handleAddCredits = async () => {
-        console.log(agentDetails, 'agentDetails')
-        await dispatch(updateAgentCreditsThunk({ cpId: agentDetails?.cpId || '', credits: amount }))
-        console.log('Add Credits', amount)
+        if (!agentDetails?.cpId) {
+            console.log(agentDetails, 'agentDetails')
+            toast.error('Error! Contact Tech Support to add credits')
+            return
+        }
+
+        try {
+            await dispatch(updateAgentCreditsThunk({ cpId: agentDetails.cpId, credits: amount })).unwrap()
+
+            // Update the Redux state directly with new credits
+            const currentCredits = (agentDetails as unknown as IAgent).monthlyCredits || 0
+            const newCredits = currentCredits + amount
+            dispatch(updateCurrentAgent({ monthlyCredits: newCredits }))
+
+            toast.success('Credits added successfully')
+            setAmount(0)
+            onClose()
+        } catch (error) {
+            toast.error('Failed to add credits')
+        }
     }
     return (
         <>
@@ -50,7 +63,9 @@ const AddCredits = ({
                                 <div className='mb-6'>
                                     <div className='flex justify-between items-center p-4 bg-gray-50 rounded-lg'>
                                         <span className='text-sm font-medium text-gray-700'>Current Credits</span>
-                                        <span className='text-lg font-bold text-gray-900'>{100}</span>
+                                        <span className='text-lg font-bold text-gray-900'>
+                                            {(agentDetails as unknown as IAgent)?.monthlyCredits || 0}
+                                        </span>
                                     </div>
                                 </div>
 

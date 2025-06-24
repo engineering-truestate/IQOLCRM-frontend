@@ -7,7 +7,12 @@ import Button from '../../../components/design-elements/Button'
 import addinventoryic from '/icons/acn/user-add.svg'
 import { useDispatch, useSelector } from 'react-redux'
 import type { IInventory, IRequirement } from '../../../data_types/acn/types'
-import { fetchAgentDetails, updateEnquiryStatusThunk } from '../../../services/acn/agents/agentThunkService'
+import {
+    fetchAgentByCpId,
+    fetchAgentDetails,
+    updateEnquiryStatusThunk,
+    listenToAgentUpdates,
+} from '../../../services/acn/agents/agentThunkService'
 import { fetchAgentInfo } from '../../../store/thunks/agentDetailsThunk'
 import type { AppDispatch, RootState } from '../../../store'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
@@ -16,7 +21,6 @@ import { formatUnixDate } from '../../../components/helper/formatDate'
 import AgentDetailsDropdown from '../../../components/acn/AgentDetailsDropdown'
 import React from 'react'
 import Dropdown from '../../../components/design-elements/Dropdown'
-import algoliaAgentsService from '../../../services/acn/agents/algoliaAgentsService'
 import searchNormal from '/icons/acn/search-normal.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import { updatePropertyStatus } from '../../../services/acn/properties/propertiesService'
@@ -89,14 +93,23 @@ const AgentDetailsPage = () => {
         fetchInitialData()
     }, [dispatch, agentId])
 
-    // Fetch agent data from Algolia by ID
+    // Fetch agent data from Firebase by ID
     useEffect(() => {
         const fetchAgent = async () => {
             if (!agentId) return
             setAgentLoading(true)
             try {
-                const agent = await algoliaAgentsService.getAgentById(agentId)
+                const agent = await dispatch(fetchAgentByCpId(agentId)).unwrap()
+                console.log(agent, 'cbuihasuiashd')
                 setAgentData(agent || null)
+
+                // Set up real-time listener for agent updates
+                const unsubscribe = listenToAgentUpdates(agentId, dispatch)
+
+                // Cleanup listener on unmount
+                return () => {
+                    if (unsubscribe) unsubscribe()
+                }
             } catch (err) {
                 setAgentData(null)
             } finally {
@@ -104,7 +117,7 @@ const AgentDetailsPage = () => {
             }
         }
         fetchAgent()
-    }, [agentId])
+    }, [agentId, dispatch])
 
     // Filter data based on search and property type
     const filteredData = useMemo(() => {
@@ -894,7 +907,7 @@ const AgentDetailsPage = () => {
                                         leftIcon={
                                             <img src={addinventoryic} alt='Add Inventory Icon' className='w-5 h-5' />
                                         }
-                                        bgColor='bg-[#2D3748]'
+                                        bgColor='bg-[#24252E]'
                                         textColor='text-white'
                                         className='px-4 h-8 font-semibold'
                                         onClick={() => navigate('/acn/properties/addinv')}
@@ -1080,8 +1093,6 @@ const AgentDetailsPage = () => {
                             {/* agent details dropdown */}
                             <div className='absolute top-[48px] right-0 border-1 border-[#D3D4DD] max-h-[calc(100vh-48px)] scrollbar-hide overflow-y-auto transition-all duration-200 ease-in-out z-40 w-[500px] bg-white '>
                                 <AgentDetailsDropdown
-                                    label='Agent Field'
-                                    agentDetails={agentData}
                                     setIsNotesModalOpen={setIsNotesModalOpen}
                                     setIsCallModalOpen={setIsCallModalOpen}
                                     setIsAddCreditsModalOpen={setIsAddCreditsModalOpen}
@@ -1118,11 +1129,7 @@ const AgentDetailsPage = () => {
 
                     <CallModal isOpen={isCallModalOpen} onClose={() => setIsCallModalOpen(false)} rowData={agentData} />
 
-                    <AddCredits
-                        isOpen={isAddCreditsModalOpen}
-                        onClose={() => setIsAddCreditsModalOpen(false)}
-                        agentDetails={agentData}
-                    />
+                    <AddCredits isOpen={isAddCreditsModalOpen} onClose={() => setIsAddCreditsModalOpen(false)} />
 
                     {/* Share Modal */}
                     <ShareInventoryModal

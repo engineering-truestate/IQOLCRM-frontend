@@ -10,17 +10,12 @@ import Dropdown from '../design-elements/Dropdown'
 import { updateAgentDetailsThunk } from '../../services/acn/agents/agentThunkService'
 import type { IAgent } from '../../data_types/acn/types'
 import { useDispatch } from 'react-redux'
-import type { AppDispatch } from '../../store'
+import type { AppDispatch, RootState } from '../../store'
 import { toCapitalizedWords } from '../helper/toCapitalize'
 import { getAgentFacetValues } from '../../services/acn/agents/algoliaAgentsService'
-
-interface AgentDetails {
-    [key: string]: string | number | boolean | null | undefined
-}
+import { useSelector } from 'react-redux'
 
 interface DropdownProps {
-    label: string
-    agentDetails: AgentDetails | null
     setIsNotesModalOpen: (open: boolean) => void
     setIsCallModalOpen: (open: boolean) => void
     setIsAddCreditsModalOpen: (open: boolean) => void
@@ -60,12 +55,13 @@ const formatValue = (value: any): string => {
 }
 
 export default function AgentDetailsDropdown({
-    agentDetails,
     setIsNotesModalOpen,
     setIsCallModalOpen,
     setIsAddCreditsModalOpen,
 }: DropdownProps) {
     const dispatch = useDispatch<AppDispatch>()
+    const agentDetails = useSelector((state: RootState) => state.agents.agentDetails)
+    console.log(agentDetails, 'page')
 
     // get loading state from redux
     const [loading, setLoading] = useState(false)
@@ -92,8 +88,8 @@ export default function AgentDetailsDropdown({
         preferredArea: '',
         kam: agentDetails?.kamName || '',
         inWhatsappCommunity:
-            agentDetails && typeof agentDetails.inWhatsappCommunity === 'boolean'
-                ? String(agentDetails.inWhatsappCommunity)
+            agentDetails && typeof (agentDetails as IAgent).inWhatsappCommunity === 'boolean'
+                ? String((agentDetails as IAgent).inWhatsappCommunity)
                 : '',
         inWhatsappBroadcast:
             agentDetails && typeof agentDetails.onBroadcast === 'boolean' ? String(agentDetails.onBroadcast) : '',
@@ -128,10 +124,6 @@ export default function AgentDetailsDropdown({
         { value: 'false', label: 'No' },
     ]
 
-    // Redux state
-    // const something = useSelector((state: RootState) => state.agentDetails)
-    // console.log(something, 'page')
-
     const toggleMainDropdown = () => {
         setIsMainDropdownOpen(!isMainDropdownOpen)
     }
@@ -154,8 +146,8 @@ export default function AgentDetailsDropdown({
             preferredArea: '',
             kam: agentDetails?.kamName || '',
             inWhatsappCommunity:
-                agentDetails && typeof agentDetails.inWhatsappCommunity === 'boolean'
-                    ? String(agentDetails.inWhatsappCommunity)
+                agentDetails && typeof (agentDetails as any).inWhatsappCommunity === 'boolean'
+                    ? String((agentDetails as any).inWhatsappCommunity)
                     : '',
             inWhatsappBroadcast:
                 agentDetails && typeof agentDetails.onBroadcast === 'boolean' ? String(agentDetails.onBroadcast) : '',
@@ -207,11 +199,11 @@ export default function AgentDetailsDropdown({
         Address: agentDetails?.workAddress ? String(agentDetails.workAddress) : '',
         mail: agentDetails?.emailAddress ? String(agentDetails.emailAddress) : '',
         firm: agentDetails?.firmName ? String(agentDetails.firmName) : '',
-        preferredArea: agentDetails?.preferredArea ? String(agentDetails.preferredArea) : '',
+        preferredArea: (agentDetails as any)?.preferredArea ? String((agentDetails as any).preferredArea) : '',
         kam: agentDetails?.kamName ? String(agentDetails.kamName) : '',
-        inWhatsappCommunity: agentDetails?.inWhatsappCommunity
-            ? String(agentDetails.inWhatsappCommunity)
-            : agentDetails?.inWhatsappCommunity,
+        inWhatsappCommunity: (agentDetails as any)?.inWhatsappCommunity
+            ? String((agentDetails as any).inWhatsappCommunity)
+            : (agentDetails as any)?.inWhatsappCommunity,
         inWhatsappBroadcast: agentDetails?.onBroadcast ? String(agentDetails.onBroadcast) : agentDetails?.onBroadcast,
     }
 

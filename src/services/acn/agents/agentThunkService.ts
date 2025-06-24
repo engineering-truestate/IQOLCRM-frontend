@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { collection, query, where, getDocs, doc, updateDoc, getDoc, setDoc, getDocsFromCache } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, updateDoc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import type { IInventory, IRequirement, IAgent } from '../../../data_types/acn/types'
 
@@ -23,6 +23,51 @@ interface AgentData {
     kamId: string
     kamName: string
     // Add other agent fields as needed
+}
+
+export const fetchAgentByCpId = createAsyncThunk(
+    'agents/fetchAgentByCpId',
+    async (cpId: string, { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching agent by cpId:', cpId)
+
+            const agentsRef = collection(db, 'acnAgents')
+            const agentQuery = query(agentsRef, where('cpId', '==', cpId))
+            const agentSnapshot = await getDocs(agentQuery)
+
+            if (agentSnapshot.empty) {
+                throw new Error('Agent not found')
+            }
+
+            const agentDoc = agentSnapshot.docs[0]
+            const agentData = agentDoc.data() as IAgent
+            console.log('✅ Agent found:', agentData)
+
+            return agentData
+        } catch (error: any) {
+            console.error('❌ Error fetching agent:', error)
+            return rejectWithValue(error.message || 'Failed to fetch agent')
+        }
+    },
+)
+
+export const listenToAgentUpdates = (cpId: string, dispatch: any) => {
+    const agentsRef = collection(db, 'acnAgents')
+    const agentQuery = query(agentsRef, where('cpId', '==', cpId))
+
+    return onSnapshot(
+        agentQuery,
+        (snapshot) => {
+            if (!snapshot.empty) {
+                const agentDoc = snapshot.docs[0]
+                const agentData = agentDoc.data() as IAgent
+                dispatch({ type: 'agents/fetchAgentByCpId/fulfilled', payload: agentData })
+            }
+        },
+        (error) => {
+            console.error('❌ Error listening to agent updates:', error)
+        },
+    )
 }
 
 export const fetchAgentByPhone = createAsyncThunk(
@@ -211,7 +256,7 @@ export const fetchAgentDetails = createAsyncThunk(
             // Fetch inventories from Firebase
             const inventoriesRef = collection(db, propertyType === 'Resale' ? 'acnProperties' : 'acnRentalInventories')
             const inventoriesQuery = query(inventoriesRef, where('cpId', '==', agentId))
-            const inventoriesSnapshot = await getDocsFromCache(inventoriesQuery)
+            const inventoriesSnapshot = await getDocs(inventoriesQuery)
             const inventories = inventoriesSnapshot.docs.map((doc) => {
                 const data = doc.data()
                 return {
