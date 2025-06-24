@@ -405,7 +405,9 @@ export function FlexibleTable({
                             {scrollableColumns.map((column) => (
                                 <th
                                     key={column.key}
-                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] ${headerClassName} ${getCellBorderClasses(true)} ${
+                                    className={`${
+                                        /\bpx-\d+\b/.test(headerClassName || '') ? '' : 'px-4'
+                                    } py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] ${headerClassName} ${getCellBorderClasses(true)} ${
                                         column.width ? `w-${column.width}` : ''
                                     } ${column.minWidth ? `min-w-${column.minWidth}` : ''}`}
                                 >
@@ -534,7 +536,9 @@ export function FlexibleTable({
                                         {scrollableColumns.map((column) => (
                                             <td
                                                 key={column.key}
-                                                className={`py-2 px-4 text-center align-middle text-sm ${getCellBorderClasses()} ${cellClassName}`}
+                                                className={`py-2 text-center align-middle text-sm ${getCellBorderClasses()} ${
+                                                    /\bpx-\d+\b/.test(cellClassName || '') ? '' : 'px-4'
+                                                } ${cellClassName}`}
                                                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                                             >
                                                 {column.checkbox ? (

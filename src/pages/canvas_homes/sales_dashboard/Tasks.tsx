@@ -270,6 +270,7 @@ const Tasks = () => {
             const missedTasks = allTasksData
                 .filter((task) => {
                     const dueDays = calculateDueDays(task.scheduledDate)
+
                     return dueDays < 0 && !task?.completionDate
                 })
                 .sort((a, b) => b.scheduledDate - a.scheduledDate)
@@ -455,7 +456,7 @@ const Tasks = () => {
                         {toCapitalizedWords(value || row.name || '-')}
                     </div>
                     <div className='text-xs text-gray-500 font-normal'>
-                        {row.addedDate || `Added ${new Date(row.added * 1000).toLocaleDateString()}`}
+                        {`Created ${new Date(row.added * 1000).toLocaleDateString()}`}
                     </div>
                 </div>
             ),
@@ -465,8 +466,8 @@ const Tasks = () => {
             header: 'Property',
             render: (value, row) => (
                 <div
-                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'}
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.property || '-')}
                 </div>
@@ -477,8 +478,8 @@ const Tasks = () => {
             header: 'Agent',
             render: (value, row) => (
                 <div
-                    className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'}
+                    className='max-w-[60px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.agent || '-')}
                 </div>
@@ -487,17 +488,10 @@ const Tasks = () => {
         {
             key: 'leadStatus',
             header: 'Lead Status',
-            // render: (value) => (
-            //     <span
-            //         className='inline-block max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
-            //         title={value}
-            //     >
-            //         {value ? toCapitalizedWords(value) : '-'}
-            //     </span>
-            // ),
+            // render: (value) => <span className='text-sm text-gray-900'>{toCapitalizedWords(value || '-')}</span>,
             render: (value, row) => (
                 <div
-                    className='max-w-[80px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    className='max-w-[60px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || '-')}
@@ -507,21 +501,23 @@ const Tasks = () => {
         {
             key: 'stage',
             header: 'Lead Stage',
-            render: (value) => (
-                <span
-                    className='inline-block max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
-                    title={value}
+            render: (value, row) => (
+                <div
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
                 >
-                    {value ? toCapitalizedWords(value) : '-'}
-                </span>
+                    {toCapitalizedWords(value || row.leadStage || '-')}
+                </div>
             ),
         },
         {
             key: 'tag',
             header: 'Tag',
+            width: 'fit',
             render: (value: string) => {
                 const key = value?.toLowerCase().replace(/\s+/g, '')
                 const style = tagStyles[key]
+                const capitalizeWords = (str: string) => str.replace(/\b\w/g, (char) => char.toUpperCase())
 
                 if (!style) return <div>-</div>
 
@@ -531,7 +527,7 @@ const Tasks = () => {
                             className={`inline-flex items-center min-w-max h-6 gap-1.5 px-2 py-1 rounded-[4px] text-xs font-medium ${style.bg} ${style.text}`}
                         >
                             <img src={style.icon} alt={value} className='w-3 h-3 object-contain' />
-                            <span className='text-xs font-medium'>{toCapitalizedWords(value || '-')}</span>
+                            <span className='text-xs font-medium'>{capitalizeWords(value || '-')}</span>
                         </div>
                     </div>
                 )
@@ -541,6 +537,10 @@ const Tasks = () => {
             key: 'taskType',
             header: 'Schedule Task',
             render: (value, row) => {
+                if (row?.completionDate && row?.completionDate < row?.scheduledDate) {
+                    return <div className='text-sm text-gray-500'>-</div>
+                }
+
                 const taskType = toCapitalizedWords(value || row?.taskType || '-')
                 const scheduleUnix = row?.scheduledDate
 
@@ -576,10 +576,16 @@ const Tasks = () => {
         },
         {
             key: 'dueDays',
-            header: 'Due Days',
+            header: activeStatusCard === 'Missed' ? 'Delayed Days' : 'Due Days',
             render: (value) => {
-                const displayValue = Math.abs(value) < 10 ? `0${Math.abs(value)}` : `${Math.abs(value)}`
-                return <span className={`text-sm max-w-[97px] font-medium`}>{value === 0 ? '00' : displayValue}</span>
+                const absValue = Math.abs(value)
+                const displayValue = absValue < 10 ? `0${absValue}` : `${absValue}`
+
+                return (
+                    <span className={`text-sm max-w-[97px] font-medium ${value < 0 ? 'text-red-500' : 'text-black'}`}>
+                        {value === 0 ? '00' : displayValue}
+                    </span>
+                )
             },
         },
         {
@@ -616,9 +622,14 @@ const Tasks = () => {
                 })
 
                 return (
-                    <div className='flex flex-col text-[13px] text-gray-900 leading-none whitespace-nowrap gap-[2px]'>
-                        <span>{formattedDate}</span>
-                        <span>{formattedTime}</span>
+                    <div className='flex flex-col'>
+                        {(formattedDate || formattedTime) && (
+                            <div className='text-xs text-gray-500'>
+                                {formattedDate}
+                                {formattedDate && formattedTime ? ' | ' : ''}
+                                {formattedTime}
+                            </div>
+                        )}
                     </div>
                 )
             },
@@ -753,7 +764,7 @@ const Tasks = () => {
             </div>
 
             {/* Status Cards */}
-            <div className='flex items-center justify-between mb-7'>
+            <div className='flex items-center justify-between mb-4'>
                 <div className='flex gap-2'>
                     {statusCards.map((card) => (
                         <StatusCard
@@ -809,7 +820,12 @@ const Tasks = () => {
             )}
 
             {/* Table */}
-            <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[63vh]'>
+            <div
+                className='bg-white rounded-lg shadow-sm overflow-hidden'
+                style={{
+                    height: `${activeFilters.length > 0 ? 57 : 63}vh`, // You can adjust these values
+                }}
+            >
                 {loading ? (
                     <div className='flex items-center justify-center h-full'>
                         <div className='text-gray-500'>Loading...</div>
@@ -820,16 +836,15 @@ const Tasks = () => {
                         columns={columns}
                         borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                         selectedRows={selectedRows}
-                        headerClassName='font-normal text-left px-0'
-                        cellClassName='text-left'
+                        headerClassName='font-normal text-left px-1'
+                        cellClassName='text-left px-1'
                         onRowSelect={handleRowSelect}
                         className='rounded-lg overflow-x-hidden'
                         stickyHeader={true}
                         hoverable={true}
-                        maxHeight='63vh'
+                        maxHeight={`${activeFilters.length > 0 ? 55 : 63}vh`}
                         showCheckboxes={true}
                         onRowClick={handleRowClick}
-                        onSelectAll={handleSelectAllRows}
                     />
                 )}
             </div>

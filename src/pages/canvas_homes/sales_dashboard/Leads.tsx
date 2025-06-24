@@ -419,8 +419,8 @@ const Leads = () => {
             render: (value, row) => (
                 <div className='whitespace-nowrap'>
                     <div
-                        className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-semibold text-gray-900'
-                        title={value || row.property || '-'}
+                        className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-semibold text-gray-900'
+                        title={value || row.property || '-'} // optional: full text on hover
                     >
                         {toCapitalizedWords(value || row.name || '-')}
                     </div>
@@ -435,8 +435,8 @@ const Leads = () => {
             header: 'Property',
             render: (value, row) => (
                 <div
-                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'}
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.property || '-')}
                 </div>
@@ -470,8 +470,8 @@ const Leads = () => {
             header: 'Agent',
             render: (value, row) => (
                 <div
-                    className='max-w-[60px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'}
+                    className='max-w-[60px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.agent || '-')}
                 </div>
@@ -482,8 +482,8 @@ const Leads = () => {
             header: 'Lead Stage',
             render: (value, row) => (
                 <div
-                    className='max-w-[100px] overflow-hidden whitespace-nowrap text-ellipsis text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'}
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.leadStage || '-')}
                 </div>
@@ -505,6 +505,7 @@ const Leads = () => {
         {
             key: 'tag',
             header: 'Tag',
+            width: 'git',
             render: (value: string) => {
                 const key = value?.toLowerCase().replace(/\s+/g, '')
                 const style = tagStyles[key]
@@ -789,14 +790,19 @@ const Leads = () => {
             )}
 
             {/* Table */}
-            <div className='bg-white rounded-lg shadow-sm overflow-hidden h-[calc(100vh-280px)] md:h-[63vh]'>
+            <div
+                className='bg-white rounded-lg shadow-sm overflow-hidden'
+                style={{
+                    height: `${activeFilters.length > 0 ? 57 : 63}vh`, // You can adjust these values
+                }}
+            >
                 <FlexibleTable
                     showCheckboxes={true}
                     data={filteredLeadsData}
                     columns={columns}
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                     selectedRows={selectedRows}
-                    headerClassName='font-normal text-left'
+                    headerClassName='font-normal text-left px-1'
                     cellClassName='text-left px-1'
                     onRowSelect={handleRowSelect}
                     onRowClick={handleRowClick}
@@ -804,7 +810,7 @@ const Leads = () => {
                     className='rounded-lg overflow-x-hidden'
                     stickyHeader={true}
                     hoverable={true}
-                    maxHeight='63vh'
+                    maxHeight={`${activeFilters.length > 0 ? 55 : 63}vh`}
                 />
             </div>
             <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
