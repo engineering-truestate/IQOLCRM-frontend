@@ -181,7 +181,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
             {!isReadOnly && (
                 <div className='flex gap-3 mb-4'>
                     <button
-                        className='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                        className='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
                         disabled={updating || showForm}
                         onClick={handleEOICollectedClick}
                     >
@@ -192,7 +192,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                         defaultValue=''
                         options={notVisitedOptions}
                         onSelect={handleSelectMode}
-                        triggerClassName='flex items-center h-8 w-33.5 w-fit justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                        triggerClassName='flex items-center h-8 w-33.5 w-fit justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white min-w-[100px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                         placeholder='EOI Not Collected'
                         disabled={updating || showForm}
                     />
