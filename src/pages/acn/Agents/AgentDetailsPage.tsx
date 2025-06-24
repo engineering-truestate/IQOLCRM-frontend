@@ -65,6 +65,7 @@ const AgentDetailsPage = () => {
     const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
     const [isBulkShareModalOpen, setIsBulkShareModalOpen] = useState(false)
+    const [pageLoading, setPageLoading] = useState(true)
 
     // Get current property data based on active tab
     const currentPropertyData = activePropertyTab === 'Resale' ? resale : rental
@@ -82,13 +83,15 @@ const AgentDetailsPage = () => {
     // Initial data fetch and data refresh when property type changes
     useEffect(() => {
         const fetchInitialData = async () => {
+            setPageLoading(true)
             if (agentId) {
-                // Fetch agent details
-                dispatch(fetchAgentInfo({ agentId }))
-                // Always fetch both Resale and Rental data
-                dispatch(fetchAgentDetails({ agentId, propertyType: 'Resale' }))
-                dispatch(fetchAgentDetails({ agentId, propertyType: 'Rental' }))
+                await Promise.all([
+                    dispatch(fetchAgentInfo({ agentId })),
+                    dispatch(fetchAgentDetails({ agentId, propertyType: 'Resale' })),
+                    dispatch(fetchAgentDetails({ agentId, propertyType: 'Rental' })),
+                ])
             }
+            setPageLoading(false)
         }
         fetchInitialData()
     }, [dispatch, agentId])
@@ -883,7 +886,7 @@ const AgentDetailsPage = () => {
     ])
 
     return (
-        <Layout loading={loading || agentDetailsLoading || agentLoading}>
+        <Layout loading={pageLoading || loading || agentDetailsLoading || agentLoading}>
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 bg-white min-h-screen'>
                     {/* Header */}

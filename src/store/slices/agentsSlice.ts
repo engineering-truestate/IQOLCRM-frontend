@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit'
-import type { PayloadAction } from '@reduxjs/toolkit'
 import type { IAgent, IInventory, IQCInventory, IRequirement } from '../../data_types/acn/types'
 import { fetchAgentByCpId, fetchAgentDetails } from '../../services/acn/agents/agentThunkService'
 

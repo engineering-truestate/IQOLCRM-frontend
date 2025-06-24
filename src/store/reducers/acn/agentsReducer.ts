@@ -14,12 +14,6 @@ import {
 } from '../../../services/acn/agents/agentThunkService'
 import type { RootState } from '../../index'
 
-interface AgentInfo {
-    cpId: string
-    agentName: string
-    phoneNumber: string
-}
-
 interface PropertyData {
     inventories: IInventory[]
     requirements: IRequirement[]
