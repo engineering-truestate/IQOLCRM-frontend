@@ -45,7 +45,7 @@ const LeadRegistrationTask = ({ propertyLink = '' }) => {
             </div>
 
             {/* RIGHT SIDE: Registration Portal + Link */}
-            <div className='flex flex-col text-left px-3 py-1'>
+            <div className='flex flex-col text-left pr-16 py-2'>
                 <span className='text-sm font-medium text-gray-700 mb-1'>Registration Portal</span>
                 <a
                     href={propertyLink}

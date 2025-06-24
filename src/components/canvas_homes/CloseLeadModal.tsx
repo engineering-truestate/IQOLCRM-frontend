@@ -401,7 +401,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isLoading || !formData.reason}
+                            disabled={isLoading || !formData.reason || !formData.tag}
                             className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (

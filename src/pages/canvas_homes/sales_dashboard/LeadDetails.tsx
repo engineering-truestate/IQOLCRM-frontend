@@ -367,7 +367,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                     <div className='flex flex-1 overflow-hidden flex-col md:flex-row'>
                         {/* Main Content - Left Side */}
-                        <div className='w-full md:w-[72%]'>
+                        <div className='w-full md:w-[70%]'>
                             {/* Tabs Navigation */}
                             <div className='bg-white border-b border-gray-200 flex-shrink-0 overflow-x-auto'>
                                 <div className='px-2 md:px-6'>
@@ -417,7 +417,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                         {/* Right Sidebar - Customer Details, Enquiry Details, Agent Details */}
                         <div
-                            className='w-full md:w-[28%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
+                            className='w-full md:w-[30%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
                             style={{ height: 'auto', minHeight: '40vh', maxHeight: 'calc(100vh - 44.6px)' }}
                         >
                             <div className='flex-1 p-4 space-y-6 flex flex-col overflow-hidden'>
@@ -472,13 +472,15 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                 leadData.phoneNumbers.map((phone, index) => (
                                                     <div key={index} className='flex justify-between'>
                                                         <span className='text-[13px] w-[60%] text-gray-600'>
-                                                            Phone No. {index + 2}
+                                                            {phone.label === 'whatsapp'
+                                                                ? 'WhatsApp No.'
+                                                                : `Phone No. ${index + 2}`}
                                                         </span>
 
                                                         <div className='w-[40%] text-left flex items-center'>
                                                             <span className='mr-1 flex-shrink-0'>
                                                                 <img
-                                                                    src={phone.label == 'whatsapp' ? whatsapp : call}
+                                                                    src={phone.label === 'whatsapp' ? whatsapp : call}
                                                                     alt={
                                                                         phone.label === 'whatsapp' ? 'WhatsApp' : 'Call'
                                                                     }
@@ -514,7 +516,7 @@ text-decoration-line: underline'
                                     </div>
                                 </div>
                                 <div className='mt-0'>
-                                    <button className='w-full py-1 text-sm rounded-md pb-1 bg-[#F3F3F3] text-sm font-normal text-[#3A3A47] hover:bg-gray-200 transition-colors'>
+                                    <button className='w-full py-1 text-sm rounded-md pb-1 bg-gray-200 text-sm font-normal text-[#3A3A47] hover:bg-gray-300 transition-colors'>
                                         Details From Sign 3
                                     </button>
                                 </div>

@@ -495,7 +495,7 @@ const Leads = () => {
             // render: (value) => <span className='text-sm text-gray-900'>{toCapitalizedWords(value || '-')}</span>,
             render: (value, row) => (
                 <div
-                    className='max-w-[60px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    className='max-w-[80px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || '-')}
@@ -567,8 +567,8 @@ const Leads = () => {
                     : ''
 
                 return (
-                    <div className='flex flex-col'>
-                        <div className='text-sm font-medium text-gray-900'>{taskType}</div>
+                    <div className='flex flex-col -mx-4'>
+                        <div className='text-sm font-medium text-gray-900 '>{taskType}</div>
                         {(formattedDate || formattedTime) && (
                             <div className='text-xs text-gray-500'>
                                 {formattedDate}

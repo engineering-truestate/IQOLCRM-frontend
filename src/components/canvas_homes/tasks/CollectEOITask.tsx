@@ -37,6 +37,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
     const [validationError, setValidationError] = useState('')
     const [isReadOnly, setIsReadOnly] = useState(false)
     const [showForm, setShowForm] = useState(false)
+    const [hasTypeChanged, setHasTypeChanged] = useState(false)
 
     // Initialize EOI entries state
     const [eoiEntries, setEoiEntries] = useState([{ amount: '', type: '' }])
@@ -157,7 +158,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
     ]
 
     const eoiTypeOptions = [
-        { label: 'Select Type', value: '' },
+        // { label: 'Select Type', value: '' },
         { label: 'Bankable Check', value: 'bankable' },
         { label: 'Not Bankable Check', value: 'not_bankable' },
     ]
@@ -179,7 +180,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
         <div className='space-y-4'>
             {/* Action Buttons - always show unless in read-only mode */}
             {!isReadOnly && (
-                <div className='flex gap-3 mb-4'>
+                <div className='flex gap-3 mb-4' onClick={(e) => e.stopPropagation()}>
                     <button
                         className='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
                         disabled={updating || showForm}
@@ -210,7 +211,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                             <div key={index} className='flex flex-row gap-2 mb-2'>
                                 <div className='w-[207px]'>
                                     <label className='block text-[13px] font-medium text-gray-500 mb-2'>
-                                        Type of Check
+                                        Mode of EOI
                                     </label>
                                     {isReadOnly ? (
                                         <div className='w-full h-8 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-xs'>
@@ -220,8 +221,16 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                                         <Dropdown
                                             options={eoiTypeOptions}
                                             defaultValue={entry.type}
-                                            onSelect={(value) => handleTypeChange(index, value)}
-                                            triggerClassName='flex items-center w-[207px] h-8 justify-between px-2 py-1 border border-gray-300 rounded-sm text-xs text-gray-500 font-normal hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                            onSelect={(value) => {
+                                                handleTypeChange(index, value)
+                                                setHasTypeChanged(true)
+                                            }}
+                                            className='w-full relative inline-block'
+                                            triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm font-mediun text-gray-500 bg-white flex items-center justify-between disabled:opacity-50 ${
+                                                hasTypeChanged ? '[&>span]:text-black' : ''
+                                            }`}
+                                            menuClassName='absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg'
+                                            optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                             placeholder='Select Type'
                                             disabled={updating}
                                             state={true}
@@ -238,14 +247,12 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                                             placeholder='Text here'
                                             value={entry.amount}
                                             onChange={(e) => handleAmountChange(index, e.target.value)}
-                                            onClick={(e) => e.stopPropagation()}
+                                            // onClick={(e) => e.stopPropagation()}
                                             disabled={isReadOnly || updating}
                                             readOnly={isReadOnly}
                                             className={`w-[207px] h-8 px-3 py-2 pr-8 border border-gray-300 rounded-[5px] ${
-                                                isReadOnly
-                                                    ? 'bg-gray-50'
-                                                    : 'focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                isReadOnly ? 'bg-gray-50' : ''
+                                            } disabled:opacity-50 disabled:cursor-not-allowed text-sm`}
                                         />
                                         {!isReadOnly && index === eoiEntries.length - 1 && (
                                             <div className='bg-[#D3D4DD] h-8 w-8 rounded-sm flex items-center justify-center'>

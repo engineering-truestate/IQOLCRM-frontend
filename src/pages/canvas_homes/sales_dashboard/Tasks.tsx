@@ -478,7 +478,7 @@ const Tasks = () => {
             header: 'Agent',
             render: (value, row) => (
                 <div
-                    className='max-w-[60px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    className='max-w-[80px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.agent || '-')}
@@ -491,7 +491,7 @@ const Tasks = () => {
             // render: (value) => <span className='text-sm text-gray-900'>{toCapitalizedWords(value || '-')}</span>,
             render: (value, row) => (
                 <div
-                    className='max-w-[60px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    className='max-w-[80px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || '-')}
@@ -622,14 +622,9 @@ const Tasks = () => {
                 })
 
                 return (
-                    <div className='flex flex-col'>
-                        {(formattedDate || formattedTime) && (
-                            <div className='text-xs text-gray-500'>
-                                {formattedDate}
-                                {formattedDate && formattedTime ? ' | ' : ''}
-                                {formattedTime}
-                            </div>
-                        )}
+                    <div className='flex flex-col text-[13px] text-gray-900 leading-none whitespace-nowrap gap-[2px]'>
+                        <span>{formattedDate}</span>
+                        <span>{formattedTime}</span>
                     </div>
                 )
             },
