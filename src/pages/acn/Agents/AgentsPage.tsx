@@ -77,7 +77,9 @@ const getSourceIcon = (source: string) => {
                 </svg>
             )
     }
+}
 
+const LeadSource = ({ source }: { source: string }) => {
     return (
         <div className='flex items-center gap-2 whitespace-nowrap'>
             <span className='inline-flex items-center rounded-full border border-gray-300 px-3 py-2 text-xs font-medium bg-white'>
@@ -581,30 +583,16 @@ const AgentsPage = () => {
             ),
         },
         {
-            key: 'contactHistory',
-            header: 'Last Connected',
-            render: (row) => {
-                // Handle different possible data structures
-                let timestamp = null
-                const contactHistory = row.contactHistory
-                if (Array.isArray(contactHistory) && contactHistory.length > 0) {
-                    // If it's an array of contact history
-                    timestamp = contactHistory[0].timestamp
-                } else if (contactHistory && typeof contactHistory === 'object') {
-                    // If it's a single contact history object
-                    timestamp = contactHistory.timestamp
-                } else if (row.lastConnected) {
-                    // Fallback to lastConnected if available
-                    timestamp = row.lastConnected
-                }
-
-                return (
-                    <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                        {timestamp ? formatRelativeTime(timestamp) : 'Never'}
-                    </span>
-                )
-            },
+            key: 'lastConnected',
+            header: 'Last Tried',
+            render: (value) => (
+                <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                    {' '}
+                    {value ? formatRelativeTime(value) : 'Never'}
+                </span>
+            ),
         },
+
         {
             key: 'lastTried',
             header: 'Last Tried',

@@ -778,6 +778,7 @@ interface RequirementFilters {
     assetType?: string[]
     configuration?: string[]
     micromarket?: string[]
+    lastFetch?: number
 }
 
 // ==================== AGENT DATA TYPE ====================
@@ -787,6 +788,9 @@ export interface AgentData {
     email: string
     phone: string
     cpId: string
+    name?: string
+    id?: string
+    kamId?: string
     // Add any other fields as needed
 }
 
