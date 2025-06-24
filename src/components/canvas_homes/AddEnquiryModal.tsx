@@ -352,8 +352,8 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                                     }
                                     placeholder='Select Property'
                                     className='w-full relative inline-block'
-                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                        formData.propertyName ? '[&>span]:font-medium  text-black' : ''
+                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                        formData.propertyName ? '[&>span]:text-black' : ''
                                     }`}
                                     menuClassName='absolute z-50 mt-1 max-h-40 overflow-y-auto w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                     optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -374,10 +374,10 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                                         defaultValue={
                                             formData.agentId ? `${formData.agentId}|${formData.agentName}` : ''
                                         }
-                                        placeholder='Select name'
+                                        placeholder='Select Name'
                                         className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.agentName ? '[&>span]:font-medium  text-black' : ''
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.agentName ? '[&>span]:text-black' : ''
                                         } truncate overflow-hidden whitespace-nowrap max-w-full`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'

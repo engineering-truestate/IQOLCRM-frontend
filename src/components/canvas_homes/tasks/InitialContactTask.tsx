@@ -141,7 +141,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
             <TaskCompleteModal
                 isOpen={isTaskCompleteModalOpen}
                 onClose={() => setIsTaskCompleteModalOpen(false)}
-                title='initial contacted'
+                title='interested'
                 leadStatus='interested'
                 stage='initial contacted'
                 state='open'

@@ -49,7 +49,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
 
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
-        tag: '',
+        tag: leadData?.tag || '',
         note: '',
     })
 
@@ -215,18 +215,11 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                             <div className='grid grid-cols-3 gap-4'>
                                 <div>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>Task Status</label>
-                                    <Dropdown
-                                        options={taskStatusOptions}
-                                        onSelect={() => {}}
-                                        defaultValue='Complete'
-                                        placeholder='Complete'
-                                        className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            taskStatusOptions ? '[&>span]:font-medium text-black' : ''
-                                        }`}
-                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
-                                        disabled={isLoading}
+                                    <input
+                                        type='text'
+                                        value={'Completed'}
+                                        disabled
+                                        className='w-full px-4 py-1 border border-gray-300 rounded-sm bg-gray-50 text-gray-500'
                                     />
                                 </div>
                                 <div>
@@ -239,15 +232,18 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                                     />
                                 </div>
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Tag</label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Tag<span className='text-red-500'> *</span>
+                                    </label>
                                     <Dropdown
                                         options={tagOptions}
                                         onSelect={(value) => handleInputChange('tag', value)}
-                                        defaultValue={formData.tag}
-                                        placeholder='Select tag'
+                                        // defaultValue={toCapitalizedWords(leadData?.tag)}
+                                        defaultValue={leadData?.tag || ''}
+                                        placeholder='Select Tag'
                                         className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.tag ? '[&>span]:font-medium text-black' : ''
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.tag ? '[&>span]:text-black' : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -266,7 +262,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                                     onChange={(e) => handleInputChange('note', e.target.value)}
                                     rows={6}
                                     disabled={isLoading}
-                                    className='w-full px-4 py-1 border border-gray-300 rounded-lg resize-none'
+                                    className='w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-black focus:ring-0'
                                 ></textarea>
                             </div>
                         </div>
@@ -283,7 +279,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isLoading}
+                            disabled={isLoading || (!leadData?.tag && !formData.tag)}
                             className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (

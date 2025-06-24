@@ -133,17 +133,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     <div className='text-sm font-medium text-gray-900 mb-[5px]'>Task Status</div>
                     <Dropdown
                         onSelect={handleStatusChange}
-                        disabled={task.status === 'complete' || task.type !== 'lead registration'}
+                        disabled={task.type !== 'lead registration' || task.status === 'complete'}
                         options={taskStatusOptions}
                         defaultValue={task.status}
-                        className='w-22'
+                        className='w-22 inline-block'
                         triggerClassName={`relative w-full h-4.5 px-2 py-1 border border-gray-300 rounded-sm text-xs text-gray-700 bg-white flex items-center justify-between focus:outline-none 
-${
-    task.status === 'complete' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-} ${task.status ? '[&>span]:font-medium text-black capitalize' : ''}`}
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
+  ${task.type !== 'lead registration' || task.status === 'complete' ? 'opacity-50 cursor-not-allowed [&>svg]:hidden' : 'cursor-pointer'}
+  ${task.status ? '[&>span]:font-medium text-black capitalize' : ''}`}
+                        menuClassName='absolute z-50 mt-0.5 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                        optionClassName='px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                     />
+
                     {updating && <div className='text-xs text-blue-500 mt-1'>Updating...</div>}
                 </div>
 

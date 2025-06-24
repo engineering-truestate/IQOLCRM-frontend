@@ -276,10 +276,10 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
                                     options={agentOptions}
                                     onSelect={handleAgentSelect}
                                     defaultValue={formData.agentId ? `${formData.agentId}|${formData.agentName}` : ''}
-                                    placeholder='Select agent name'
+                                    placeholder='Select Agent Name'
                                     className='w-full relative inline-block'
-                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none  disabled:opacity-50 ${
-                                        formData.agentName ? '[&>span]:font-medium text-black' : ''
+                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none  disabled:opacity-50 ${
+                                        formData.agentName ? '[&>span]:text-black' : ''
                                     }`}
                                     menuClassName='absolute z-50 mt-1 max-h-40 overflow-y-auto w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                     optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
