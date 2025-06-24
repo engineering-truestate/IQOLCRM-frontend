@@ -312,7 +312,7 @@ const Requirements: React.FC<RequirementsProps> = ({
     // Common styling
     const labelClassName = 'block text-sm font-medium text-gray-900 mb-1.5'
     const readOnlyFieldClassName =
-        'w-full border border-gray-200 rounded-md px-3 py-2 text-gray-500 bg-gray-50 text-gray-700 h-[32px] flex items-center '
+        'w-63.5 border border-gray-200 rounded-md px-3 py-2 text-gray-500 bg-gray-50 text-gray-700 h-[32px] flex items-center '
     const dropdownClassName = 'w-full focus:outline-none focus:border-black rounded-md '
     const dropdownMenuClassName =
         'absolute z-10 top-full w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[200px] overflow-auto'
@@ -539,7 +539,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                         </div>
                     </div>
 
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-7 md:gap-7 mb-6 w-fit'>
                         {/* Row 1 */}
                         <div>
                             <label className={labelClassName}>Expected Budget</label>
@@ -600,7 +600,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                     {currentRequirement.notes && (
                         <div className='mb-6'>
                             <label className={labelClassName}>Notes</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 min-h-[80px]'>
+                            <div className='w-[536px] border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 min-h-[80px]'>
                                 {currentRequirement.notes}
                             </div>
                         </div>
