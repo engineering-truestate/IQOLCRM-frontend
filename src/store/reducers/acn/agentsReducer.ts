@@ -8,6 +8,8 @@ import {
     addNoteToAgent,
     fetchAgentWithNotes,
     addAgentWithVerification,
+    updateAgentDetailsThunk,
+    updateAgentCreditsThunk,
 } from '../../../services/acn/agents/agentThunkService'
 import type { RootState } from '../../index'
 
@@ -175,11 +177,35 @@ const agentsSlice = createSlice({
                 state.loading = true
                 state.error = null
             })
-            .addCase(addAgentWithVerification.fulfilled, (state, action) => {
+            .addCase(addAgentWithVerification.fulfilled, (state) => {
                 state.loading = false
                 //state.agents.push(action.payload.agentData)
             })
             .addCase(addAgentWithVerification.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.payload as string
+            })
+            .addCase(updateAgentDetailsThunk.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(updateAgentDetailsThunk.fulfilled, (state) => {
+                state.loading = false
+                state.error = null
+            })
+            .addCase(updateAgentDetailsThunk.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.payload as string
+            })
+            .addCase(updateAgentCreditsThunk.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(updateAgentCreditsThunk.fulfilled, (state) => {
+                state.loading = false
+                state.error = null
+            })
+            .addCase(updateAgentCreditsThunk.rejected, (state, action) => {
                 state.loading = false
                 state.error = action.payload as string
             })

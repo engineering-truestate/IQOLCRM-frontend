@@ -571,7 +571,7 @@ interface InventoryStatus {
     sold: boolean
 }
 
-interface IAgent {
+export interface IAgent {
     planId: string
     inventories: string[]
     requirements: string[]

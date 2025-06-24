@@ -25,6 +25,9 @@ import { updateRequirementStatus } from '../../../services/acn/requirements/requ
 import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
 import UpdateInventoryStatusModal from '../../../components/acn/UpdateInventoryModal'
 import BulkShareModal from '../../../components/acn/BulkShareModal'
+import NotesModal from '../../../components/acn/NotesModal'
+import CallModal from '../../../components/acn/CallModal'
+import AddCredits from '../../../components/acn/AddCredits'
 
 const AgentDetailsPage = () => {
     const { agentId } = useParams()
@@ -51,7 +54,9 @@ const AgentDetailsPage = () => {
     // const [statusMap, setStatusMap] = useState<Record<string, string>>({})
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [selectedProperty, setSelectedProperty] = useState<any>(null)
-
+    const [isNotesModalOpen, setIsNotesModalOpen] = useState(false)
+    const [isCallModalOpen, setIsCallModalOpen] = useState(false)
+    const [isAddCreditsModalOpen, setIsAddCreditsModalOpen] = useState(false)
     // Multiple selection state
     const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
@@ -1002,7 +1007,7 @@ const AgentDetailsPage = () => {
                                                 defaultValue={selectedRequirementStatus}
                                                 placeholder='Requirement Status'
                                                 triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                                menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
                                                 optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                             />
                                             <Dropdown
@@ -1017,7 +1022,7 @@ const AgentDetailsPage = () => {
                                                 defaultValue={selectedInternalStatus}
                                                 placeholder='Internal Status'
                                                 triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                                menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
                                                 optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                             />
                                         </>
@@ -1074,7 +1079,13 @@ const AgentDetailsPage = () => {
                             </div>
                             {/* agent details dropdown */}
                             <div className='absolute top-[48px] right-0 border-1 border-[#D3D4DD] max-h-[calc(100vh-48px)] scrollbar-hide overflow-y-auto transition-all duration-200 ease-in-out z-40 w-[500px] bg-white '>
-                                <AgentDetailsDropdown label='Agent Field' agentDetails={agentData} />
+                                <AgentDetailsDropdown
+                                    label='Agent Field'
+                                    agentDetails={agentData}
+                                    setIsNotesModalOpen={setIsNotesModalOpen}
+                                    setIsCallModalOpen={setIsCallModalOpen}
+                                    setIsAddCreditsModalOpen={setIsAddCreditsModalOpen}
+                                />
                             </div>
                         </div>
                     </div>
@@ -1098,6 +1109,20 @@ const AgentDetailsPage = () => {
                             stickyHeader={true}
                         />
                     </div>
+                    {/* Modals */}
+                    <NotesModal
+                        isOpen={isNotesModalOpen}
+                        onClose={() => setIsNotesModalOpen(false)}
+                        rowData={agentData}
+                    />
+
+                    <CallModal isOpen={isCallModalOpen} onClose={() => setIsCallModalOpen(false)} rowData={agentData} />
+
+                    <AddCredits
+                        isOpen={isAddCreditsModalOpen}
+                        onClose={() => setIsAddCreditsModalOpen(false)}
+                        agentDetails={agentData}
+                    />
 
                     {/* Share Modal */}
                     <ShareInventoryModal

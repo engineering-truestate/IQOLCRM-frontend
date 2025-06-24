@@ -1,9 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { collection, query, where, getDocs, doc, updateDoc, getDoc, arrayUnion, setDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, updateDoc, getDoc, setDoc, getDocsFromCache } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import type { IInventory, IRequirement } from '../../../data_types/acn/types'
-
-const getCurrentTimestamp = () => Date.now()
+import type { IInventory, IRequirement, IAgent } from '../../../data_types/acn/types'
 
 interface AgentDetailsResponse {
     inventories: IInventory[]
@@ -213,7 +211,7 @@ export const fetchAgentDetails = createAsyncThunk(
             // Fetch inventories from Firebase
             const inventoriesRef = collection(db, propertyType === 'Resale' ? 'acnProperties' : 'acnRentalInventories')
             const inventoriesQuery = query(inventoriesRef, where('cpId', '==', agentId))
-            const inventoriesSnapshot = await getDocs(inventoriesQuery)
+            const inventoriesSnapshot = await getDocsFromCache(inventoriesQuery)
             const inventories = inventoriesSnapshot.docs.map((doc) => {
                 const data = doc.data()
                 return {
@@ -721,6 +719,55 @@ export const addAgentWithVerification = createAsyncThunk(
         } catch (error: any) {
             console.error('❌ Error creating agent:', error)
             return rejectWithValue(error.message || 'Failed to create agent')
+        }
+    },
+)
+
+export const updateAgentDetailsThunk = createAsyncThunk(
+    'agents/updateAgentDetailsThunk',
+    async ({ cpId, agentDetails }: { cpId: string; agentDetails: IAgent }) => {
+        try {
+            console.log(cpId, agentDetails, 'cpId, agentDetails')
+            const agentRef = doc(db, 'acnAgents', cpId)
+            const agentSnapshot = await getDoc(agentRef)
+            console.log(agentSnapshot, 'agentSnapshot')
+            if (agentSnapshot.exists()) {
+                await updateDoc(agentRef, {
+                    ...agentDetails,
+                    lastModified: Date.now(),
+                })
+                console.log('agent updated')
+            }
+        } catch (error) {
+            console.error('Error updating agent details:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to update agent details',
+            }
+        }
+    },
+)
+
+export const updateAgentCreditsThunk = createAsyncThunk(
+    'agents/updateAgentCreditsThunk',
+    async ({ cpId, credits }: { cpId: string; credits: number }) => {
+        console.log(cpId, credits, 'cpId, credits')
+        try {
+            const agentRef = doc(db, 'acnAgents', cpId)
+            const agentSnapshot = await getDoc(agentRef)
+            if (agentSnapshot.exists()) {
+                await updateDoc(agentRef, {
+                    monthlyCredits: credits,
+                    lastModified: Date.now(),
+                })
+                console.log('agent credits updated')
+            }
+        } catch (error) {
+            console.error('Error updating agent credits:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to update agent credits',
+            }
         }
     },
 )

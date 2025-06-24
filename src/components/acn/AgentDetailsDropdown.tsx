@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import phoneIcon from '/icons/acn/phone1.svg'
 import chevronUp from '/icons/acn/chevron-up.svg'
 import chevronDown from '/icons/acn/chevron-down.svg'
@@ -7,6 +7,12 @@ import walletAdd from '/icons/acn/wallet-add.svg'
 import editButton from '/icons/acn/editButton.svg'
 import StateBaseTextField from '../design-elements/StateBaseTextField'
 import Dropdown from '../design-elements/Dropdown'
+import { updateAgentDetailsThunk } from '../../services/acn/agents/agentThunkService'
+import type { IAgent } from '../../data_types/acn/types'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch } from '../../store'
+import { toCapitalizedWords } from '../helper/toCapitalize'
+import { getAgentFacetValues } from '../../services/acn/agents/algoliaAgentsService'
 
 interface AgentDetails {
     [key: string]: string | number | boolean | null | undefined
@@ -15,6 +21,9 @@ interface AgentDetails {
 interface DropdownProps {
     label: string
     agentDetails: AgentDetails | null
+    setIsNotesModalOpen: (open: boolean) => void
+    setIsCallModalOpen: (open: boolean) => void
+    setIsAddCreditsModalOpen: (open: boolean) => void
 }
 
 // Helper function to format field names for display
@@ -50,8 +59,17 @@ const formatValue = (value: any): string => {
     return String(value)
 }
 
-export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
-    // State for the main dropdown visibility
+export default function AgentDetailsDropdown({
+    agentDetails,
+    setIsNotesModalOpen,
+    setIsCallModalOpen,
+    setIsAddCreditsModalOpen,
+}: DropdownProps) {
+    const dispatch = useDispatch<AppDispatch>()
+
+    // get loading state from redux
+    const [loading, setLoading] = useState(false)
+    // State for the main dropdown visibiliy
     const [isMainDropdownOpen, setIsMainDropdownOpen] = useState(false)
 
     // State for individual sections
@@ -82,8 +100,29 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
     })
 
     // Placeholder dropdown options
-    const preferredAreaOptions = ['Area 1', 'Area 2', 'Area 3']
-    const kamOptions = ['KAM 1', 'KAM 2', 'KAM 3']
+    const preferredAreaOptions = [
+        'North Bangalore',
+        'South Bangalore',
+        'East Bangalore',
+        'West Bangalore',
+        'North-East Bangalore',
+        'North-West Bangalore',
+        'South-East Bangalore',
+        'South-West Bangalore',
+    ]
+    // KAM options from Algolia facet
+    const [kamOptions, setKamOptions] = useState<{ value: string; label: string }[]>([])
+    const [kamLoading, setKamLoading] = useState(false)
+
+    useEffect(() => {
+        setKamLoading(true)
+        getAgentFacetValues('kamName')
+            .then((facetValues) => {
+                setKamOptions(facetValues.map((f) => ({ value: f.value, label: f.value })))
+            })
+            .finally(() => setKamLoading(false))
+    }, [])
+
     const yesNoOptions = [
         { value: 'true', label: 'Yes' },
         { value: 'false', label: 'No' },
@@ -122,8 +161,29 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                 agentDetails && typeof agentDetails.onBroadcast === 'boolean' ? String(agentDetails.onBroadcast) : '',
         })
     }
-    const handleSaveUserDetails = () => {
-        // TODO: Hook up to API or Redux if needed
+    const handleSaveUserDetails = async () => {
+        // Convert to string 'true'/'false' for inWhatsappCommunity and inWhatsappBroadcast
+        const updatedDetails = {
+            ...agentDetails,
+            phoneNumber: editableUserDetails.phoneNumber,
+            workAddress: editableUserDetails.Address,
+            emailAddress: editableUserDetails.mail,
+            firmName: editableUserDetails.firm,
+            preferredArea: editableUserDetails.preferredArea,
+            kamName: editableUserDetails.kam,
+            inWhatsappCommunity: editableUserDetails.inWhatsappCommunity === 'true',
+            onBroadcast: editableUserDetails.inWhatsappBroadcast,
+        }
+        console.log(updatedDetails, 'updatedDetails')
+        setLoading(true)
+        await dispatch(
+            updateAgentDetailsThunk({
+                cpId: agentDetails?.cpId as string,
+                agentDetails: updatedDetails as unknown as IAgent,
+            }),
+        )
+        setLoading(false)
+        console.log('updatedDetails')
         setIsEditingUserDetails(false)
     }
     const handleUserDetailChange = (field: string, value: any) => {
@@ -147,11 +207,12 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
         Address: agentDetails?.workAddress ? String(agentDetails.workAddress) : '',
         mail: agentDetails?.emailAddress ? String(agentDetails.emailAddress) : '',
         firm: agentDetails?.firmName ? String(agentDetails.firmName) : '',
-        preferredArea: '',
+        preferredArea: agentDetails?.preferredArea ? String(agentDetails.preferredArea) : '',
         kam: agentDetails?.kamName ? String(agentDetails.kamName) : '',
-        inWhatsappCommunity: '',
-        inWhatsappBroadcast:
-            agentDetails && typeof agentDetails.onBroadcast === 'boolean' ? String(agentDetails.onBroadcast) : '',
+        inWhatsappCommunity: agentDetails?.inWhatsappCommunity
+            ? String(agentDetails.inWhatsappCommunity)
+            : agentDetails?.inWhatsappCommunity,
+        inWhatsappBroadcast: agentDetails?.onBroadcast ? String(agentDetails.onBroadcast) : agentDetails?.onBroadcast,
     }
 
     const planDetailsFields = {
@@ -224,6 +285,10 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                         </div>
                                     ) : null,
                                 )
+                            ) : loading ? (
+                                <div className='flex justify-between items-center py-1.5'>
+                                    <span className='text-xs text-gray-600'>Loading...</span>
+                                </div>
                             ) : (
                                 <form
                                     onSubmit={(e) => {
@@ -234,7 +299,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                     {/* phoneNumber */}
                                     <div className='flex justify-between items-center py-1.5'>
                                         <span className='text-xs text-gray-600'>Phone Number</span>
-                                        <div className='w-[50%]'>
+                                        <div className='w-fit'>
                                             <StateBaseTextField
                                                 value={String(editableUserDetails.phoneNumber)}
                                                 onChange={(e) => handleUserDetailChange('phoneNumber', e.target.value)}
@@ -247,7 +312,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                     {/* Address */}
                                     <div className='flex justify-between items-center py-1.5'>
                                         <span className='text-xs text-gray-600'>Address</span>
-                                        <div className='w-[50%]'>
+                                        <div className='w-fit'>
                                             <StateBaseTextField
                                                 value={String(editableUserDetails.Address)}
                                                 onChange={(e) => handleUserDetailChange('Address', e.target.value)}
@@ -260,7 +325,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                     {/* mail */}
                                     <div className='flex justify-between items-center py-1.5'>
                                         <span className='text-xs text-gray-600'>Mail</span>
-                                        <div className='w-[50%]'>
+                                        <div className='w-fit'>
                                             <StateBaseTextField
                                                 value={String(editableUserDetails.mail)}
                                                 onChange={(e) => handleUserDetailChange('mail', e.target.value)}
@@ -273,7 +338,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                     {/* firm */}
                                     <div className='flex justify-between items-center py-1.5'>
                                         <span className='text-xs text-gray-600'>Firm</span>
-                                        <div className='w-full'>
+                                        <div className='w-fit'>
                                             <StateBaseTextField
                                                 value={String(editableUserDetails.firm)}
                                                 onChange={(e) => handleUserDetailChange('firm', e.target.value)}
@@ -295,6 +360,9 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                                 value={String(editableUserDetails.preferredArea)}
                                                 onSelect={(value) => handleUserDetailChange('preferredArea', value)}
                                                 placeholder='Preferred Area'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                             />
                                         </div>
                                     </div>
@@ -302,12 +370,19 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                     <div className='flex justify-between items-center py-1.5'>
                                         <span className='text-xs text-gray-600'>KAM</span>
                                         <div className='w-fit'>
-                                            <Dropdown
-                                                options={kamOptions.map((kam) => ({ value: kam, label: kam }))}
-                                                value={String(editableUserDetails.kam)}
-                                                onSelect={(value) => handleUserDetailChange('kam', value)}
-                                                placeholder='KAM'
-                                            />
+                                            {kamLoading ? (
+                                                <span className='text-xs text-gray-400'>Loading...</span>
+                                            ) : (
+                                                <Dropdown
+                                                    options={kamOptions}
+                                                    value={String(editableUserDetails.kam)}
+                                                    onSelect={(value) => handleUserDetailChange('kam', value)}
+                                                    placeholder='KAM'
+                                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                    menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                                />
+                                            )}
                                         </div>
                                     </div>
                                     {/* inWhatsappCommunity dropdown */}
@@ -321,6 +396,9 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                                     handleUserDetailChange('inWhatsappCommunity', value)
                                                 }
                                                 placeholder='In Whatsapp Community'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                             />
                                         </div>
                                     </div>
@@ -335,6 +413,9 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                                     handleUserDetailChange('inWhatsappBroadcast', value)
                                                 }
                                                 placeholder='In Whatsapp Broadcast'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                             />
                                         </div>
                                     </div>
@@ -423,7 +504,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                 {agentDetails.name || 'Agent Name'}
                             </span>
                             <span className='text-xs text-gray-500'>
-                                {agentDetails.cpId} | {agentDetails.reraId}
+                                {agentDetails.cpId} | {agentDetails.phoneNumber}
                             </span>
                         </div>
                     </div>
@@ -449,21 +530,36 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                         <div className='text-gray-600'>
                             <span className='text-gray-500'>Plan: </span>
                             <span className='font-semibold text-black capitalize'>
-                                {agentDetails.userType || 'N/A'}
+                                {toCapitalizedWords(agentDetails.userType as string) || 'N/A'}
                             </span>
                         </div>
                     </div>
 
                     {/* Action Icons */}
                     <div className='flex items-center gap-2'>
-                        <button className='bg-gray-100 p-1.5 rounded'>
-                            <img src={phoneIcon} alt='Phone Icon' className='w-6 h-6' />
+                        <button className='bg-gray-100 p-1.5 rounded cursor-pointer'>
+                            <img
+                                src={phoneIcon}
+                                alt='Phone Icon'
+                                onClick={() => setIsCallModalOpen(true)}
+                                className='w-6 h-6'
+                            />
                         </button>
-                        <button className='bg-gray-100 p-1.5 rounded'>
-                            <img src={calendarIcon} alt='Calendar Icon' className='w-6 h-6' />
+                        <button className='bg-gray-100 p-1.5 rounded cursor-pointer'>
+                            <img
+                                src={calendarIcon}
+                                alt='Calendar Icon'
+                                onClick={() => setIsNotesModalOpen(true)}
+                                className='w-6 h-6'
+                            />
                         </button>
-                        <button className='bg-gray-100 p-1.5 rounded'>
-                            <img src={walletAdd} alt='Wallet Add Icon' className='w-6 h-6' />
+                        <button className='bg-gray-100 p-1.5 rounded cursor-pointer'>
+                            <img
+                                src={walletAdd}
+                                alt='Wallet Add Icon'
+                                onClick={() => setIsAddCreditsModalOpen(true)}
+                                className='w-6 h-6'
+                            />
                         </button>
                     </div>
                 </div>
