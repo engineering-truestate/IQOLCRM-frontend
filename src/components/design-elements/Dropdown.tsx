@@ -36,7 +36,7 @@ const Dropdown = ({
 }: DropdownProps) => {
     const [isOpen, setIsOpen] = useState(false)
     const [selected, setSelected] = useState<string>(defaultValue || '')
-    const [triggerWidth, setTriggerWidth] = useState<number>(0)
+    const [_triggerWidth, setTriggerWidth] = useState<number>(0)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const triggerRef = useRef<HTMLDivElement>(null)
 

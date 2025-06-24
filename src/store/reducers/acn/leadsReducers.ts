@@ -19,6 +19,7 @@ import {
     validateCSVData,
     addBulkLeads,
     addManualLead,
+    validateLeadData,
 } from '../../../services/acn/leads/leadsService'
 
 interface LeadsState {
@@ -49,6 +50,13 @@ interface LeadsState {
     bulkAddError: string | null
     manualAddLoading: boolean
     manualAddError: string | null
+    leadValidationLoading: boolean
+    leadValidationError: string | null
+    previewCSVData: any[]
+    duplicateInfo: {
+        count: number
+        numbers: string[]
+    } | null
 }
 
 const initialState: LeadsState = {
@@ -79,6 +87,10 @@ const initialState: LeadsState = {
     bulkAddError: null,
     manualAddLoading: false,
     manualAddError: null,
+    leadValidationLoading: false,
+    leadValidationError: null,
+    previewCSVData: [],
+    duplicateInfo: null,
 }
 
 const leadsSlice = createSlice({
@@ -132,6 +144,9 @@ const leadsSlice = createSlice({
         },
         clearManualAddError: (state) => {
             state.manualAddError = null
+        },
+        clearLeadValidationError: (state) => {
+            state.leadValidationError = null
         },
     },
     extraReducers: (builder) => {
@@ -400,7 +415,11 @@ const leadsSlice = createSlice({
             })
             .addCase(validateCSVData.fulfilled, (state, action) => {
                 state.csvValidationLoading = false
-                state.validatedCSVData = action.payload
+                state.csvValidationError = null
+                state.validatedCSVData = action.payload.validatedData
+                // **NEW: Store all data for preview including duplicates**
+                state.previewCSVData = action.payload.allData
+                state.duplicateInfo = action.payload.duplicateInfo
             })
             .addCase(validateCSVData.rejected, (state, action) => {
                 state.csvValidationLoading = false
@@ -409,6 +428,7 @@ const leadsSlice = createSlice({
             })
 
         // Add Bulk Leads
+        // Add Bulk Leads
         builder
             .addCase(addBulkLeads.pending, (state) => {
                 state.bulkAddLoading = true
@@ -416,8 +436,9 @@ const leadsSlice = createSlice({
             })
             .addCase(addBulkLeads.fulfilled, (state, action) => {
                 state.bulkAddLoading = false
-                // Add new leads to state
-                action.payload.forEach((lead) => {
+                // ✅ Handle the new response format
+                const leads = action.payload.leads || action.payload
+                leads.forEach((lead) => {
                     state.leads[lead.leadId] = lead as any
                 })
                 // Clear validated data after successful add
@@ -444,6 +465,19 @@ const leadsSlice = createSlice({
                 state.manualAddLoading = false
                 state.manualAddError = action.payload as string
             })
+        builder
+            .addCase(validateLeadData.pending, (state) => {
+                state.leadValidationLoading = true
+                state.leadValidationError = null
+            })
+            .addCase(validateLeadData.fulfilled, (state) => {
+                state.leadValidationLoading = false
+                state.leadValidationError = null
+            })
+            .addCase(validateLeadData.rejected, (state, action) => {
+                state.leadValidationLoading = false
+                state.leadValidationError = action.payload as string
+            })
     },
 })
 
@@ -461,7 +495,14 @@ export const {
     clearValidatedCSVData,
     clearBulkAddError,
     clearManualAddError,
+    clearLeadValidationError,
 } = leadsSlice.actions
+
+export const selectPreviewCSVData = (state: { leads: LeadsState }) => state.leads.previewCSVData
+export const selectDuplicateInfo = (state: { leads: LeadsState }) => state.leads.duplicateInfo
+
+export const selectLeadValidationLoading = (state: { leads: LeadsState }) => state.leads.leadValidationLoading
+export const selectLeadValidationError = (state: { leads: LeadsState }) => state.leads.leadValidationError
 
 export const selectKAMOptions = (state: { leads: LeadsState }) => state.leads.kamOptions
 export const selectKAMOptionsLoading = (state: { leads: LeadsState }) => state.leads.kamOptionsLoading

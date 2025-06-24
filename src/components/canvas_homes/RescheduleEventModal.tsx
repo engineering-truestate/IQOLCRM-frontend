@@ -82,7 +82,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
     // Options
     const reasonOptions = [
-        { value: '', label: 'Select reason' },
+        // { value: '', label: 'Select reason' },
         { value: 'rnr', label: 'Ring No Response' },
         { value: 'client requested callback later', label: 'Client Requested Callback Later' },
         { value: 'needs time for family discussion', label: 'Needs Time for Family Discussion' },
@@ -92,7 +92,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
     ]
 
     const eventNameOptions = [
-        { value: '', label: 'Select Event Name' },
+        // { value: '', label: 'Select Event Name' },
         { value: 'visit scheduled', label: 'Site Visit' },
         { value: 'call scheduled', label: 'Schedule call' },
     ]
@@ -243,16 +243,16 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
             <div
-                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-lg shadow-2xl'
+                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-2xl shadow-2xl'
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='flex flex-col'>
                     {/* Modal Header */}
-                    <div className='flex items-center justify-between p-6'>
+                    <div className='flex items-center justify-between py-6 px-10'>
                         <h2 className='text-xl font-semibold text-gray-900'>Reschedule Event</h2>
                         <button
                             onClick={onClose}
@@ -292,7 +292,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                     </div>
 
                     {/* Modal Content */}
-                    <div className='px-6 pt-0'>
+                    <div className='px-10 pt-0'>
                         <div className='space-y-4'>
                             {/* Error Message */}
                             {error && (
@@ -309,10 +309,12 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                                     onSelect={(value) => handleInputChange('reason', value)}
                                     defaultValue={formData.reason}
                                     placeholder='Select reason'
-                                    className='w-full'
-                                    triggerClassName='w-full px-4 py-2 border text-gray-500 border-gray-300 rounded-sm bg-white flex items-center justify-between text-left text-xs'
-                                    menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                    optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                    className='w-full relative inline-block'
+                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                        formData.reason ? '[&>span]:font-medium text-black' : ''
+                                    }`}
+                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                    optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                     disabled={isLoading}
                                 />
                             </div>
@@ -326,11 +328,13 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                                         options={eventNameOptions}
                                         onSelect={(value) => handleInputChange('eventName', value)}
                                         defaultValue={formData.eventName}
-                                        placeholder='Select Event Name'
-                                        className='w-full'
-                                        triggerClassName='w-full px-4 py-2 border text-gray-500 border-gray-300 rounded-sm bg-white flex items-center justify-between text-left text-xs'
-                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                        optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                        placeholder='Select Event '
+                                        className='w-full relative inline-block'
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.eventName ? '[&>span]:font-medium text-black' : ''
+                                        }`}
+                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -346,7 +350,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                                         onChange={(e) => handleInputChange('datetime', e.target.value)}
                                         min={new Date().toISOString().slice(0, 16)}
                                         disabled={isLoading}
-                                        className='w-full h-8 px-3 py-2.5 border text-gray-500 border-gray-300 rounded-sm text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
+                                        className='w-full h-8 px-3 py-3 border text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
                                     />
                                 </div>
 
@@ -362,7 +366,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                                                 : 'Status'
                                         }
                                         disabled
-                                        className='w-full px-4 py-2 border text-xs border-gray-300 rounded-sm text-gray-500 bg-gray-50'
+                                        className='w-full px-4 py-1 border text-sm border-gray-300 rounded-sm text-gray-500 bg-gray-50'
                                     />
                                 </div>
                             </div>

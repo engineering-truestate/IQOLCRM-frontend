@@ -1,6 +1,6 @@
 // store/services/acn/leads/leadsService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { doc, getDoc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, setDoc, getDocs, collection, where, query } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { type ILead, leadSearchService } from '../../../services/acn/leads/algoliaLeadsService'
 
@@ -484,7 +484,7 @@ interface IAgent {
     communityJoined: boolean
     onBroadcast: boolean
     onboardingComplete: boolean
-    source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct'
+    source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct' | 'meta'
     lastSeen: number
     added: number
     lastModified: number
@@ -685,88 +685,195 @@ export const validateCSVData = createAsyncThunk(
     'leads/validateCSVData',
     async (csvData: BulkLeadData[], { rejectWithValue }) => {
         try {
-            console.log('🔍 Validating CSV data:', csvData.length, 'rows')
+            console.log('🔄 Validating CSV data:', csvData.length, 'rows')
 
-            const validatedData: BulkLeadData[] = []
-            const errors: string[] = []
+            const criticalErrors: string[] = [] // Only blocking errors
+            const warnings: string[] = [] // Non-blocking warnings (duplicates)
+            const validatedData: (BulkLeadData & { isDuplicate?: boolean; duplicateType?: string })[] = []
+            const duplicateNumbers: string[] = []
 
-            const validSources = [
-                'whatsapp group',
-                'instagram',
-                'whatsapp campaign',
-                'facebook',
-                'referral',
-                'organic',
-                'classified',
-            ]
+            // Helper function to safely convert to string and trim
+            const safeStringTrim = (value: any): string => {
+                if (value === null || value === undefined) {
+                    return ''
+                }
+                return String(value).trim()
+            }
 
-            csvData.forEach((row, index) => {
-                const rowNumber = index + 1
+            // Check each row
+            for (let i = 0; i < csvData.length; i++) {
+                const row = csvData[i]
                 const rowErrors: string[] = []
+                let isDuplicate = false
+                let duplicateType = ''
 
-                // Validate and format phone number
-                let phone = row.Number?.toString().replace(/\s+/g, '') || ''
+                // Safely convert all fields to strings
+                const phoneNumber = safeStringTrim(row.Number)
+                const name = safeStringTrim(row.Name)
+                const email = safeStringTrim(row.Email)
+                const leadSource = safeStringTrim(row['Lead Source'])
 
-                if (!phone) {
-                    rowErrors.push(`Row ${rowNumber}: Phone number is required`)
-                } else {
-                    // Remove +91 if present to normalize
+                // **CRITICAL VALIDATION - these will block upload**
+                if (!phoneNumber || phoneNumber === '') {
+                    rowErrors.push(`Row ${i + 1}: Phone number is required`)
+                }
+                if (!name || name === '') {
+                    rowErrors.push(`Row ${i + 1}: Name is required`)
+                }
+                if (!leadSource || leadSource === '') {
+                    rowErrors.push(`Row ${i + 1}: Lead Source is required`)
+                }
+
+                // Phone number format validation
+                if (phoneNumber) {
+                    let phone = phoneNumber.replace(/\s+/g, '')
                     if (phone.startsWith('+91')) {
                         phone = phone.substring(3)
                     } else if (phone.startsWith('91') && phone.length === 12) {
                         phone = phone.substring(2)
                     }
 
-                    // Validate 10 digit number
                     if (!/^\d{10}$/.test(phone)) {
-                        rowErrors.push(`Row ${rowNumber}: Phone number must be exactly 10 digits`)
+                        rowErrors.push(`Row ${i + 1}: Phone number must be exactly 10 digits`)
                     } else {
-                        // Add +91 prefix
-                        phone = `+91${phone}`
+                        // **DUPLICATE CHECK - this is a WARNING, not a blocking error**
+                        try {
+                            const phoneToCheck = phone
+                            const phoneWithPrefix = `+91${phone}`
+                            const originalPhone = phoneNumber
+
+                            // Check in acnLeads collection
+                            const leadsQuery = query(
+                                collection(db, 'acnLeads'),
+                                where('phonenumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
+                            )
+                            const leadsSnapshot = await getDocs(leadsQuery)
+
+                            // Check in acnAgents collection
+                            const agentsQuery = query(
+                                collection(db, 'acnAgents'),
+                                where('phonenumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
+                            )
+                            const agentsSnapshot = await getDocs(agentsQuery)
+
+                            if (!leadsSnapshot.empty) {
+                                isDuplicate = true
+                                duplicateType = 'leads'
+                                duplicateNumbers.push(`${phoneNumber} (exists in leads)`)
+                                // **Add to warnings, not critical errors**
+                                warnings.push(
+                                    `Row ${i + 1}: Phone number ${phoneNumber} already exists in leads database`,
+                                )
+                            } else if (!agentsSnapshot.empty) {
+                                isDuplicate = true
+                                duplicateType = 'agents'
+                                duplicateNumbers.push(`${phoneNumber} (exists in agents)`)
+                                // **Add to warnings, not critical errors**
+                                warnings.push(
+                                    `Row ${i + 1}: Phone number ${phoneNumber} already exists in agents database`,
+                                )
+                            }
+                        } catch (checkError) {
+                            console.error('Error checking duplicate for row', i + 1, ':', checkError)
+                            // Continue validation even if duplicate check fails
+                        }
                     }
                 }
 
-                // Validate name
-                if (!row.Name?.trim()) {
-                    rowErrors.push(`Row ${rowNumber}: Name is required`)
-                }
-
-                // Validate email if provided
-                if (row.Email && row.Email.trim()) {
+                // Email validation (if provided)
+                if (email && email !== '') {
                     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                    if (!emailRegex.test(row.Email.trim())) {
-                        rowErrors.push(`Row ${rowNumber}: Invalid email format`)
+                    if (!emailRegex.test(email)) {
+                        rowErrors.push(`Row ${i + 1}: Invalid email format`)
                     }
                 }
 
-                // Validate lead source
-                const leadSource = row['Lead Source']?.toLowerCase().trim()
-                if (!leadSource) {
-                    rowErrors.push(`Row ${rowNumber}: Lead Source is required`)
-                } else if (!validSources.includes(leadSource)) {
-                    rowErrors.push(`Row ${rowNumber}: Invalid Lead Source. Must be one of: ${validSources.join(', ')}`)
+                // Lead source validation
+                const validSources = [
+                    'whatsApp',
+                    'instagram',
+                    'facebook',
+                    'referral',
+                    'direct',
+                    'whatsapp group',
+                    'whatsapp campaign',
+                    'classified',
+                    'organic,',
+                    'meta',
+                ]
+                if (leadSource && !validSources.includes(leadSource.toLowerCase())) {
+                    rowErrors.push(`Row ${i + 1}: Invalid lead source. Valid sources: ${validSources.join(', ')}`)
                 }
 
-                if (rowErrors.length > 0) {
-                    errors.push(...rowErrors)
-                } else {
-                    validatedData.push({
-                        Number: phone,
-                        Name: row.Name.trim(),
-                        Email: row.Email?.trim() || '',
-                        'Lead Source': leadSource,
-                    })
+                // **Add critical errors only (not duplicate warnings)**
+                criticalErrors.push(...rowErrors)
+
+                // Add row to validated data with cleaned string values
+                validatedData.push({
+                    Number: phoneNumber,
+                    Name: name,
+                    Email: email,
+                    'Lead Source': leadSource,
+                    isDuplicate,
+                    duplicateType,
+                })
+            }
+
+            // Check for internal duplicates within the CSV
+            const phoneMap = new Map()
+            validatedData.forEach((row, index) => {
+                if (row.Number) {
+                    let phone = row.Number.replace(/\s+/g, '')
+                    if (phone.startsWith('+91')) {
+                        phone = phone.substring(3)
+                    } else if (phone.startsWith('91') && phone.length === 12) {
+                        phone = phone.substring(2)
+                    }
+
+                    if (phoneMap.has(phone)) {
+                        const firstOccurrence = phoneMap.get(phone)
+                        // **This is a critical error - internal duplicates**
+                        criticalErrors.push(
+                            `Row ${index + 1}: Duplicate phone number within CSV (first occurrence at row ${firstOccurrence + 1})`,
+                        )
+                        // Mark both as duplicates
+                        validatedData[index].isDuplicate = true
+                        validatedData[index].duplicateType = 'csv'
+                        validatedData[firstOccurrence].isDuplicate = true
+                        validatedData[firstOccurrence].duplicateType = 'csv'
+                    } else {
+                        phoneMap.set(phone, index)
+                    }
                 }
             })
 
-            if (errors.length > 0) {
-                return rejectWithValue(errors.join('\n'))
+            // **Only reject if there are CRITICAL errors (not duplicate warnings)**
+            if (criticalErrors.length > 0) {
+                return rejectWithValue(criticalErrors.join('\n'))
             }
 
-            console.log('✅ CSV validation successful:', validatedData.length, 'valid rows')
-            return validatedData
+            // Filter out duplicates for actual processing
+            const cleanData = validatedData.filter((row) => !row.isDuplicate)
+
+            console.log(
+                '✅ CSV validation successful:',
+                cleanData.length,
+                'valid rows,',
+                duplicateNumbers.length,
+                'duplicates found',
+            )
+
+            return {
+                validatedData: cleanData,
+                allData: validatedData, // Include all data for preview
+                duplicateInfo: {
+                    count: duplicateNumbers.length,
+                    numbers: duplicateNumbers,
+                },
+                warnings: warnings, // Include warnings for display
+            }
         } catch (error: any) {
-            console.error('❌ Error validating CSV:', error)
+            console.error('❌ Error validating CSV data:', error)
             return rejectWithValue(error.message || 'Failed to validate CSV data')
         }
     },
@@ -781,6 +888,8 @@ export const addBulkLeads = createAsyncThunk(
 
             const timestamp = Math.floor(Date.now() / 1000)
             const processedLeads: ProcessedLeadData[] = []
+            const duplicateNumbers: string[] = []
+            const skippedCount = { leads: 0, agents: 0 }
 
             // Get starting lead ID from admin collection
             const adminDocRef = doc(db, 'acn-admin', 'lastLeadId')
@@ -797,6 +906,75 @@ export const addBulkLeads = createAsyncThunk(
 
             // Process each lead
             for (const leadData of validatedData) {
+                // Format phone number for checking
+                let phoneToCheck = leadData.Number.replace(/\s+/g, '')
+                if (phoneToCheck.startsWith('+91')) {
+                    phoneToCheck = phoneToCheck.substring(3)
+                } else if (phoneToCheck.startsWith('91') && phoneToCheck.length === 12) {
+                    phoneToCheck = phoneToCheck.substring(2)
+                }
+
+                // Check for duplicate phone numbers
+                try {
+                    // Check in acnLeads collection with original format
+                    const leadsQuery = query(collection(db, 'acnLeads'), where('phonenumber', '==', leadData.Number))
+                    const leadsSnapshot = await getDocs(leadsQuery)
+
+                    // Check with +91 prefix
+                    const phoneWithPrefix = `+91${phoneToCheck}`
+                    const leadsQueryWithPrefix = query(
+                        collection(db, 'acnLeads'),
+                        where('phonenumber', '==', phoneWithPrefix),
+                    )
+                    const leadsSnapshotWithPrefix = await getDocs(leadsQueryWithPrefix)
+
+                    // Check without prefix (just 10 digits)
+                    const leadsQueryWithoutPrefix = query(
+                        collection(db, 'acnLeads'),
+                        where('phonenumber', '==', phoneToCheck),
+                    )
+                    const leadsSnapshotWithoutPrefix = await getDocs(leadsQueryWithoutPrefix)
+
+                    // Check in acnAgents collection with original format
+                    const agentsQuery = query(collection(db, 'acnAgents'), where('phonenumber', '==', leadData.Number))
+                    const agentsSnapshot = await getDocs(agentsQuery)
+
+                    // Check agents with +91 prefix
+                    const agentsQueryWithPrefix = query(
+                        collection(db, 'acnAgents'),
+                        where('phonenumber', '==', phoneWithPrefix),
+                    )
+                    const agentsSnapshotWithPrefix = await getDocs(agentsQueryWithPrefix)
+
+                    // Check agents without prefix
+                    const agentsQueryWithoutPrefix = query(
+                        collection(db, 'acnAgents'),
+                        where('phonenumber', '==', phoneToCheck),
+                    )
+                    const agentsSnapshotWithoutPrefix = await getDocs(agentsQueryWithoutPrefix)
+
+                    if (!leadsSnapshot.empty || !leadsSnapshotWithPrefix.empty || !leadsSnapshotWithoutPrefix.empty) {
+                        console.log(`⚠️ Phone number ${leadData.Number} already exists in acnLeads`)
+                        duplicateNumbers.push(`${leadData.Number} (exists in leads)`)
+                        skippedCount.leads++
+                        continue // Skip this lead
+                    }
+
+                    if (
+                        !agentsSnapshot.empty ||
+                        !agentsSnapshotWithPrefix.empty ||
+                        !agentsSnapshotWithoutPrefix.empty
+                    ) {
+                        console.log(`⚠️ Phone number ${leadData.Number} already exists in acnAgents`)
+                        duplicateNumbers.push(`${leadData.Number} (exists in agents)`)
+                        skippedCount.agents++
+                        continue // Skip this lead
+                    }
+                } catch (checkError) {
+                    console.error('Error checking duplicate phone:', checkError)
+                    // Continue processing if check fails
+                }
+
                 currentCount++
                 const leadId = `${label}${prefix}${currentCount}`
 
@@ -845,13 +1023,26 @@ export const addBulkLeads = createAsyncThunk(
                 processedLeads.push(newLead)
             }
 
-            // Update admin count
-            await updateDoc(adminDocRef, {
-                count: currentCount,
-            })
+            // Update admin count only if we added leads
+            if (processedLeads.length > 0) {
+                await updateDoc(adminDocRef, {
+                    count: currentCount,
+                })
+            }
 
-            console.log('✅ Bulk leads added successfully:', processedLeads.length)
-            return processedLeads
+            // Provide detailed success message
+            let message = `✅ Successfully added ${processedLeads.length} leads`
+            if (duplicateNumbers.length > 0) {
+                message += `\n⚠️ Skipped ${duplicateNumbers.length} duplicate numbers`
+            }
+
+            console.log(message)
+            return {
+                leads: processedLeads,
+                duplicates: duplicateNumbers,
+                skippedCount,
+                message,
+            }
         } catch (error: any) {
             console.error('❌ Error adding bulk leads:', error)
             return rejectWithValue(error.message || 'Failed to add bulk leads')
@@ -940,6 +1131,61 @@ export const addManualLead = createAsyncThunk(
         } catch (error: any) {
             console.error('❌ Error adding manual lead:', error)
             return rejectWithValue(error.message || 'Failed to add manual lead')
+        }
+    },
+)
+
+// Add this new thunk to your leadsService file
+export const validateLeadData = createAsyncThunk(
+    'leads/validateLeadData',
+    async (leadData: { phone: string; isManual?: boolean }, { rejectWithValue }) => {
+        try {
+            console.log('🔄 Validating lead data:', leadData.phone)
+
+            // Format phone number for checking
+            let phone = leadData.phone.replace(/\s+/g, '')
+            if (!phone.startsWith('+91')) {
+                if (phone.startsWith('91') && phone.length === 12) {
+                    phone = `+${phone}`
+                } else {
+                    phone = `+91${phone}`
+                }
+            }
+
+            const phoneToCheck = phone.replace(/^\+91/, '')
+
+            // Check in acnLeads collection
+            const leadsQuery = query(collection(db, 'acnLeads'), where('phonenumber', '==', phone))
+            const leadsSnapshot = await getDocs(leadsQuery)
+
+            // Also check without +91 prefix
+            const leadsQueryWithoutPrefix = query(collection(db, 'acnLeads'), where('phonenumber', '==', phoneToCheck))
+            const leadsSnapshotWithoutPrefix = await getDocs(leadsQueryWithoutPrefix)
+
+            // Check in acnAgents collection
+            const agentsQuery = query(collection(db, 'acnAgents'), where('phonenumber', '==', phone))
+            const agentsSnapshot = await getDocs(agentsQuery)
+
+            // Also check agents without +91 prefix
+            const agentsQueryWithoutPrefix = query(
+                collection(db, 'acnAgents'),
+                where('phonenumber', '==', phoneToCheck),
+            )
+            const agentsSnapshotWithoutPrefix = await getDocs(agentsQueryWithoutPrefix)
+
+            if (!leadsSnapshot.empty || !leadsSnapshotWithoutPrefix.empty) {
+                return rejectWithValue(`Phone number ${phone} already exists in leads database`)
+            }
+
+            if (!agentsSnapshot.empty || !agentsSnapshotWithoutPrefix.empty) {
+                return rejectWithValue(`Phone number ${phone} already exists in agents database`)
+            }
+
+            console.log('✅ Phone number validation successful')
+            return { phone, isValid: true }
+        } catch (error: any) {
+            console.error('❌ Error validating lead data:', error)
+            return rejectWithValue(error.message || 'Failed to validate lead data')
         }
     },
 )

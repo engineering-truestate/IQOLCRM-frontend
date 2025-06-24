@@ -544,7 +544,7 @@ const Leads = () => {
                     placeholder='Search name and number'
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className='h-7 w-full sm:w-68 bg-gray-300'
+                    className='h-7 w-full sm:w-68 bg-gray-300 '
                 />
 
                 <DateRangePicker

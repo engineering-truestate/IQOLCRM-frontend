@@ -49,7 +49,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
 
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
-        tag: 'cold',
+        tag: '',
         note: '',
     })
 
@@ -160,16 +160,16 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-50 z-40 ' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-66 z-40 ' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
             <div
-                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-lg shadow-2xl'
+                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-2xl shadow-2xl'
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='flex flex-col'>
                     {/* Modal Header */}
-                    <div className='flex items-center justify-between p-6'>
+                    <div className='flex items-center justify-between py-8 px-10'>
                         <h2 className='text-xl font-semibold text-gray-900'>{toCapitalizedWords(title)}</h2>
                         <button
                             onClick={onClose}
@@ -177,8 +177,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                             className='p-1 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50'
                         >
                             <svg
-                                width='20'
-                                height='21'
+                                width='24'
+                                height='24'
                                 viewBox='0 0 20 21'
                                 fill='none'
                                 xmlns='http://www.w3.org/2000/svg'
@@ -209,7 +209,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                     </div>
 
                     {/* Modal Content */}
-                    <div className='px-6 pt-0'>
+                    <div className='px-10 pt-0'>
                         <div className='space-y-6'>
                             {/* Status and Tag Fields */}
                             <div className='grid grid-cols-3 gap-4'>
@@ -222,7 +222,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                                         placeholder='Complete'
                                         className='w-full relative inline-block'
                                         triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.label ? '[&>span]:font-medium text-black' : ''
+                                            taskStatusOptions ? '[&>span]:font-medium text-black' : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -245,10 +245,12 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                                         onSelect={(value) => handleInputChange('tag', value)}
                                         defaultValue={formData.tag}
                                         placeholder='Select tag'
-                                        className='w-full'
-                                        triggerClassName='w-full px-4 py-1 border border-gray-300 text-gray-500 rounded-sm bg-white flex items-center justify-between text-left'
-                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                        optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                        className='w-full relative inline-block'
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.tag ? '[&>span]:font-medium text-black' : ''
+                                        }`}
+                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                         disabled={isLoading}
                                     />
                                 </div>
