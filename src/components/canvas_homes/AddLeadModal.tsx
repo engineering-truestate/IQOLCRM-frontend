@@ -1,15 +1,15 @@
-import React, { use, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Dropdown from '../../components/design-elements/Dropdown'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { userService } from '../../services/canvas_homes/userService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import type { Lead, User, Enquiry } from '../../services/canvas_homes/types'
 import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
-import { useNavigate } from 'react-router-dom'
+// import { useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch, RootState } from '../../store'
 import { useSelector } from 'react-redux'
-import { fetchPreLaunchProperties, getPreLaunchAllPropertyName } from '../../store/actions/restack/preLaunchActions'
+import { fetchPreLaunchProperties } from '../../store/actions/restack/preLaunchActions'
 
 interface AddLeadModalProps {
     isOpen: boolean
@@ -33,7 +33,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [isRefreshingAlgolia, setIsRefreshingAlgolia] = useState(false)
+    const [isRefreshingAlgolia, _setIsRefreshingAlgolia] = useState(false)
     const [phoneError, setPhoneError] = useState('')
 
     const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
@@ -277,7 +277,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
     return (
         <>
-            <div className='fixed top-0 left-0 w-[75%] h-full bg-black opacity-62 z-40' onClick={onClose} />
+            <div className='fixed top-0 left-0 w-[75%] h-full bg-black opacity-66 z-40' onClick={onClose} />
             <div className='fixed top-0 right-0 h-full w-[25%] bg-white z-50 shadow-2xl border-l border-gray-200'>
                 <div className='flex flex-col h-full'>
                     <div className='flex items-center justify-between p-6 pb-0'>
@@ -320,7 +320,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                     value={formData.name}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
                                     placeholder='Enter lead name'
-                                    className='w-full px-4 py-2.5 border font-medium border-gray-300 rounded-lg focus:outline-none focus:border-black text-xs'
+                                    className='w-full px-4 py-2 border font-medium border-gray-300 rounded-lg focus:outline-none focus:border-black text-sm'
                                     disabled={isLoading}
                                     required
                                     maxLength={50}
@@ -360,9 +360,9 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                             }
                                         }}
                                         placeholder='Enter phone no.'
-                                        className={`w-full pl-10 pr-4 py-2.5 border font-medium ${
+                                        className={`w-full pl-10 pr-4 py-2 border font-medium ${
                                             phoneError ? 'border-red-500' : 'border-gray-300'
-                                        } rounded-lg focus:outline-none focus:border-black text-xs`}
+                                        } rounded-lg focus:outline-none focus:border-black text-sm`}
                                         disabled={isLoading || isRefreshingAlgolia}
                                         required
                                     />
@@ -383,10 +383,13 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                             formData.propertyId ? `${formData.propertyId}|${formData.propertyName}` : ''
                                         }
                                         placeholder='Select property name'
-                                        className='w-full' // No 'relative' here
-                                        triggerClassName='w-full px-4 py-2.5 border text-gray-500 font-medium text-xs border-gray-300 rounded-lg focus:outline-none focus:border-black appearance-none bg-white flex items-center justify-between text-left'
-                                        menuClassName='absolute z-10 top-full mt-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
-                                        optionClassName='w-full px-4 py-2.5 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 text-xs'
+                                        // className='w-full' // No 'relative' here
+                                        className='w-full relative inline-block'
+                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white flex items-center justify-between disabled:opacity-50 ${
+                                            formData.propertyName ? '[&>span]:font-medium  text-black' : ''
+                                        }`}
+                                        menuClassName='absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg'
+                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                         disabled={isLoading || isRefreshingAlgolia}
                                     />
                                 </div>
@@ -402,17 +405,19 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                         onSelect={(value) => handleInputChange('source', value)}
                                         defaultValue={formData.source}
                                         placeholder='Select Source'
-                                        className='w-full relative'
-                                        triggerClassName='w-full px-4 py-2.5 border text-gray-500 font-medium text-xs border-gray-300 rounded-lg focus:outline-none focus:border-black appearance-none bg-white flex items-center justify-between text-left'
-                                        menuClassName='absolute z-10 top-full mt-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
-                                        optionClassName='w-full px-4 py-2.5 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 text-xs'
+                                        className='w-full relative inline-block'
+                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.source ? '[&>span]:font-medium  text-black' : ''
+                                        }`}
+                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                         disabled={isLoading || isRefreshingAlgolia}
                                     />
                                 </div>
 
                                 <div>
                                     <label htmlFor='agent' className='block text-sm font-medium mb-2'>
-                                        Agent
+                                        Agent <span className='text-red-500'>*</span>
                                     </label>
                                     <Dropdown
                                         options={agentOptions}
@@ -421,10 +426,12 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                             formData.agentId ? `${formData.agentId}|${formData.agentName}` : ''
                                         }
                                         placeholder='Select Agent'
-                                        className='w-full relative'
-                                        triggerClassName='w-full px-4 py-2.5 border text-gray-500 font-medium text-xs border-gray-300 rounded-lg focus:outline-none focus:border-black appearance-none bg-white flex items-center justify-between text-left'
-                                        menuClassName='absolute z-10 top-full mt-1 left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'
-                                        optionClassName='w-full px-4 py-2.5 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 text-xs'
+                                        className='w-full relative inline-block'
+                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-black disabled:opacity-50 ${
+                                            formData.agentName ? '[&>span]:font-medium  text-black' : ''
+                                        }`}
+                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                         disabled={isLoading || isRefreshingAlgolia}
                                     />
                                 </div>

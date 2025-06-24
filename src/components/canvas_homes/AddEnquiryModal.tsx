@@ -8,7 +8,7 @@ import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch, RootState } from '../../store'
 import { useSelector } from 'react-redux'
-import { fetchPreLaunchProperties, getPreLaunchAllPropertyName } from '../../store/actions/restack/preLaunchActions'
+import { fetchPreLaunchProperties } from '../../store/actions/restack/preLaunchActions'
 
 interface AddEnquiryModalProps {
     isOpen: boolean
@@ -340,7 +340,10 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                         <div className='space-y-6'>
                             {/* Property Name */}
                             <div>
-                                <label className='block text-sm font-medium text-gray-700 mb-2'>Property Name</label>
+                                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                    Property Name <span className='text-red-500'>*</span>
+                                </label>
+
                                 <Dropdown
                                     options={propertyOptions}
                                     onSelect={handlePropertySelect}
@@ -350,7 +353,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                                     placeholder='Select Property'
                                     className='w-full relative inline-block'
                                     triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                        formData.propertyName ? '[&>span]:font-medium text-black' : ''
+                                        formData.propertyName ? '[&>span]:font-medium  text-black' : ''
                                     }`}
                                     menuClassName='absolute z-50 mt-1 max-h-40 overflow-y-auto w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                     optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
@@ -362,7 +365,9 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                             <div className='grid grid-cols-2 gap-3'>
                                 {/* Agent Name */}
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Agent Name</label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Agent Name <span className='text-red-500'>*</span>
+                                    </label>
                                     <Dropdown
                                         options={agents}
                                         onSelect={handleAgentSelect}
@@ -372,8 +377,8 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                                         placeholder='Select name'
                                         className='w-full relative inline-block'
                                         triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.agentName ? '[&>span]:font-medium text-black' : ''
-                                        }`}
+                                            formData.agentName ? '[&>span]:font-medium  text-black' : ''
+                                        } truncate overflow-hidden whitespace-nowrap max-w-full`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                         optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                         disabled={isLoading}

@@ -31,13 +31,14 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
     additionalPhoneNumbers = [],
 }) => {
     const [formData, setFormData] = useState({
-        phoneNumber: '+91 ',
-        label: 'whatsapp' as 'whatsapp' | 'call' | '',
+        phoneNumber: '',
+        label: '' as 'whatsapp' | 'call' | '',
         emailAddress: '',
     })
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [phoneError, setPhoneError] = useState('')
 
     // Label options for phone numbers
     const labelOptions = [
@@ -46,22 +47,6 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
     ]
 
     const handleInputChange = (field: keyof typeof formData, value: string) => {
-        // For phone number, ensure it's formatted properly while typing
-        if (field === 'phoneNumber') {
-            // If user deletes everything, reset to +91
-            if (!value || value.length === 0) {
-                value = '+91'
-            }
-            // If they delete the +91 prefix, add it back
-            else if (!value.startsWith('+')) {
-                value = '+91' + value.replace(/[^\d]/g, '')
-            }
-            // If they have +91 and try to edit it, preserve the +91
-            else if (value.startsWith('+') && !value.startsWith('+91')) {
-                value = '+91' + value.substring(1).replace(/[^\d]/g, '')
-            }
-        }
-
         setFormData((prev) => ({
             ...prev,
             [field]: value,
@@ -72,23 +57,11 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
     }
 
     const formatPhoneNumber = (number: string): string => {
-        // First, remove any non-digit characters except the plus sign
         const cleanNumber = number.replace(/[^\d+]/g, '')
-
-        // If the number has a +91 prefix followed by 10 digits, format it nicely
-        if (cleanNumber.startsWith('+91') && cleanNumber.length >= 13) {
-            const digits = cleanNumber.substring(3) // Get digits after +91
-            return `+91 ${digits}`
-        }
-
-        // If it's just 10 digits without country code, add the +91 prefix
         if (cleanNumber.length === 10 && /^\d{10}$/.test(cleanNumber)) {
             return `+91 ${cleanNumber}`
         }
-
-        // If it starts with + but isn't properly formatted yet
         if (cleanNumber.startsWith('+')) {
-            // Find the country code (1-3 digits after +)
             const countryCodeMatch = cleanNumber.match(/^\+(\d{1,3})/)
             if (countryCodeMatch) {
                 const countryCode = countryCodeMatch[1]
@@ -96,40 +69,30 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
                 return `+${countryCode} ${rest}`
             }
         }
-
-        // If all else fails, return the cleaned number
         return cleanNumber
     }
 
     const validateForm = (): boolean => {
-        // Phone number is required and must be more than just "+91"
-        if (!formData.phoneNumber.trim() || formData.phoneNumber.trim() === '+91') {
-            setError('Phone Number is required')
+        const number = formData.phoneNumber.trim()
+
+        if (!number || number.length !== 10) {
+            setError('Phone number must be exactly 10 digits')
             return false
         }
 
-        // Basic phone number validation - must be +91 followed by 10 digits
-        const phoneRegex = /^\+91\s?\d{10}$/
-        if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
-            setError('Please enter a valid 10-digit phone number with +91 prefix')
-            return false
-        }
+        const formattedNumber = `+91${number}`
 
-        // Check if phone number already exists (current or additional)
-        const newNumber = formatPhoneNumber(formData.phoneNumber.trim())
-
-        if (currentPhoneNumber === newNumber) {
+        if (currentPhoneNumber === formattedNumber) {
             setError('This phone number is already the main number for this lead')
             return false
         }
 
-        const phoneExists = additionalPhoneNumbers.some((phone) => phone.number === newNumber)
+        const phoneExists = additionalPhoneNumbers.some((phone) => phone.number === formattedNumber)
         if (phoneExists) {
             setError('This phone number already exists for this lead')
             return false
         }
 
-        // Email validation if provided
         if (formData.emailAddress.trim()) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
             if (!emailRegex.test(formData.emailAddress.trim())) {
@@ -138,7 +101,6 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
             }
         }
 
-        // Check if lead ID is provided
         if (!leadId) {
             setError('Lead ID is required')
             return false
@@ -146,67 +108,45 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
 
         return true
     }
+
     const handleSave = async () => {
         setError(null)
 
-        if (!validateForm()) {
-            return
-        }
+        if (!validateForm()) return
 
         setIsLoading(true)
 
         try {
-            // Format phone number consistently
-            const formattedPhoneNumber = formatPhoneNumber(formData.phoneNumber.trim())
+            const formattedPhoneNumber = `+91${formData.phoneNumber.trim()}`
 
-            // Prepare the new phone number entry
             const newPhoneEntry = {
                 number: formattedPhoneNumber,
                 label: formData.label,
                 addedAt: getUnixDateTime(),
             }
 
-            // Prepare update data
             const updateData: any = {
                 lastModified: getUnixDateTime(),
             }
 
-            // Add email if provided
             if (formData.emailAddress.trim()) {
                 updateData.emailAddress = formData.emailAddress.trim()
             }
 
-            // Handle phone numbers
             if (additionalPhoneNumbers.length > 0 || currentPhoneNumber) {
-                // Already have additional numbers, add to the array
                 updateData.phoneNumbers = [...additionalPhoneNumbers, newPhoneEntry]
             } else {
-                // No phone numbers at all, set as main number
                 updateData.phoneNumber = formattedPhoneNumber
                 updateData.label = formData.label
             }
 
             console.log('Updating lead with data:', updateData)
 
-            // Run both updates in parallel using Promise.all
-            const leadUpdatePromise = leadService.update(leadId, updateData)
-            const userUpdatePromise = userService.update(userId, updateData)
+            await Promise.all([leadService.update(leadId, updateData), userService.update(userId, updateData)])
 
-            // Wait for both updates to finish
-            await Promise.all([leadUpdatePromise, userUpdatePromise])
-
-            console.log('Lead updated successfully')
-
-            // Call the callback to refresh the lead data
-            if (onDetailsAdded) {
-                onDetailsAdded()
-            }
-
-            // Show success message
             toast.success('Details added successfully!')
-
-            // Reset form and close modal
             handleDiscard()
+            if (onDetailsAdded) onDetailsAdded()
         } catch (error) {
             console.error('Error updating lead:', error)
             setError('Failed to add details. Please try again.')
@@ -218,10 +158,11 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
 
     const handleDiscard = () => {
         setFormData({
-            phoneNumber: '+91',
+            phoneNumber: '',
             label: '',
             emailAddress: '',
         })
+        setPhoneError('')
         setError(null)
         onClose()
     }
@@ -288,16 +229,43 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
                         <div className='space-y-6'>
                             <div className='grid grid-cols-2 gap-3'>
                                 {/* Phone Number Input */}
-                                <div>
+                                <div className='relative'>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>Phone No.</label>
-                                    <input
-                                        type='tel'
-                                        value={formData.phoneNumber}
-                                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                                        placeholder=''
-                                        className='w-full px-4 py-1 border font-normal text-gray-500 border-gray-300 rounded-sm focus:outline-none focus:border-black text-sm'
-                                        disabled={isLoading}
-                                    />
+                                    <div className='relative'>
+                                        <span className='absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 h-8 leading-8 flex items-center pointer-events-none'>
+                                            +91
+                                        </span>
+                                        <input
+                                            type='tel'
+                                            inputMode='numeric'
+                                            pattern='[0-9]*'
+                                            value={formData.phoneNumber}
+                                            onChange={(e) => {
+                                                const numericValue = e.target.value.replace(/\D/g, '')
+                                                if (numericValue.length > 10) {
+                                                    setPhoneError('Phone number cannot exceed 10 digits')
+                                                } else {
+                                                    setPhoneError('')
+                                                    handleInputChange('phoneNumber', numericValue)
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                const length = formData.phoneNumber.length
+                                                if (length > 0 && length !== 10) {
+                                                    setPhoneError('Phone number must be exactly 10 digits')
+                                                } else {
+                                                    setPhoneError('')
+                                                }
+                                            }}
+                                            placeholder='Enter phone no.'
+                                            className={`w-full pl-12 h-8 text-sm leading-8 ${
+                                                phoneError ? 'border-red-500' : 'border-gray-300'
+                                            } border rounded-sm focus:outline-none focus:border-black`}
+                                            disabled={isLoading}
+                                            required
+                                        />
+                                    </div>
+                                    {phoneError && <p className='text-red-500 text-xs mt-1'>{phoneError}</p>}
                                 </div>
 
                                 {/* Label Dropdown */}
