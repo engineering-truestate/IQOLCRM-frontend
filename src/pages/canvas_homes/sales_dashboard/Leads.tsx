@@ -713,7 +713,7 @@ const Leads = () => {
                     borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
                     selectedRows={selectedRows}
                     headerClassName='font-normal text-left'
-                    cellClassName='text-left border'
+                    cellClassName='text-left'
                     onRowSelect={handleRowSelect}
                     onRowClick={handleRowClick}
                     onSelectAll={handleSelectAllRows}
