@@ -20,12 +20,6 @@ import AddLeadModal from '../../../components/acn/AddLeadModal'
 import phoneic from '/icons/acn/phone.svg'
 import notesic from '/icons/acn/notes.svg'
 import resetic from '/icons/acn/rotate-left.svg'
-import facebookic from '/icons/acn/facebook.svg'
-import classifiedic from '/icons/acn/classified.svg'
-import whatsappic from '/icons/acn/whatsapp.svg'
-import instagramic from '/icons/acn/insta.svg'
-import referic from '/icons/acn/referral.svg'
-import organicic from '/icons/acn/organic.svg'
 import MetricsCards from '../../../components/design-elements/MetricCards'
 import algoliaAgentsService from '../../../services/acn/agents/algoliaAgentsService'
 import type { AgentSearchFilters } from '../../../services/acn/agents/algoliaAgentsService'
@@ -54,43 +48,6 @@ const payStatusOptions = [
     { label: 'Will Pay', value: 'will pay', color: '#FEECED', textColor: '#000000' },
     { label: 'Will Not', value: 'will not', color: '#FEECED', textColor: '#000000' },
 ]
-
-// Lead Source component with outlined design and SVG icons
-const getSourceIcon = (source: string) => {
-    switch (source) {
-        case 'WhatsApp':
-            return <img src={whatsappic} alt='WhatsApp' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-        case 'Instagram':
-            return <img src={instagramic} alt='Instagram' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-        case 'Facebook':
-            return <img src={facebookic} alt='Facebook' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-        case 'Classified':
-            return <img src={classifiedic} alt='Classified' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-        case 'Organic':
-            return <img src={organicic} alt='Organic' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-        case 'Referral':
-            return <img src={referic} alt='Referral' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-        default:
-            return (
-                <svg className='w-4 h-4 text-gray-600 flex-shrink-0' fill='currentColor' viewBox='0 0 24 24'>
-                    <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' />
-                </svg>
-            )
-    }
-}
-
-const LeadSource = ({ source }: { source: string }) => {
-    return (
-        <div className='flex items-center gap-2 whitespace-nowrap'>
-            <span className='inline-flex items-center rounded-full border border-gray-300 px-3 py-2 text-xs font-medium bg-white'>
-                <span className='flex items-center gap-2'>
-                    {getSourceIcon(source)}
-                    <span className='text-sm text-black'>{source}</span>
-                </span>
-            </span>
-        </div>
-    )
-}
 
 // FiltersBar component for all filters
 interface FiltersBarProps {
