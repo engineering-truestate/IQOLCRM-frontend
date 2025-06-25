@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getUnixDateTime, getUnixDateTimeCustom } from '../helper/getUnixDateTime'
 import useAuth from '../../hooks/useAuth'
@@ -57,7 +57,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
     const agentName = user?.displayName || ''
 
     // Determine leadStatus based on taskType and taskState
-    const getLeadStatus = () => {
+    const getLeadStatus = React.useCallback(() => {
         if (taskType === 'site visit' && taskState === 'not visited') {
             return formData.eventName === 'visit scheduled' ? 'interested' : 'follow up'
         } else if (taskType === 'initial contact' && taskState === 'connected') {
@@ -68,7 +68,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             return formData.eventName === 'visit scheduled' ? 'interested' : 'follow up'
         }
         return 'follow up'
-    }
+    }, [taskType, taskState, formData.eventName])
 
     // Get stage based on task type and state
     const getStage = () => {
@@ -120,7 +120,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 leadStatus: newLeadStatus,
             }))
         }
-    }, [formData.eventName, taskType, taskState])
+    }, [formData.eventName, taskType, taskState, getLeadStatus])
 
     const handleInputChange = (field: string, value: string) => {
         setFormData((prev) => ({
@@ -180,7 +180,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 data: {
                     taskType: taskType,
                     leadStatus: leadStatus,
-                    tag: leadData.tag,
+                    tag: leadData?.tag,
                     reason: formData.reason,
                     note: formData.note.trim() || '',
                 },
@@ -198,7 +198,19 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 : Promise.resolve()
 
             const leadUpdateData = {
-                leadStatus: leadStatus,
+                leadStatus: leadStatus as
+                    | 'interested'
+                    | 'follow up'
+                    | 'closed'
+                    | 'not interested'
+                    | 'not connected'
+                    | 'visit unsuccessful'
+                    | 'visit dropped'
+                    | 'eoi dropped'
+                    | 'booking dropped'
+                    | 'requirement collected'
+                    | null
+                    | undefined,
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledTimestamp,
                 ...(stage && { stage: stage }),
@@ -214,7 +226,9 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             ])
 
             dispatch(clearTaskId())
-            refreshData()
+            if (refreshData) {
+                refreshData()
+            }
 
             toast.success('Event rescheduled successfully!')
             onClose()

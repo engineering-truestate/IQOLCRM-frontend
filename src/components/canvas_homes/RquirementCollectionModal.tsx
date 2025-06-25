@@ -12,7 +12,7 @@ import type { AppDispatch } from '../../store'
 import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 import useAuth from '../../hooks/useAuth'
-import { useNavigate } from 'react-router-dom'
+// import { useNavigate } from 'react-router-dom'
 
 interface RootState {
     taskId: {
@@ -40,7 +40,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
     const [note, setNote] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
-    const navigate = useNavigate()
+    // const navigate = useNavigate()
 
     // Get IDs from Redux and route params
     const { taskId, enquiryId, taskState } = useSelector((state: RootState) => state.taskId)
@@ -96,7 +96,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
             const currentTimestamp = getUnixDateTime()
 
             // 1. Determine lead state and stage based on task type
-            let leadState = 'open'
+            let leadState: 'closed' | 'open' | 'fresh' | 'dropped' = 'open'
             let leadStage = currentTaskType
 
             switch (currentTaskType.toLowerCase()) {
@@ -144,7 +144,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                 data: {
                     taskType: currentTaskType,
                     leadStatus: 'requirement collected',
-                    tag: leadData.tag !== selectedTag ? [leadData.tag, selectedTag] : [selectedTag],
+                    tag: leadData?.tag !== selectedTag ? [leadData?.tag, selectedTag] : [selectedTag],
                     note: note.trim() || '',
                 },
             })
@@ -164,7 +164,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                 leadStatus: 'requirement collected',
                 state: leadState,
                 stage: leadStage,
-                completionDate: currentTimestamp,
+                // completionDate: currentTimestamp,
                 lastModified: currentTimestamp,
             })
 

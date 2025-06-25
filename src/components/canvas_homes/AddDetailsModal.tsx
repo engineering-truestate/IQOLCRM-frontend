@@ -27,7 +27,7 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
     leadId = '',
     userId = '',
     currentPhoneNumber = '',
-    currentLabel = 'call',
+    // currentLabel = 'call',
     additionalPhoneNumbers = [],
 }) => {
     const [formData, setFormData] = useState({
@@ -56,21 +56,21 @@ const AddDetailsModal: React.FC<AddDetailsModalProps> = ({
         if (error) setError(null)
     }
 
-    const formatPhoneNumber = (number: string): string => {
-        const cleanNumber = number.replace(/[^\d+]/g, '')
-        if (cleanNumber.length === 10 && /^\d{10}$/.test(cleanNumber)) {
-            return `+91 ${cleanNumber}`
-        }
-        if (cleanNumber.startsWith('+')) {
-            const countryCodeMatch = cleanNumber.match(/^\+(\d{1,3})/)
-            if (countryCodeMatch) {
-                const countryCode = countryCodeMatch[1]
-                const rest = cleanNumber.substring(countryCode.length + 1)
-                return `+${countryCode} ${rest}`
-            }
-        }
-        return cleanNumber
-    }
+    // const formatPhoneNumber = (number: string): string => {
+    //     const cleanNumber = number.replace(/[^\d+]/g, '')
+    //     if (cleanNumber.length === 10 && /^\d{10}$/.test(cleanNumber)) {
+    //         return `+91 ${cleanNumber}`
+    //     }
+    //     if (cleanNumber.startsWith('+')) {
+    //         const countryCodeMatch = cleanNumber.match(/^\+(\d{1,3})/)
+    //         if (countryCodeMatch) {
+    //             const countryCode = countryCodeMatch[1]
+    //             const rest = cleanNumber.substring(countryCode.length + 1)
+    //             return `+${countryCode} ${rest}`
+    //         }
+    //     }
+    //     return cleanNumber
+    // }
 
     const validateForm = (): boolean => {
         const number = formData.phoneNumber.trim()

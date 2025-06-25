@@ -9,10 +9,9 @@ import { leadService } from '../../services/canvas_homes/leadService'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
-import { useNavigate } from 'react-router'
 import { useDispatch } from 'react-redux'
 import Dropdown from '../design-elements/Dropdown'
-import { fetchPreLaunchProperties, getPreLaunchAllPropertyName } from '../../store/actions/restack/preLaunchActions'
+import { fetchPreLaunchProperties } from '../../store/actions/restack/preLaunchActions'
 
 interface ChangePropertyModalProps {
     isOpen: boolean
@@ -35,8 +34,8 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     const agentName = user?.displayName || ''
     const previousPropertyName = leadData?.propertyName || 'Previous Property'
 
-    const currentTimestamp = getUnixDateTime()
-    const enquiryDateTimestamp = currentTimestamp
+    // const currentTimestamp = getUnixDateTime()
+    // const enquiryDateTimestamp = currentTimestamp
 
     const [formData, setFormData] = useState({
         reason: '',
@@ -88,7 +87,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
         { value: 'other', label: 'Other' },
     ]
 
-    const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
+    // const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
 
     const tagOptions = [
         { value: 'cold', label: 'Cold' },
@@ -194,12 +193,10 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                         },
                     ],
                     notes: [],
-                    state: 'open',
+                    state: 'open' as 'open' | 'closed' | 'fresh' | 'dropped' | null,
                     tag: formData.tag || 'cold',
                     documents: [],
                     requirements: [],
-                    added: currentTimestamp,
-                    lastModified: currentTimestamp,
                 }
 
                 const createNewEnquiry = enquiryService.create(newEnquiry)
@@ -211,7 +208,19 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     propertyName: formData.propertyName,
                     propertyId: formData.propertyId,
                     tag: formData.tag,
-                    leadStatus: 'interested',
+                    leadStatus: 'interested' as
+                        | 'closed'
+                        | 'interested'
+                        | 'follow up'
+                        | 'not interested'
+                        | 'not connected'
+                        | 'visit unsuccessful'
+                        | 'visit dropped'
+                        | 'eoi dropped'
+                        | 'booking dropped'
+                        | 'requirement collected'
+                        | null
+                        | undefined,
                     completionDate: currentTimestamp,
                     lastModified: currentTimestamp,
                 }

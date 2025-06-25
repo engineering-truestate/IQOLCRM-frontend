@@ -1,28 +1,40 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import { useParams } from 'react-router'
 import useAuth from '../../hooks/useAuth'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../store'
-import { clearTaskId, setTaskState } from '../../store/reducers/canvas-homes/taskIdReducer'
+import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
-import { useNavigate } from 'react-router'
+// import { useNavigate } from 'react-router'
 import Dropdown from '../design-elements/Dropdown'
 import { toCapitalizedWords } from '../helper/toCapitalize'
+// import type { Lead } from '../../services/canvas_homes'
 
 interface TaskCompleteModalProps {
     isOpen: boolean
     onClose: () => void
     title?: string
     stage?: string
-    state?: string
-    leadStatus?: string
+    state?: 'open' | 'closed' | 'fresh' | 'dropped' | null | undefined
+    leadStatus:
+        | 'interested'
+        | 'follow up'
+        | 'not interested'
+        | 'not connected'
+        | 'visit unsuccessful'
+        | 'visit dropped'
+        | 'eoi dropped'
+        | 'booking dropped'
+        | 'requirement collected'
+        | 'closed'
+        | null
     taskType?: string
     refreshData?: any
 }
@@ -33,10 +45,10 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     title = 'Interested',
     stage,
     state = 'open',
-    leadStatus = 'Interested',
+    leadStatus = 'interested',
     taskType,
     refreshData,
-}) => {
+}: TaskCompleteModalProps) => {
     const dispatch = useDispatch<AppDispatch>()
     const taskId = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
@@ -53,7 +65,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
         note: '',
     })
 
-    const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
+    // const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
 
     const tagOptions = [
         { value: 'cold', label: 'Cold' },
@@ -114,7 +126,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 data: {
                     taskType: taskType || 'Task',
                     leadStatus: leadStatus,
-                    tag: leadData.tag !== formData.tag ? [leadData.tag, formData.tag] : [formData.tag],
+                    tag: (leadData?.tag ?? '') !== formData.tag ? [leadData?.tag ?? '', formData.tag] : [formData.tag],
                     note: formData.note.trim() || '',
                 },
             })
@@ -125,7 +137,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 stage: stage,
                 leadStatus: leadStatus,
                 tag: formData.tag,
-                completionDate: currentTimestamp,
+                // completionDate: currentTimestamp,
                 lastModified: currentTimestamp,
             })
 

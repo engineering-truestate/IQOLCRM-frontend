@@ -105,7 +105,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
         { value: 'other', label: 'Other' },
     ]
 
-    const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
+    // const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
 
     const tagOptions = [
         { value: 'cold', label: 'Cold' },
@@ -136,7 +136,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
 
                 // Prepare enquiry update data
                 const enqData = {
-                    state: 'dropped',
+                    state: 'dropped' as 'open' | 'closed' | 'fresh' | 'dropped' | null,
                     stage: formData.stage,
                     leadStatus: formData.leadStatus,
                     tag: formData.tag,
@@ -161,7 +161,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                         note: formData.note,
                         taskType: taskType,
                         leadStatus: formData.leadStatus,
-                        tag: leadData.tag !== formData.tag ? [leadData.tag, formData.tag] : [formData.tag],
+                        tag: leadData?.tag !== formData.tag ? [leadData?.tag, formData.tag] : [formData.tag],
                     },
                 })
 
@@ -180,7 +180,19 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                 const updateLeadData = {
                     state: 'dropped',
                     stage: formData.stage,
-                    leadStatus: formData.leadStatus,
+                    leadStatus: formData.leadStatus as
+                        | 'not connected'
+                        | 'closed'
+                        | 'interested'
+                        | 'follow up'
+                        | 'not interested'
+                        | 'visit unsuccessful'
+                        | 'visit dropped'
+                        | 'eoi dropped'
+                        | 'booking dropped'
+                        | 'requirement collected'
+                        | null
+                        | undefined,
                     completionDate: currentTimestamp,
                     tag: formData.tag,
                     lastModified: currentTimestamp,
