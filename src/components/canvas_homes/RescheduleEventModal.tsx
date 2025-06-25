@@ -9,7 +9,7 @@ import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { taskService } from '../../services/canvas_homes/taskService'
-import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import Dropdown from '../design-elements/Dropdown'
 
 interface RootState {

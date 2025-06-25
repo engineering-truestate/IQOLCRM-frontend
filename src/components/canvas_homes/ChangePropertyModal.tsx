@@ -1,4 +1,4 @@
-import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../store'

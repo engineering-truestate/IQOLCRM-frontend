@@ -10,7 +10,7 @@ import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../store'
 import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
-import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import useAuth from '../../hooks/useAuth'
 // import { useNavigate } from 'react-router-dom'
 
