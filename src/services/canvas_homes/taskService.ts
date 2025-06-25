@@ -77,7 +77,7 @@ class TaskService {
         }
     }
 
-    async updateStatus(taskId: string, status: 'open' | 'complete', taskResult?: string): Promise<void> {
+    async updateStatus(taskId: string, status: 'open' | 'complete', _taskResult?: string): Promise<void> {
         try {
             const timestamp = getUnixDateTime()
             const updateData: Partial<Task> = {

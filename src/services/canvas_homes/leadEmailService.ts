@@ -1,6 +1,6 @@
 import emailjs from 'emailjs-com'
 
-export const sendLeadEmail = (customerEmail: string, content: string, subject: string) => {
+export const sendLeadEmail = (_customerEmail: string, content: string, subject: string) => {
     const serviceID = 'service_x9r5ccr'
     const templateID = 'template_l8odwgj'
     const userID = 'Fx8fCa1UIOsdjb-SV'
