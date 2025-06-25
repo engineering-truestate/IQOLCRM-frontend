@@ -7,6 +7,7 @@ import {
     addProperty,
     updateProperty,
     updatePropertyStatus,
+    addPriceDropHistory,
 } from '../../../services/acn/properties/propertiesService'
 import type { ILead } from '../../../services/acn/leads/algoliaLeadsService'
 
@@ -119,6 +120,56 @@ const propertiesSlice = createSlice({
             state.searchResults = state.searchResults.map((property) =>
                 property.propertyId === propertyId ? { ...property, status, lastModified: Date.now() } : property,
             )
+        },
+        addPriceDropHistoryOptimistic: (
+            state,
+            action: PayloadAction<{
+                propertyId: string
+                priceHistoryEntry: any
+                newTotalAskPrice?: number
+                newAskPricePerSqft?: number
+            }>,
+        ) => {
+            const { propertyId, priceHistoryEntry, newTotalAskPrice, newAskPricePerSqft } = action.payload
+
+            // Update search results
+            state.searchResults = state.searchResults.map((property) => {
+                if (property.propertyId === propertyId) {
+                    const updatedProperty = { ...property }
+
+                    // Add to price history
+                    if (!updatedProperty.priceHistory) {
+                        updatedProperty.priceHistory = []
+                    }
+                    updatedProperty.priceHistory.push(priceHistoryEntry)
+
+                    // Update current prices
+                    if (newTotalAskPrice !== undefined) {
+                        updatedProperty.totalAskPrice = newTotalAskPrice
+                    }
+                    if (newAskPricePerSqft !== undefined) {
+                        updatedProperty.askPricePerSqft = newAskPricePerSqft
+                    }
+
+                    return updatedProperty
+                }
+                return property
+            })
+
+            // Update current property if it matches
+            if (state.currentProperty && state.currentProperty.propertyId === propertyId) {
+                if (!state.currentProperty.priceHistory) {
+                    state.currentProperty.priceHistory = []
+                }
+                state.currentProperty.priceHistory.push(priceHistoryEntry)
+
+                if (newTotalAskPrice !== undefined) {
+                    state.currentProperty.totalAskPrice = newTotalAskPrice
+                }
+                if (newAskPricePerSqft !== undefined) {
+                    state.currentProperty.askPricePerSqft = newAskPricePerSqft
+                }
+            }
         },
     },
     extraReducers: (builder) => {
@@ -258,6 +309,48 @@ const propertiesSlice = createSlice({
                 console.log('❌ Update property status - rejected:', action.payload)
                 state.error = action.payload as string
             })
+            .addCase(addPriceDropHistory.pending, (state) => {
+                console.log('⏳ Add price drop history - pending')
+            })
+            .addCase(addPriceDropHistory.fulfilled, (state, action) => {
+                console.log('✅ Add price drop history - fulfilled:', action.payload)
+
+                const { propertyId, priceHistoryEntry, updateData } = action.payload
+
+                const updateProperty = (property: IInventory) => {
+                    if (property.propertyId === propertyId) {
+                        const updatedProperty = { ...property }
+
+                        // Add to price history
+                        if (!updatedProperty.priceHistory) {
+                            updatedProperty.priceHistory = []
+                        }
+                        updatedProperty.priceHistory.push(priceHistoryEntry)
+
+                        // Update current prices from updateData
+                        if (updateData.totalAskPrice !== undefined) {
+                            updatedProperty.totalAskPrice = updateData.totalAskPrice
+                        }
+                        if (updateData.askPricePerSqft !== undefined) {
+                            updatedProperty.askPricePerSqft = updateData.askPricePerSqft
+                        }
+
+                        return updatedProperty
+                    }
+                    return property
+                }
+
+                state.properties = state.properties.map(updateProperty)
+                state.searchResults = state.searchResults.map(updateProperty)
+
+                if (state.currentProperty && state.currentProperty.propertyId === propertyId) {
+                    state.currentProperty = updateProperty(state.currentProperty)
+                }
+            })
+            .addCase(addPriceDropHistory.rejected, (state, action) => {
+                console.log('❌ Add price drop history - rejected:', action.payload)
+                state.error = action.payload as string
+            })
     },
 })
 
@@ -275,6 +368,7 @@ export const {
     setFacetValues,
     updatePropetiesLocal,
     updatePropertyStatusOptimistic,
+    addPriceDropHistoryOptimistic,
 } = propertiesSlice.actions
 
 export default propertiesSlice.reducer

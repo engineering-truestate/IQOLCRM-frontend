@@ -37,17 +37,56 @@ import { AgentsFiltersModal } from '../../../components/acn/AgentsFiltersModal'
 
 // Status dropdown options with colors
 const agentStatusOptions = [
-    { label: 'Interested', value: 'interested', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Not Interested', value: 'not interested', color: '#D3D4DD', textColor: '#000000' },
-    { label: 'Not Contacted Yet', value: 'not contact yet', color: '#FEECED', textColor: '#000000' },
+    { label: 'Interested', value: 'Interested', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Not Interested', value: 'Not Interested', color: '#D3D4DD', textColor: '#000000' },
+    { label: 'Not Contacted Yet', value: 'Not contact yet', color: '#FEECED', textColor: '#000000' },
 ]
 
 const payStatusOptions = [
-    { label: 'Paid', value: 'paid', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Paid By Team', value: 'paid by team', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Will Pay', value: 'will pay', color: '#FEECED', textColor: '#000000' },
-    { label: 'Will Not', value: 'will not', color: '#FEECED', textColor: '#000000' },
+    { label: 'Paid', value: 'Paid', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Paid By Team', value: 'Paid via Team', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Will Pay', value: 'Will Pay', color: '#FEECED', textColor: '#000000' },
+    { label: 'Will Not', value: 'Will Not Pay', color: '#FEECED', textColor: '#000000' },
+    { label: 'Will Pay Via Team', value: 'Will Pay via Team', color: '#FEECED', textColor: '#000000' },
+    { label: 'Maybe', value: 'Maybe', color: '#FADA7A', textColor: '#000000' },
 ]
+
+// Lead Source component with outlined design and SVG icons
+// const getSourceIcon = (source: string) => {
+//     switch (source) {
+//         case 'WhatsApp':
+//             return <img src={whatsappic} alt='WhatsApp' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+//         case 'Instagram':
+//             return <img src={instagramic} alt='Instagram' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+//         case 'Facebook':
+//             return <img src={facebookic} alt='Facebook' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+//         case 'Classified':
+//             return <img src={classifiedic} alt='Classified' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+//         case 'Organic':
+//             return <img src={organicic} alt='Organic' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+//         case 'Referral':
+//             return <img src={referic} alt='Referral' className='w-5 h-5 text-gray-600 flex-shrink-0' />
+//         default:
+//             return (
+//                 <svg className='w-4 h-4 text-gray-600 flex-shrink-0' fill='currentColor' viewBox='0 0 24 24'>
+//                     <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' />
+//                 </svg>
+//             )
+//     }
+// }
+
+// const LeadSource = ({ source }: { source: string }) => {
+//     return (
+//         <div className='flex items-center gap-2 whitespace-nowrap'>
+//             <span className='inline-flex items-center rounded-full border border-gray-300 px-3 py-2 text-xs font-medium bg-white'>
+//                 <span className='flex items-center gap-2'>
+//                     {getSourceIcon(source)}
+//                     <span className='text-sm text-black'>{source}</span>
+//                 </span>
+//             </span>
+//         </div>
+//     )
+// }
 
 // FiltersBar component for all filters
 interface FiltersBarProps {
@@ -266,14 +305,14 @@ const AgentsPage = () => {
     }
 
     const metrics = useMemo(() => {
-        const interestedCount = facets.agentStatus?.['interested'] || 0
+        const interestedCount = facets.agentStatus?.['Interested'] || 0
         const appInstalledCount = facets.appInstalled?.['true'] || 0
         const contactStatusFacets = facets.contactStatus || {}
 
         const connectsCount = (contactStatusFacets['connected'] || 0) + (contactStatusFacets['connnected'] || 0)
 
         const rnrCount = Object.keys(contactStatusFacets).reduce((acc, key) => {
-            if (key.startsWith('rnr-')) {
+            if (key.toLowerCase().startsWith('rnr')) {
                 return acc + (contactStatusFacets[key] || 0)
             }
             return acc

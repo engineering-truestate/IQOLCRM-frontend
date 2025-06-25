@@ -11,6 +11,7 @@ import {
     updateAgentDetailsThunk,
     updateAgentCreditsThunk,
     fetchAgentByCpId,
+    upgradeUserPlan,
 } from '../../../services/acn/agents/agentThunkService'
 import type { RootState } from '../../index'
 
@@ -34,6 +35,8 @@ interface AgentsState {
     notesLoading: boolean
     notesError: string | null
     agentNotes: Record<string, any[]> // Store notes by cpId
+    upgradeLoading: boolean // Add this
+    upgradeError: string | null // Add this
 }
 
 const initialPropertyData: PropertyData = {
@@ -56,6 +59,8 @@ const initialState: AgentsState = {
     notesLoading: false,
     notesError: null,
     agentNotes: {}, // Initialize as empty object
+    upgradeLoading: false, // Add this
+    upgradeError: null, // Add this
 }
 
 const agentsSlice = createSlice({
@@ -74,6 +79,7 @@ const agentsSlice = createSlice({
         clearAgentError: (state) => {
             state.error = null
             state.fetchError = null
+            state.upgradeError = null
         },
         clearAgentConnectHistory: (state) => {
             state.currentAgentConnectHistory = []
@@ -221,6 +227,27 @@ const agentsSlice = createSlice({
             .addCase(fetchAgentByCpId.rejected, (state, action) => {
                 state.loading = false
                 state.error = action.payload as string
+            })
+            .addCase(upgradeUserPlan.pending, (state) => {
+                state.upgradeLoading = true
+                state.upgradeError = null
+            })
+            .addCase(upgradeUserPlan.fulfilled, (state, action) => {
+                state.upgradeLoading = false
+                // Update the current agent with the new plan details
+                if (state.currentAgent && state.currentAgent.cpId === action.payload.cpId) {
+                    state.currentAgent = {
+                        ...state.currentAgent,
+                        ...{
+                            ...action.payload.updates,
+                            userType: action.payload.updates.userType as 'basic' | 'trial' | 'premium',
+                        },
+                    }
+                }
+            })
+            .addCase(upgradeUserPlan.rejected, (state, action) => {
+                state.upgradeLoading = false
+                state.upgradeError = action.payload as string
             })
     },
 })

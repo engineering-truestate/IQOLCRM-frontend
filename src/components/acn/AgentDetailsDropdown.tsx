@@ -7,13 +7,15 @@ import walletAdd from '/icons/acn/wallet-add.svg'
 import editButton from '/icons/acn/editButton.svg'
 import StateBaseTextField from '../design-elements/StateBaseTextField'
 import Dropdown from '../design-elements/Dropdown'
-import { updateAgentDetailsThunk } from '../../services/acn/agents/agentThunkService'
+import { updateAgentDetailsThunk, upgradeUserPlan } from '../../services/acn/agents/agentThunkService'
 import type { IAgent } from '../../data_types/acn/types'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch, RootState } from '../../store'
 import { toCapitalizedWords } from '../helper/toCapitalize'
 import { getAgentFacetValues } from '../../services/acn/agents/algoliaAgentsService'
 import { useSelector } from 'react-redux'
+import ConfirmModal from './ConfirmModal' // Add this import
+import { toast } from 'react-toastify'
 
 interface DropdownProps {
     setIsNotesModalOpen: (open: boolean) => void
@@ -61,12 +63,18 @@ export default function AgentDetailsDropdown({
 }: DropdownProps) {
     const dispatch = useDispatch<AppDispatch>()
     const agentDetails = useSelector((state: RootState) => state.agents.agentDetails)
+    const upgradeLoading = useSelector((state: RootState) => state.agents.upgradeLoading)
+    const upgradeError = useSelector((state: RootState) => state.agents.upgradeError)
+
     console.log(agentDetails, 'page')
 
     // get loading state from redux
     const [loading, setLoading] = useState(false)
     // State for the main dropdown visibiliy
     const [isMainDropdownOpen, setIsMainDropdownOpen] = useState(false)
+    // Add confirmation modal state
+    const [showConfirmModal, setShowConfirmModal] = useState(false)
+    //const [showSuccessAlert, setShowSuccessAlert] = useState(false)
 
     // State for individual sections
     const [openSections, setOpenSections] = useState({
@@ -153,6 +161,7 @@ export default function AgentDetailsDropdown({
                 agentDetails && typeof agentDetails.onBroadcast === 'boolean' ? String(agentDetails.onBroadcast) : '',
         })
     }
+
     const handleSaveUserDetails = async () => {
         // Convert to string 'true'/'false' for inWhatsappCommunity and inWhatsappBroadcast
         const updatedDetails = {
@@ -178,8 +187,32 @@ export default function AgentDetailsDropdown({
         console.log('updatedDetails')
         setIsEditingUserDetails(false)
     }
+
     const handleUserDetailChange = (field: string, value: any) => {
         setEditableUserDetails((prev) => ({ ...prev, [field]: value }))
+    }
+
+    // Updated upgrade plan handler with confirmation
+    const handleUpgradePlan = () => {
+        setShowConfirmModal(true)
+    }
+
+    const confirmUpgrade = async () => {
+        setShowConfirmModal(false)
+        if (agentDetails?.cpId) {
+            try {
+                await dispatch(upgradeUserPlan({ cpId: agentDetails.cpId })).unwrap()
+                console.log('✅ Plan upgraded successfully')
+                toast.success('Plan upgraded successfully')
+            } catch (error) {
+                console.error('❌ Failed to upgrade plan:', error)
+                toast.error('Failed to upgrade plan')
+            }
+        }
+    }
+
+    const cancelUpgrade = () => {
+        setShowConfirmModal(false)
     }
 
     if (!agentDetails) {
@@ -239,6 +272,69 @@ export default function AgentDetailsDropdown({
 
     const renderSection = (title: string, fields: any, sectionKey: string) => {
         const isOpen = openSections[sectionKey as keyof typeof openSections]
+
+        // Special handling for Plan Details section with upgrade button
+        if (sectionKey === 'planDetails') {
+            return (
+                <div className='border-b-1 border-[#D3D4DD] overflow-y-auto'>
+                    <button
+                        onClick={() => toggleSection(sectionKey)}
+                        className='w-full px-4 py-3 transition-colors duration-200 flex justify-between items-center text-left cursor-pointer'
+                    >
+                        <span className='font-medium text-gray-900 text-sm'>{title}</span>
+                        {isOpen ? (
+                            <img src={chevronUp} alt='Chevron Up' className='w-4 h-4 text-gray-500' />
+                        ) : (
+                            <img src={chevronDown} alt='Chevron Down' className='w-4 h-4 text-gray-500' />
+                        )}
+                    </button>
+
+                    {isOpen && (
+                        <div className='px-4 py-2 bg-white'>
+                            {Object.entries(fields).map(([key, value]) =>
+                                value !== undefined && value !== null ? (
+                                    <div key={key} className='flex justify-between items-center py-1.5 first:mt-[-5%]'>
+                                        <span className='text-xs text-gray-600'>{formatFieldName(key)}</span>
+                                        <div className='w-[50%]'>
+                                            <span className='text-xs text-gray-900 font-medium truncate'>
+                                                {formatValue(value)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : null,
+                            )}
+
+                            {/* Upgrade Button */}
+                            <div className='mt-3 pt-2 border-t border-gray-100'>
+                                <button
+                                    onClick={handleUpgradePlan}
+                                    disabled={upgradeLoading || agentDetails.userType === 'premium'}
+                                    className={`w-full px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                                        agentDetails.userType === 'premium'
+                                            ? 'bg-black text-white cursor-not-allowed'
+                                            : upgradeLoading
+                                              ? 'bg-black text-white cursor-not-allowed'
+                                              : 'bg-black text-white'
+                                    }`}
+                                >
+                                    {agentDetails.userType === 'premium'
+                                        ? 'Premium Plan Active'
+                                        : upgradeLoading
+                                          ? 'Upgrading...'
+                                          : 'Upgrade to Premium'}
+                                </button>
+
+                                {upgradeError && (
+                                    <div className='mt-2 text-xs text-red-600 bg-red-50 p-2 rounded'>
+                                        {upgradeError}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )
+        }
 
         // Special handling for User Details section
         if (sectionKey === 'userDetails') {
@@ -434,6 +530,7 @@ export default function AgentDetailsDropdown({
                 </div>
             )
         }
+
         return (
             <div className='border-b-1 border-[#D3D4DD] overflow-y-auto'>
                 <button
@@ -444,7 +541,6 @@ export default function AgentDetailsDropdown({
                     {isOpen ? (
                         <img src={chevronUp} alt='Chevron Up' className='w-4 h-4 text-gray-500' />
                     ) : (
-                        // <img src={phoneIcon} alt="Phone Icon" className="w-6 h-6" />
                         <img src={chevronDown} alt='Chevron Down' className='w-4 h-4 text-gray-500' />
                     )}
                 </button>
@@ -477,6 +573,27 @@ export default function AgentDetailsDropdown({
 
     return (
         <div className=' mx-auto bg-gray-50 overflow-y-auto'>
+            {/* Confirmation Modal */}
+            {showConfirmModal && (
+                <ConfirmModal
+                    title='Upgrade Plan'
+                    message="Are you sure you want to upgrade this agent's plan to Premium? This action will update their plan expiry, renewal date, and credits."
+                    onConfirm={confirmUpgrade}
+                    onCancel={cancelUpgrade}
+                />
+            )}
+
+            {/* Loading Modal */}
+            {upgradeLoading && (
+                <ConfirmModal
+                    title='Upgrading Plan'
+                    message=''
+                    onConfirm={() => {}}
+                    onCancel={() => {}}
+                    generatingEnquiry={true}
+                />
+            )}
+
             {/* Header - Now clickable */}
             <div className='bg-white px-4 py-4 w-full'>
                 <div className='flex items-center justify-between cursor-pointer' onClick={toggleMainDropdown}>

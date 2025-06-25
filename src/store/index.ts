@@ -15,7 +15,7 @@ import postReraReducer from './reducers/restack/postReraReducer'
 import leadsReducer from './reducers/acn/leadsReducers'
 import agentsReducer from './slices/agentsSlice'
 import agentDetailsReducer from './slices/agentDetailsSlice'
-import type { IInventory, IRequirement } from '../data_types/acn/types'
+import type { IAgent, IInventory, IRequirement } from '../data_types/acn/types'
 import taskIdReducer from './reducers/canvas-homes/taskIdReducer'
 import constantReducer from './reducers/acn/constantReducer'
 
@@ -35,10 +35,11 @@ interface AgentInfo {
     cpId: string
     agentName: string
     phoneNumber: string
+    workAddress: string
 }
 
 interface AgentsState {
-    currentAgent: AgentInfo | null
+    currentAgent: IAgent | null
     resale: PropertyData
     rental: PropertyData
     loading: boolean
@@ -51,6 +52,8 @@ interface AgentsState {
     notesLoading: boolean
     notesError: string | null
     agentNotes: Record<string, any[]>
+    upgradeLoading: boolean // Add this
+    upgradeError: string | null // Add this
 }
 
 const persistConfig = {
