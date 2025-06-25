@@ -137,7 +137,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 stage: stage,
                 leadStatus: leadStatus,
                 tag: formData.tag,
-                // completionDate: currentTimestamp,
+                completionDate: currentTimestamp,
                 lastModified: currentTimestamp,
             })
 

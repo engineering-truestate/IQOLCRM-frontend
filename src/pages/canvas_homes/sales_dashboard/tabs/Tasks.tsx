@@ -179,7 +179,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                 ? leadService.update(leadId, {
                       stage: 'lead registered',
                       state: 'open',
-                      //   completionDate: currentUnixTime,
+                      completionDate: currentUnixTime,
                       lastModified: currentUnixTime,
                   })
                 : Promise.resolve() // If no leadId, resolve immediately
