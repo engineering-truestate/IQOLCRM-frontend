@@ -74,7 +74,7 @@ const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, r
             setIsUploading(true)
             // Upload each file to Firebase Storage
             Promise.all(
-                newFiles.map((uf, idx) =>
+                newFiles.map((uf) =>
                     uploadFileToFirebase(uf.file, `media-files/${propertyId}/document`, (progress: number) => {
                         setUploading((prev) => prev.map((u) => (u.file === uf.file ? { ...u, progress } : u)))
                     }).then((url: string) => ({ url, file: uf.file })),
