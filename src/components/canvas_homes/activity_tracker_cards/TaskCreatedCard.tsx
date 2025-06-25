@@ -1,7 +1,7 @@
 import React from 'react'
 
 // Format time from Unix timestamp in seconds
-const formatTime = (timestamp) => {
+const formatTime = (timestamp: number) => {
     if (!timestamp) return ''
 
     // Convert seconds to milliseconds for Date object
@@ -15,7 +15,7 @@ const formatTime = (timestamp) => {
 }
 
 // Format date and time from Unix timestamp in seconds
-const formatDateTime = (timestamp) => {
+const formatDateTime = (timestamp: number) => {
     if (!timestamp) return ''
 
     // Convert seconds to milliseconds for Date object
@@ -33,7 +33,7 @@ const formatDateTime = (timestamp) => {
 }
 
 // Capitalize first letter of each word
-const capitalizeWords = (text) => {
+const capitalizeWords = (text: string) => {
     if (!text) return ''
     return String(text)
         .split(' ')
@@ -41,9 +41,21 @@ const capitalizeWords = (text) => {
         .join(' ')
 }
 
-const TaskCreatedCard = ({ activity }) => {
-    const { activityType = 'Task Created', timestamp = '', agentName = '', data = {} } = activity || {}
-    const { taskType = '', scheduledDate = '' } = data || {}
+interface TaskCreatedCardProps {
+    activity: {
+        activityType?: string
+        timestamp?: number
+        agentName?: string
+        data?: {
+            taskType?: string
+            scheduledDate?: number
+        }
+    }
+}
+
+const TaskCreatedCard: React.FC<TaskCreatedCardProps> = ({ activity }) => {
+    const { activityType = 'Task Created', timestamp = 0, agentName = '', data = {} } = activity || {}
+    const { taskType = '', scheduledDate = 0 } = data || {}
 
     return (
         <div className='bg-white shadow-sm border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm'>

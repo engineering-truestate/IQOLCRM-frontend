@@ -1,11 +1,11 @@
-import React from 'react'
-import hot from '/icons/canvas_homes/hoticon.svg'
-import cold from '/icons/canvas_homes/coldicon.svg'
-import bulb from '/icons/canvas_homes/bulbicon.svg'
+// import React from 'react'
+// import hot from '/icons/canvas_homes/hoticon.svg'
+// import cold from '/icons/canvas_homes/coldicon.svg'
+// import bulb from '/icons/canvas_homes/bulbicon.svg'
 import arrow from '/icons/canvas_homes/arrow-right.svg'
 
 // Format time from Unix timestamp in seconds
-const formatTime = (timestamp) => {
+const formatTime = (timestamp: number) => {
     if (!timestamp) return ''
 
     // Convert seconds to milliseconds for Date object
@@ -19,7 +19,7 @@ const formatTime = (timestamp) => {
 }
 
 // Capitalize first letter of each word
-const capitalizeWords = (text) => {
+const capitalizeWords = (text: string) => {
     if (!text) return ''
     return String(text)
         .split(' ')
@@ -27,11 +27,26 @@ const capitalizeWords = (text) => {
         .join(' ')
 }
 
-const PropertyChangeCard = ({ activity }) => {
+interface PropertyChangeCardProps {
+    activity: {
+        activityType?: string
+        timestamp?: number | string
+        agentName?: string
+        data?: {
+            leadStatus?: string
+            propertyAdded?: string
+            propertyChanged?: string
+            reason?: string
+            note?: string
+        }
+    }
+}
+
+const PropertyChangeCard = ({ activity }: PropertyChangeCardProps) => {
     const { activityType = 'Task Execution', timestamp = '', agentName = '', data = {} } = activity || {}
 
     const {
-        taskType = '',
+        // taskType = '',
         leadStatus = '',
         propertyAdded = '',
         propertyChanged = '',
@@ -44,7 +59,7 @@ const PropertyChangeCard = ({ activity }) => {
             <div className='flex justify-between items-start'>
                 <div className='font-semibold text-gray-800'>
                     {capitalizeWords('Task Execution')}{' '}
-                    <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(timestamp)}</span>
+                    <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(Number(timestamp))}</span>
                 </div>
                 <div className='text-gray-500 text-sm'>
                     Agent: <span className='text-gray-700'>{capitalizeWords(agentName)}</span>

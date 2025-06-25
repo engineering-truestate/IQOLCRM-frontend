@@ -1,4 +1,4 @@
-import React from 'react'
+// import React from 'react'
 import arrowRightIcon from '/icons/canvas_homes/arrow-right.svg'
 // Import tag SVG icons
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
@@ -6,7 +6,7 @@ import coldIcon from '/icons/canvas_homes/coldicon.svg'
 import potentialIcon from '/icons/canvas_homes/bulbicon.svg'
 
 // Format time from Unix timestamp in seconds
-const formatTime = (timestamp) => {
+const formatTime = (timestamp: number) => {
     if (!timestamp) return ''
 
     // Convert seconds to milliseconds for Date object
@@ -20,7 +20,7 @@ const formatTime = (timestamp) => {
 }
 
 // Capitalize first letter of each word
-const capitalizeWords = (text) => {
+const capitalizeWords = (text: string) => {
     if (!text) return ''
     return String(text)
         .split(' ')
@@ -28,7 +28,21 @@ const capitalizeWords = (text) => {
         .join(' ')
 }
 
-const NewEnquiryCard = ({ activity }) => {
+interface ActivityData {
+    propertyAdded?: string
+    propertyChanged?: string
+    leadStatus?: string
+    tag?: string
+}
+
+interface Activity {
+    activityType?: string
+    timestamp?: number | string
+    agentName?: string
+    data?: ActivityData
+}
+
+const NewEnquiryCard = ({ activity }: { activity: Activity }) => {
     const { activityType = 'New Enquiry', timestamp = '', agentName = '', data = {} } = activity || {}
     const { propertyAdded = '', propertyChanged = '', leadStatus = '', tag = '' } = data || {}
 
@@ -36,7 +50,7 @@ const NewEnquiryCard = ({ activity }) => {
     const hasPropertyChange = propertyAdded && propertyChanged
 
     // Get tag color class based on tag value
-    const getTagColorClass = (tagValue) => {
+    const getTagColorClass = (tagValue: string) => {
         if (!tagValue) return 'bg-gray-200 text-gray-800'
 
         const lowercaseTag = tagValue.toLowerCase()
@@ -58,8 +72,8 @@ const NewEnquiryCard = ({ activity }) => {
     }
 
     // Get the appropriate tag icon path
-    const getTagIcon = (tagValue) => {
-        if (!tagValue) return null
+    const getTagIcon = (tagValue: string): string | undefined => {
+        if (!tagValue) return undefined
 
         const lowercaseTag = tagValue.toLowerCase()
 
@@ -73,7 +87,7 @@ const NewEnquiryCard = ({ activity }) => {
             case 'potential':
                 return potentialIcon
             default:
-                return null
+                return undefined
         }
     }
 
@@ -83,7 +97,7 @@ const NewEnquiryCard = ({ activity }) => {
             <div className='flex justify-between items-start'>
                 <div className='font-semibold text-gray-800'>
                     {capitalizeWords(activityType)}{' '}
-                    <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(timestamp)}</span>
+                    <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(Number(timestamp))}</span>
                 </div>
                 <div className='text-gray-500 text-sm'>
                     Agent: <span className='text-gray-700'>{capitalizeWords(agentName)}</span>
