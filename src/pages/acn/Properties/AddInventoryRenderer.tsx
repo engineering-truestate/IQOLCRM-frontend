@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import { SelectionGroup } from '../../../components/design-elements/SelectionButtonsGroup'
-import PlacesSearch from '../../../components/design-elements/PlacesSearch'
 
 // Import your existing component configurations
 import { appartmentComponents } from '../../../components/acn/addInventoryConfigs/apartmentComponents'

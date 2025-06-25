@@ -80,9 +80,9 @@ const CustomPagination: React.FC<CustomPaginationProps> = ({
                     ) : (
                         <li
                             key={`page-${page}`}
-                            className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-[4px] text-gray-600 hover:bg-gray-100 hover:border-gray-400 cursor-pointer transition-colors ${
+                            className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-[4px] text-gray-600 cursor-pointer transition-colors ${
                                 currentPage === page
-                                    ? 'bg-[#24252E] text-white hover:text-white border-blue-600'
+                                    ? 'bg-[#24252E] text-white hover:text-white hover:bg-black border-blue-600'
                                     : 'bg-[#F3F3F3] text-[#3A3A47]'
                             }`}
                             onClick={() => onPageChange(page as number)}

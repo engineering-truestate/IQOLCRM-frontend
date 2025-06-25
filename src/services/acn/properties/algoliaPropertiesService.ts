@@ -18,6 +18,8 @@ export interface SearchFilters {
     landmark?: string
     unitType?: string[]
     noOfBathrooms?: string[]
+    priceRange?: string
+    kam?: string
     noOfBalcony?: string[]
     totalAskPrice?: { min?: number; max?: number }
     askPricePerSqft?: { min?: number; max?: number }

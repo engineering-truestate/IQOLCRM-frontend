@@ -61,7 +61,6 @@ const setDefaultValues = (propertyData: Partial<IInventory>): Partial<IInventory
         status: propertyData.status || 'Available',
         currentStatus: propertyData.currentStatus || 'Available',
         cpId: propertyData.cpId || '',
-        cpCode: propertyData.cpCode || '',
         extraDetails: propertyData.extraDetails || '',
         driveLink: propertyData.driveLink || '',
         photo: propertyData.photo || [],

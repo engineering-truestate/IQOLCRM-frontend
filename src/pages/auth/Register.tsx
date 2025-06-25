@@ -1,6 +1,12 @@
 import { useState, type ChangeEvent } from 'react'
 import { registerUser } from '../../services/auth'
 import Dropdown from '../../components/design-elements/Dropdown'
+import MultiSelectDropdown from '../../components/design-elements/MultiSelectDropdown'
+
+export interface Platform {
+    platform: string
+    role: string
+}
 
 const Register: React.FC = () => {
     const [email, setEmail] = useState<string>('')
@@ -8,8 +14,9 @@ const Register: React.FC = () => {
     const [name, setName] = useState<string>('')
     const [picture, setPicture] = useState<File | null>(null)
     const [role, setRole] = useState<string>('')
+    const [platforms, setPlatforms] = useState<Platform[]>([])
+
     const [picturePreview, setPicturePreview] = useState<string | null>(null)
-    const [platform, setPlatform] = useState<string>('')
     const handlePictureChange = (e: ChangeEvent<HTMLInputElement>): void => {
         const file = e.target.files?.[0]
         if (file) {
@@ -20,15 +27,66 @@ const Register: React.FC = () => {
         }
     }
 
+    const roleOptions = () => {
+        let acnRoleOptions: { label: string; value: string }[] = []
+        let canvasHomesRoleOptions: { label: string; value: string }[] = []
+        let restackRoleOptions: { label: string; value: string }[] = []
+        let truestateRoleOptions: { label: string; value: string }[] = []
+        let vaultRoleOptions: { label: string; value: string }[] = []
+
+        if (platforms.some((p) => p.platform === 'acn')) {
+            acnRoleOptions = [
+                { label: 'Kam Moderator', value: 'kamModerator' },
+                { label: 'Kam', value: 'kam' },
+                { label: 'Data Team', value: 'dataTeam' },
+            ]
+        }
+        if (platforms.some((p) => p.platform === 'canvas-homes')) {
+            canvasHomesRoleOptions = [
+                { label: 'Marketing', value: 'marketing' },
+                { label: 'Sales', value: 'sales' },
+                { label: 'Admin', value: 'admin' },
+            ]
+        }
+        if (platforms.some((p) => p.platform === 'restack')) {
+            restackRoleOptions = []
+        }
+        if (platforms.some((p) => p.platform === 'truestate')) {
+            truestateRoleOptions = []
+        }
+        if (platforms.some((p) => p.platform === 'vault')) {
+            vaultRoleOptions = []
+        }
+        return { acnRoleOptions, canvasHomesRoleOptions, restackRoleOptions, truestateRoleOptions, vaultRoleOptions }
+    }
+
+    const handlePlatformSelection = (selectedPlatforms: string[]) => {
+        const newPlatforms: Platform[] = selectedPlatforms.map((p) => ({ platform: p, role: '' }))
+        setPlatforms(newPlatforms)
+    }
+
+    const handleRoleSelection = (platformName: string, roleValue: string) => {
+        setPlatforms((prev) => prev.map((p) => (p.platform === platformName ? { ...p, role: roleValue } : p)))
+    }
+
     const handleRegister = async (): Promise<void> => {
         try {
             // Validate required fields
-            if (!email || !password || !name || !role) {
+            if (!email || !password || !name || !role || platforms.length === 0) {
                 alert('Please fill in all required fields')
                 return
             }
 
-            await registerUser(email, password, name, picture, role, platform)
+            // Check if all platforms have roles assigned
+            const platformsWithoutRoles = platforms.filter((p) => !p.role)
+            if (platformsWithoutRoles.length > 0) {
+                alert('Please select roles for all selected platforms')
+                return
+            }
+
+            console.log(platforms)
+
+            await registerUser(email, password, name, picture, role, platforms)
             alert('Registration successful!')
 
             // Clean up preview URL
@@ -133,7 +191,7 @@ const Register: React.FC = () => {
                 {/* Platform Selection */}
                 <div className='mb-6'>
                     <label className='block text-gray-700 text-sm font-bold mb-2'>Select Platform *</label>
-                    <Dropdown
+                    <MultiSelectDropdown
                         options={[
                             { label: 'ACN', value: 'acn' },
                             { label: 'Canvas Homes', value: 'canvas-homes' },
@@ -141,16 +199,68 @@ const Register: React.FC = () => {
                             { label: 'TrueState', value: 'truestate' },
                             { label: 'Vault', value: 'vault' },
                         ]}
-                        onSelect={(value: string) => setPlatform(value)}
+                        selectedValues={platforms.map((p) => p.platform)}
+                        onSelectionChange={handlePlatformSelection}
                         placeholder='Choose a platform'
                     />
                 </div>
+                {platforms.some((p) => p.platform === 'acn') && (
+                    <div className='mb-6'>
+                        <label className='block text-gray-700 text-sm font-bold mb-2'>ACN Role *</label>
+                        <Dropdown
+                            options={roleOptions().acnRoleOptions}
+                            onSelect={(value: string) => handleRoleSelection('acn', value)}
+                            placeholder='Choose ACN role'
+                        />
+                    </div>
+                )}
+                {platforms.some((p) => p.platform === 'canvas-homes') && (
+                    <div className='mb-6'>
+                        <label className='block text-gray-700 text-sm font-bold mb-2'>Canvas Homes Role *</label>
+                        <Dropdown
+                            options={roleOptions().canvasHomesRoleOptions}
+                            onSelect={(value: string) => handleRoleSelection('canvas-homes', value)}
+                            placeholder='Choose Canvas Homes role'
+                        />
+                    </div>
+                )}
+                {platforms.some((p) => p.platform === 'restack') && (
+                    <div className='mb-6'>
+                        <label className='block text-gray-700 text-sm font-bold mb-2'>Restack Role *</label>
+                        <Dropdown
+                            options={roleOptions().restackRoleOptions}
+                            onSelect={(value: string) => handleRoleSelection('restack', value)}
+                            placeholder='Choose Restack role'
+                        />
+                    </div>
+                )}
+                {platforms.some((p) => p.platform === 'truestate') && (
+                    <div className='mb-6'>
+                        <label className='block text-gray-700 text-sm font-bold mb-2'>TrueState Role *</label>
+                        <Dropdown
+                            options={roleOptions().truestateRoleOptions}
+                            onSelect={(value: string) => handleRoleSelection('truestate', value)}
+                            placeholder='Choose TrueState role'
+                        />
+                    </div>
+                )}
+                {platforms.some((p) => p.platform === 'vault') && (
+                    <div className='mb-6'>
+                        <label className='block text-gray-700 text-sm font-bold mb-2'>Vault Role *</label>
+                        <Dropdown
+                            options={roleOptions().vaultRoleOptions}
+                            onSelect={(value: string) => handleRoleSelection('vault', value)}
+                            placeholder='Choose Vault role'
+                        />
+                    </div>
+                )}
+
                 <div className='flex items-center justify-between'>
                     <button
                         className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50'
                         type='button'
                         onClick={handleRegister}
-                        disabled={!email || !password || !name || !role}
+                        disabled={!email || !password || !name || !role || platforms.length === 0}
                     >
                         Register
                     </button>

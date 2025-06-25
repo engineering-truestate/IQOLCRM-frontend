@@ -1,6 +1,12 @@
 // types.ts
 
-import { type INote } from '../../../services/acn/requirements/requirementsService'
+interface INote {
+    id: string
+    email: string
+    author: string
+    content: string
+    timestamp: number
+}
 
 interface BudgetRange {
     from: number
@@ -20,10 +26,10 @@ interface GeoLocation {
 export interface IRequirement {
     requirementId: string
     cpId: string
-    location: string
+    location?: string
     assetType: 'villa' | 'apartment' | 'plot' | 'commercial' | 'warehouse' | 'office'
-    configuration: '1 bhk' | '2 bhk' | '3 bhk' | '4 bhk' | '5+ bhk'
-    _geoloc: GeoLocation
+    configuration: '1bhk' | '2bhk' | '3bhk' | '4bhk' | '5bhk' | null
+    _geoloc?: GeoLocation
     micromarket: string
     budget: BudgetRange
     size: SizeRange
@@ -39,6 +45,8 @@ export interface IRequirement {
     lastModified: number
     matchingProperties: string[]
     notes: INote[]
+    agentPhone: string
+    name: string
 }
 
 export type RequirementState = {

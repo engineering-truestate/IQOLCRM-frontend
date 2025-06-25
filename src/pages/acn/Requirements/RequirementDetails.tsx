@@ -8,7 +8,6 @@ import {
     updateRequirement,
     updateRequirementStatus,
     addNoteToRequirement,
-    removeNoteFromRequirement,
 } from '../../../services/acn/requirements/requirementsService'
 import { clearCurrentRequirement, clearError } from '../../../store/reducers/acn/requirementsReducers'
 import Layout from '../../../layout/Layout'
@@ -19,7 +18,6 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
 import { fetchPropertiesByIds } from '../../../services/acn/properties/propertiesService'
 import { clearProperties } from '../../../store/reducers/acn/propertiesReducers'
-import Breadcrumb from '../../../components/acn/Breadcrumb'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
 import noteic from '/icons/acn/note.svg'
@@ -110,9 +108,30 @@ const RequirementDetailsPage = () => {
     const [originalRequirement, setOriginalRequirement] = useState<IRequirement | null>(null)
     const [matchingProperties, setMatchingProperties] = useState<any[]>([])
     const [newNote, setNewNote] = useState('')
-    const [notes, setNotes] = useState<Note[]>([])
+    const [_, setNotes] = useState<Note[]>([])
     const [isEditing, setIsEditing] = useState(false)
+
+    // Add state for editable ranges
+    const [budgetRange, setBudgetRange] = useState({ from: '', to: '' })
+    const [sizeRange, setSizeRange] = useState({ from: '', to: '' })
+    const [isMarketPrice, setIsMarketPrice] = useState(false)
+
     const { user } = useAuth()
+
+    // Helper functions for formatting ranges
+    const formatBudgetForInput = (budget: { from: number; to: number }) => {
+        return {
+            from: budget.from.toString(), // Convert to Cr for input
+            to: budget.to.toString(),
+        }
+    }
+
+    const formatSizeForInput = (size: { from: number; to: number }) => {
+        return {
+            from: size.from.toString(),
+            to: size.to.toString(),
+        }
+    }
 
     // Load requirement data based on ID from URL
     useEffect(() => {
@@ -135,9 +154,19 @@ const RequirementDetailsPage = () => {
         const loadRequirementData = async () => {
             if (requirement) {
                 console.log('📋 Requirement loaded from Redux, updating local state:', requirement.requirementId)
-                console.log('khuda haafiz', requirement)
                 setLocalRequirement(requirement)
                 setOriginalRequirement(requirement)
+
+                // Initialize range states
+                if (requirement.budget) {
+                    setBudgetRange(formatBudgetForInput(requirement.budget))
+                }
+                if (requirement.size) {
+                    setSizeRange(formatSizeForInput(requirement.size))
+                }
+
+                // Check if market value is set
+                setIsMarketPrice(!!requirement.marketValue && requirement.marketValue.toLowerCase().includes('market'))
 
                 // Initialize notes
                 setNotes([])
@@ -146,12 +175,10 @@ const RequirementDetailsPage = () => {
                 if (requirement.matchingProperties && requirement.matchingProperties.length > 0) {
                     console.log('🏠 Loading matching properties from Firebase:', requirement.matchingProperties)
                     const properties = await dispatch(fetchPropertiesByIds(requirement.matchingProperties)).unwrap()
-                    console.log('khana khiladoooooo:', properties)
                     setMatchingProperties(properties)
                 } else {
                     console.log('ℹ️ No matching properties found')
                     setMatchingProperties([])
-                    // Clear properties from Redux state
                     dispatch(clearProperties())
                 }
             }
@@ -182,6 +209,7 @@ const RequirementDetailsPage = () => {
 
             // Transform Firebase data to table format
             const transformedProperties = matchingPropertiesData.map((property: IInventory) => ({
+                id: property.propertyId, // Fix: Add id field for actions
                 propertyId: property.propertyId,
                 propertyName: property.propertyName || property.area || 'Unknown Property',
                 price: formatCurrency(property.totalAskPrice),
@@ -190,7 +218,6 @@ const RequirementDetailsPage = () => {
                 micromarket: property.micromarket || 'Unknown',
                 sbua: property.sbua || 0,
                 facing: property.facing || 'Unknown',
-                // Add more fields as needed
             }))
 
             setMatchingProperties(transformedProperties)
@@ -246,13 +273,13 @@ const RequirementDetailsPage = () => {
         { label: 'Office', value: 'office' },
     ]
 
-    // Configuration options
+    // Configuration options - Updated to match your interface
     const configurationOptions = [
-        { label: '1 BHK', value: '1 bhk' },
-        { label: '2 BHK', value: '2 bhk' },
-        { label: '3 BHK', value: '3 bhk' },
-        { label: '4 BHK', value: '4 bhk' },
-        { label: '5+ BHK', value: '5+ bhk' },
+        { label: '1 BHK', value: '1bhk' },
+        { label: '2 BHK', value: '2bhk' },
+        { label: '3 BHK', value: '3bhk' },
+        { label: '4 BHK', value: '4bhk' },
+        { label: '5 BHK', value: '5bhk' },
     ]
 
     // Handle field updates (local only)
@@ -273,11 +300,24 @@ const RequirementDetailsPage = () => {
     const handleCancel = () => {
         console.log('❌ Canceling edit, reverting to original')
         setLocalRequirement(originalRequirement)
+
+        // Reset range states
+        if (originalRequirement?.budget) {
+            setBudgetRange(formatBudgetForInput(originalRequirement.budget))
+        }
+        if (originalRequirement?.size) {
+            setSizeRange(formatSizeForInput(originalRequirement.size))
+        }
+
+        // Reset market price state
+        setIsMarketPrice(
+            !!originalRequirement?.marketValue && originalRequirement.marketValue.toLowerCase().includes('market'),
+        )
+
         setIsEditing(false)
     }
 
-    // Handle save changes - NOW WITH FIREBASE UPDATE
-    // Handle save changes - TYPE-SAFE VERSION
+    // Handle save changes
     const handleSave = async () => {
         if (localRequirement && originalRequirement) {
             console.log('💾 Saving changes to Firebase...')
@@ -296,7 +336,6 @@ const RequirementDetailsPage = () => {
                 'parking',
                 'propertyName',
                 'extraDetails',
-                'marketValue',
                 'requirementStatus',
                 'internalStatus',
             ]
@@ -306,6 +345,47 @@ const RequirementDetailsPage = () => {
                     changes[field] = localRequirement[field]
                 }
             })
+
+            // Handle market value
+            const newMarketValue = isMarketPrice ? 'As per market price' : ''
+            if (newMarketValue !== (originalRequirement.marketValue || '')) {
+                changes.marketValue = newMarketValue
+            }
+
+            // Check budget range changes
+            if (!isMarketPrice && budgetRange.from && budgetRange.to) {
+                const newBudget = {
+                    from: parseFloat(budgetRange.from) * 10000000, // Convert Cr to actual value
+                    to: parseFloat(budgetRange.to) * 10000000,
+                }
+
+                if (
+                    !originalRequirement.budget ||
+                    newBudget.from !== originalRequirement.budget.from ||
+                    newBudget.to !== originalRequirement.budget.to
+                ) {
+                    changes.budget = newBudget
+                }
+            } else if (isMarketPrice) {
+                // Clear budget if market price is selected
+                changes.budget = { from: 0, to: 0 }
+            }
+
+            // Check size range changes
+            if (sizeRange.from && sizeRange.to) {
+                const newSize = {
+                    from: parseFloat(sizeRange.from),
+                    to: parseFloat(sizeRange.to),
+                }
+
+                if (
+                    !originalRequirement.size ||
+                    newSize.from !== originalRequirement.size.from ||
+                    newSize.to !== originalRequirement.size.to
+                ) {
+                    changes.size = newSize
+                }
+            }
 
             if (Object.keys(changes).length > 0) {
                 console.log('📝 Changes detected:', changes)
@@ -330,6 +410,7 @@ const RequirementDetailsPage = () => {
             }
         }
     }
+
     console.log('🔄 User:', user)
 
     // Handle adding new note
@@ -367,23 +448,10 @@ const RequirementDetailsPage = () => {
         }
     }
 
-    // Handle removing a note
-    const removeNote = (noteId: string) => {
-        if (localRequirement) {
-            console.log('🗑️ Removing note:', noteId)
-            dispatch(
-                removeNoteFromRequirement({
-                    requirementId: localRequirement.requirementId,
-                    noteId,
-                }),
-            )
-        }
-    }
-
     // Matching properties table columns
     const propertyColumns: TableColumn[] = [
         {
-            key: 'id',
+            key: 'propertyId',
             header: 'Property Id',
             render: (value) => <span className='whitespace-nowrap text-gray-600 text-sm font-normal'>{value}</span>,
         },
@@ -411,7 +479,7 @@ const RequirementDetailsPage = () => {
             header: 'Actions',
             render: (_, row) => (
                 <div onClick={() => navigate(`/acn/properties/${row.id}/details`)}>
-                    <span className='text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors'>
+                    <span className='text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors cursor-pointer'>
                         View
                     </span>
                 </div>
@@ -429,7 +497,103 @@ const RequirementDetailsPage = () => {
         return `${size.from} - ${size.to} sqft`
     }
 
-    // Render field based on edit mode
+    // Render budget range field
+    const renderBudgetRange = () => {
+        if (isEditing) {
+            return (
+                <div>
+                    <label className='text-sm text-gray-500 block mb-1'>Budget Range (Cr)</label>
+                    <div className='space-y-2'>
+                        <div className='flex gap-2 items-center'>
+                            <StateBaseTextField
+                                value={budgetRange.from}
+                                onChange={(e) => setBudgetRange((prev) => ({ ...prev, from: e.target.value }))}
+                                placeholder='From'
+                                type='number'
+                                step='0.1'
+                                className='flex-1 text-sm'
+                                disabled={isMarketPrice}
+                            />
+                            <span className='text-gray-500 text-sm'>to</span>
+                            <StateBaseTextField
+                                value={budgetRange.to}
+                                onChange={(e) => setBudgetRange((prev) => ({ ...prev, to: e.target.value }))}
+                                placeholder='To'
+                                type='number'
+                                step='0.1'
+                                className='flex-1 text-sm'
+                                disabled={isMarketPrice}
+                            />
+                        </div>
+                        <div className='flex items-center'>
+                            <input
+                                type='checkbox'
+                                id='marketPrice'
+                                checked={isMarketPrice}
+                                onChange={(e) => setIsMarketPrice(e.target.checked)}
+                                className='mr-2'
+                            />
+                            <label htmlFor='marketPrice' className='text-sm text-gray-600'>
+                                As per Market Price
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            )
+        } else {
+            return (
+                <div>
+                    <label className='text-sm text-gray-500 block mb-1'>Budget Range</label>
+                    <div className='text-sm font-semibold'>
+                        {localRequirement?.marketValue && localRequirement.marketValue.toLowerCase().includes('market')
+                            ? 'As per Market Price'
+                            : localRequirement?.budget
+                              ? formatBudgetRange(localRequirement.budget)
+                              : 'N/A'}
+                    </div>
+                </div>
+            )
+        }
+    }
+
+    // Render size range field
+    const renderSizeRange = () => {
+        if (isEditing) {
+            return (
+                <div>
+                    <label className='text-sm text-gray-500 block mb-1'>Size Range (sqft)</label>
+                    <div className='flex gap-2 items-center'>
+                        <StateBaseTextField
+                            value={sizeRange.from}
+                            onChange={(e) => setSizeRange((prev) => ({ ...prev, from: e.target.value }))}
+                            placeholder='From'
+                            type='number'
+                            className='flex-1 text-sm'
+                        />
+                        <span className='text-gray-500 text-sm'>to</span>
+                        <StateBaseTextField
+                            value={sizeRange.to}
+                            onChange={(e) => setSizeRange((prev) => ({ ...prev, to: e.target.value }))}
+                            placeholder='To'
+                            type='number'
+                            className='flex-1 text-sm'
+                        />
+                    </div>
+                </div>
+            )
+        } else {
+            return (
+                <div>
+                    <label className='text-sm text-gray-500 block mb-1'>Size Range</label>
+                    <div className='text-sm font-semibold'>
+                        {localRequirement?.size ? formatSizeRange(localRequirement.size) : 'N/A'}
+                    </div>
+                </div>
+            )
+        }
+    }
+
+    // Enhanced render field function with proper default value handling
     const renderField = (
         label: string,
         value: string,
@@ -444,7 +608,7 @@ const RequirementDetailsPage = () => {
                         <Dropdown
                             options={options}
                             onSelect={(selectedValue) => updateField(fieldKey, selectedValue)}
-                            defaultValue={value}
+                            defaultValue={value || ''} // Ensure we have a fallback
                             placeholder={`Select ${label}`}
                             className='relative w-full'
                             triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full cursor-pointer'
@@ -458,7 +622,7 @@ const RequirementDetailsPage = () => {
                     <div>
                         <label className='text-sm text-gray-500 block mb-1'>{label}</label>
                         <StateBaseTextField
-                            value={value}
+                            value={value || ''} // Ensure we have a fallback
                             onChange={(e) => updateField(fieldKey, e.target.value)}
                             className='w-full text-sm'
                         />
@@ -469,7 +633,7 @@ const RequirementDetailsPage = () => {
             return (
                 <div>
                     <label className='text-sm text-gray-500 block mb-1'>{label}</label>
-                    <div className='text-sm font-semibold'>{value}</div>
+                    <div className='text-sm font-semibold'>{value || 'N/A'}</div>
                 </div>
             )
         }
@@ -632,13 +796,13 @@ const RequirementDetailsPage = () => {
                             <div className='grid grid-cols-2 gap-6'>
                                 <div className='space-y-4'>
                                     {renderField(
-                                        'Location',
-                                        toCapitalizedWords(localRequirement?.location) || '',
-                                        'location',
+                                        'Project Name',
+                                        toCapitalizedWords(localRequirement?.propertyName) || '',
+                                        'propertyName',
                                     )}
                                     {renderField(
                                         'Asset Type',
-                                        toCapitalizedWords(localRequirement?.assetType) || '',
+                                        localRequirement?.assetType || '',
                                         'assetType',
                                         assetTypeOptions,
                                     )}
@@ -653,21 +817,9 @@ const RequirementDetailsPage = () => {
                                         toCapitalizedWords(localRequirement?.micromarket) || '',
                                         'micromarket',
                                     )}
-                                    {renderField(
-                                        'Bedrooms',
-                                        toCapitalizedWords(localRequirement?.bedrooms) || '',
-                                        'bedrooms',
-                                    )}
-                                    {renderField(
-                                        'Bathrooms',
-                                        toCapitalizedWords(localRequirement?.bathrooms) || '',
-                                        'bathrooms',
-                                    )}
-                                    {renderField(
-                                        'Parking',
-                                        toCapitalizedWords(localRequirement?.parking) || '',
-                                        'parking',
-                                    )}
+                                    {renderField('Bedrooms', localRequirement?.bedrooms || '', 'bedrooms')}
+                                    {renderField('Bathrooms', localRequirement?.bathrooms || '', 'bathrooms')}
+                                    {renderField('Parking', localRequirement?.parking || '', 'parking')}
                                 </div>
 
                                 <div className='space-y-4'>
@@ -686,20 +838,11 @@ const RequirementDetailsPage = () => {
                                             {localRequirement?.added ? formatUnixDate(localRequirement.added) : 'N/A'}
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className='text-sm text-gray-500 block mb-1'>Budget Range</label>
-                                        <div className='text-sm font-semibold'>
-                                            {localRequirement?.budget
-                                                ? formatBudgetRange(localRequirement.budget)
-                                                : 'N/A'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className='text-sm text-gray-500 block mb-1'>Size Range</label>
-                                        <div className='text-sm font-semibold'>
-                                            {localRequirement?.size ? formatSizeRange(localRequirement.size) : 'N/A'}
-                                        </div>
-                                    </div>
+
+                                    {/* Editable range fields */}
+                                    {renderBudgetRange()}
+                                    {renderSizeRange()}
+
                                     {isEditing ? (
                                         <>
                                             <div>
@@ -707,9 +850,7 @@ const RequirementDetailsPage = () => {
                                                 <Dropdown
                                                     options={statusDropdownOptions}
                                                     onSelect={(value) => handleStatusUpdate(value, 'requirement')}
-                                                    defaultValue={
-                                                        toCapitalizedWords(localRequirement?.requirementStatus) || ''
-                                                    }
+                                                    defaultValue={localRequirement?.requirementStatus || ''}
                                                     placeholder='Select Status'
                                                     className='relative w-full'
                                                     triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full cursor-pointer'
@@ -724,9 +865,7 @@ const RequirementDetailsPage = () => {
                                                 <Dropdown
                                                     options={internalStatusDropdownOptions}
                                                     onSelect={(value) => handleStatusUpdate(value, 'internal')}
-                                                    defaultValue={
-                                                        toCapitalizedWords(localRequirement?.internalStatus) || ''
-                                                    }
+                                                    defaultValue={localRequirement?.internalStatus || ''}
                                                     placeholder='Select Status'
                                                     className='relative w-full'
                                                     triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full cursor-pointer'
@@ -836,14 +975,16 @@ const RequirementDetailsPage = () => {
                             <div className='bg-gray-50 rounded-lg p-4'>
                                 <div className='flex items-center gap-3 mb-2'>
                                     <div className='w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-sm font-semibold'>
-                                        {localRequirement?.cpId
-                                            ? localRequirement.cpId.substring(0, 2).toUpperCase()
-                                            : 'CP'}
+                                        {localRequirement?.name
+                                            ? localRequirement.name.substring(0, 2).toUpperCase()
+                                            : 'AG'}
                                     </div>
                                     <div>
-                                        <div className='text-sm font-semibold'>Agent Name</div>
+                                        <div className='text-sm font-semibold'>
+                                            {localRequirement?.name || 'Agent Name'}
+                                        </div>
                                         <div className='text-xs text-gray-500'>
-                                            {localRequirement?.cpId} | Contact Info
+                                            {localRequirement?.cpId} | {localRequirement?.agentPhone || 'Contact Info'}
                                         </div>
                                     </div>
                                 </div>
@@ -859,9 +1000,7 @@ const RequirementDetailsPage = () => {
                                             <Dropdown
                                                 options={statusDropdownOptions}
                                                 onSelect={(value) => handleStatusUpdate(value, 'requirement')}
-                                                defaultValue={
-                                                    toCapitalizedWords(localRequirement?.requirementStatus) || ''
-                                                }
+                                                defaultValue={localRequirement?.requirementStatus || ''}
                                                 placeholder='Select Status'
                                                 className='relative w-full'
                                                 triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full cursor-pointer'
@@ -874,13 +1013,11 @@ const RequirementDetailsPage = () => {
                                             <Dropdown
                                                 options={internalStatusDropdownOptions}
                                                 onSelect={(value) => handleStatusUpdate(value, 'internal')}
-                                                defaultValue={
-                                                    toCapitalizedWords(localRequirement?.internalStatus) || ''
-                                                }
+                                                defaultValue={localRequirement?.internalStatus || ''}
                                                 placeholder='Select Status'
                                                 className='relative w-full'
                                                 triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full cursor-pointer'
-                                                menuClassName='absolute z-50 mt-1 w-full border border-gray-300 rounded-md shadow-lg'
+                                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                                                 optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                                             />
                                         </div>

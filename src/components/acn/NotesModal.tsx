@@ -8,6 +8,7 @@ import note from '/icons/acn/note.svg'
 import crossic from '/icons/acn/cross.svg'
 import { toast } from 'react-toastify'
 import copyic from '/icons/acn/copy-icon.svg'
+import useAuth from '../../hooks/useAuth'
 
 interface NotesModalProps {
     isOpen: boolean
@@ -35,6 +36,7 @@ interface NotesModalProps {
 }
 
 const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => {
+    const { user } = useAuth()
     const dispatch = useDispatch<AppDispatch>()
     const location = useLocation()
     const [internalNote, setInternalNote] = useState('')
@@ -80,9 +82,11 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
             try {
                 setNotesLoading(true)
                 const noteData = {
+                    name: user?.displayName ?? 'Unknown',
                     kamId: rowData.kamId || 'CURRENT_USER',
                     note: internalNote.trim(),
                     source: 'direct' as const,
+                    timestamp: Math.floor(Date.now() / 1000),
                     archive: false as const,
                 }
 
@@ -91,15 +95,18 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
                     // Refresh notes for leads - get fresh data directly
                     const updatedNotes = await dispatch(fetchLeadWithNotes(rowData.leadId)).unwrap()
                     setNotes(updatedNotes)
+                    toast.success('Note added successfully')
                 } else if (isAgentsContext && rowData.cpId) {
                     await dispatch(addNoteToAgent({ cpId: rowData.cpId, noteData })).unwrap()
                     // Refresh notes for agents - get fresh data directly
                     const updatedNotes = await dispatch(fetchAgentWithNotes(rowData.cpId)).unwrap()
                     setNotes(updatedNotes)
+                    toast.success('Note added successfully')
                 }
 
                 setInternalNote('')
             } catch (error) {
+                toast.error('Failed to add note')
                 console.error('Failed to add note:', error)
             } finally {
                 setNotesLoading(false)
@@ -130,7 +137,7 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
 
             {/* Modal */}
             <div
-                className='fixed top-0 right-0 h-full min-w-[25%] bg-white z-50 shadow-2xl border-l border-gray-200'
+                className='fixed top-0 right-0 h-full min-w-[30%] bg-white z-50 shadow-2xl border-l border-gray-200'
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='flex flex-col h-full px-4 py-2 '>
@@ -208,7 +215,7 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
                                         <div key={`${noteItem.timestamp}-${index}`} className='flex flex-col gap-3'>
                                             <div className='flex justify-end items-center'>
                                                 <div className='text-xs text-gray-400'>
-                                                    {`${formatTimestamp(noteItem.timestamp)} by ${noteItem.kamName}`}
+                                                    {`${formatTimestamp(noteItem.timestamp)} by ${noteItem.name}`}
                                                 </div>
                                             </div>
                                             <div className='bg-gray-50 border border-gray-200 rounded-lg p-4'>

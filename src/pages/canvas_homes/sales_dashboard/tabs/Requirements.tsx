@@ -497,7 +497,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                     </div>
 
                     {/* Notes Section */}
-                    <div className='mb-6'>
+                    <div className='mb-6 w-full h-[98px]'>
                         <label className={labelClassName}>Add Note (Optional)</label>
                         <textarea
                             value={formData.notes}
