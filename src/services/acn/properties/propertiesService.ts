@@ -408,17 +408,23 @@ export const updatePropertyStatus = createAsyncThunk(
             propertyId,
             status,
             soldPrice,
+            sold,
             notes,
         }: {
             propertyId: string
             status: string
             soldPrice?: number
+            sold?: {
+                date: number
+                soldPrice: number
+                sellingPlatform: string
+            }
             notes?: string
         },
         { rejectWithValue, dispatch },
     ) => {
         try {
-            console.log('📝 Updating property status:', propertyId, status, soldPrice, notes)
+            console.log('📝 Updating property status:', propertyId, status, soldPrice, sold, notes)
 
             // Determine collection based on property ID prefix
             let dbPath = ''
@@ -444,8 +450,13 @@ export const updatePropertyStatus = createAsyncThunk(
                 ageOfStatus: 0,
             }
 
-            // Add soldPrice if provided
-            if (soldPrice !== undefined) {
+            // Add sold object if provided (for Sold status)
+            if (sold) {
+                updateData.sold = sold
+                // Also update soldPrice for backward compatibility
+                updateData.soldPrice = sold.soldPrice
+            } else if (soldPrice !== undefined) {
+                // Add soldPrice if provided (for Rented status or other cases)
                 updateData.soldPrice = soldPrice
             }
 
@@ -465,7 +476,7 @@ export const updatePropertyStatus = createAsyncThunk(
             }
 
             console.log('✅ Property status updated successfully')
-            return { propertyId, status, soldPrice }
+            return { propertyId, status, soldPrice, sold }
         } catch (error: any) {
             console.error('❌ Error updating property status:', error)
             return rejectWithValue(error.message || 'Failed to update property status')
@@ -586,9 +597,11 @@ export const addPriceDropHistory = createAsyncThunk(
     async (
         {
             propertyId,
+            sbua,
             priceDropData,
         }: {
             propertyId: string
+            sbua: number
             priceDropData: {
                 kamId?: string
                 kamName?: string
@@ -618,30 +631,58 @@ export const addPriceDropHistory = createAsyncThunk(
 
             const docRef = doc(db, dbPath, propertyId)
 
-            // Create the price history entry
+            // Calculate ALL complementary price values based on sbua
+            const updatedPriceDropData = { ...priceDropData }
+
+            // Always calculate both old and new values for both price types
+            if (sbua > 0) {
+                // If totalAskPrice values are provided, calculate askPricePerSqft values
+                if (priceDropData.newTotalAskPrice !== undefined) {
+                    updatedPriceDropData.newAskPricePerSqft = priceDropData.newTotalAskPrice / sbua
+                }
+                if (priceDropData.oldTotalAskPrice !== undefined) {
+                    updatedPriceDropData.oldAskPricePerSqft = priceDropData.oldTotalAskPrice / sbua
+                }
+
+                // If askPricePerSqft values are provided, calculate totalAskPrice values
+                if (priceDropData.newAskPricePerSqft !== undefined) {
+                    updatedPriceDropData.newTotalAskPrice = sbua * priceDropData.newAskPricePerSqft
+                }
+                if (priceDropData.oldAskPricePerSqft !== undefined) {
+                    updatedPriceDropData.oldTotalAskPrice = sbua * priceDropData.oldAskPricePerSqft
+                }
+            }
+
+            // Create the price history entry with all calculated values
             const priceHistoryEntry = {
-                ...priceDropData,
+                ...updatedPriceDropData,
                 id: `price_${Date.now()}`,
                 timestamp: Math.floor(Date.now() / 1000), // Unix timestamp
             }
 
-            // Update the document with new price history and current prices
+            // Update the document with new price history and BOTH current prices
             const updateData: any = {
                 priceHistory: arrayUnion(priceHistoryEntry),
-                lastModified: getCurrentTimestamp(),
+                lastModified: Math.floor(Date.now() / 1000),
             }
 
-            // Update current prices based on what was changed
-            if (priceDropData.newTotalAskPrice !== undefined) {
-                updateData.totalAskPrice = priceDropData.newTotalAskPrice
+            // Always update BOTH current prices
+            if (updatedPriceDropData.newTotalAskPrice !== undefined) {
+                updateData.totalAskPrice = updatedPriceDropData.newTotalAskPrice
             }
-            if (priceDropData.newAskPricePerSqft !== undefined) {
-                updateData.askPricePerSqft = priceDropData.newAskPricePerSqft
+            if (updatedPriceDropData.newAskPricePerSqft !== undefined) {
+                updateData.askPricePerSqft = updatedPriceDropData.newAskPricePerSqft
             }
 
             await updateDoc(docRef, updateData)
 
-            console.log('✅ Price drop history added successfully')
+            console.log('✅ Price drop history added successfully with ALL calculated values:', {
+                oldTotalAskPrice: updatedPriceDropData.oldTotalAskPrice,
+                newTotalAskPrice: updatedPriceDropData.newTotalAskPrice,
+                oldAskPricePerSqft: updatedPriceDropData.oldAskPricePerSqft,
+                newAskPricePerSqft: updatedPriceDropData.newAskPricePerSqft,
+            })
+
             return { propertyId, priceHistoryEntry, updateData }
         } catch (error: any) {
             console.error('❌ Error adding price drop history:', error)

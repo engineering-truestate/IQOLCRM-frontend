@@ -26,6 +26,7 @@ import { formatCost } from '../../../components/helper/formatCost'
 import shareIcon from '/icons/acn/share-1.svg'
 import editIcon from '/icons/acn/edit.svg'
 import noteIcon from '/icons/acn/note.svg'
+import priceic from '/icons/acn/discount-shape.svg'
 import useAuth from '../../../hooks/useAuth'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
@@ -342,15 +343,8 @@ const PropertyDetailsPage = () => {
                             onClick={() => setIsPriceDropModalOpen(true)}
                             className='flex items-center h-8 gap-2 px-2 py-2 text-gray-700 bg-[#F3F3F3] border border-gray-300 rounded-md hover:bg-gray-50'
                         >
-                            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                <path
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    strokeWidth={2}
-                                    d='M13 17h8m0 0V9m0 8l-8-8-4 4-6-6'
-                                />
-                            </svg>
-                            <span className='text-sm font-medium'>Price Drop</span>
+                            <img src={priceic} alt='Share' className='w-4 h-4' />
+                            <span className='text-sm font-medium'>Price Change</span>
                         </button>
                         <button
                             onClick={() => navigate(`/acn/properties/${id}/edit`)}
@@ -688,96 +682,145 @@ const PropertyDetailsPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Price History Section - NEW */}
+                                {/* Price History Section - Updated to show both price types */}
+                                {/* Price History Section - Fixed with proper type guards */}
                                 {property.priceHistory && property.priceHistory.length > 0 && (
-                                    <div className='mt-2'>
-                                        <h3 className='font-medium text-gray-900 mb-2'>Price History</h3>
-                                        <div className='space-y-2'>
+                                    <div className='bg-white rounded-lg mt-2'>
+                                        <h2 className='text-md font-semibold text-gray-900 mb-6'>Price History</h2>
+                                        <div className='space-y-4'>
                                             {[...property.priceHistory]
                                                 .sort((a, b) => b.timestamp - a.timestamp)
-                                                .map((priceEntry, index) => (
-                                                    <div
-                                                        key={priceEntry.id || index}
-                                                        className='p-4 bg-gray-50 rounded-lg border border-gray-200'
-                                                    >
-                                                        <div className='flex items-center justify-between mb-2'>
-                                                            <h4 className='font-medium text-gray-900'>Price Change</h4>
-                                                            <span className='text-xs text-gray-500'>
-                                                                {formatDate(priceEntry.timestamp * 1000)}
-                                                            </span>
-                                                        </div>
-                                                        <div className='text-sm text-gray-600 mb-2'>
-                                                            <span className='font-medium'>Updated by:</span>{' '}
-                                                            {priceEntry.kamName || 'Unknown'}
-                                                        </div>
+                                                .map((priceEntry, index) => {
+                                                    // Determine if it's an increase or decrease based on total ask price
+                                                    let changeType = 'change'
+                                                    let changeColor = 'text-gray-600'
+                                                    let changeIcon = '↔'
 
-                                                        {/* Total Ask Price Changes */}
-                                                        {priceEntry.oldTotalAskPrice !== undefined &&
-                                                            priceEntry.newTotalAskPrice !== undefined && (
-                                                                <div className='text-sm text-gray-700 mb-2'>
-                                                                    <span className='font-medium'>
-                                                                        Total Ask Price:
-                                                                    </span>
-                                                                    <div className='flex items-center gap-2 mt-1'>
-                                                                        <span className='text-red-600 line-through'>
-                                                                            {formatCurrency(
-                                                                                priceEntry.oldTotalAskPrice,
-                                                                            )}
-                                                                        </span>
-                                                                        <span>→</span>
-                                                                        <span className='text-green-600 font-medium'>
-                                                                            {formatCurrency(
-                                                                                priceEntry.newTotalAskPrice,
-                                                                            )}
-                                                                        </span>
-                                                                        <span className='text-xs text-gray-500 ml-2'>
-                                                                            (
-                                                                            {(
-                                                                                ((priceEntry.newTotalAskPrice -
-                                                                                    priceEntry.oldTotalAskPrice) /
-                                                                                    priceEntry.oldTotalAskPrice) *
-                                                                                100
-                                                                            ).toFixed(1)}
-                                                                            %)
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            )}
+                                                    if (
+                                                        priceEntry.oldTotalAskPrice !== undefined &&
+                                                        priceEntry.newTotalAskPrice !== undefined
+                                                    ) {
+                                                        if (priceEntry.newTotalAskPrice > priceEntry.oldTotalAskPrice) {
+                                                            changeType = 'increase'
+                                                            changeColor = 'text-green-600'
+                                                            changeIcon = '↗'
+                                                        } else if (
+                                                            priceEntry.newTotalAskPrice < priceEntry.oldTotalAskPrice
+                                                        ) {
+                                                            changeType = 'decrease'
+                                                            changeColor = 'text-red-600'
+                                                            changeIcon = '↘'
+                                                        }
+                                                    }
 
-                                                        {/* Price Per Sqft Changes */}
-                                                        {priceEntry.oldAskPricePerSqft !== undefined &&
-                                                            priceEntry.newAskPricePerSqft !== undefined && (
-                                                                <div className='text-sm text-gray-700'>
-                                                                    <span className='font-medium'>Price Per Sqft:</span>
-                                                                    <div className='flex items-center gap-2 mt-1'>
-                                                                        <span className='text-red-600 line-through'>
-                                                                            {formatCurrency(
-                                                                                priceEntry.oldAskPricePerSqft,
-                                                                            )}
-                                                                            /sqft
+                                                    return (
+                                                        <div
+                                                            key={priceEntry.id || index}
+                                                            className='border border-gray-200 rounded-lg p-4'
+                                                        >
+                                                            <div className='flex items-center justify-between mb-3'>
+                                                                <h4
+                                                                    className={`text-sm font-semibold flex items-center gap-1 ${changeColor}`}
+                                                                >
+                                                                    {changeIcon} Price{' '}
+                                                                    {changeType.charAt(0).toUpperCase() +
+                                                                        changeType.slice(1)}
+                                                                </h4>
+                                                                <span className='text-xs text-gray-500'>
+                                                                    {formatDate(priceEntry.timestamp * 1000)}
+                                                                </span>
+                                                            </div>
+                                                            <div className='text-sm text-gray-600 mb-3'>
+                                                                <span className='font-medium'>Updated by:</span>{' '}
+                                                                {priceEntry.kamName || 'Unknown'}
+                                                            </div>
+
+                                                            {/* Total Ask Price Changes - Always show with type guard */}
+                                                            {priceEntry.oldTotalAskPrice !== undefined &&
+                                                                priceEntry.newTotalAskPrice !== undefined && (
+                                                                    <div className='text-sm text-gray-700 mb-3'>
+                                                                        <span className='font-medium'>
+                                                                            Total Ask Price:
                                                                         </span>
-                                                                        <span>→</span>
-                                                                        <span className='text-green-600 font-medium'>
-                                                                            {formatCurrency(
-                                                                                priceEntry.newAskPricePerSqft,
-                                                                            )}
-                                                                            /sqft
-                                                                        </span>
-                                                                        <span className='text-xs text-gray-500 ml-2'>
-                                                                            (
-                                                                            {(
-                                                                                ((priceEntry.newAskPricePerSqft -
-                                                                                    priceEntry.oldAskPricePerSqft) /
-                                                                                    priceEntry.oldAskPricePerSqft) *
-                                                                                100
-                                                                            ).toFixed(1)}
-                                                                            %)
-                                                                        </span>
+                                                                        <div className='flex items-center gap-2 mt-1'>
+                                                                            <span
+                                                                                className={
+                                                                                    changeType === 'decrease'
+                                                                                        ? 'text-red-600 line-through'
+                                                                                        : 'text-gray-600'
+                                                                                }
+                                                                            >
+                                                                                {formatCurrency(
+                                                                                    priceEntry.oldTotalAskPrice,
+                                                                                )}
+                                                                            </span>
+                                                                            <span>→</span>
+                                                                            <span
+                                                                                className={`font-medium ${changeType === 'increase' ? 'text-green-600' : changeType === 'decrease' ? 'text-green-600' : 'text-gray-600'}`}
+                                                                            >
+                                                                                {formatCurrency(
+                                                                                    priceEntry.newTotalAskPrice,
+                                                                                )}
+                                                                            </span>
+                                                                            <span className='text-xs text-gray-500 ml-2'>
+                                                                                (
+                                                                                {(
+                                                                                    ((priceEntry.newTotalAskPrice -
+                                                                                        priceEntry.oldTotalAskPrice) /
+                                                                                        priceEntry.oldTotalAskPrice) *
+                                                                                    100
+                                                                                ).toFixed(1)}
+                                                                                %)
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            )}
-                                                    </div>
-                                                ))}
+                                                                )}
+
+                                                            {/* Price Per Sqft Changes - Always show with type guard */}
+                                                            {priceEntry.oldAskPricePerSqft !== undefined &&
+                                                                priceEntry.newAskPricePerSqft !== undefined && (
+                                                                    <div className='text-sm text-gray-700'>
+                                                                        <span className='font-medium'>
+                                                                            Price Per Sqft:
+                                                                        </span>
+                                                                        <div className='flex items-center gap-2 mt-1'>
+                                                                            <span
+                                                                                className={
+                                                                                    changeType === 'decrease'
+                                                                                        ? 'text-red-600 line-through'
+                                                                                        : 'text-gray-600'
+                                                                                }
+                                                                            >
+                                                                                {formatCurrency(
+                                                                                    priceEntry.oldAskPricePerSqft,
+                                                                                )}
+                                                                                /sqft
+                                                                            </span>
+                                                                            <span>→</span>
+                                                                            <span
+                                                                                className={`font-medium ${changeType === 'increase' ? 'text-green-600' : changeType === 'decrease' ? 'text-green-600' : 'text-gray-600'}`}
+                                                                            >
+                                                                                {formatCurrency(
+                                                                                    priceEntry.newAskPricePerSqft,
+                                                                                )}
+                                                                                /sqft
+                                                                            </span>
+                                                                            <span className='text-xs text-gray-500 ml-2'>
+                                                                                (
+                                                                                {(
+                                                                                    ((priceEntry.newAskPricePerSqft -
+                                                                                        priceEntry.oldAskPricePerSqft) /
+                                                                                        priceEntry.oldAskPricePerSqft) *
+                                                                                    100
+                                                                                ).toFixed(1)}
+                                                                                %)
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                        </div>
+                                                    )
+                                                })}
                                         </div>
                                     </div>
                                 )}

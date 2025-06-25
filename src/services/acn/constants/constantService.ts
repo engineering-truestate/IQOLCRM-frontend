@@ -99,3 +99,81 @@ export const searchBuilderNames = createAsyncThunk(
         }
     },
 )
+
+// Fetch selling platforms
+export const fetchSellingPlatforms = createAsyncThunk(
+    'constants/fetchSellingPlatforms',
+    async (_, { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching selling platforms from acn-admin')
+
+            const platformDocRef = doc(db, 'acn-admin', 'sellingPlatforms')
+            const platformDoc = await getDoc(platformDocRef)
+
+            if (!platformDoc.exists()) {
+                throw new Error('Selling platforms document not found')
+            }
+
+            const platformData = platformDoc.data()
+            const names = platformData.names || []
+            const userAdded = platformData.user_added || []
+
+            console.log('✅ Selling platforms fetched:', names.length, 'User added:', userAdded.length)
+            return {
+                names,
+                userAdded,
+                allNames: [...names, ...userAdded],
+            }
+        } catch (error: any) {
+            console.error('❌ Error fetching selling platforms:', error)
+            return rejectWithValue(error.message || 'Failed to fetch selling platforms')
+        }
+    },
+)
+
+// Add new selling platform to user_added array
+export const addSellingPlatform = createAsyncThunk(
+    'constants/addSellingPlatform',
+    async (platformName: string, { rejectWithValue }) => {
+        try {
+            console.log('➕ Adding new selling platform:', platformName)
+
+            const platformDocRef = doc(db, 'acn-admin', 'sellingPlatforms')
+
+            await updateDoc(platformDocRef, {
+                user_added: arrayUnion(platformName),
+            })
+
+            console.log('✅ Selling platform added successfully:', platformName)
+            return platformName
+        } catch (error: any) {
+            console.error('❌ Error adding selling platform:', error)
+            return rejectWithValue(error.message || 'Failed to add selling platform')
+        }
+    },
+)
+
+// Search selling platforms (for autocomplete functionality)
+export const searchSellingPlatforms = createAsyncThunk(
+    'constants/searchSellingPlatforms',
+    async (searchTerm: string, { getState, rejectWithValue }) => {
+        try {
+            const state = getState() as any
+            const allNames = state.constants.sellingPlatforms.allNames || []
+
+            if (!searchTerm.trim()) {
+                return allNames
+            }
+
+            const filteredNames = allNames.filter((name: string) =>
+                name.toLowerCase().includes(searchTerm.toLowerCase()),
+            )
+
+            console.log('🔍 Filtered selling platforms:', filteredNames.length, 'for term:', searchTerm)
+            return filteredNames
+        } catch (error: any) {
+            console.error('❌ Error searching selling platforms:', error)
+            return rejectWithValue(error.message || 'Failed to search selling platforms')
+        }
+    },
+)
