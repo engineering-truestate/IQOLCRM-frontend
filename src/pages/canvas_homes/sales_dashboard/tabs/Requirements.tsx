@@ -39,7 +39,7 @@ interface RequirementsProps {
 
 // Dropdown options
 const BUDGET_OPTIONS = [
-    { label: 'Please Select', value: '' },
+    //{ label: 'Please Select', value: '' },
     { label: '0.5 - 0.75 Cr', value: '0.5 - 0.75 Cr' },
     { label: '0.76 - 1 Cr', value: '0.76 - 1 Cr' },
     { label: '1.01 - 1.25 Cr', value: '1.01 - 1.25 Cr' },
@@ -50,7 +50,7 @@ const BUDGET_OPTIONS = [
 ]
 
 const ZONE_OPTIONS = [
-    { label: 'Please Select', value: '' },
+    //{ label: 'Please Select', value: '' },
     { label: 'North', value: 'north' },
     { label: 'South', value: 'south' },
     { label: 'East', value: 'east' },
@@ -58,7 +58,7 @@ const ZONE_OPTIONS = [
 ]
 
 const MICRO_MARKET_OPTIONS = [
-    { label: 'Please Select', value: '' },
+    //{ label: 'Please Select', value: '' },
     { label: 'Whitefield', value: 'whitefield' },
     { label: 'Koramangala', value: 'koramangala' },
     { label: 'Indiranagar', value: 'indiranagar' },
@@ -71,7 +71,7 @@ const MICRO_MARKET_OPTIONS = [
 ]
 
 const PROPERTY_TYPE_OPTIONS = [
-    { label: 'Please Select', value: '' },
+    // { label: 'Please Select', value: '' },
     { label: 'Plot', value: 'plot' },
     { label: 'Apartment', value: 'apartment' },
     { label: 'Villa', value: 'villa' },
@@ -81,7 +81,7 @@ const PROPERTY_TYPE_OPTIONS = [
 ]
 
 const TYPOLOGY_OPTIONS = [
-    { label: 'Please Select', value: '' },
+    //{ label: 'Please Select', value: '' },
     { label: '1 BHK', value: '1 BHK' },
     { label: '2 BHK', value: '2 BHK' },
     { label: '3 BHK', value: '3 BHK' },
@@ -91,7 +91,7 @@ const TYPOLOGY_OPTIONS = [
 ]
 
 const PROPERTY_STAGE_OPTIONS = [
-    { label: 'Please Select', value: '' },
+    // { label: 'Please Select', value: '' },
     { label: 'Pre Launch', value: 'Pre Launch' },
     { label: 'Launch', value: 'Launch' },
     { label: 'Under Construction', value: 'Under Construction' },
@@ -271,7 +271,6 @@ const Requirements: React.FC<RequirementsProps> = ({
     // Generate possession year options
     const currentYear = new Date().getFullYear()
     const possessionOptions = [
-        { label: 'Please Select', value: '' },
         ...Array.from({ length: 15 }, (_, i) => {
             const year = (currentYear - i).toString()
             return { label: year, value: year }
@@ -307,20 +306,20 @@ const Requirements: React.FC<RequirementsProps> = ({
     }
 
     // Common styling
-    const labelClassName = 'block text-sm font-medium text-gray-600 mb-1.5'
+    const labelClassName = 'block text-sm font-medium text-gray-600 w-fit h-fit'
     const readOnlyFieldClassName =
-        'w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 h-[36px] flex items-center'
-    const dropdownClassName = 'w-full'
+        'w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 w-[254px] h-[32px] flex items-center'
+    const dropdownClassName = 'w-[254px] h-[32px]'
     const dropdownTriggerClassName =
-        'w-full px-3 py-2 border border-gray-300 bg-white text-gray-700 rounded-md flex items-center justify-between text-left h-[36px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+        'w-full px-[28px] py-2 border border-gray-300 bg-white text-gray-700 rounded-md flex items-center justify-between text-left h-[36px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-gray-500'
     const dropdownMenuClassName =
-        'absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[200px] overflow-auto'
+        'absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[200px] overflow-auto'
     const dropdownOptionClassName = 'px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer'
     const inputClassName =
-        'border border-gray-300 rounded-md px-3 py-2 text-gray-700 w-full h-[36px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+        'border border-gray-300 rounded-md px-3 py-2 text-gray-700 w-[254px] h-[32px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
 
     return (
-        <div className='bg-white rounded-lg p-6'>
+        <div className='bg-white rounded-lg p-5'>
             {/* Requirement Tabs */}
             {(requirements.length > 0 || isAddingNew) && (
                 <div className='border-b border-gray-200 mb-6'>
@@ -371,9 +370,14 @@ const Requirements: React.FC<RequirementsProps> = ({
             {isAddingNew ? (
                 // Add New Requirement Form
                 <div>
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-4 mb-6'>
                         {/* Row 1 */}
-                        <div>
+                        <div
+                            className='w-fit'
+                            // constructor(parameters) {
+
+                            // }
+                        >
                             <label className={labelClassName}>Expected Budget</label>
                             <Dropdown
                                 options={BUDGET_OPTIONS}
@@ -434,7 +438,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                             />
                         </div>
 
-                        <div>
+                        {/* <div>
                             <label className={labelClassName}>Typology</label>
                             <Dropdown
                                 options={TYPOLOGY_OPTIONS}
@@ -445,6 +449,17 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 triggerClassName={dropdownTriggerClassName}
                                 menuClassName={dropdownMenuClassName}
                                 optionClassName={dropdownOptionClassName}
+                                disabled={saving}
+                            />
+                        </div> */}
+                        <div>
+                            <label className={labelClassName}>Typology</label>
+                            <input
+                                type='text'
+                                value={formData.size}
+                                onChange={(e) => handleInputChange('size', e.target.value)}
+                                placeholder='Please Select'
+                                className='w-full px-4 py-2 border font-medium border-gray-300 rounded-lg focus:outline-none focus:border-black text-sm'
                                 disabled={saving}
                             />
                         </div>
@@ -494,14 +509,13 @@ const Requirements: React.FC<RequirementsProps> = ({
                     </div>
 
                     {/* Notes Section */}
-                    <div className='mb-6'>
+                    <div className='mb-6 w-full h-[98px]'>
                         <label className={labelClassName}>Add Note (Optional)</label>
                         <textarea
                             value={formData.notes}
                             onChange={(e) => handleInputChange('notes', e.target.value)}
                             placeholder='Any specific requirements or preferences...'
-                            rows={3}
-                            className='border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-700'
+                            className='w-[557px] h-[71px] border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-700'
                             disabled={saving}
                         />
                     </div>
