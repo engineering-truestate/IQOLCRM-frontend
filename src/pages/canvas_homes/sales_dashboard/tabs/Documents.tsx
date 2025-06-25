@@ -21,7 +21,7 @@ interface DocumentsProps {
 }
 
 const Documents: React.FC<DocumentsProps> = ({
-    leadId,
+    // leadId,
     enquiryId,
     documents: existingDocuments = [],
     onDocumentsUpdate,

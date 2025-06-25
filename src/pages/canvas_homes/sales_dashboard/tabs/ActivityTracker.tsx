@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
-import { useParams } from 'react-router'
+// import { useParams } from 'react-router'
 import TaskExecutionCard from '../../../../components/canvas_homes/activity_tracker_cards/TaskExecutionCard'
 import TaskCreatedCard from '../../../../components/canvas_homes/activity_tracker_cards/TaskCreatedCard'
 import ChangeAgentCard from '../../../../components/canvas_homes/activity_tracker_cards/ChangeAgentCard'
@@ -9,31 +8,23 @@ import PropertyChangeCard from '../../../../components/canvas_homes/activity_tra
 import LeadStateCard from '../../../../components/canvas_homes/activity_tracker_cards/LeadStateCard'
 import LeadAddedCard from '../../../../components/canvas_homes/activity_tracker_cards/LeadAddedCard'
 import { enquiryService } from '../../../../services/canvas_homes/enquiryService'
-import { UseLeadDetails } from '../../../../hooks/canvas_homes/UseLeadDetails'
 
-interface RootState {
-    taskId: {
-        enquiryId: string
-    }
+import type { ActivityHistoryItem } from '../../../../services/canvas_homes/types/index'
+
+// Props interface for the ActivityTracker component
+interface ActivityTrackerProps {
+    enquiryId: string
 }
 
-interface ActivityHistoryItem {
-    activityType: string
-    timestamp: number
-    agentName: string
-    data?: any
-}
-
-const ActivityTracker: React.FC = (enquiryId) => {
+const ActivityTracker: React.FC<ActivityTrackerProps> = ({ enquiryId }) => {
     const [groupedActivities, setGroupedActivities] = useState<Record<string, ActivityHistoryItem[]>>({})
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const { leadId } = useParams()
+    // const { leadId } = useParams()
 
     // Set selected enquiry ID when component mounts
-
     useEffect(() => {
-        const fetchActivityHistory = async () => {
+        const fetchActivityHistory = async (): Promise<void> => {
             if (!enquiryId) {
                 setError('No enquiry selected')
                 setLoading(false)
@@ -44,7 +35,7 @@ const ActivityTracker: React.FC = (enquiryId) => {
                 setLoading(true)
                 setError(null)
 
-                const activities = await enquiryService.getActivityHistory(enquiryId.enquiryId)
+                const activities = await enquiryService.getActivityHistory(enquiryId)
 
                 if (!activities || activities.length === 0) {
                     setGroupedActivities({})
@@ -53,14 +44,14 @@ const ActivityTracker: React.FC = (enquiryId) => {
                 }
 
                 // Group activities by date
-                const groupByDate = (activityList: ActivityHistoryItem[]) => {
+                const groupByDate = (activityList: ActivityHistoryItem[]): Record<string, ActivityHistoryItem[]> => {
                     const groups: Record<string, ActivityHistoryItem[]> = {}
 
                     activityList.forEach((activity) => {
                         // Convert Unix timestamp to milliseconds if needed
-                        const timestamp = activity.timestamp * 1000 // Assuming Unix timestamp in seconds
-                        const date = new Date(timestamp)
-                        const dateStr = date.toLocaleDateString('en-US', {
+                        const timestamp = activity.timestamp // Assuming Unix timestamp in seconds
+                        const date = new Date(timestamp * 1000)
+                        const dateStr = date.toLocaleDateString('en-IN', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -77,9 +68,9 @@ const ActivityTracker: React.FC = (enquiryId) => {
                         })
                     })
 
-                    // Sort activities within each date group by timestamp (ascending order)
+                    // Sort activities within each date group by timestamp (descending order)
                     Object.keys(groups).forEach((date) => {
-                        groups[date].sort((a, b) => a.timestamp - b.timestamp)
+                        groups[date].sort((a, b) => b.timestamp - a.timestamp)
                     })
 
                     return groups
@@ -98,28 +89,37 @@ const ActivityTracker: React.FC = (enquiryId) => {
     }, [enquiryId])
 
     // Render the appropriate card based on activity type
-    const renderActivityCard = (activity: ActivityHistoryItem, index: number) => {
+    const renderActivityCard = (activity: ActivityHistoryItem, index: number): React.ReactElement => {
+        const key = `${activity.timestamp}-${index}`
+
+        // Ensure agentName is undefined instead of null
+        const safeActivity = {
+            ...activity,
+            agentName: activity.agentName === null ? undefined : activity.agentName,
+        }
+
         switch (activity.activityType) {
             case 'task execution':
-                return <TaskExecutionCard key={index} activity={activity} />
+                return <TaskExecutionCard key={key} activity={safeActivity} />
             case 'task created':
-                return <TaskCreatedCard key={index} activity={activity} />
+                return <TaskCreatedCard key={key} activity={safeActivity} />
             case 'agent transfer':
-                return <ChangeAgentCard key={index} activity={activity} />
+                return <ChangeAgentCard key={key} activity={safeActivity} />
             case 'new enquiry':
-                return <NewEnquiryCard key={index} activity={activity} />
+                return <NewEnquiryCard key={key} activity={safeActivity} />
             case 'property change':
-                return <PropertyChangeCard key={index} activity={activity} />
+                return <PropertyChangeCard key={key} activity={safeActivity} />
             case 'lead closed':
-                return <LeadStateCard key={index} activity={activity} />
+                return <LeadStateCard key={key} activity={safeActivity} />
             case 'lead added':
-                return <LeadAddedCard key={index} activity={activity} />
+                return <LeadAddedCard key={key} activity={safeActivity} />
             default:
                 return (
-                    <div key={index} className='bg-gray-50 p-3 rounded-md border'>
+                    <div key={key} className='bg-gray-50 rounded-md border p-3'>
                         <div className='text-sm font-medium text-gray-800'>{activity.activityType}</div>
                         <div className='text-xs text-gray-600 mt-1'>
-                            By {activity.agentName} • {new Date(activity.timestamp).toLocaleTimeString()}
+                            By {safeActivity.agentName || 'Unknown'} •{' '}
+                            {new Date(activity.timestamp * 1000).toLocaleTimeString()}
                         </div>
                     </div>
                 )

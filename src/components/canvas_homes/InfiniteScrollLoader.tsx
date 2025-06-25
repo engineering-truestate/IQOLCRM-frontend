@@ -13,7 +13,7 @@ const InfiniteScrollLoader: React.FC<InfiniteScrollLoaderProps> = ({
     isLoadingMore,
     onLoadMore,
     className = '',
-    threshold = 0.8, // Default threshold when scrolling to the bottom (80%)
+    // threshold = 0.8, // Default threshold when scrolling to the bottom (80%)
 }) => {
     const [isNearBottom, setIsNearBottom] = useState(false)
 

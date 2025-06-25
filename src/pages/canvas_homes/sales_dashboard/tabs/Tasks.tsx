@@ -21,6 +21,20 @@ interface TasksProps {
     refreshData?: () => void
 }
 
+interface DisplayTask {
+    id: string
+    enquiryId: string
+    type: string
+    title: string
+    date: number
+    scheduledInfo: string
+    scheduledDate?: number
+    completionDate?: number
+    status: string
+    firebaseTask: Task
+    eoiEntries: any[]
+}
+
 const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error, setActiveTab, refreshData }) => {
     const [expandedTasks, setExpandedTasks] = useState<{ [key: string]: boolean }>({}) // Track which tasks are expanded
     const [taskStates, setTaskStates] = useState<{ [key: string]: { [key: string]: string } }>({}) // Track state for each task
@@ -33,11 +47,11 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
     ]
     const { leadId } = useParams<{ leadId?: string }>()
     const { user } = useAuth()
-    const agentId = user?.uid || ''
-    const agentName = user?.displayName || ''
+    // const agentId = user?.uid || ''
+    // const agentName = user?.displayName || ''
 
     // Convert Firebase tasks to display format
-    const getDisplayTasks = () => {
+    const getDisplayTasks = (): DisplayTask[] => {
         return firebaseTasks
             .map((firebaseTask) => ({
                 id: firebaseTask.taskId,
@@ -47,20 +61,13 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                 date: firebaseTask.added,
                 scheduledInfo: firebaseTask?.eventName ? firebaseTask.eventName : getScheduledInfo(firebaseTask),
                 scheduledDate: firebaseTask.scheduledDate,
+                completionDate: firebaseTask.completionDate,
                 status: firebaseTask.status,
                 firebaseTask: firebaseTask,
                 eoiEntries: firebaseTask.eoiEntries || [],
             }))
             .sort((a, b) => {
-                const taskOrder: { [key: string]: number } = {
-                    'lead registration': 1,
-                    'initial contact': 2,
-                    'site visit': 3,
-                    'eoi collection': 4,
-                    booking: 5,
-                }
-
-                return (taskOrder[a.type] ?? 999) - (taskOrder[b.type] ?? 999)
+                return a.date - b.date
             })
     }
 
@@ -201,30 +208,42 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
         }
     }
 
-    const renderTaskContent = (task: any) => {
+    const renderTaskContent = (task: DisplayTask) => {
         const commonProps = {
-            taskStatusOptions: { taskStatusOptions },
+            taskStatusOptions,
             refreshData,
         }
 
         switch (task.type?.toLowerCase()) {
             case 'lead registration':
-                return <LeadRegistrationTask propertyLink={task.firebaseTask.propertyLink || '#'} />
+                return <LeadRegistrationTask propertyLink={(task.firebaseTask as any).propertyLink || '#'} />
             case 'initial contact':
-                return <InitialContactTask {...commonProps} setActiveTab={setActiveTab} />
+                return <InitialContactTask {...commonProps} setActiveTab={setActiveTab || (() => {})} />
             case 'site visit':
                 return (
-                    <SiteVisitTask {...commonProps} setActiveTab={setActiveTab} taskStatusOptions={taskStatusOptions} />
+                    <SiteVisitTask
+                        {...commonProps}
+                        refreshData={refreshData || (() => {})}
+                        setActiveTab={setActiveTab || (() => {})}
+                    />
                 )
             case 'eoi collection':
-                return <CollectEOITask {...commonProps} setActiveTab={setActiveTab} eoiEntries={task.eoiEntries} />
+                return (
+                    <CollectEOITask
+                        {...commonProps}
+                        refreshData={refreshData || (() => {})}
+                        setActiveTab={setActiveTab || (() => {})}
+                        eoiEntries={task.eoiEntries}
+                        updateTaskState={updateTaskState}
+                        getTaskState={getTaskState}
+                    />
+                )
             case 'booking':
                 return (
                     <BookingAmountTask
                         {...commonProps}
-                        setActiveTab={setActiveTab}
-                        agentId={agentId}
-                        agentName={agentName}
+                        refreshData={refreshData || (() => {})}
+                        setActiveTab={setActiveTab || (() => {})}
                     />
                 )
             default:

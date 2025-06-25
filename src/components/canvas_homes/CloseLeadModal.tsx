@@ -5,7 +5,7 @@ import { useParams } from 'react-router'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
-import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
@@ -94,7 +94,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
     }, [isOpen, taskState, taskIds, agentId, agentName])
 
     const reasonOptions = [
-        { value: '', label: 'Select reason' },
+        // { value: '', label: 'Select reason' },
         { value: 'incorrect contact details', label: 'Incorrect Contact Details' },
         { value: 'no response after multiple follow ups', label: 'No Response After Multiple Follow-Ups' },
         { value: 'not interested', label: 'Not Interested' },
@@ -105,7 +105,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
         { value: 'other', label: 'Other' },
     ]
 
-    const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
+    // const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
 
     const tagOptions = [
         { value: 'cold', label: 'Cold' },
@@ -136,7 +136,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
 
                 // Prepare enquiry update data
                 const enqData = {
-                    state: 'dropped',
+                    state: 'dropped' as 'open' | 'closed' | 'fresh' | 'dropped' | null,
                     stage: formData.stage,
                     leadStatus: formData.leadStatus,
                     tag: formData.tag,
@@ -161,7 +161,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                         note: formData.note,
                         taskType: taskType,
                         leadStatus: formData.leadStatus,
-                        tag: leadData.tag !== formData.tag ? [leadData.tag, formData.tag] : [formData.tag],
+                        tag: leadData?.tag !== formData.tag ? [leadData?.tag, formData.tag] : [formData.tag],
                     },
                 })
 
@@ -180,7 +180,20 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                 const updateLeadData = {
                     state: 'dropped',
                     stage: formData.stage,
-                    leadStatus: formData.leadStatus,
+                    leadStatus: formData.leadStatus as
+                        | 'not connected'
+                        | 'closed'
+                        | 'interested'
+                        | 'follow up'
+                        | 'not interested'
+                        | 'visit unsuccessful'
+                        | 'visit dropped'
+                        | 'eoi dropped'
+                        | 'booking dropped'
+                        | 'requirement collected'
+                        | null
+                        | undefined,
+                    completionDate: currentTimestamp,
                     tag: formData.tag,
                     lastModified: currentTimestamp,
                 }
@@ -261,11 +274,11 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-50 z-40' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-66 z-40' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
             <div
-                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-lg shadow-2xl'
+                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-2xl shadow-2xl'
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='flex flex-col'>
@@ -314,16 +327,20 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                         <div className='space-y-4'>
                             {/* Reason Dropdown */}
                             <div>
-                                <label className='block text-sm font-medium text-gray-700 mb-2'>Reason</label>
+                                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                    Reason<span className='text-red-500'> *</span>
+                                </label>
                                 <Dropdown
                                     options={reasonOptions}
                                     onSelect={(value) => handleInputChange('reason', value)}
                                     defaultValue={formData.reason}
                                     placeholder='Select reason'
-                                    className='w-full'
-                                    triggerClassName='w-full px-4 py-1 border text-gray-500 border-gray-300 rounded-lg bg-white flex items-center justify-between text-left'
-                                    menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                    optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                    className='w-full relative inline-block'
+                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                        formData.reason ? '[&>span]:text-black' : ''
+                                    }`}
+                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                    optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                     disabled={isLoading}
                                 />
                             </div>
@@ -332,16 +349,11 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                             <div className='grid grid-cols-3 gap-4'>
                                 <div>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>Task Status</label>
-                                    <Dropdown
-                                        options={taskStatusOptions}
-                                        onSelect={() => {}}
-                                        defaultValue='Complete'
-                                        placeholder='Complete'
-                                        className='w-full'
-                                        triggerClassName='w-full px-4 py-1 border bg-gray-50 text-gray-500 border-gray-300 rounded-sm flex items-center justify-between text-left cursor-not-allowed opacity-80'
-                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                        optionClassName='px-4 py-2 text-sm text-gray-700 bg-gray-50 hover:bg-gray-50 cursor-pointer'
-                                        disabled={true}
+                                    <input
+                                        type='text'
+                                        value={'Complete'}
+                                        disabled
+                                        className='w-full px-4 py-1 border border-gray-300 rounded-sm bg-gray-50 text-gray-500'
                                     />
                                 </div>
                                 <div>
@@ -354,16 +366,21 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                                     />
                                 </div>
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Tag</label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Tag<span className='text-red-500'> *</span>
+                                    </label>
                                     <Dropdown
                                         options={tagOptions}
                                         onSelect={(value) => handleInputChange('tag', value)}
-                                        defaultValue={formData.tag}
-                                        placeholder='Select tag'
-                                        className='w-full'
-                                        triggerClassName='w-full px-4 py-1 border border-gray-300 text-gray-500 rounded-sm bg-white flex items-center justify-between text-left'
-                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                        optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                        // defaultValue={toCapitalizedWords(leadData?.tag)}
+                                        defaultValue={leadData?.tag || ''}
+                                        // placeholder={toCapitalizedWords(leadData?.tag)}
+                                        className='w-full relative inline-block'
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.tag ? '[&>span]:text-black' : ''
+                                        }`}
+                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -379,7 +396,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                                     onChange={(e) => handleInputChange('note', e.target.value)}
                                     rows={4}
                                     disabled={isLoading}
-                                    className='w-full px-4 py-2 border border-gray-300 rounded-lg resize-none'
+                                    className='w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-black focus:ring-0'
                                 ></textarea>
                             </div>
                         </div>
@@ -396,7 +413,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isLoading || !formData.reason}
+                            disabled={isLoading || !formData.reason || !formData.tag}
                             className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (

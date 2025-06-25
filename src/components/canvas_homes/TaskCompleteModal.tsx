@@ -1,28 +1,40 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import { useParams } from 'react-router'
 import useAuth from '../../hooks/useAuth'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '../../store'
-import { clearTaskId, setTaskState } from '../../store/reducers/canvas-homes/taskIdReducer'
+import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { toast } from 'react-toastify'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
-import { UseLeadDetails } from '../../hooks/canvas_homes/UseLeadDetails'
+import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
-import { useNavigate } from 'react-router'
+// import { useNavigate } from 'react-router'
 import Dropdown from '../design-elements/Dropdown'
 import { toCapitalizedWords } from '../helper/toCapitalize'
+// import type { Lead } from '../../services/canvas_homes'
 
 interface TaskCompleteModalProps {
     isOpen: boolean
     onClose: () => void
     title?: string
     stage?: string
-    state?: string
-    leadStatus?: string
+    state?: 'open' | 'closed' | 'fresh' | 'dropped' | null | undefined
+    leadStatus:
+        | 'interested'
+        | 'follow up'
+        | 'not interested'
+        | 'not connected'
+        | 'visit unsuccessful'
+        | 'visit dropped'
+        | 'eoi dropped'
+        | 'booking dropped'
+        | 'requirement collected'
+        | 'closed'
+        | null
     taskType?: string
     refreshData?: any
 }
@@ -33,10 +45,10 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     title = 'Interested',
     stage,
     state = 'open',
-    leadStatus = 'Interested',
+    leadStatus = 'interested',
     taskType,
     refreshData,
-}) => {
+}: TaskCompleteModalProps) => {
     const dispatch = useDispatch<AppDispatch>()
     const taskId = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
@@ -49,11 +61,11 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
 
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
-        tag: 'cold',
+        tag: leadData?.tag || '',
         note: '',
     })
 
-    const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
+    // const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
 
     const tagOptions = [
         { value: 'cold', label: 'Cold' },
@@ -114,7 +126,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 data: {
                     taskType: taskType || 'Task',
                     leadStatus: leadStatus,
-                    tag: leadData.tag !== formData.tag ? [leadData.tag, formData.tag] : [formData.tag],
+                    tag: (leadData?.tag ?? '') !== formData.tag ? [leadData?.tag ?? '', formData.tag] : [formData.tag],
                     note: formData.note.trim() || '',
                 },
             })
@@ -125,6 +137,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 stage: stage,
                 leadStatus: leadStatus,
                 tag: formData.tag,
+                completionDate: currentTimestamp,
                 lastModified: currentTimestamp,
             })
 
@@ -159,16 +172,16 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     return (
         <>
             {/* Modal Overlay */}
-            <div className='fixed inset-0 bg-black opacity-50 z-40 ' onClick={!isLoading ? onClose : undefined} />
+            <div className='fixed inset-0 bg-black opacity-66 z-40 ' onClick={!isLoading ? onClose : undefined} />
 
             {/* Modal Container */}
             <div
-                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-lg shadow-2xl'
+                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-2xl shadow-2xl'
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='flex flex-col'>
                     {/* Modal Header */}
-                    <div className='flex items-center justify-between p-6'>
+                    <div className='flex items-center justify-between py-8 px-10'>
                         <h2 className='text-xl font-semibold text-gray-900'>{toCapitalizedWords(title)}</h2>
                         <button
                             onClick={onClose}
@@ -176,8 +189,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                             className='p-1 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50'
                         >
                             <svg
-                                width='20'
-                                height='21'
+                                width='24'
+                                height='24'
                                 viewBox='0 0 20 21'
                                 fill='none'
                                 xmlns='http://www.w3.org/2000/svg'
@@ -208,24 +221,17 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                     </div>
 
                     {/* Modal Content */}
-                    <div className='px-6 pt-0'>
+                    <div className='px-10 pt-0'>
                         <div className='space-y-6'>
                             {/* Status and Tag Fields */}
                             <div className='grid grid-cols-3 gap-4'>
                                 <div>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>Task Status</label>
-                                    <Dropdown
-                                        options={taskStatusOptions}
-                                        onSelect={() => {}}
-                                        defaultValue='Complete'
-                                        placeholder='Complete'
-                                        className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-700 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.label ? '[&>span]:font-medium text-black' : ''
-                                        }`}
-                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
-                                        disabled={isLoading}
+                                    <input
+                                        type='text'
+                                        value={'Completed'}
+                                        disabled
+                                        className='w-full px-4 py-1 border border-gray-300 rounded-sm bg-gray-50 text-gray-500'
                                     />
                                 </div>
                                 <div>
@@ -238,16 +244,21 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                                     />
                                 </div>
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Tag</label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Tag<span className='text-red-500'> *</span>
+                                    </label>
                                     <Dropdown
                                         options={tagOptions}
                                         onSelect={(value) => handleInputChange('tag', value)}
-                                        defaultValue={formData.tag}
-                                        placeholder='Select tag'
-                                        className='w-full'
-                                        triggerClassName='w-full px-4 py-1 border border-gray-300 text-gray-500 rounded-sm bg-white flex items-center justify-between text-left'
-                                        menuClassName='absolute z-10 w-fit mt-1 bg-white border border-gray-300 rounded-lg shadow-lg'
-                                        optionClassName='px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                        // defaultValue={toCapitalizedWords(leadData?.tag)}
+                                        defaultValue={leadData?.tag || ''}
+                                        placeholder='Select Tag'
+                                        className='w-full relative inline-block'
+                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                            formData.tag ? '[&>span]:text-black' : ''
+                                        }`}
+                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -263,7 +274,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                                     onChange={(e) => handleInputChange('note', e.target.value)}
                                     rows={6}
                                     disabled={isLoading}
-                                    className='w-full px-4 py-1 border border-gray-300 rounded-lg resize-none'
+                                    className='w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-black focus:ring-0'
                                 ></textarea>
                             </div>
                         </div>
@@ -280,7 +291,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isLoading}
+                            disabled={isLoading || (!leadData?.tag && !formData.tag)}
                             className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (

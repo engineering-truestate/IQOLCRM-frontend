@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import google from '/icons/canvas_homes/google.svg'
@@ -9,78 +9,81 @@ const MarketingDetails = () => {
     const [tableData, setTableData] = useState<any[]>([])
     const [columns, setColumns] = useState<TableColumn[]>([])
 
-    const originalData = [
-        {
-            id: '1',
-            date: 'May 25, 2023',
-            totalCost: 5000,
-            totalImpression: 267,
-            totalClicks: 60,
-            cpiCpc: 52567,
-            totalLeads: 5,
-            cpl: 12500,
-        },
-        {
-            id: '2',
-            date: 'May 26, 2023',
-            totalCost: 7200,
-            totalImpression: 324,
-            totalClicks: 78,
-            cpiCpc: 46154,
-            totalLeads: 8,
-            cpl: 9000,
-        },
-        {
-            id: '3',
-            date: 'May 27, 2023',
-            totalCost: 6800,
-            totalImpression: 298,
-            totalClicks: 71,
-            cpiCpc: 47887,
-            totalLeads: 7,
-            cpl: 9714,
-        },
-        {
-            id: '4',
-            date: 'May 28, 2023',
-            totalCost: 8500,
-            totalImpression: 412,
-            totalClicks: 95,
-            cpiCpc: 44737,
-            totalLeads: 12,
-            cpl: 7083,
-        },
-        {
-            id: '5',
-            date: 'May 29, 2023',
-            totalCost: 4200,
-            totalImpression: 189,
-            totalClicks: 43,
-            cpiCpc: 48837,
-            totalLeads: 4,
-            cpl: 10500,
-        },
-        {
-            id: '6',
-            date: 'May 30, 2023',
-            totalCost: 9200,
-            totalImpression: 456,
-            totalClicks: 112,
-            cpiCpc: 41071,
-            totalLeads: 15,
-            cpl: 6133,
-        },
-        {
-            id: '7',
-            date: 'May 31, 2023',
-            totalCost: 6700,
-            totalImpression: 301,
-            totalClicks: 68,
-            cpiCpc: 49265,
-            totalLeads: 6,
-            cpl: 11167,
-        },
-    ]
+    const originalData = useMemo(
+        () => [
+            {
+                id: '1',
+                date: 'May 25, 2023',
+                totalCost: 5000,
+                totalImpression: 267,
+                totalClicks: 60,
+                cpiCpc: 52567,
+                totalLeads: 5,
+                cpl: 12500,
+            },
+            {
+                id: '2',
+                date: 'May 26, 2023',
+                totalCost: 7200,
+                totalImpression: 324,
+                totalClicks: 78,
+                cpiCpc: 46154,
+                totalLeads: 8,
+                cpl: 9000,
+            },
+            {
+                id: '3',
+                date: 'May 27, 2023',
+                totalCost: 6800,
+                totalImpression: 298,
+                totalClicks: 71,
+                cpiCpc: 47887,
+                totalLeads: 7,
+                cpl: 9714,
+            },
+            {
+                id: '4',
+                date: 'May 28, 2023',
+                totalCost: 8500,
+                totalImpression: 412,
+                totalClicks: 95,
+                cpiCpc: 44737,
+                totalLeads: 12,
+                cpl: 7083,
+            },
+            {
+                id: '5',
+                date: 'May 29, 2023',
+                totalCost: 4200,
+                totalImpression: 189,
+                totalClicks: 43,
+                cpiCpc: 48837,
+                totalLeads: 4,
+                cpl: 10500,
+            },
+            {
+                id: '6',
+                date: 'May 30, 2023',
+                totalCost: 9200,
+                totalImpression: 456,
+                totalClicks: 112,
+                cpiCpc: 41071,
+                totalLeads: 15,
+                cpl: 6133,
+            },
+            {
+                id: '7',
+                date: 'May 31, 2023',
+                totalCost: 6700,
+                totalImpression: 301,
+                totalClicks: 68,
+                cpiCpc: 49265,
+                totalLeads: 6,
+                cpl: 11167,
+            },
+        ],
+        [],
+    )
 
     const getWeekNumber = (date: Date) => {
         const oneJan = new Date(date.getFullYear(), 0, 1)
@@ -149,7 +152,7 @@ const MarketingDetails = () => {
                 render: (v) => <span className='text-sm'>{v.toLocaleString()}</span>,
             },
         ])
-    }, [activeTab])
+    }, [activeTab, originalData])
 
     useEffect(() => {
         const format = (val: number) => Math.round(val * 100) / 100
@@ -194,7 +197,7 @@ const MarketingDetails = () => {
         }
 
         setTableData(groupData())
-    }, [activeTab])
+    }, [activeTab, originalData])
 
     return (
         <Layout loading={false}>

@@ -1,6 +1,28 @@
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
-const Dropdown = ({
+type Option = {
+    label: string
+    value: string
+    task?: () => void
+    modal?: (state?: boolean) => void
+    subOptions?: Option[]
+}
+
+interface DropdownProps {
+    options: Option[]
+    defaultValue?: string
+    onSelect: (value: string) => void
+    className?: string
+    triggerClassName?: string
+    menuClassName?: string
+    optionClassName?: string
+    nestedOptionClassName?: string
+    placeholder?: string
+    disabled?: boolean
+    state?: boolean
+}
+
+const Dropdown: React.FC<DropdownProps> = ({
     options,
     defaultValue,
     onSelect,
@@ -16,15 +38,15 @@ const Dropdown = ({
     // State Management
     const [isOpen, setIsOpen] = useState(false)
     const [selected, setSelected] = useState(defaultValue || '')
-    const [nestedOpen, setNestedOpen] = useState(null)
+    const [nestedOpen, setNestedOpen] = useState<number | null>(null)
 
     // Ref for click outside detection
-    const dropdownRef = useRef(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
 
     // Click outside effect
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false)
                 setNestedOpen(null)
             }
@@ -40,7 +62,7 @@ const Dropdown = ({
     }, [isOpen])
 
     // Event Handlers
-    const handleOptionClick = (option, index) => {
+    const handleOptionClick = (option: Option, index: number) => {
         if (option.task) option.task()
         if (option.modal) option.modal(true)
 
@@ -54,7 +76,7 @@ const Dropdown = ({
         }
     }
 
-    const handleSubOptionClick = (subOption) => {
+    const handleSubOptionClick = (subOption: Option) => {
         if (subOption.task) subOption.task()
         if (subOption.modal) subOption.modal()
         setSelected(subOption.label)
@@ -63,7 +85,7 @@ const Dropdown = ({
         setNestedOpen(null)
     }
 
-    const handleToggle = (e) => {
+    const handleToggle = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         e.stopPropagation()
         if (disabled) return
         setIsOpen(!isOpen)
@@ -89,7 +111,7 @@ const Dropdown = ({
 
                 <span className='ml-1'>
                     <svg
-                        className={`w-4 h-4 ml-1  transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                        className={`w-4 h-4 ml-1  transition-transform duration-200 ${isOpen && !disabled ? 'rotate-180' : ''}`}
                         fill='none'
                         stroke='currentColor'
                         viewBox='0 0 24 24'
