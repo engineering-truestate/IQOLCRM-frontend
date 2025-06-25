@@ -264,6 +264,7 @@ const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
                     label={field.label}
                     required={isRequired}
                     error={error}
+                    propertyId={formData?.propertyId}
                 />
             )
         default:

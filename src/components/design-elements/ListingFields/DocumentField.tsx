@@ -1,13 +1,4 @@
-import React, { useRef, useState } from 'react'
-import { uploadFileToFirebase } from '../../helper/fileUploadHelper'
-
-const API_URL = 'https://uploadtodrive-wi5onpxm7q-uc.a.run.app'
-
-interface UploadingFile {
-    file: File
-    progress: number // 0-100
-    status: 'uploading' | 'done' | 'error'
-}
+import React, { useRef } from 'react'
 
 interface DocumentFieldProps {
     value: File[]
@@ -15,7 +6,7 @@ interface DocumentFieldProps {
     label?: string
     required?: boolean
     error?: string
-    propertyId: string
+    propertyId: string | 'id'
 }
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'video/mp4']
@@ -29,68 +20,25 @@ function formatBytes(bytes: number): string {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-// Helper to call the uploadToDrive API
-async function uploadToDrive(
-    propId: string,
-    uploadedFileUrls: { photo: string[]; video: string[]; document: string[] },
-) {
-    const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propId: propId, uploadedFileUrls: uploadedFileUrls }),
-    })
-    if (!response.ok) throw new Error('Failed to upload to Drive')
-    const data = await response.json()
-    return data.sharableFolderUrl
-}
-
-const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, required, error, propertyId }) => {
+const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, required, error }) => {
     const inputRef = useRef<HTMLInputElement>(null)
-    const [uploading, setUploading] = useState<UploadingFile[]>([])
-    const [driveUrl, setDriveUrl] = useState<string | null>(null)
-    const [isUploading, setIsUploading] = useState(false)
 
-    // Merge value and uploading for display
-    const filesToShow: UploadingFile[] = [
-        ...uploading,
-        ...value
-            .filter((f) => !uploading.some((u) => u.file.name === f.name && u.file.size === f.size))
-            .map((f) => ({ file: f, progress: 100, status: 'done' as const })),
-    ]
+    // Merge value for display
+    const filesToShow: File[] = value
 
     const handleFiles = (fileList: FileList) => {
-        const newFiles: UploadingFile[] = []
+        const newFiles: File[] = []
         Array.from(fileList).forEach((file) => {
             if (
                 ACCEPTED_TYPES.includes(file.type) &&
                 file.size <= MAX_SIZE_MB * 1024 * 1024 &&
                 !value.some((f) => f.name === file.name && f.size === file.size)
             ) {
-                newFiles.push({ file, progress: 0, status: 'uploading' })
+                newFiles.push(file)
             }
         })
         if (newFiles.length) {
-            setUploading((prev) => [...prev, ...newFiles])
-            setIsUploading(true)
-            // Upload each file to Firebase Storage
-            Promise.all(
-                newFiles.map((uf) =>
-                    uploadFileToFirebase(uf.file, `media-files/${propertyId}/document`, (progress: number) => {
-                        setUploading((prev) => prev.map((u) => (u.file === uf.file ? { ...u, progress } : u)))
-                    }).then((url: string) => ({ url, file: uf.file })),
-                ),
-            ).then(async (results: { url: string; file: File }[]) => {
-                setUploading([])
-                setValue([...value, ...results.map((r) => r.file)])
-                // Collect all document URLs (and photo/video if needed)
-                const documentUrls = results.map((r) => r.url)
-                const uploadedFileUrls = { photo: [], video: [], document: documentUrls }
-                // Call the API
-                const sharableFolderUrl = await uploadToDrive(propertyId, uploadedFileUrls)
-                setDriveUrl(sharableFolderUrl)
-                console.log('sharableFolderUrl', sharableFolderUrl)
-                setIsUploading(false)
-            })
+            setValue([...value, ...newFiles])
         }
     }
 
@@ -150,7 +98,6 @@ const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, r
                             e.stopPropagation()
                             handleBrowse()
                         }}
-                        disabled={isUploading}
                     >
                         Browse Files
                     </button>
@@ -161,32 +108,21 @@ const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, r
                         accept={ACCEPTED_TYPES.join(',')}
                         className='hidden'
                         onChange={(e) => e.target.files && handleFiles(e.target.files)}
-                        disabled={isUploading}
                     />
                 </div>
             </div>
             <div className='mt-4 space-y-2'>
                 {filesToShow.map((f, idx) => (
                     <div key={idx} className='flex items-center bg-green-100 rounded p-2'>
-                        {getFileIcon(f.file)}
+                        {getFileIcon(f)}
                         <div className='ml-2 flex-1'>
-                            <div className='font-medium truncate max-w-xs'>{f.file.name}</div>
-                            <div className='text-xs text-gray-500'>
-                                {formatBytes(f.file.size)}
-                                {f.status === 'uploading' && <> &bull; Uploading...</>}
-                            </div>
-                            <div className='w-full bg-gray-200 rounded h-1 mt-1'>
-                                <div
-                                    className='bg-green-500 h-1 rounded transition-all'
-                                    style={{ width: `${f.progress}%` }}
-                                />
-                            </div>
+                            <div className='font-medium truncate max-w-xs'>{f.name}</div>
+                            <div className='text-xs text-gray-500'>{formatBytes(f.size)}</div>
                         </div>
                         <button
                             className='ml-2 text-gray-400 hover:text-red-500'
-                            onClick={() => handleRemove(f.file)}
-                            aria-label={`Remove ${f.file.name}`}
-                            disabled={isUploading}
+                            onClick={() => handleRemove(f)}
+                            aria-label={`Remove ${f.name}`}
                         >
                             <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
                                 <path
@@ -200,18 +136,6 @@ const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, r
                     </div>
                 ))}
             </div>
-            {driveUrl && (
-                <div className='mt-4'>
-                    <a
-                        href={driveUrl}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='text-blue-600 underline font-medium'
-                    >
-                        View all documents in Google Drive
-                    </a>
-                </div>
-            )}
             {error && <div className='text-xs text-red-600 mt-1'>{error}</div>}
         </div>
     )

@@ -697,7 +697,7 @@ const AddEditInventoryPage = () => {
                                                     />
                                                 </svg>
                                                 <span className='text-green-700 font-semibold'>
-                                                    {currentAgent.cpId} | {currentAgent.agentName}
+                                                    {currentAgent.cpId} | {currentAgent.name}
                                                 </span>
                                             </div>
                                         </div>
