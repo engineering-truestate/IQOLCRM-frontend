@@ -21,7 +21,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
     const [isCloseLeadModalOpen, setIsCloseLeadModalOpen] = useState(false)
     const [isTaskCompleteModalOpen, setIsTaskCompleteModalOpen] = useState(false)
     const [taskState, changeTaskState] = useState('connected')
-    const [taskType, setTaskType] = useState('Initial Contact')
+    // const [taskType, setTaskType] = useState('Initial Contact')
 
     const dispatch = useDispatch<AppDispatch>()
 
@@ -56,7 +56,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
                     modal: useCallback(() => {
                         changeTaskState('connected')
                         setIsCloseLeadModalOpen(true)
-                    }, [taskState, setIsCloseLeadModalOpen]),
+                    }, [setIsCloseLeadModalOpen]),
                 },
             ],
         },
@@ -85,7 +85,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
             modal: useCallback(() => {
                 changeTaskState('not conected')
                 setIsCloseLeadModalOpen(true)
-            }, [taskState, setIsCloseLeadModalOpen]),
+            }, [setIsCloseLeadModalOpen]),
         },
     ]
 

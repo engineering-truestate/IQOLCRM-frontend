@@ -99,12 +99,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
 
     // Get appropriate label for the date field
-    const getDateLabel = () => {
-        if (task.status === 'complete' && task.firebaseTask?.completionDate) {
-            return 'Completed On:'
-        }
-        return 'Scheduled For:'
-    }
+    // const getDateLabel = () => {
+    //     if (task.status === 'complete' && task.firebaseTask?.completionDate) {
+    //         return 'Completed On:'
+    //     }
+    //     return 'Scheduled For:'
+    // }
 
     return (
         <div
@@ -123,7 +123,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
                             Task {index + 1}: {formatValue(task.title)}
                         </div>
                         <div className='text-xs text-gray-500'>
-                            Created: {task.date ? formatUnixDateTime(task.date) : 'Not Available'}
+                            Created:{' '}
+                            {task.date
+                                ? formatUnixDateTime(typeof task.date === 'string' ? Number(task.date) : task.date)
+                                : 'Not Available'}
                         </div>
                     </div>
                 </div>

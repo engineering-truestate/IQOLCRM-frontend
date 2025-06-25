@@ -6,7 +6,7 @@ import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer
 import TaskCompleteModal from '../TaskCompleteModal'
 import ChangePropertyModal from '../ChangePropertyModal'
 import CloseLeadModal from '../CloseLeadModal'
-import { ref } from 'firebase/storage'
+// import { ref } from 'firebase/storage'
 
 interface DropdownOption {
     label: string

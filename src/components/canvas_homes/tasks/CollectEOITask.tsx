@@ -3,7 +3,7 @@ import Dropdown from './Dropdown'
 import CloseLeadModal from '../CloseLeadModal'
 import type { AppDispatch } from '../../../store'
 import { useDispatch } from 'react-redux'
-import { clearTaskId, setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
+import { setTaskState } from '../../../store/reducers/canvas-homes/taskIdReducer'
 import RescheduleEventModal from '../RescheduleEventModal'
 import ChangePropertyModal from '../ChangePropertyModal'
 import TaskCompleteModal from '../TaskCompleteModal'
@@ -65,12 +65,12 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
     }
 
     // Remove EOI entry
-    const handleRemoveEoiEntry = (index: number) => {
-        if (eoiEntries.length > 1) {
-            const newEntries = eoiEntries.filter((_, i) => i !== index)
-            updateEoiEntries(newEntries)
-        }
-    }
+    // const handleRemoveEoiEntry = (index: number) => {
+    //     if (eoiEntries.length > 1) {
+    //         const newEntries = eoiEntries.filter((_, i) => i !== index)
+    //         updateEoiEntries(newEntries)
+    //     }
+    // }
 
     // Update EOI entry amount
     const handleAmountChange = (index: number, value: string) => {
@@ -124,7 +124,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
         }
     }
 
-    const handleEOICollectedClick = (e) => {
+    const handleEOICollectedClick = (e: React.MouseEvent) => {
         e.stopPropagation()
         setShowForm(true)
     }
@@ -221,7 +221,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                                         <Dropdown
                                             options={eoiTypeOptions}
                                             defaultValue={entry.type}
-                                            onSelect={(value) => {
+                                            onSelect={(value: string) => {
                                                 handleTypeChange(index, value)
                                                 setHasTypeChanged(true)
                                             }}

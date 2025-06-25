@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import Dropdown from './Dropdown'
 import SendEmailModal from '../SendEmailModal'
 
@@ -10,7 +10,7 @@ const LeadRegistrationTask = ({ propertyLink = '' }) => {
         { value: 'builder3@example.com', label: 'Builder 3' },
     ]
 
-    const [selectedEmail, setSelectedEmail] = useState<string>('')
+    const [_selectedEmail, setSelectedEmail] = useState<string>('')
 
     const handleEmailSelect = (email: string) => {
         setSelectedEmail(email)
