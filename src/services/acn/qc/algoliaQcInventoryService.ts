@@ -70,7 +70,7 @@ export const searchInventory = async (params: InventorySearchParams): Promise<In
                     page,
                     hitsPerPage,
                     filters: buildFilterString(filters),
-                    facets: ['kamId', 'stage', 'KamStatus', 'assetType'],
+                    facets: ['kamId', 'stage', 'KamStatus', 'assetType', 'kamName'],
                     maxValuesPerFacet: 100,
                 },
             },
@@ -101,7 +101,7 @@ export const getInventoryFacets = async (): Promise<Record<string, { value: stri
                 params: {
                     query: '',
                     hitsPerPage: 0,
-                    facets: ['kamId', 'stage', 'KamStatus', 'assetType'],
+                    facets: ['kamId', 'stage', 'KamStatus', 'assetType', 'kamName'],
                     maxValuesPerFacet: 100,
                 },
             },

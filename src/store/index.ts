@@ -17,6 +17,7 @@ import agentsReducer from './slices/agentsSlice'
 import agentDetailsReducer from './slices/agentDetailsSlice'
 import type { IInventory, IRequirement } from '../data_types/acn/types'
 import taskIdReducer from './reducers/canvas-homes/taskIdReducer'
+import constantReducer from './reducers/acn/constantReducer'
 
 interface TaskIdState {
     taskId: string | null
@@ -71,6 +72,7 @@ const rootReducer = combineReducers({
     leads: leadsReducer,
     agents: agentsReducer,
     agentDetails: agentDetailsReducer,
+    constants: constantReducer,
 })
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)
@@ -91,6 +93,7 @@ export const store = configureStore({
         leads: leadsReducer,
         agents: agentsReducer,
         agentDetails: agentDetailsReducer,
+        constants: constantReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({

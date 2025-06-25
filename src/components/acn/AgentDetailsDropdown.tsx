@@ -1,20 +1,24 @@
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
 import phoneIcon from '/icons/acn/phone1.svg'
 import chevronUp from '/icons/acn/chevron-up.svg'
 import chevronDown from '/icons/acn/chevron-down.svg'
 import calendarIcon from '/icons/acn/calendar.svg'
 import walletAdd from '/icons/acn/wallet-add.svg'
+import editButton from '/icons/acn/editButton.svg'
+import StateBaseTextField from '../design-elements/StateBaseTextField'
+import Dropdown from '../design-elements/Dropdown'
+import { updateAgentDetailsThunk } from '../../services/acn/agents/agentThunkService'
+import type { IAgent } from '../../data_types/acn/types'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch, RootState } from '../../store'
+import { toCapitalizedWords } from '../helper/toCapitalize'
+import { getAgentFacetValues } from '../../services/acn/agents/algoliaAgentsService'
 import { useSelector } from 'react-redux'
-import type { RootState } from '../../store'
-import { getAuth, onAuthStateChanged } from 'firebase/auth'
-
-interface AgentDetails {
-    [key: string]: string | number | boolean | null | undefined
-}
 
 interface DropdownProps {
-    label: string
-    agentDetails: AgentDetails | null
+    setIsNotesModalOpen: (open: boolean) => void
+    setIsCallModalOpen: (open: boolean) => void
+    setIsAddCreditsModalOpen: (open: boolean) => void
 }
 
 // Helper function to format field names for display
@@ -50,8 +54,18 @@ const formatValue = (value: any): string => {
     return String(value)
 }
 
-export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
-    // State for the main dropdown visibility
+export default function AgentDetailsDropdown({
+    setIsNotesModalOpen,
+    setIsCallModalOpen,
+    setIsAddCreditsModalOpen,
+}: DropdownProps) {
+    const dispatch = useDispatch<AppDispatch>()
+    const agentDetails = useSelector((state: RootState) => state.agents.agentDetails)
+    console.log(agentDetails, 'page')
+
+    // get loading state from redux
+    const [loading, setLoading] = useState(false)
+    // State for the main dropdown visibiliy
     const [isMainDropdownOpen, setIsMainDropdownOpen] = useState(false)
 
     // State for individual sections
@@ -64,10 +78,51 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
         credits: true,
     })
 
-    // Redux state
-    const something = useSelector((state: RootState) => state.agentDetails)
+    // State for edit mode and editable user details
+    const [isEditingUserDetails, setIsEditingUserDetails] = useState(false)
+    const [editableUserDetails, setEditableUserDetails] = useState({
+        phoneNumber: agentDetails?.phoneNumber || '',
+        Address: agentDetails?.workAddress || '',
+        mail: agentDetails?.emailAddress || '',
+        firm: agentDetails?.firmName || '',
+        preferredArea: '',
+        kam: agentDetails?.kamName || '',
+        inWhatsappCommunity:
+            agentDetails && typeof (agentDetails as IAgent).inWhatsappCommunity === 'boolean'
+                ? String((agentDetails as IAgent).inWhatsappCommunity)
+                : '',
+        inWhatsappBroadcast:
+            agentDetails && typeof agentDetails.onBroadcast === 'boolean' ? String(agentDetails.onBroadcast) : '',
+    })
 
-    console.log(something, 'page')
+    // Placeholder dropdown options
+    const preferredAreaOptions = [
+        'North Bangalore',
+        'South Bangalore',
+        'East Bangalore',
+        'West Bangalore',
+        'North-East Bangalore',
+        'North-West Bangalore',
+        'South-East Bangalore',
+        'South-West Bangalore',
+    ]
+    // KAM options from Algolia facet
+    const [kamOptions, setKamOptions] = useState<{ value: string; label: string }[]>([])
+    const [kamLoading, setKamLoading] = useState(false)
+
+    useEffect(() => {
+        setKamLoading(true)
+        getAgentFacetValues('kamName')
+            .then((facetValues) => {
+                setKamOptions(facetValues.map((f) => ({ value: f.value, label: f.value })))
+            })
+            .finally(() => setKamLoading(false))
+    }, [])
+
+    const yesNoOptions = [
+        { value: 'true', label: 'Yes' },
+        { value: 'false', label: 'No' },
+    ]
 
     const toggleMainDropdown = () => {
         setIsMainDropdownOpen(!isMainDropdownOpen)
@@ -78,6 +133,53 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
             ...prev,
             [section]: !prev[section as keyof typeof prev],
         }))
+    }
+
+    const handleEditUserDetails = () => setIsEditingUserDetails(true)
+    const handleCancelEditUserDetails = () => {
+        setIsEditingUserDetails(false)
+        setEditableUserDetails({
+            phoneNumber: agentDetails?.phoneNumber || '',
+            Address: agentDetails?.workAddress || '',
+            mail: agentDetails?.emailAddress || '',
+            firm: agentDetails?.firmName || '',
+            preferredArea: '',
+            kam: agentDetails?.kamName || '',
+            inWhatsappCommunity:
+                agentDetails && typeof (agentDetails as any).inWhatsappCommunity === 'boolean'
+                    ? String((agentDetails as any).inWhatsappCommunity)
+                    : '',
+            inWhatsappBroadcast:
+                agentDetails && typeof agentDetails.onBroadcast === 'boolean' ? String(agentDetails.onBroadcast) : '',
+        })
+    }
+    const handleSaveUserDetails = async () => {
+        // Convert to string 'true'/'false' for inWhatsappCommunity and inWhatsappBroadcast
+        const updatedDetails = {
+            ...agentDetails,
+            phoneNumber: editableUserDetails.phoneNumber,
+            workAddress: editableUserDetails.Address,
+            emailAddress: editableUserDetails.mail,
+            firmName: editableUserDetails.firm,
+            preferredArea: editableUserDetails.preferredArea,
+            kamName: editableUserDetails.kam,
+            inWhatsappCommunity: editableUserDetails.inWhatsappCommunity === 'true',
+            onBroadcast: editableUserDetails.inWhatsappBroadcast,
+        }
+        console.log(updatedDetails, 'updatedDetails')
+        setLoading(true)
+        await dispatch(
+            updateAgentDetailsThunk({
+                cpId: agentDetails?.cpId as string,
+                agentDetails: updatedDetails as unknown as IAgent,
+            }),
+        )
+        setLoading(false)
+        console.log('updatedDetails')
+        setIsEditingUserDetails(false)
+    }
+    const handleUserDetailChange = (field: string, value: any) => {
+        setEditableUserDetails((prev) => ({ ...prev, [field]: value }))
     }
 
     if (!agentDetails) {
@@ -93,14 +195,16 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
     }
 
     const userDetailsFields = {
-        phoneNumber: agentDetails.phoneNumber,
-        Address: agentDetails.workAddress,
-        mail: agentDetails.emailAddress,
-        firm: agentDetails.firmName,
-        preferredArea: '',
-        kam: agentDetails.kamName,
-        inWhatsappCommunity: '',
-        inWhatsappBroadcast: agentDetails.onBroadcast,
+        phoneNumber: agentDetails?.phoneNumber ? String(agentDetails.phoneNumber) : '',
+        Address: agentDetails?.workAddress ? String(agentDetails.workAddress) : '',
+        mail: agentDetails?.emailAddress ? String(agentDetails.emailAddress) : '',
+        firm: agentDetails?.firmName ? String(agentDetails.firmName) : '',
+        preferredArea: (agentDetails as any)?.preferredArea ? String((agentDetails as any).preferredArea) : '',
+        kam: agentDetails?.kamName ? String(agentDetails.kamName) : '',
+        inWhatsappCommunity: (agentDetails as any)?.inWhatsappCommunity
+            ? String((agentDetails as any).inWhatsappCommunity)
+            : (agentDetails as any)?.inWhatsappCommunity,
+        inWhatsappBroadcast: agentDetails?.onBroadcast ? String(agentDetails.onBroadcast) : agentDetails?.onBroadcast,
     }
 
     const planDetailsFields = {
@@ -136,6 +240,200 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
     const renderSection = (title: string, fields: any, sectionKey: string) => {
         const isOpen = openSections[sectionKey as keyof typeof openSections]
 
+        // Special handling for User Details section
+        if (sectionKey === 'userDetails') {
+            return (
+                <div className='border-b-1 border-[#D3D4DD] overflow-y-auto'>
+                    <div className='w-full px-4 py-3 flex gap-2 items-center'>
+                        <span className='font-medium text-gray-900 text-sm'>{title}</span>
+                        {!isEditingUserDetails ? (
+                            <button onClick={handleEditUserDetails}>
+                                <img src={editButton} alt='Edit' className='w-4 h-4 cursor-pointer' />
+                            </button>
+                        ) : null}
+                    </div>
+                    {isOpen && (
+                        <div className='px-4 py-2 bg-white'>
+                            {!isEditingUserDetails ? (
+                                Object.entries(fields).map(([key, value]) =>
+                                    value !== undefined && value !== null ? (
+                                        <div
+                                            key={key}
+                                            className='flex justify-between items-center py-1.5 first:mt-[-5%]'
+                                        >
+                                            <span className='text-xs text-gray-600'>{formatFieldName(key)}</span>
+                                            <div className='w-[50%]'>
+                                                <span className='text-xs text-gray-900 font-medium'>
+                                                    {(key === 'inWhatsappCommunity' || key === 'inWhatsappBroadcast') &&
+                                                    (value === 'true' || value === true)
+                                                        ? 'Yes'
+                                                        : (key === 'inWhatsappCommunity' ||
+                                                                key === 'inWhatsappBroadcast') &&
+                                                            (value === 'false' || value === false)
+                                                          ? 'No'
+                                                          : formatValue(value)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ) : null,
+                                )
+                            ) : loading ? (
+                                <div className='flex justify-between items-center py-1.5'>
+                                    <span className='text-xs text-gray-600'>Loading...</span>
+                                </div>
+                            ) : (
+                                <form
+                                    onSubmit={(e) => {
+                                        e.preventDefault()
+                                        handleSaveUserDetails()
+                                    }}
+                                >
+                                    {/* phoneNumber */}
+                                    <div className='flex justify-between items-center py-1.5'>
+                                        <span className='text-xs text-gray-600'>Phone Number</span>
+                                        <div className='w-fit'>
+                                            <StateBaseTextField
+                                                value={String(editableUserDetails.phoneNumber)}
+                                                onChange={(e) => handleUserDetailChange('phoneNumber', e.target.value)}
+                                                status='default'
+                                                fullWidth
+                                                placeholder='Phone Number'
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* Address */}
+                                    <div className='flex justify-between items-center py-1.5'>
+                                        <span className='text-xs text-gray-600'>Address</span>
+                                        <div className='w-fit'>
+                                            <StateBaseTextField
+                                                value={String(editableUserDetails.Address)}
+                                                onChange={(e) => handleUserDetailChange('Address', e.target.value)}
+                                                status='default'
+                                                fullWidth
+                                                placeholder='Address'
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* mail */}
+                                    <div className='flex justify-between items-center py-1.5'>
+                                        <span className='text-xs text-gray-600'>Mail</span>
+                                        <div className='w-fit'>
+                                            <StateBaseTextField
+                                                value={String(editableUserDetails.mail)}
+                                                onChange={(e) => handleUserDetailChange('mail', e.target.value)}
+                                                status='default'
+                                                fullWidth
+                                                placeholder='Mail'
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* firm */}
+                                    <div className='flex justify-between items-center py-1.5'>
+                                        <span className='text-xs text-gray-600'>Firm</span>
+                                        <div className='w-fit'>
+                                            <StateBaseTextField
+                                                value={String(editableUserDetails.firm)}
+                                                onChange={(e) => handleUserDetailChange('firm', e.target.value)}
+                                                status='default'
+                                                fullWidth
+                                                placeholder='Firm'
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* preferredArea dropdown */}
+                                    <div className='flex justify-between items-center py-1.5'>
+                                        <span className='text-xs text-gray-600'>Preferred Area</span>
+                                        <div className='w-fit'>
+                                            <Dropdown
+                                                options={preferredAreaOptions.map((area) => ({
+                                                    value: area,
+                                                    label: area,
+                                                }))}
+                                                value={String(editableUserDetails.preferredArea)}
+                                                onSelect={(value) => handleUserDetailChange('preferredArea', value)}
+                                                placeholder='Preferred Area'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* kam dropdown */}
+                                    <div className='flex justify-between items-center py-1.5'>
+                                        <span className='text-xs text-gray-600'>KAM</span>
+                                        <div className='w-fit'>
+                                            {kamLoading ? (
+                                                <span className='text-xs text-gray-400'>Loading...</span>
+                                            ) : (
+                                                <Dropdown
+                                                    options={kamOptions}
+                                                    value={String(editableUserDetails.kam)}
+                                                    onSelect={(value) => handleUserDetailChange('kam', value)}
+                                                    placeholder='KAM'
+                                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                    menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* inWhatsappCommunity dropdown */}
+                                    <div className='flex justify-between items-center py-1.5'>
+                                        <span className='text-xs text-gray-600'>In Whatsapp Community</span>
+                                        <div className='w-fit'>
+                                            <Dropdown
+                                                options={yesNoOptions}
+                                                value={String(editableUserDetails.inWhatsappCommunity)}
+                                                onSelect={(value) =>
+                                                    handleUserDetailChange('inWhatsappCommunity', value)
+                                                }
+                                                placeholder='In Whatsapp Community'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* inWhatsappBroadcast dropdown */}
+                                    <div className='flex justify-between items-center py-1.5'>
+                                        <span className='text-xs text-gray-600'>In Whatsapp Broadcast</span>
+                                        <div className='w-fit'>
+                                            <Dropdown
+                                                options={yesNoOptions}
+                                                value={String(editableUserDetails.inWhatsappBroadcast)}
+                                                onSelect={(value) =>
+                                                    handleUserDetailChange('inWhatsappBroadcast', value)
+                                                }
+                                                placeholder='In Whatsapp Broadcast'
+                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* Save/Cancel buttons */}
+                                    <div className='flex gap-2 mt-2'>
+                                        <button
+                                            type='submit'
+                                            className='bg-blue-600 text-white text-xs px-3 py-1 rounded'
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            type='button'
+                                            className='bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded'
+                                            onClick={handleCancelEditUserDetails}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )
+        }
         return (
             <div className='border-b-1 border-[#D3D4DD] overflow-y-auto'>
                 <button
@@ -159,7 +457,13 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                     <span className='text-xs text-gray-600'>{formatFieldName(key)}</span>
                                     <div className='w-[50%]'>
                                         <span className='text-xs text-gray-900 font-medium truncate'>
-                                            {formatValue(value)}
+                                            {(key === 'inWhatsappCommunity' || key === 'inWhatsappBroadcast') &&
+                                            (value === 'true' || value === true)
+                                                ? 'Yes'
+                                                : (key === 'inWhatsappCommunity' || key === 'inWhatsappBroadcast') &&
+                                                    (value === 'false' || value === false)
+                                                  ? 'No'
+                                                  : formatValue(value)}
                                         </span>
                                     </div>
                                 </div>
@@ -192,7 +496,7 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                                 {agentDetails.name || 'Agent Name'}
                             </span>
                             <span className='text-xs text-gray-500'>
-                                {agentDetails.cpId} | {agentDetails.reraId}
+                                {agentDetails.cpId} | {agentDetails.phoneNumber}
                             </span>
                         </div>
                     </div>
@@ -218,21 +522,36 @@ export default function AgentDetailsDropdown({ agentDetails }: DropdownProps) {
                         <div className='text-gray-600'>
                             <span className='text-gray-500'>Plan: </span>
                             <span className='font-semibold text-black capitalize'>
-                                {agentDetails.userType || 'N/A'}
+                                {toCapitalizedWords(agentDetails.userType as string) || 'N/A'}
                             </span>
                         </div>
                     </div>
 
                     {/* Action Icons */}
                     <div className='flex items-center gap-2'>
-                        <button className='bg-gray-100 p-1.5 rounded'>
-                            <img src={phoneIcon} alt='Phone Icon' className='w-6 h-6' />
+                        <button className='bg-gray-100 p-1.5 rounded cursor-pointer'>
+                            <img
+                                src={phoneIcon}
+                                alt='Phone Icon'
+                                onClick={() => setIsCallModalOpen(true)}
+                                className='w-6 h-6'
+                            />
                         </button>
-                        <button className='bg-gray-100 p-1.5 rounded'>
-                            <img src={calendarIcon} alt='Calendar Icon' className='w-6 h-6' />
+                        <button className='bg-gray-100 p-1.5 rounded cursor-pointer'>
+                            <img
+                                src={calendarIcon}
+                                alt='Calendar Icon'
+                                onClick={() => setIsNotesModalOpen(true)}
+                                className='w-6 h-6'
+                            />
                         </button>
-                        <button className='bg-gray-100 p-1.5 rounded'>
-                            <img src={walletAdd} alt='Wallet Add Icon' className='w-6 h-6' />
+                        <button className='bg-gray-100 p-1.5 rounded cursor-pointer'>
+                            <img
+                                src={walletAdd}
+                                alt='Wallet Add Icon'
+                                onClick={() => setIsAddCreditsModalOpen(true)}
+                                className='w-6 h-6'
+                            />
                         </button>
                     </div>
                 </div>

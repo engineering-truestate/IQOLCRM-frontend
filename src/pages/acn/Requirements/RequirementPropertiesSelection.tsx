@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
@@ -21,7 +21,6 @@ import algoliaService, {
     type AlgoliaSearchResponse,
     type FacetValue,
 } from '../../../services/acn/properties/algoliaPropertiesService'
-import type { IRequirement } from '../../../data_types/acn/types'
 
 const PropertiesSelectionPage = () => {
     const navigate = useNavigate()
@@ -51,7 +50,6 @@ const PropertiesSelectionPage = () => {
     const [activeTab, setActiveTab] = useState('resale')
     const [currentPage, setCurrentPage] = useState(0) // Algolia uses 0-based indexing
     const [selectedProperties, setSelectedProperties] = useState<Set<string>>(new Set())
-    const [_, setRequirement] = useState<IRequirement | null>(null)
 
     // Constants
     const ITEMS_PER_PAGE = 50
@@ -312,7 +310,7 @@ const PropertiesSelectionPage = () => {
 
     const KAMFilter = () => {
         const kamFacets = originalFacets.kam || []
-        const selectedKAMs = filters.kam || []
+        const selectedKAMs: string[] = Array.isArray(filters.kam) ? filters.kam : filters.kam ? [filters.kam] : []
         const [isOpen, setIsOpen] = useState(false)
         const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -371,7 +369,7 @@ const PropertiesSelectionPage = () => {
                         </div>
                         {kamFacets.map((facet) => {
                             const currentCount = getFacetCount('kam', facet.value)
-                            const isSelected = selectedKAMs.includes(facet.value)
+                            const isSelected = selectedKAMs.includes(facet.value || '')
                             return (
                                 <div
                                     key={facet.value}

@@ -4,10 +4,14 @@ import Breadcrumb from '../../../components/acn/Breadcrumb'
 import { useState, useEffect, useMemo } from 'react'
 import StateBaseTextFieldTest from '../../../components/design-elements/StateBaseTextField'
 import Button from '../../../components/design-elements/Button'
-import addinventoryic from '/icons/acn/user-add.svg'
 import { useDispatch, useSelector } from 'react-redux'
 import type { IInventory, IRequirement } from '../../../data_types/acn/types'
-import { fetchAgentDetails, updateEnquiryStatusThunk } from '../../../services/acn/agents/agentThunkService'
+import {
+    fetchAgentByCpId,
+    fetchAgentDetails,
+    updateEnquiryStatusThunk,
+    listenToAgentUpdates,
+} from '../../../services/acn/agents/agentThunkService'
 import { fetchAgentInfo } from '../../../store/thunks/agentDetailsThunk'
 import type { AppDispatch, RootState } from '../../../store'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
@@ -16,7 +20,6 @@ import { formatUnixDate } from '../../../components/helper/formatDate'
 import AgentDetailsDropdown from '../../../components/acn/AgentDetailsDropdown'
 import React from 'react'
 import Dropdown from '../../../components/design-elements/Dropdown'
-import algoliaAgentsService from '../../../services/acn/agents/algoliaAgentsService'
 import searchNormal from '/icons/acn/search-normal.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import { updatePropertyStatus } from '../../../services/acn/properties/propertiesService'
@@ -25,6 +28,11 @@ import { updateRequirementStatus } from '../../../services/acn/requirements/requ
 import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
 import UpdateInventoryStatusModal from '../../../components/acn/UpdateInventoryModal'
 import BulkShareModal from '../../../components/acn/BulkShareModal'
+import NotesModal from '../../../components/acn/NotesModal'
+import CallModal from '../../../components/acn/CallModal'
+import AddCredits from '../../../components/acn/AddCredits'
+import { AddRequirementModal } from '../../../components/acn/AddRequirementModal'
+import addIcon from '/icons/acn/add-icon.svg'
 
 const AgentDetailsPage = () => {
     const { agentId } = useParams()
@@ -51,12 +59,15 @@ const AgentDetailsPage = () => {
     // const [statusMap, setStatusMap] = useState<Record<string, string>>({})
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [selectedProperty, setSelectedProperty] = useState<any>(null)
-
+    const [isNotesModalOpen, setIsNotesModalOpen] = useState(false)
+    const [isCallModalOpen, setIsCallModalOpen] = useState(false)
+    const [isAddCreditsModalOpen, setIsAddCreditsModalOpen] = useState(false)
     // Multiple selection state
     const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
     const [isBulkShareModalOpen, setIsBulkShareModalOpen] = useState(false)
-
+    const [pageLoading, setPageLoading] = useState(true)
+    const [isAddRequirementModalOpen, setIsAddRequirementModalOpen] = useState(false)
     // Get current property data based on active tab
     const currentPropertyData = activePropertyTab === 'Resale' ? resale : rental
 
@@ -73,25 +84,36 @@ const AgentDetailsPage = () => {
     // Initial data fetch and data refresh when property type changes
     useEffect(() => {
         const fetchInitialData = async () => {
+            setPageLoading(true)
             if (agentId) {
-                // Fetch agent details
-                dispatch(fetchAgentInfo({ agentId }))
-                // Always fetch both Resale and Rental data
-                dispatch(fetchAgentDetails({ agentId, propertyType: 'Resale' }))
-                dispatch(fetchAgentDetails({ agentId, propertyType: 'Rental' }))
+                await Promise.all([
+                    dispatch(fetchAgentInfo({ agentId })),
+                    dispatch(fetchAgentDetails({ agentId, propertyType: 'Resale' })),
+                    dispatch(fetchAgentDetails({ agentId, propertyType: 'Rental' })),
+                ])
             }
+            setPageLoading(false)
         }
         fetchInitialData()
     }, [dispatch, agentId])
 
-    // Fetch agent data from Algolia by ID
+    // Fetch agent data from Firebase by ID
     useEffect(() => {
         const fetchAgent = async () => {
             if (!agentId) return
             setAgentLoading(true)
             try {
-                const agent = await algoliaAgentsService.getAgentById(agentId)
+                const agent = await dispatch(fetchAgentByCpId(agentId)).unwrap()
+                console.log(agent, 'cbuihasuiashd')
                 setAgentData(agent || null)
+
+                // Set up real-time listener for agent updates
+                const unsubscribe = listenToAgentUpdates(agentId, dispatch)
+
+                // Cleanup listener on unmount
+                return () => {
+                    if (unsubscribe) unsubscribe()
+                }
             } catch (err) {
                 setAgentData(null)
             } finally {
@@ -99,7 +121,7 @@ const AgentDetailsPage = () => {
             }
         }
         fetchAgent()
-    }, [agentId])
+    }, [agentId, dispatch])
 
     // Filter data based on search and property type
     const filteredData = useMemo(() => {
@@ -865,7 +887,7 @@ const AgentDetailsPage = () => {
     ])
 
     return (
-        <Layout loading={loading || agentDetailsLoading || agentLoading}>
+        <Layout loading={pageLoading || loading || agentDetailsLoading || agentLoading}>
             <div className='w-full overflow-hidden font-sans'>
                 <div className='py-2 bg-white min-h-screen'>
                     {/* Header */}
@@ -885,17 +907,31 @@ const AgentDetailsPage = () => {
                                             className='h-8'
                                         />
                                     </div>
-                                    <Button
-                                        leftIcon={
-                                            <img src={addinventoryic} alt='Add Inventory Icon' className='w-5 h-5' />
-                                        }
-                                        bgColor='bg-[#2D3748]'
-                                        textColor='text-white'
-                                        className='px-4 h-8 font-semibold'
-                                        onClick={() => navigate('/acn/properties/addinv')}
-                                    >
-                                        Add Inventory
-                                    </Button>
+                                    {activeTab === 'Inventory' ? (
+                                        <Button
+                                            leftIcon={
+                                                <img src={addIcon} alt='Add Inventory Icon' className='w-5 h-5' />
+                                            }
+                                            bgColor='bg-[#24252E]'
+                                            textColor='text-white'
+                                            className='p-2 h-8 font-semibold'
+                                            onClick={() => navigate('/acn/properties/addinv')}
+                                        >
+                                            Add Inventory
+                                        </Button>
+                                    ) : activeTab === 'Requirement' ? (
+                                        <Button
+                                            leftIcon={
+                                                <img src={addIcon} alt='Add Inventory Icon' className='w-5 h-5' />
+                                            }
+                                            bgColor='bg-[#24252E]'
+                                            textColor='text-white'
+                                            className='px-4 h-8 font-semibold'
+                                            onClick={() => setIsAddRequirementModalOpen(true)}
+                                        >
+                                            Add Requirement
+                                        </Button>
+                                    ) : null}
                                 </div>
                             </div>
                             <div className='border-b-1 border-[#F3F3F3]'></div>
@@ -1002,7 +1038,7 @@ const AgentDetailsPage = () => {
                                                 defaultValue={selectedRequirementStatus}
                                                 placeholder='Requirement Status'
                                                 triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                                menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
                                                 optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                             />
                                             <Dropdown
@@ -1017,7 +1053,7 @@ const AgentDetailsPage = () => {
                                                 defaultValue={selectedInternalStatus}
                                                 placeholder='Internal Status'
                                                 triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                                menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
                                                 optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                             />
                                         </>
@@ -1074,7 +1110,11 @@ const AgentDetailsPage = () => {
                             </div>
                             {/* agent details dropdown */}
                             <div className='absolute top-[48px] right-0 border-1 border-[#D3D4DD] max-h-[calc(100vh-48px)] scrollbar-hide overflow-y-auto transition-all duration-200 ease-in-out z-40 w-[500px] bg-white '>
-                                <AgentDetailsDropdown label='Agent Field' agentDetails={agentData} />
+                                <AgentDetailsDropdown
+                                    setIsNotesModalOpen={setIsNotesModalOpen}
+                                    setIsCallModalOpen={setIsCallModalOpen}
+                                    setIsAddCreditsModalOpen={setIsAddCreditsModalOpen}
+                                />
                             </div>
                         </div>
                     </div>
@@ -1098,6 +1138,16 @@ const AgentDetailsPage = () => {
                             stickyHeader={true}
                         />
                     </div>
+                    {/* Modals */}
+                    <NotesModal
+                        isOpen={isNotesModalOpen}
+                        onClose={() => setIsNotesModalOpen(false)}
+                        rowData={agentData}
+                    />
+
+                    <CallModal isOpen={isCallModalOpen} onClose={() => setIsCallModalOpen(false)} rowData={agentData} />
+
+                    <AddCredits isOpen={isAddCreditsModalOpen} onClose={() => setIsAddCreditsModalOpen(false)} />
 
                     {/* Share Modal */}
                     <ShareInventoryModal
@@ -1120,6 +1170,13 @@ const AgentDetailsPage = () => {
                         isOpen={isBulkShareModalOpen}
                         onClose={() => setIsBulkShareModalOpen(false)}
                         properties={filteredData.filter((item: any) => selectedRows.has(item.propertyId || item.id))}
+                    />
+
+                    {/* Add Requirement Modal */}
+                    <AddRequirementModal
+                        cpId={agentData?.cpId || ''}
+                        isOpen={isAddRequirementModalOpen}
+                        onClose={() => setIsAddRequirementModalOpen(false)}
                     />
                 </div>
             </div>
