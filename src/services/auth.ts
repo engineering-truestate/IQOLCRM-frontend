@@ -8,16 +8,64 @@ import {
 import { auth, db, storage } from '../firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
+import type { Platform } from '../pages/auth/Register'
 
-export const acnRegisterHelper = async (uid: string, platform: string) => {
+export const registerHelper = async (uid: string, platform: Platform[]) => {
     try {
-        const abc = await setDoc(doc(db, 'internal-agents', uid), {
+        let acn = {}
+        let canvasHomes = {}
+        let vault = {}
+        let truestate = {}
+        let restack = {}
+        if (platform.some((p) => p.platform === 'acn')) {
+            const DocRef = doc(db, 'acn-admin', 'lastIntId')
+            const DocSnap = await getDoc(DocRef)
+            const count = DocSnap.data()?.count
+            const newIntId = `INT${String(count).padStart(3, '0')}`
+            acn = {
+                kamId: newIntId,
+                role: platform.find((p) => p.platform === 'acn')?.role,
+            }
+        }
+        if (platform.some((p) => p.platform === 'canvas-homes')) {
+            canvasHomes = {
+                role: platform.find((p) => p.platform === 'canvas-homes')?.role,
+            }
+        }
+        if (platform.some((p) => p.platform === 'vault')) {
+            vault = {
+                role: platform.find((p) => p.platform === 'vault')?.role,
+            }
+        }
+        if (platform.some((p) => p.platform === 'truestate')) {
+            truestate = {
+                role: platform.find((p) => p.platform === 'truestate')?.role,
+            }
+        }
+        if (platform.some((p) => p.platform === 'restack')) {
+            restack = {
+                role: platform.find((p) => p.platform === 'restack')?.role,
+            }
+        }
+        await setDoc(doc(db, 'internal-agents', uid), {
             uid: uid,
-            platform: platform,
+            acn: acn,
+            canvasHomes: canvasHomes,
+            vault: vault,
+            truestate: truestate,
+            restack: restack,
             createdAt: new Date(),
             updatedAt: new Date(),
         })
-        console.log(abc)
+        // const abc = await setDoc(doc(db, 'internal-agents', uid), {
+        //     uid: uid,
+        //     acn: {
+
+        //     }
+        //     createdAt: new Date(),
+        //     updatedAt: new Date(),
+        // })
+        // console.log(abc)
     } catch (error: any) {
         console.error('Error creating platform:', error)
         throw error
@@ -30,7 +78,7 @@ export const registerUser = async (
     name: string,
     picture: File | null,
     role: string,
-    platform: string,
+    platform: Platform[],
 ) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
@@ -78,9 +126,7 @@ export const registerUser = async (
             console.warn('User created but role assignment failed')
         }
         console.log(platform)
-        if (platform === 'acn') {
-            await acnRegisterHelper(user.uid, platform)
-        }
+        await registerHelper(user.uid, platform)
 
         return user
     } catch (error: any) {
