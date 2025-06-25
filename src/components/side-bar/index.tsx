@@ -161,10 +161,10 @@
 
 // export default Sidebar
 // with choosen platform removal from the dropdown
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { acnMenuItems, truestateMenuItems, RestackItems, canvasMenuItems } from './menu-options/acn'
-import { canvasHomesMenuItems } from './menu-options/canvas-homes'
+// import { canvasHomesMenuItems } from './menu-options/canvas-homes'
 import downicon from '../../../public/icons/acn/sidebar/downarrow.svg'
 import ACNlogo from '../../../public/icons/acn/sidebar/ACNlogoicon.svg'
 import Truestatelogo from '../../../public/icons/acn/sidebar/Truestateicon.svg'
@@ -173,13 +173,13 @@ import Button from '../design-elements/Button'
 import useAuth from '../../hooks/useAuth'
 
 import ACNicon from '../../../public/icons/acn/sidebar/ACNlogoicon.svg'
-import Restakeicon from '../../../public/icons/acn/sidebar/Restackicon.svg'
+// import Restakeicon from '../../../public/icons/acn/sidebar/Restackicon.svg'
 import Vaulticon from '../../../public/icons/acn/sidebar/Vaulticon.svg'
-import CanvasHomesicon from '../../../public/icons/acn/sidebar/cold.svg'
+// import CanvasHomesicon from '../../../public/icons/acn/sidebar/cold.svg'
 import Truestateicon from '../../../public/icons/acn/sidebar/Truestateicon.svg'
 import Restackicon from '../../../public/icons/acn/sidebar/restackicon1.svg'
 import canvas from '../../../public/icons/acn/sidebar/canvas.svg'
-import { vaultMenuItems } from './menu-options/vault'
+// import { vaultMenuItems } from './menu-options/vault'
 
 export const Options = [
     { label: 'ACN', path: '/acn/leads', icon: ACNicon },
