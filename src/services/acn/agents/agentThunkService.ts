@@ -2,6 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit'
 import { collection, query, where, getDocs, doc, updateDoc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import type { IInventory, IRequirement, IAgent } from '../../../data_types/acn/types'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 interface AgentDetailsResponse {
     inventories: IInventory[]
@@ -22,8 +23,52 @@ interface AgentData {
     phoneNumber: string
     kamId: string
     kamName: string
+    workAddress: string
     // Add other agent fields as needed
 }
+
+export const upgradeUserPlan = createAsyncThunk(
+    'agents/upgradeUserPlan',
+    async ({ cpId }: { cpId: string }, { rejectWithValue }) => {
+        try {
+            console.log('🔄 Upgrading user plan for:', cpId)
+
+            const agentRef = doc(db, 'acnAgents', cpId)
+            const agentSnapshot = await getDoc(agentRef)
+
+            if (!agentSnapshot.exists()) {
+                throw new Error('Agent not found')
+            }
+
+            const now = getUnixDateTime() // current unix timestamp in seconds
+            const currentData = agentSnapshot.data()
+
+            const updates = {
+                nextRenewal: now + 2592000, // +30 days
+                planExpiry: now + 31536000, // +1 year
+                userType: 'premium',
+                monthlyCredits: 100,
+                lastModified: now,
+            }
+
+            await updateDoc(agentRef, updates)
+
+            console.log('✅ User plan upgraded successfully')
+
+            return {
+                cpId,
+                updates,
+                updatedAgent: {
+                    ...currentData,
+                    ...updates,
+                },
+            }
+        } catch (error: any) {
+            console.error('❌ Error upgrading user plan:', error)
+            return rejectWithValue(error.message || 'Failed to upgrade user plan')
+        }
+    },
+)
 
 export const fetchAgentByCpId = createAsyncThunk(
     'agents/fetchAgentByCpId',

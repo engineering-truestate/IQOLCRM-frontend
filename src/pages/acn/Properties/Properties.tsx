@@ -12,7 +12,6 @@ import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
 import UpdateInventoryStatusModal from '../../../components/acn/UpdateInventoryModal'
 import MetricsCards from '../../../components/design-elements/MetricCards'
 import resetic from '/icons/acn/rotate-left.svg'
-import addinventoryic from '/icons/acn/user-add.svg'
 import shareic from '/icons/acn/share.svg'
 import editicon from '/icons/acn/write.svg'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
@@ -38,6 +37,9 @@ import { formatCost } from '../../../components/helper/formatCost'
 import filter from '/icons/acn/filter.svg'
 import BulkShareModal from '../../../components/acn/BulkShareModal'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+
+//icons
+import addIcon from '/icons/acn/add-icon.svg'
 
 type PropertyType = 'Resale' | 'Rental'
 type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'De-listed' | 'Pending QC' | 'Rented'
@@ -1514,10 +1516,10 @@ const PropertiesPage = () => {
                                     />
                                 </div>
                                 <Button
-                                    leftIcon={<img src={addinventoryic} alt='Add Inventory Icon' className='w-5 h-5' />}
-                                    bgColor='bg-[#2D3748]'
+                                    leftIcon={<img src={addIcon} alt='Add Inventory Icon' className='w-5 h-5' />}
+                                    bgColor='bg-[#24252E]'
                                     textColor='text-white'
-                                    className='px-4 h-8 font-semibold'
+                                    className='p-2 h-8 font-semibold'
                                     onClick={() => navigate('/acn/properties/addinv')}
                                 >
                                     Add Inventory

@@ -43,16 +43,18 @@ import { AgentsFiltersModal } from '../../../components/acn/AgentsFiltersModal'
 
 // Status dropdown options with colors
 const agentStatusOptions = [
-    { label: 'Interested', value: 'interested', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Not Interested', value: 'not interested', color: '#D3D4DD', textColor: '#000000' },
-    { label: 'Not Contacted Yet', value: 'not contact yet', color: '#FEECED', textColor: '#000000' },
+    { label: 'Interested', value: 'Interested', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Not Interested', value: 'Not Interested', color: '#D3D4DD', textColor: '#000000' },
+    { label: 'Not Contacted Yet', value: 'Not contact yet', color: '#FEECED', textColor: '#000000' },
 ]
 
 const payStatusOptions = [
-    { label: 'Paid', value: 'paid', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Paid By Team', value: 'paid by team', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Will Pay', value: 'will pay', color: '#FEECED', textColor: '#000000' },
-    { label: 'Will Not', value: 'will not', color: '#FEECED', textColor: '#000000' },
+    { label: 'Paid', value: 'Paid', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Paid By Team', value: 'Paid via Team', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Will Pay', value: 'Will Pay', color: '#FEECED', textColor: '#000000' },
+    { label: 'Will Not', value: 'Will Not Pay', color: '#FEECED', textColor: '#000000' },
+    { label: 'Will Pay Via Team', value: 'Will Pay via Team', color: '#FEECED', textColor: '#000000' },
+    { label: 'Maybe', value: 'Maybe', color: '#FADA7A', textColor: '#000000' },
 ]
 
 // Lead Source component with outlined design and SVG icons
@@ -309,14 +311,14 @@ const AgentsPage = () => {
     }
 
     const metrics = useMemo(() => {
-        const interestedCount = facets.agentStatus?.['interested'] || 0
+        const interestedCount = facets.agentStatus?.['Interested'] || 0
         const appInstalledCount = facets.appInstalled?.['true'] || 0
         const contactStatusFacets = facets.contactStatus || {}
 
         const connectsCount = (contactStatusFacets['connected'] || 0) + (contactStatusFacets['connnected'] || 0)
 
         const rnrCount = Object.keys(contactStatusFacets).reduce((acc, key) => {
-            if (key.startsWith('rnr-')) {
+            if (key.toLowerCase().startsWith('rnr')) {
                 return acc + (contactStatusFacets[key] || 0)
             }
             return acc
