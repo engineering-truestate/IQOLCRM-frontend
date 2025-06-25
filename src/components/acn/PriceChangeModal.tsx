@@ -115,32 +115,50 @@ const PriceChangeModal: React.FC<PriceChangeModalProps> = ({ isOpen, onClose, pr
                 timestamp: Math.floor(Date.now() / 1000),
             }
 
-            // Add price-specific fields
+            // Set current prices as old values and new price based on type
             if (priceType === 'Ask Price') {
-                priceChangeData.oldTotalAskPrice = currentPrice
+                priceChangeData.oldTotalAskPrice = property.totalAskPrice || 0
                 priceChangeData.newTotalAskPrice = newPriceValue
+                priceChangeData.oldAskPricePerSqft = property.askPricePerSqft || 0
+                // newAskPricePerSqft will be calculated by thunk
             } else {
-                priceChangeData.oldAskPricePerSqft = currentPrice
+                priceChangeData.oldAskPricePerSqft = property.askPricePerSqft || 0
                 priceChangeData.newAskPricePerSqft = newPriceValue
+                priceChangeData.oldTotalAskPrice = property.totalAskPrice || 0
+                // newTotalAskPrice will be calculated by thunk
             }
 
-            // Optimistic update
+            // Calculate both values for optimistic update
+            let optimisticTotalAskPrice = newPriceValue
+            let optimisticAskPricePerSqft = newPriceValue
+
+            if (priceType === 'Ask Price') {
+                optimisticAskPricePerSqft = property.sbua ? newPriceValue / property.sbua : 0
+            } else {
+                optimisticTotalAskPrice = property.sbua ? property.sbua * newPriceValue : 0
+            }
+
+            // Optimistic update with both values
             dispatch(
                 addPriceDropHistoryOptimistic({
                     propertyId: property.propertyId,
                     priceHistoryEntry: {
                         ...priceChangeData,
+                        // Add calculated values for complete history entry
+                        newTotalAskPrice: priceType === 'Ask Price' ? newPriceValue : optimisticTotalAskPrice,
+                        newAskPricePerSqft: priceType === '/Sq ft' ? newPriceValue : optimisticAskPricePerSqft,
                         id: `price_${Date.now()}`,
                     },
-                    newTotalAskPrice: priceType === 'Ask Price' ? newPriceValue : undefined,
-                    newAskPricePerSqft: priceType === '/Sq ft' ? newPriceValue : undefined,
+                    newTotalAskPrice: priceType === 'Ask Price' ? newPriceValue : optimisticTotalAskPrice,
+                    newAskPricePerSqft: priceType === '/Sq ft' ? newPriceValue : optimisticAskPricePerSqft,
                 }),
             )
 
-            // API call (reusing the same thunk since it handles both increases and decreases)
+            // API call with SBUA
             await dispatch(
                 addPriceDropHistory({
                     propertyId: property.propertyId,
+                    sbua: property.sbua || 0,
                     priceDropData: priceChangeData,
                 }),
             ).unwrap()

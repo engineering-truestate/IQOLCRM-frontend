@@ -4,6 +4,9 @@ import {
     fetchBuilderNames,
     addBuilderName,
     searchBuilderNames,
+    fetchSellingPlatforms,
+    addSellingPlatform,
+    searchSellingPlatforms,
 } from '../../../services/acn/constants/constantService'
 
 interface Micromarket {
@@ -18,20 +21,34 @@ interface BuilderNamesState {
     filteredNames: string[]
 }
 
+interface SellingPlatformsState {
+    names: string[]
+    userAdded: string[]
+    allNames: string[]
+    filteredNames: string[]
+}
+
 interface ConstantsState {
     micromarkets: Micromarket[]
     builderNames: BuilderNamesState
+    sellingPlatforms: SellingPlatformsState
     loading: {
         micromarkets: boolean
         builderNames: boolean
         addingBuilder: boolean
         searching: boolean
+        sellingPlatforms: boolean
+        addingPlatform: boolean
+        searchingPlatforms: boolean
     }
     error: {
         micromarkets: string | null
         builderNames: string | null
         addingBuilder: string | null
         searching: string | null
+        sellingPlatforms: string | null
+        addingPlatform: string | null
+        searchingPlatforms: string | null
     }
 }
 
@@ -43,17 +60,29 @@ const initialState: ConstantsState = {
         allNames: [],
         filteredNames: [],
     },
+    sellingPlatforms: {
+        names: [],
+        userAdded: [],
+        allNames: [],
+        filteredNames: [],
+    },
     loading: {
         micromarkets: false,
         builderNames: false,
         addingBuilder: false,
         searching: false,
+        sellingPlatforms: false,
+        addingPlatform: false,
+        searchingPlatforms: false,
     },
     error: {
         micromarkets: null,
         builderNames: null,
         addingBuilder: null,
         searching: null,
+        sellingPlatforms: null,
+        addingPlatform: null,
+        searchingPlatforms: null,
     },
 }
 
@@ -67,6 +96,9 @@ const constantsSlice = createSlice({
                 builderNames: null,
                 addingBuilder: null,
                 searching: null,
+                sellingPlatforms: null,
+                addingPlatform: null,
+                searchingPlatforms: null,
             }
         },
         clearFilteredBuilderNames: (state) => {
@@ -74,6 +106,15 @@ const constantsSlice = createSlice({
         },
         setFilteredBuilderNames: (state, action: PayloadAction<string[]>) => {
             state.builderNames.filteredNames = action.payload
+        },
+        clearFilteredSellingPlatforms: (state) => {
+            state.sellingPlatforms.filteredNames = []
+        },
+        setFilteredSellingPlatforms: (state, action: PayloadAction<string[]>) => {
+            state.sellingPlatforms.filteredNames = action.payload
+        },
+        resetFilteredSellingPlatforms: (state) => {
+            state.sellingPlatforms.filteredNames = state.sellingPlatforms.allNames
         },
     },
     extraReducers: (builder) => {
@@ -142,8 +183,67 @@ const constantsSlice = createSlice({
                 state.loading.searching = false
                 state.error.searching = action.payload as string
             })
+
+        // Fetch Selling Platforms
+        builder
+            .addCase(fetchSellingPlatforms.pending, (state) => {
+                state.loading.sellingPlatforms = true
+                state.error.sellingPlatforms = null
+            })
+            .addCase(fetchSellingPlatforms.fulfilled, (state, action) => {
+                state.loading.sellingPlatforms = false
+                state.sellingPlatforms = {
+                    ...action.payload,
+                    filteredNames: action.payload.allNames,
+                }
+            })
+            .addCase(fetchSellingPlatforms.rejected, (state, action) => {
+                state.loading.sellingPlatforms = false
+                state.error.sellingPlatforms = action.payload as string
+            })
+
+        // Add Selling Platform
+        builder
+            .addCase(addSellingPlatform.pending, (state) => {
+                state.loading.addingPlatform = true
+                state.error.addingPlatform = null
+            })
+            .addCase(addSellingPlatform.fulfilled, (state, action) => {
+                state.loading.addingPlatform = false
+                // Add to user_added and allNames arrays
+                state.sellingPlatforms.userAdded.push(action.payload)
+                state.sellingPlatforms.allNames.push(action.payload)
+                state.sellingPlatforms.filteredNames = state.sellingPlatforms.allNames
+            })
+            .addCase(addSellingPlatform.rejected, (state, action) => {
+                state.loading.addingPlatform = false
+                state.error.addingPlatform = action.payload as string
+            })
+
+        // Search Selling Platforms
+        builder
+            .addCase(searchSellingPlatforms.pending, (state) => {
+                state.loading.searchingPlatforms = true
+                state.error.searchingPlatforms = null
+            })
+            .addCase(searchSellingPlatforms.fulfilled, (state, action) => {
+                state.loading.searchingPlatforms = false
+                state.sellingPlatforms.filteredNames = action.payload
+            })
+            .addCase(searchSellingPlatforms.rejected, (state, action) => {
+                state.loading.searchingPlatforms = false
+                state.error.searchingPlatforms = action.payload as string
+            })
     },
 })
 
-export const { clearErrors, clearFilteredBuilderNames, setFilteredBuilderNames } = constantsSlice.actions
+export const {
+    clearErrors,
+    clearFilteredBuilderNames,
+    setFilteredBuilderNames,
+    clearFilteredSellingPlatforms,
+    setFilteredSellingPlatforms,
+    resetFilteredSellingPlatforms,
+} = constantsSlice.actions
+
 export default constantsSlice.reducer
