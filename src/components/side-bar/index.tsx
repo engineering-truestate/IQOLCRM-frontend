@@ -36,11 +36,11 @@
 //     const location = useLocation()
 //     const { user } = useAuth()
 
-//     const [platformState, setPlatformState] = useState('ACN')
+//     const [selectedPlatform, setSelectedPlatform] = useState('ACN')
 //     const [dropdownOpen, setDropdownOpen] = useState(false)
 
 //     const getMenuItems = () => {
-//         switch (platformState) {
+//         switch (selectedPlatform) {
 //             case 'ACN':
 //                 return acnMenuItems
 //             case 'Canvas Home':
@@ -65,11 +65,11 @@
 //                     onClick={() => setDropdownOpen((prev) => !prev)}
 //                 >
 //                     <div className='flex items-center gap-2'>
-//                         {platformLogos[platformState] && (
-//                             <img src={platformLogos[platformState]} alt={`${platformState} logo`} className='w-8 h-8' />
+//                         {platformLogos[selectedPlatform] && (
+//                             <img src={platformLogos[selectedPlatform]} alt={`${selectedPlatform} logo`} className='w-8 h-8' />
 //                         )}
 //                         <div className='flex flex-col text-left'>
-//                             <p className='text-[14px] font-semibold'>{platformState}</p>
+//                             <p className='text-[14px] font-semibold'>{selectedPlatform}</p>
 //                             <p className='text-[13px] font-normal text-[#3A3A47] truncate w-[120px]'>
 //                                 {user?.displayName || 'Name'}
 //                             </p>
@@ -93,7 +93,7 @@
 //                                     <div
 //                                         className='flex items-center gap-3 px-3 py-2 h-[44px] rounded-md cursor-pointer text-[16px] text-[#515162] transition hover:bg-[#F7F7F7]'
 //                                         onClick={() => {
-//                                             setPlatformState(item.label)
+//                                             setSelectedPlatform(item.label)
 //                                             setDropdownOpen(false)
 //                                             navigate(item.path)
 //                                         }}
@@ -161,7 +161,7 @@
 
 // export default Sidebar
 // with choosen platform removal from the dropdown
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { acnMenuItems, truestateMenuItems, RestackItems, canvasMenuItems } from './menu-options/acn'
 import { canvasHomesMenuItems } from './menu-options/canvas-homes'
@@ -179,13 +179,14 @@ import CanvasHomesicon from '../../../public/icons/acn/sidebar/cold.svg'
 import Truestateicon from '../../../public/icons/acn/sidebar/Truestateicon.svg'
 import Restackicon from '../../../public/icons/acn/sidebar/restackicon1.svg'
 import canvas from '../../../public/icons/acn/sidebar/canvas.svg'
+import { vaultMenuItems } from './menu-options/vault'
 
 export const Options = [
-    { label: 'ACN', path: '/acn/agents', icon: ACNicon },
-    { label: 'Restack', path: '/acn/leads', icon: Restackicon },
-    { label: 'Vault', path: '/acn/requirements', icon: Vaulticon },
-    { label: 'Canvas Home', path: '/acn/properties', icon: canvas },
-    { label: 'Truestate', path: '/acn/properties', icon: Truestateicon },
+    { label: 'ACN', path: '/acn/leads', icon: ACNicon },
+    { label: 'Restack', path: '/restack/primary', icon: Restackicon },
+    { label: 'Vault', path: '/vault', icon: Vaulticon },
+    { label: 'Canvas Home', path: '/canvas-homes/home', icon: canvas },
+    { label: 'Truestate', path: '/truestate', icon: Truestateicon },
 ]
 
 const platformLogos: Record<string, string> = {
@@ -200,11 +201,29 @@ const Sidebar = () => {
     const location = useLocation()
     const { user } = useAuth()
 
-    const [platformState, setPlatformState] = useState('ACN')
     const [dropdownOpen, setDropdownOpen] = useState(false)
+    const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
+
+    const getSelectedPlatform = () => {
+        if (location.pathname.startsWith('/acn')) {
+            setSelectedPlatform('ACN')
+        } else if (location.pathname.startsWith('/canvas-homes')) {
+            setSelectedPlatform('Canvas Homes')
+        } else if (location.pathname.startsWith('/vault')) {
+            setSelectedPlatform('Vault')
+        } else if (location.pathname.startsWith('/truestate')) {
+            setSelectedPlatform('TrueState')
+        } else if (location.pathname.startsWith('/restack')) {
+            setSelectedPlatform('Restack')
+        }
+    }
+
+    useEffect(() => {
+        getSelectedPlatform()
+    }, [])
 
     const getMenuItems = () => {
-        switch (platformState) {
+        switch (selectedPlatform) {
             case 'ACN':
                 return acnMenuItems
             case 'Canvas Home':
@@ -213,6 +232,8 @@ const Sidebar = () => {
                 return truestateMenuItems
             case 'Restack':
                 return RestackItems
+            // case 'Vault':
+            //     return vaultMenuItems
             default:
                 return []
         }
@@ -229,11 +250,15 @@ const Sidebar = () => {
                     onClick={() => setDropdownOpen((prev) => !prev)}
                 >
                     <div className='flex items-center gap-2'>
-                        {platformLogos[platformState] && (
-                            <img src={platformLogos[platformState]} alt={`${platformState} logo`} className='w-8 h-8' />
+                        {selectedPlatform && platformLogos[selectedPlatform] && (
+                            <img
+                                src={platformLogos[selectedPlatform]}
+                                alt={`${selectedPlatform} logo`}
+                                className='w-8 h-8'
+                            />
                         )}
                         <div className='flex flex-col text-left'>
-                            <p className='text-[14px] font-semibold'>{platformState}</p>
+                            <p className='text-[14px] font-semibold'>{selectedPlatform}</p>
                             <p className='text-[13px] font-normal text-[#3A3A47] truncate w-[120px]'>
                                 {user?.displayName || 'Name'}
                             </p>
@@ -252,12 +277,12 @@ const Sidebar = () => {
                 {dropdownOpen && (
                     <nav className='absolute left-4 top-full mt-2 w-[192px] bg-white shadow-md rounded-md z-20 border-white'>
                         <ul className='flex flex-col px-2 py-2'>
-                            {Options.filter((item) => item.label !== platformState).map((item) => (
+                            {Options.filter((item) => item.label !== selectedPlatform).map((item) => (
                                 <li key={item.label}>
                                     <div
                                         className='flex items-center gap-3 px-3 py-2 h-[44px] rounded-md cursor-pointer text-[16px] text-[#515162] transition hover:bg-[#F7F7F7]'
                                         onClick={() => {
-                                            setPlatformState(item.label)
+                                            setSelectedPlatform(item.label)
                                             setDropdownOpen(false)
                                             navigate(item.path)
                                         }}

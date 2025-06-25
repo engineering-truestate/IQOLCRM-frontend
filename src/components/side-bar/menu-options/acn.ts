@@ -23,27 +23,27 @@ export const acnMenuItems = [
     { label: 'QC Dashboard', path: '/acn/qc/dashboard', icon: QC_Dashboard },
 ]
 export const truestateMenuItems = [
-    { label: 'Notifications', path: '/', icon: Notifications },
-    { label: 'Dashboard', path: '/', icon: Dashicon },
-    { label: 'Leads', path: '/', icon: Agenticon },
-    { label: 'Website Dashboard', path: '/', icon: Website },
-    { label: 'Properties', path: '/', icon: QC_Dashboard },
+    { label: 'Notifications', path: '/truestate/notifications', icon: Notifications },
+    { label: 'Dashboard', path: '/truestate/dashboard', icon: Dashicon },
+    { label: 'Leads', path: '/truestate/leads', icon: Agenticon },
+    { label: 'Website Dashboard', path: '/truestate/website', icon: Website },
+    { label: 'Properties', path: '/truestate/properties', icon: QC_Dashboard },
 ]
 export const MenuItems = [
-    { label: 'ACN', path: '/acn/agents', icon: ACNicon },
-    { label: 'Restake', path: '/acn/leads', icon: Restakeicon },
-    { label: 'Vault', path: '/acn/requirements', icon: Vaulticon },
-    { label: 'Canvas Home', path: '/acn/properties', icon: CanvasHomesicon },
+    { label: 'ACN', path: '/acn/leads', icon: ACNicon },
+    { label: 'Restake', path: '/restack/primary', icon: Restakeicon },
+    { label: 'Vault', path: '/vault/requirements', icon: Vaulticon },
+    { label: 'Canvas Home', path: '/canvas-homes/home', icon: CanvasHomesicon },
 ]
 export const canvasMenuItems = [
-    { label: 'Notifications', path: '/', icon: Notifications },
-    { label: 'Home', path: '/', icon: Home },
-    { label: 'Properties', path: '/', icon: Propertiesicon },
-    { label: 'Sales', path: '/', icon: Sales },
-    { label: 'Marketing', path: '/', icon: Agenticon },
-    { label: 'Settings', path: '/', icon: setting },
+    { label: 'Notifications', path: '/canvas-homes/notifications', icon: Notifications },
+    { label: 'Home', path: '/canvas-homes/home', icon: Home },
+    { label: 'Properties', path: '/canvas-homes/properties', icon: Propertiesicon },
+    { label: 'Sales', path: '/canvas-homes/sales', icon: Sales },
+    { label: 'Marketing', path: '/canvas-homes/marketing', icon: Agenticon },
+    { label: 'Settings', path: '/canvas-homes/settings', icon: setting },
 ]
 export const RestackItems = [
-    { label: 'Pre-launch', path: '/', icon: prelaunch },
-    { label: 'Primary', path: '/', icon: primary },
+    { label: 'Pre-launch', path: '/restack/prelaunch', icon: prelaunch },
+    { label: 'Primary', path: '/restack/primary', icon: primary },
 ]
