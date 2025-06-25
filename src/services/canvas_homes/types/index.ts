@@ -34,6 +34,7 @@ export interface Lead {
     state: 'open' | 'closed' | 'fresh' | 'dropped' | string | null
     added: number | null
     lastModified: number | null
+    completionDate: number | null
 }
 
 export interface Enquiry {

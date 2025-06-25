@@ -12,7 +12,7 @@ const Login = () => {
         try {
             await loginUser(email, password)
             console.log('Login successful!')
-            navigate('/canvas-homes/dashboard')
+            navigate('/home')
         } catch (error: any) {
             console.log(`Login failed: ${error.message}`)
         }

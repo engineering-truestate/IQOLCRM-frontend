@@ -103,7 +103,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({ setActiveTab, refreshData
                 <Dropdown
                     defaultValue=''
                     options={visitedOptions}
-                    onSelect={(value) => handleDropdownSelect(visitedOptions, value)}
+                    onSelect={(value: string) => handleDropdownSelect(visitedOptions, value)}
                     triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
                     placeholder='Visited'
                 />
@@ -111,7 +111,7 @@ const SiteVisitTask: React.FC<SiteVisitTaskProps> = ({ setActiveTab, refreshData
                 <Dropdown
                     defaultValue=''
                     options={notVisitedOptions}
-                    onSelect={(value) => handleDropdownSelect(notVisitedOptions, value)}
+                    onSelect={(value: string) => handleDropdownSelect(notVisitedOptions, value)}
                     triggerClassName='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white min-w-[100px] cursor-pointer'
                     placeholder='Not Visited'
                 />

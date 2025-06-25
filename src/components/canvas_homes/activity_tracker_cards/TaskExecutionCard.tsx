@@ -1,11 +1,11 @@
-import React from 'react'
+// import React from 'react'
 import hot from '/icons/canvas_homes/hoticon.svg'
 import cold from '/icons/canvas_homes/coldicon.svg'
 import bulb from '/icons/canvas_homes/bulbicon.svg'
 import arrow from '/icons/canvas_homes/arrow-right.svg'
 
 // Format time from Unix timestamp in seconds
-const formatTime = (timestamp) => {
+const formatTime = (timestamp: number) => {
     if (!timestamp) return ''
 
     // Convert seconds to milliseconds for Date object
@@ -19,7 +19,7 @@ const formatTime = (timestamp) => {
 }
 
 // Capitalize first letter of each word
-const capitalizeWords = (text) => {
+const capitalizeWords = (text: string) => {
     if (!text) return ''
     return String(text)
         .split(' ')
@@ -27,13 +27,28 @@ const capitalizeWords = (text) => {
         .join(' ')
 }
 
-const TaskExecutionCard = ({ activity }) => {
+interface TaskExecutionCardProps {
+    activity: {
+        activityType?: string
+        timestamp?: number | string
+        agentName?: string
+        data?: {
+            taskType?: string
+            leadStatus?: string
+            tag?: string[] | string
+            reason?: string
+            note?: string
+        }
+    }
+}
+
+const TaskExecutionCard = ({ activity }: TaskExecutionCardProps) => {
     const { activityType = 'Task Execution', timestamp = '', agentName = '', data = {} } = activity || {}
     const { taskType = '', leadStatus = '', tag = [], reason = '', note = '' } = data || {}
 
     const tags = Array.isArray(tag) ? tag : [tag].filter(Boolean)
 
-    const getTagColorClass = (tagName) => {
+    const getTagColorClass = (tagName: string) => {
         if (!tagName) return 'bg-gray-200 text-gray-800'
 
         const lowercaseTag = String(tagName).toLowerCase()
@@ -54,7 +69,7 @@ const TaskExecutionCard = ({ activity }) => {
         }
     }
 
-    const getTagIconPath = (tagName) => {
+    const getTagIconPath = (tagName: string) => {
         if (!tagName) return null
 
         const lowercaseTag = String(tagName).toLowerCase()
@@ -73,7 +88,7 @@ const TaskExecutionCard = ({ activity }) => {
         }
     }
 
-    const renderSingleTag = (tagName) => {
+    const renderSingleTag = (tagName: string) => {
         if (!tagName) return null
         const iconPath = getTagIconPath(tagName)
         return (
@@ -105,7 +120,7 @@ const TaskExecutionCard = ({ activity }) => {
             <div className='flex justify-between items-start'>
                 <div className='font-semibold text-gray-800'>
                     {capitalizeWords(activityType)}{' '}
-                    <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(timestamp)}</span>
+                    <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(Number(timestamp))}</span>
                 </div>
                 <div className='text-gray-500 text-sm'>
                     Agent: <span className='text-gray-700'>{capitalizeWords(agentName)}</span>

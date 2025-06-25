@@ -1507,23 +1507,23 @@ const PropertiesPage = () => {
                                 <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
                             </button>
 
-                            <div className='flex items-center bg-gray-100 rounded-md p-1 h-8'>
+                            <div className='flex items-center bg-gray-600 rounded-md p-1'>
                                 <button
                                     onClick={() => setActiveTab('Resale')}
                                     className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                                         activeTab === 'Resale'
-                                            ? 'bg-white text-black shadow-sm'
-                                            : 'text-gray-600 hover:text-black'
+                                            ? 'bg-white text-black shadow-sm font-bold'
+                                            : 'text-white hover:text-black'
                                     }`}
                                 >
                                     Resale
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('Rental')}
-                                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                                    className={`px-3 py-1 text-sm rounded transition-colors ${
                                         activeTab === 'Rental'
-                                            ? 'bg-white text-black shadow-sm'
-                                            : 'text-gray-600 hover:text-black'
+                                            ? 'bg-white text-black shadow-sm font-bold'
+                                            : 'text-white hover:text-black'
                                     }`}
                                 >
                                     Rental

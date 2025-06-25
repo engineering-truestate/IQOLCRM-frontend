@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { UseLeadDetails } from '../../../hooks/canvas_homes/UseLeadDetails'
+// import { UseLeadDetails } from '../../../hooks/canvas_homes/UseLeadDetails'
+import { UseLeadDetails } from '../../../hooks/canvas_homes/useLeadDetails'
 import Layout from '../../../layout/Layout'
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
+import mailIcon from '/icons/canvas_homes/mailicon.svg'
 import potentialIcon from '/icons/canvas_homes/bulbicon.svg'
 import superhotIcon from '/icons/canvas_homes/superhoticon.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
@@ -16,16 +18,122 @@ import CreateTaskModal from '../../../components/canvas_homes/CreateTaskModal'
 import AddDetailsModal from '../../../components/canvas_homes/AddDetailsModal'
 import AddEnquiryModal from '../../../components/canvas_homes/AddEnquiryModal'
 import ChangeAgentModal from '../../../components/canvas_homes/ChangeAgentModal'
-import type { AgentHistoryItem } from '../../../services/canvas_homes/types'
+import ReopenLeadModal from '../../../components/canvas_homes/ReopenLeadModal'
 import google from '/icons/canvas_homes/google.svg'
 import manualIcon from '/icons/canvas_homes/manualicon.svg'
 import whatsapp from '/icons/canvas_homes/whatsappicon.svg'
 import call from '/icons/canvas_homes/callicon.svg'
 import CloseLeadSideModal from '../../../components/canvas_homes/CloseLeadSideModal'
-import { useDispatch } from 'react-redux'
-import type { AppDispatch } from '../../../store'
 import ActivityTracker from './tabs/ActivityTracker'
 import PropertyDetail from './tabs/PropertyDetail'
+
+// Type definitions
+interface PhoneNumber {
+    number: string
+    label: string
+}
+
+interface AgentHistoryItem {
+    agentName: string
+    lastStage: string
+    timestamp: number
+    agentId?: string
+}
+
+interface Document {
+    id: string
+    name: string
+    url: string
+    type: string
+    size: number
+    uploadedAt: number
+}
+
+interface Note {
+    id: string
+    content: string
+    createdAt: number
+    createdBy: string
+}
+
+interface LeadRequirement {
+    id: string
+    description: string
+    status: string
+    createdAt: number
+}
+
+interface Enquiry {
+    enquiryId: string
+    propertyId: string
+    propertyName: string
+    stage: string
+    leadStatus: string
+    source: string
+    tag: string
+    added: number
+    agentId: string
+    agentHistory: AgentHistoryItem[]
+    documents: Document[]
+    notes: Note[]
+    requirements: LeadRequirement[]
+}
+
+interface Task {
+    id: string
+    title: string
+    description: string
+    status: string
+    assignedTo: string
+    dueDate: number
+    createdAt: number
+}
+
+interface LeadData {
+    leadId: string
+    name: string
+    phoneNumber: string
+    phoneNumbers: PhoneNumber[]
+    label: string
+    userId: string
+    agentName: string
+    stage: string
+    leadStatus: string
+    state: string
+    added: number
+}
+
+interface UserData {
+    userId: string
+    name: string
+    phoneNumber: string
+    emailAddress: string
+}
+
+interface UseLeadDetailsReturn {
+    leadData: LeadData | null
+    enquiries: Enquiry[]
+    currentEnquiry: Enquiry | null
+    tasks: Task[]
+    userData: UserData | null
+    selectedEnquiryId: string | null
+    activeTab: string
+    loading: {
+        lead: boolean
+        enquiries: boolean
+        tasks: boolean
+    }
+    errors: {
+        lead: string | null
+        enquiries: string | null
+        tasks: string | null
+    }
+    setActiveTab: (tab: string) => void
+    setSelectedEnquiryId: (id: string) => void
+    refreshData: () => void
+    addNote: (note: string) => void
+    createNewTask: (task: Partial<Task>) => Promise<void>
+}
 
 // Helper function to handle null/undefined values and capitalize first letter of each word
 const formatValue = (value: any): string => {
@@ -45,9 +153,9 @@ interface LeadDetailProps {
     onClose?: () => void
 }
 
-const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose }) => {
+const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
     const navigate = useNavigate()
-    const dispatch = useDispatch<AppDispatch>()
+    // const dispatch = useDispatch<AppDispatch>()
     const { leadId } = useParams<{ leadId: string }>()
 
     const {
@@ -63,19 +171,21 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         setActiveTab,
         setSelectedEnquiryId,
         refreshData,
-        updateTaskStatus,
         addNote,
-        createNewTask,
-        updateEnquiry,
-        updateLead,
-        updateTask,
-    } = UseLeadDetails(leadId || '') // Provide empty string as fallback
+        createNewTask: _createNewTask,
+    } = UseLeadDetails(leadId || '') as unknown as UseLeadDetailsReturn // Provide empty string as fallback
 
-    const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false)
-    const [isAddDetailsModalOpen, setIsAddDetailsModalOpen] = useState(false)
-    const [isCloseLeadSideModalOpen, setIsCloseLeadSideModalOpen] = useState(false)
-    const [isAddEnquiryModalOpen, setIsAddEnquiryModalOpen] = useState(false)
-    const [isChangeAgentModalOpen, setIsChangeAgentModalOpen] = useState(false)
+    // Ensure createNewTask returns a Promise
+    const createNewTask = async (task: Partial<Task>) => {
+        await _createNewTask(task)
+    }
+
+    const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState<boolean>(false)
+    const [isAddDetailsModalOpen, setIsAddDetailsModalOpen] = useState<boolean>(false)
+    const [isCloseLeadSideModalOpen, setIsCloseLeadSideModalOpen] = useState<boolean>(false)
+    const [isAddEnquiryModalOpen, setIsAddEnquiryModalOpen] = useState<boolean>(false)
+    const [isChangeAgentModalOpen, setIsChangeAgentModalOpen] = useState<boolean>(false)
+    const [isReopenLeadModalOpen, setIsReopenLeadModalOpen] = useState<boolean>(false)
 
     // Early return AFTER hooks are called
     if (!leadId) {
@@ -85,7 +195,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                     <div className='text-center'>
                         <p className='text-red-600 mb-4'>No lead ID provided</p>
                         <button
-                            onClick={() => navigate('/leads')}
+                            onClick={() => navigate('/canvas-homes/sales')}
                             className='bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700'
                         >
                             Back to Leads
@@ -96,39 +206,39 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         )
     }
 
-    const tabs = ['Task', 'Properties', 'Requirements', 'Notes', 'Activity tracker', 'Documents']
+    const tabs: string[] = ['Task', 'Properties', 'Requirements', 'Notes', 'Documents', 'Activity tracker']
 
     // Event Handlers
-    const handleCreateTaskClick = () => {
+    const handleCreateTaskClick = (): void => {
         setIsCreateTaskModalOpen(true)
     }
 
-    const handleCloseCreateTaskModal = () => {
+    const handleCloseCreateTaskModal = (): void => {
         setIsCreateTaskModalOpen(false)
     }
 
     // Add Details Modal Handlers
-    const handleAddDetailsClick = () => {
+    const handleAddDetailsClick = (): void => {
         setIsAddDetailsModalOpen(true)
     }
-    const handleDetailsAdded = () => {
-        setIsAddDetailsModalOpen(false)
-    }
+    // const handleDetailsAdded = () => {
+    //     setIsAddDetailsModalOpen(false)
+    // }
 
-    const handleClose = () => {
+    const handleClose = (): void => {
         if (onClose) {
             onClose()
         } else {
-            navigate('/canvas-homes/sales')
+            window.location.href = '/canvas-homes/sales'
         }
     }
 
-    const handleEnquirySelect = (enquiryId: string) => {
+    const handleEnquirySelect = (enquiryId: string): void => {
         setSelectedEnquiryId(enquiryId)
     }
 
     // Format date helpers
-    const formatDate = (timestamp: number | null | undefined) => {
+    const formatDate = (timestamp: number | null | undefined): string => {
         if (!timestamp) return '-'
         return new Date(timestamp * 1000).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -137,31 +247,56 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         })
     }
 
-    const formatDateTime = (timestamp: number | null | undefined) => {
-        if (!timestamp) return '-'
-        const date = new Date(timestamp)
-        return (
-            date.toLocaleDateString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: '2-digit',
-            }) +
-            ' | ' +
-            date.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-            })
-        )
-    }
+    // const formatDateTime = (timestamp: number | null | undefined) => {
+    //     if (!timestamp) return '-'
+    //     const date = new Date(timestamp)
+    //     return (
+    //         date.toLocaleDateString('en-US', {
+    //             month: '2-digit',
+    //             day: '2-digit',
+    //             year: '2-digit',
+    //         }) +
+    //         ' | ' +
+    //         date.toLocaleTimeString('en-US', {
+    //             hour: '2-digit',
+    //             minute: '2-digit',
+    //             hour12: true,
+    //         })
+    //     )
+    // }
 
     // Tab Content Renderer
-    const renderTabContent = () => {
+    const renderTabContent = (): React.ReactNode => {
         switch (activeTab) {
             case 'Task':
                 return (
                     <Tasks
-                        tasks={tasks}
+                        tasks={tasks.map((task) => ({
+                            // Map your local Task to the required Task type, filling all required fields
+                            taskId: (task as any).taskId ?? task.id ?? '',
+                            enquiryId: (task as any).enquiryId ?? selectedEnquiryId ?? '',
+                            agentId: (task as any).agentId ?? currentEnquiry?.agentId ?? '',
+                            agentName: (task as any).agentName ?? leadData?.agentName ?? '',
+                            title: task.title,
+                            description: task.description,
+                            status: task.status === 'open' || task.status === 'complete' ? task.status : 'open',
+                            assignedTo: task.assignedTo,
+                            dueDate: task.dueDate,
+                            createdAt: task.createdAt,
+                            // Add all required fields with defaults or from context
+                            name: (task as any).name ?? leadData?.name ?? '',
+                            leadAddDate: (task as any).leadAddDate ?? leadData?.added ?? 0,
+                            propertyName: (task as any).propertyName ?? currentEnquiry?.propertyName ?? '',
+                            taskType: (task as any).taskType ?? '',
+                            leadStatus: (task as any).leadStatus ?? leadData?.leadStatus ?? '',
+                            stage: (task as any).stage ?? currentEnquiry?.stage ?? '',
+                            tag: (task as any).tag ?? currentEnquiry?.tag ?? '',
+                            propertyId: (task as any).propertyId ?? currentEnquiry?.propertyId ?? '',
+                            // Required Task fields for type compatibility
+                            scheduledDate: (task as any).scheduledDate ?? task.dueDate ?? 0,
+                            added: (task as any).added ?? task.createdAt ?? 0,
+                            lastModified: (task as any).lastModified ?? task.createdAt ?? 0,
+                        }))}
                         loading={loading.tasks}
                         error={errors.tasks}
                         setActiveTab={setActiveTab}
@@ -172,21 +307,44 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 return (
                     <Documents
                         leadId={leadId}
-                        enquiryId={selectedEnquiryId}
-                        documents={currentEnquiry?.documents || []}
+                        enquiryId={selectedEnquiryId ?? ''}
+                        documents={(currentEnquiry?.documents || []).map((doc) => ({
+                            ...doc,
+                            uploadDate: String(doc.uploadedAt), // Convert to string
+                            storagePath: doc.url || '', // Map url to storagePath (or provide a default)
+                            size: String(doc.size), // Convert size to string
+                        }))}
                         onDocumentsUpdate={refreshData}
                     />
                 )
             case 'Notes':
-                return <Notes notes={currentEnquiry?.notes || []} onAddNote={addNote} loading={loading.enquiries} />
+                return (
+                    <Notes
+                        notes={(currentEnquiry?.notes || []).map((note) => ({
+                            // Map Note to NoteItem, filling missing fields with defaults or from context
+                            timestamp: note.createdAt ?? 0,
+                            agentId: currentEnquiry?.agentId ?? '',
+                            agentName: leadData?.agentName ?? '',
+                            taskType: '', // Provide a default or map if available
+                            note: note.content,
+                            // Optionally, include other NoteItem fields if needed
+                            ...note,
+                        }))}
+                        onAddNote={async (noteData) => {
+                            // Call your addNote function with the note content
+                            addNote(noteData.note)
+                        }}
+                        loading={loading.enquiries}
+                    />
+                )
             case 'Activity tracker':
-                return <ActivityTracker enquiryId={selectedEnquiryId} />
+                return <ActivityTracker enquiryId={selectedEnquiryId ?? ''} />
             case 'Requirements':
                 return (
                     <Requirements
                         leadId={leadId}
-                        enquiryId={selectedEnquiryId}
-                        requirements={currentEnquiry?.requirements || []}
+                        enquiryId={selectedEnquiryId ?? ''}
+                        requirements={(currentEnquiry?.requirements as any) || []}
                         onRequirementsUpdate={refreshData}
                     />
                 )
@@ -273,12 +431,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     }
 
     // Source Icon Component
-    const SourceIcon = ({ source }: { source: string | null | undefined }) => {
+    const SourceIcon: React.FC<{ source: string | null | undefined }> = ({ source }) => {
         if (!source) return null
 
         const sourceType = String(source).toLowerCase()
         return (
-            <div className='flex items-center justify-center h-5 rounded-[20px] px-2 py-4'>
+            <div className='flex items-center justify-center h-5 rounded-[20px] py-4'>
                 {sourceType === 'google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
                 {sourceType === 'linkedin' && <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />}
                 {sourceType === 'meta' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
@@ -290,12 +448,12 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     }
 
     // Tag Badge Component
-    const TagBadge = ({ tag }: { tag: string | null | undefined }) => {
+    const TagBadge: React.FC<{ tag: string | null | undefined }> = ({ tag }) => {
         if (!tag) return <span className='text-[13px] text-gray-500'>-</span>
 
         const tagType = String(tag).toLowerCase()
         let badgeClasses = 'inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-medium'
-        let tagIcon
+        let tagIcon: string
 
         // Determine styling and icon based on tag type
         switch (tagType) {
@@ -330,31 +488,31 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     }
 
     // Agent Item Component
-    const AgentItem: React.FC<{ agent: AgentHistoryItem; showDivider: boolean }> = ({ agent, showDivider }) => (
-        <div className='space-y-2'>
-            <div className='flex items-center gap-2'>
-                <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
-                <span className='text-[13px] w-[60%] text-gray-600'>Agent Name</span>
-                <span className='text-[13px] w-[40%] text-left text-gray-900 ml-auto'>
-                    {formatValue(agent.agentName)}
-                </span>
-            </div>
-            <div className='flex justify-between ml-4'>
-                <span className='text-[13px] w-[60%] text-gray-600'>Last Stage</span>
-                <span className='text-[13px] w-[40%] text-left text-gray-900'>{formatValue(agent.lastStage)}</span>
-            </div>
-            <div className='flex justify-between ml-4'>
-                <span className='text-[13px] w-[60%] text-gray-600'>Date</span>
-                <span className='text-[13px] w-[40%] text-left text-gray-900'>{formatDate(agent.timestamp)}</span>
-            </div>
-            {showDivider && <hr className='my-3 border-gray-200' />}
-        </div>
-    )
+    // const AgentItem: React.FC<{ agent: AgentHistoryItem; showDivider: boolean }> = ({ agent, showDivider }) => (
+    //     <div className='space-y-2'>
+    //         <div className='flex items-center gap-2'>
+    //             <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
+    //             <span className='text-[13px] w-[60%] text-gray-600'>Agent Name</span>
+    //             <span className='text-[13px] w-[40%] text-left text-gray-900 ml-auto'>
+    //                 {formatValue(agent.agentName)}
+    //             </span>
+    //         </div>
+    //         <div className='flex justify-between ml-4'>
+    //             <span className='text-[13px] w-[60%] text-gray-600'>Last Stage</span>
+    //             <span className='text-[13px] w-[40%] text-left text-gray-900'>{formatValue(agent.lastStage)}</span>
+    //         </div>
+    //         <div className='flex justify-between ml-4'>
+    //             <span className='text-[13px] w-[60%] text-gray-600'>Date</span>
+    //             <span className='text-[13px] w-[40%] text-left text-gray-900'>{formatDate(agent.timestamp)}</span>
+    //         </div>
+    //         {showDivider && <hr className='my-3 border-gray-200' />}
+    //     </div>
+    // )
 
     return (
         <Layout loading={false}>
             <div className='w-full'>
-                <div className='bg-whitehttp://localhost:5173/canvas-homes/sales/leaddetails/lead09 min-h-screen w-full max-w-full'>
+                <div className='bg-white min-h-screen w-full max-w-full'>
                     {/* Header with Breadcrumb */}
                     <div className='flex items-center justify-between p-3 border-b border-gray-300'>
                         <div className='flex items-center gap-2 text-sm text-gray-600'>
@@ -368,7 +526,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                     <div className='flex flex-1 overflow-hidden flex-col md:flex-row'>
                         {/* Main Content - Left Side */}
-                        <div className='w-full md:w-[75%]'>
+                        <div className='w-full md:w-[70%]'>
                             {/* Tabs Navigation */}
                             <div className='bg-white border-b border-gray-200 flex-shrink-0 overflow-x-auto'>
                                 <div className='px-2 md:px-6'>
@@ -418,7 +576,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                         {/* Right Sidebar - Customer Details, Enquiry Details, Agent Details */}
                         <div
-                            className='w-full md:w-[25%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
+                            className='w-full md:w-[30%] bg-white border-t md:border-t-0 md:border-l border-gray-200 flex flex-col'
                             style={{ height: 'auto', minHeight: '40vh', maxHeight: 'calc(100vh - 44.6px)' }}
                         >
                             <div className='flex-1 p-4 space-y-6 flex flex-col overflow-hidden'>
@@ -436,7 +594,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                     </div>
 
                                     {/* Scrollable container for customer details */}
-                                    <div className='overflow-y-auto pr-1 scrollbar-hide'>
+                                    <div className='overflow-y-auto pr-1 scrollbar-thin'>
                                         <div className='space-y-[11px]'>
                                             <div className='flex justify-between'>
                                                 <span className='text-[13px] w-[60%] font-normal text-gray-600'>
@@ -449,9 +607,20 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                                             <div className='flex justify-between'>
                                                 <span className='text-[13px] w-[60%] text-gray-600'>Phone No.</span>
-                                                <div className='w-[40%] text-left'>
-                                                    <span className='text-[13px] text-gray-900'>
-                                                        {formatValue(leadData?.phoneNumber || userData?.phoneNumber)}
+                                                <div className='w-[40%] text-left flex items-center'>
+                                                    {leadData && (
+                                                        <span className='mr-1 flex-shrink-0'>
+                                                            <img
+                                                                src={leadData?.label === 'whatsapp' ? whatsapp : call}
+                                                                alt={
+                                                                    leadData.label === 'whatsapp' ? 'WhatsApp' : 'Call'
+                                                                }
+                                                                className='w-4 h-4'
+                                                            />
+                                                        </span>
+                                                    )}
+                                                    <span className='text-[13px] text-gray-900 truncate'>
+                                                        {formatValue(userData?.phoneNumber)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -461,26 +630,23 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                 leadData.phoneNumbers.length > 0 &&
                                                 leadData.phoneNumbers.map((phone, index) => (
                                                     <div key={index} className='flex justify-between'>
-                                                        <span className='text-[13px] w-[53%] text-gray-600'>
-                                                            Phone No. {index + 2}
+                                                        <span className='text-[13px] w-[60%] text-gray-600'>
+                                                            {phone.label === 'whatsapp'
+                                                                ? 'WhatsApp No.'
+                                                                : `Phone No. ${index + 2}`}
                                                         </span>
 
-                                                        <div className='w-[47%] text-left flex items-center'>
-                                                            {phone?.label && (
-                                                                <span className='mr-1 flex-shrink-0'>
-                                                                    <img
-                                                                        src={
-                                                                            phone.label == 'whatsapp' ? whatsapp : call
-                                                                        }
-                                                                        alt={
-                                                                            phone.label === 'whatsapp'
-                                                                                ? 'WhatsApp'
-                                                                                : 'Call'
-                                                                        }
-                                                                        className='w-4 h-4'
-                                                                    />
-                                                                </span>
-                                                            )}
+                                                        <div className='w-[40%] text-left flex items-center'>
+                                                            <span className='mr-1 flex-shrink-0'>
+                                                                <img
+                                                                    src={phone.label === 'whatsapp' ? whatsapp : call}
+                                                                    alt={
+                                                                        phone.label === 'whatsapp' ? 'WhatsApp' : 'Call'
+                                                                    }
+                                                                    className='w-4 h-4'
+                                                                />
+                                                            </span>
+
                                                             <span className='text-[13px] text-gray-900 truncate'>
                                                                 {formatValue(phone.number)}
                                                             </span>
@@ -491,9 +657,16 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                             {userData?.emailAddress && (
                                                 <div className='flex justify-between'>
                                                     <span className='text-[13px] w-[60%] text-gray-600'>Email Id</span>
-                                                    <div className='w-[40%] text-left'>
-                                                        <span className='text-[13px] text-gray-900 truncate block'>
-                                                            {formatValue(userData?.emailAddress)}
+                                                    <div className='w-[40%] text-left flex items-center'>
+                                                        <span className='mr-1 flex-shrink-0'>
+                                                            <img src={mailIcon} alt='Email' className='w-4 h-4' />
+                                                        </span>
+
+                                                        <span
+                                                            className='text-[13px] text-gray-900 truncate under 
+text-decoration-line: underline'
+                                                        >
+                                                            {userData?.emailAddress}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -502,7 +675,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                     </div>
                                 </div>
                                 <div className='mt-0'>
-                                    <button className='w-full h-6 text-sm border border-gray-700 rounded-md pb-1 bg-gray-100 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors'>
+                                    <button className='w-full py-1 text-sm rounded-md pb-1 bg-gray-200 text-sm font-normal text-[#3A3A47] hover:bg-gray-300 transition-colors'>
                                         Details From Sign 3
                                     </button>
                                 </div>
@@ -591,7 +764,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                         <span className='text-[13px] w-[60%] text-gray-600 font-normal'>
                                                             Source
                                                         </span>
-                                                        <div className='text-[13px] w-[40%] flex items-center gap-2 text-left font-normal'>
+                                                        <div className='text-[13px] w-[40%] flex items-start gap-2 font-normal'>
                                                             <SourceIcon source={currentEnquiry.source} />
                                                         </div>
                                                     </div>
@@ -645,11 +818,11 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                                                     [...currentEnquiry.agentHistory]
                                                         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)) // Sort in descending order by timestamp
 
-                                                        .map((agent, index, filteredArray) => (
+                                                        .map((agent, index) => (
                                                             <div key={index} className='relative space-y-2 mb-4'>
-                                                                <div className='flex items-center gap-2'>
+                                                                <div className='flex items-center'>
                                                                     <div className='w-3 h-3 bg-blue-500 rounded-[100%] z-10 border border-gray-200'></div>
-                                                                    <span className='text-[13px] w-[60%] text-gray-600'>
+                                                                    <span className='text-[13px] w-[60%] text-gray-600 ml-1'>
                                                                         Agent Name
                                                                     </span>
                                                                     <span className='text-[13px] w-[40%] text-left text-gray-900 ml-auto'>
@@ -687,14 +860,25 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
 
                             {/* Close Lead Button */}
                             <div className='p-4 border-t border-gray-200 flex-shrink-0'>
-                                <button
-                                    className='w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors'
-                                    onClick={() => {
-                                        setIsCloseLeadSideModalOpen(true)
-                                    }}
-                                >
-                                    Close lead
-                                </button>
+                                {leadData?.state === 'dropped' ? (
+                                    <button
+                                        className='w-full  bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors'
+                                        onClick={() => {
+                                            setIsReopenLeadModalOpen(true)
+                                        }}
+                                    >
+                                        Reopen Lead
+                                    </button>
+                                ) : (
+                                    <button
+                                        className='w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors'
+                                        onClick={() => {
+                                            setIsCloseLeadSideModalOpen(true)
+                                        }}
+                                    >
+                                        Close lead
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -705,10 +889,10 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
             <CreateTaskModal
                 isOpen={isCreateTaskModalOpen}
                 onClose={handleCloseCreateTaskModal}
-                enquiryId={selectedEnquiryId}
+                enquiryId={selectedEnquiryId ?? ''}
                 onTaskCreated={createNewTask}
                 agentId={currentEnquiry?.agentId}
-                agentName={leadData?.agentName}
+                agentName={leadData?.agentName ?? undefined}
                 leadId={leadId}
                 leadStatus={leadData?.leadStatus}
                 stage={currentEnquiry?.stage}
@@ -725,32 +909,48 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
                 leadId={leadId}
                 userId={leadData?.userId}
                 currentPhoneNumber={leadData?.phoneNumber}
-                currentLabel={leadData?.label}
-                additionalPhoneNumbers={leadData?.phoneNumbers || []}
+                currentLabel={
+                    leadData?.label === 'whatsapp' || leadData?.label === 'call' || leadData?.label === ''
+                        ? leadData.label
+                        : undefined
+                }
+                additionalPhoneNumbers={(leadData?.phoneNumbers ?? []).map((phone) => ({
+                    number: phone.number,
+                    label: phone.label === 'whatsapp' ? 'whatsapp' : phone.label === 'call' ? 'call' : '',
+                    // If you have addedAt, you can add it here as well
+                }))}
             />
             <ChangeAgentModal
                 isOpen={isChangeAgentModalOpen}
                 onClose={() => setIsChangeAgentModalOpen(false)}
                 onAgentChange={refreshData}
                 leadId={leadId}
-                enquiryId={selectedEnquiryId}
-                agentName={leadData?.agentName}
+                enquiryId={selectedEnquiryId ?? ''}
+                agentName={leadData?.agentName ?? undefined}
             />
             <AddEnquiryModal
                 isOpen={isAddEnquiryModalOpen}
                 onClose={() => setIsAddEnquiryModalOpen(false)}
                 onEnquiryAdded={refreshData}
                 leadId={leadId}
-                stage={leadData?.stage}
-                agentName={leadData?.agentName}
+                stage={leadData?.stage ?? ''}
+                agentName={leadData?.agentName ?? ''}
             />
             <CloseLeadSideModal
                 isOpen={isCloseLeadSideModalOpen}
                 onClose={() => setIsCloseLeadSideModalOpen(false)}
                 leadId={leadId}
-                enquiryId={selectedEnquiryId}
+                enquiryId={selectedEnquiryId ?? ''}
                 onLeadClosed={refreshData}
-                agentName={leadData?.agentName}
+                agentName={leadData?.agentName ?? undefined}
+            />
+            <ReopenLeadModal
+                isOpen={isReopenLeadModalOpen}
+                onClose={() => setIsReopenLeadModalOpen(false)}
+                leadId={leadId}
+                enquiryId={selectedEnquiryId ?? ''}
+                onLeadReopen={refreshData}
+                agentName={leadData?.agentName ?? undefined}
             />
         </Layout>
     )
