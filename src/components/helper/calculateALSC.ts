@@ -16,7 +16,7 @@ export function calculateALSC(data: Lead): string | null {
             timeDifferenceSeconds = data.completionDate - currentTime
         } else {
             // Case 2b: scheduled exists AND no completion or completion <= scheduled
-            timeDifferenceSeconds = data.scheduledDate - currentTime
+            timeDifferenceSeconds = currentTime - data.scheduledDate
         }
 
         // Prevent negative result

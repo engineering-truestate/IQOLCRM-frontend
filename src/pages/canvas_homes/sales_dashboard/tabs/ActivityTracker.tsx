@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
 import { useParams } from 'react-router'
 import TaskExecutionCard from '../../../../components/canvas_homes/activity_tracker_cards/TaskExecutionCard'
 import TaskCreatedCard from '../../../../components/canvas_homes/activity_tracker_cards/TaskCreatedCard'
@@ -9,13 +8,6 @@ import PropertyChangeCard from '../../../../components/canvas_homes/activity_tra
 import LeadStateCard from '../../../../components/canvas_homes/activity_tracker_cards/LeadStateCard'
 import LeadAddedCard from '../../../../components/canvas_homes/activity_tracker_cards/LeadAddedCard'
 import { enquiryService } from '../../../../services/canvas_homes/enquiryService'
-import { UseLeadDetails } from '../../../../hooks/canvas_homes/UseLeadDetails'
-
-interface RootState {
-    taskId: {
-        enquiryId: string
-    }
-}
 
 interface ActivityHistoryItem {
     activityType: string
@@ -28,7 +20,6 @@ const ActivityTracker: React.FC = (enquiryId) => {
     const [groupedActivities, setGroupedActivities] = useState<Record<string, ActivityHistoryItem[]>>({})
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const { leadId } = useParams()
 
     // Set selected enquiry ID when component mounts
 

@@ -69,43 +69,36 @@ const buildTaskFilterString = (filters: TaskSearchFilters): string => {
     if (filters.propertyName && filters.propertyName.length > 0) {
         const propertyFilters = filters.propertyName.map((property) => `propertyName:'${property}'`).join(' OR ')
         filterParts.push(`(${propertyFilters})`)
-        console.log('Added propertyName filter:', propertyFilters)
     }
 
     if (filters.agentName && filters.agentName.length > 0) {
         const agentFilters = filters.agentName.map((agent) => `agentName:'${agent}'`).join(' OR ')
         filterParts.push(`(${agentFilters})`)
-        console.log('Added agentName filter:', agentFilters)
     }
 
     if (filters.agentId && filters.agentId.length > 0) {
         const agentIdFilters = filters.agentId.map((id) => `agentId:'${id}'`).join(' OR ')
         filterParts.push(`(${agentIdFilters})`)
-        console.log('Added agentId filter:', agentIdFilters)
     }
 
     if (filters.stage && filters.stage.length > 0) {
         const stageFilters = filters.stage.map((stage) => `stage:'${stage}'`).join(' OR ')
         filterParts.push(`(${stageFilters})`)
-        console.log('Added stage filter:', stageFilters)
     }
 
     if (filters.tag && filters.tag.length > 0) {
         const tagFilters = filters.tag.map((tag) => `tag:'${tag}'`).join(' OR ')
         filterParts.push(`(${tagFilters})`)
-        console.log('Added tag filter:', tagFilters)
     }
 
     if (filters.taskType && filters.taskType.length > 0) {
         const taskFilters = filters.taskType.map((task) => `taskType:'${task}'`).join(' OR ')
         filterParts.push(`(${taskFilters})`)
-        console.log('Added taskType filter:', taskFilters)
     }
 
     if (filters.leadStatus && filters.leadStatus.length > 0) {
         const statusFilters = filters.leadStatus.map((status) => `leadStatus:'${status}'`).join(' OR ')
         filterParts.push(`(${statusFilters})`)
-        console.log('Added leadStatus filter:', statusFilters)
     }
 
     // Date range filter - Fixed for millisecond timestamps and case block scoping
@@ -136,7 +129,6 @@ const buildTaskFilterString = (filters: TaskSearchFilters): string => {
 
         if (startTime > 0) {
             filterParts.push(`added >= ${startTime}`)
-            console.log('Added date filter:', `added >= ${startTime}`)
         }
     }
 
@@ -160,12 +152,11 @@ const buildTaskFilterString = (filters: TaskSearchFilters): string => {
 
         if (rangeFilters.length > 0) {
             filterParts.push(`(${rangeFilters.join(' AND ')})`)
-            console.log('Added calendar range filter:', rangeFilters.join(' AND '))
         }
     }
 
     const finalFilter = filterParts.join(' AND ')
-    console.log('Final filter string:', finalFilter)
+
     return finalFilter
 }
 
@@ -195,14 +186,6 @@ export const searchTasks = async (params: TaskSearchParams = {}): Promise<Algoli
 
         const indexName = getTaskIndexNameForSort(sortBy)
         const filterString = buildTaskFilterString(filters)
-
-        console.log('Algolia taskss search params:', {
-            indexName,
-            query,
-            page,
-            hitsPerPage,
-            filters: filterString,
-        })
 
         const response = await searchClient.search({
             requests: [

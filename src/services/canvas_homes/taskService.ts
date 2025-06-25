@@ -54,7 +54,6 @@ class TaskService {
                 const lastTaskNumber = snapshot.docs[0].data().taskNumber || 0
 
                 nextTaskNumber = lastTaskNumber + 1
-                console.log(nextTaskNumber)
             }
 
             // Generate taskId without padding - just task1, task2, task100, etc.
@@ -77,7 +76,7 @@ class TaskService {
         }
     }
 
-    async updateStatus(taskId: string, status: 'open' | 'complete', taskResult?: string): Promise<void> {
+    async updateStatus(taskId: string, status: 'open' | 'complete'): Promise<void> {
         try {
             const timestamp = getUnixDateTime()
             const updateData: Partial<Task> = {

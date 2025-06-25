@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { leadService, enquiryService, taskService, userService } from '../../services/canvas_homes'
 import type { Lead, Enquiry, Task, User, ActivityHistoryItem } from '../../services/canvas_homes/types'
 
-export const UseLeadDetails = (leadId: string) => {
+export const useLeadDetails = (leadId: string | null) => {
     // State
     const [leadData, setLeadData] = useState<Lead | null>(null)
     const [enquiries, setEnquiries] = useState<Enquiry[]>([])
@@ -33,7 +33,7 @@ export const UseLeadDetails = (leadId: string) => {
     // Load lead data
     const loadLeadData = useCallback(async () => {
         if (!leadId) {
-            console.error('Invalid leadId provided to UseLeadDetails:', leadId)
+            console.error('Invalid leadId provided to useLeadDetails:', leadId)
             setErrors((prev) => ({ ...prev, lead: 'Invalid lead ID provided' }))
             return
         }
@@ -123,10 +123,10 @@ export const UseLeadDetails = (leadId: string) => {
 
     // Actions
     const updateTaskStatus = useCallback(
-        async (taskId: string, status: 'open' | 'complete', taskResult?: any) => {
+        async (taskId: string, status: 'open' | 'complete') => {
             if (!taskId) throw new Error('Invalid taskId provided')
             try {
-                await taskService.updateStatus(taskId.trim(), status, taskResult)
+                await taskService.updateStatus(taskId.trim(), status)
                 await loadTasksData()
             } catch (error) {
                 console.error('Failed to update task status:', error)

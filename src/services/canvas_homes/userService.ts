@@ -87,7 +87,6 @@ class UserService {
     async delete(userId: string): Promise<void> {
         try {
             await deleteDoc(doc(db, this.collectionName, userId))
-            console.log(`User ${userId} deleted successfully`)
         } catch (error) {
             console.error('Error deleting user:', error)
             throw error

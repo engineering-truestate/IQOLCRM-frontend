@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
-import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import DateRangePicker from '../../../components/design-elements/DateRangePicker'
 import { searchTasks, type TaskSearchFilters } from '../../../services/canvas_homes/taskAlgoliaService'
@@ -12,7 +11,6 @@ import superHotIcon from '/icons/canvas_homes/super-hot.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
 import { useNavigate } from 'react-router-dom'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import { formatUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 // Task data type
 type SalesTask = {
@@ -408,15 +406,15 @@ const Tasks = () => {
 
     // Keep initial facet options and order, only update counts
     const generateDropdownOptions = useCallback(
-        (facetKey: string, defaultLabel: string) => {
+        (facetKey: string) => {
             const initialFacetData = initialFacets[facetKey] || {}
             const currentFacetData = facets[facetKey] || {}
-            const options = []
+            const options: { label: string; value: string }[] = []
 
             // Use initial facets for options and sorting, current facets only for counts
             Object.entries(initialFacetData)
                 .sort(([, a], [, b]) => b - a) // Keep original sort order from initial load
-                .forEach(([key, initialCount]) => {
+                .forEach(([key]) => {
                     // Use current count if available, otherwise 0
                     const currentCount = currentFacetData[key] || 0
                     options.push({
@@ -685,7 +683,7 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('propertyName', 'Property')}
+                    options={generateDropdownOptions('propertyName')}
                     onSelect={setSelectedProperty}
                     defaultValue={selectedProperty}
                     value={selectedProperty}
@@ -698,7 +696,7 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('stage', 'Lead Stage')}
+                    options={generateDropdownOptions('stage')}
                     onSelect={setSelectedLeadStage}
                     defaultValue={selectedLeadStage}
                     value={selectedLeadStage}
@@ -711,7 +709,7 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('taskType', 'Task')}
+                    options={generateDropdownOptions('taskType')}
                     onSelect={setSelectedTask}
                     defaultValue={selectedTask}
                     value={selectedTask}
@@ -724,7 +722,7 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('tag', 'Tag')}
+                    options={generateDropdownOptions('tag')}
                     onSelect={setSelectedTag}
                     defaultValue={selectedTag}
                     value={selectedTag}
@@ -737,7 +735,7 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('leadStatus', 'Lead Status')}
+                    options={generateDropdownOptions('leadStatus')}
                     onSelect={setSelectedLeadStatus}
                     defaultValue={selectedLeadStatus}
                     value={selectedLeadStatus}
@@ -750,7 +748,7 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('agentName', 'Agent')}
+                    options={generateDropdownOptions('agentName')}
                     onSelect={setSelectedAgent}
                     defaultValue={selectedAgent}
                     value={selectedAgent}

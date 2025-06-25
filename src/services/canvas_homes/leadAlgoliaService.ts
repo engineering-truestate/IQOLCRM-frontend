@@ -233,6 +233,7 @@ export const searchLeads = async (params: LeadSearchParams = {}): Promise<Algoli
             facets: result.facets || {},
         }
     } catch (error) {
+        console.error('Algolia leads search error:', error)
         throw new Error(`Leads search failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
@@ -266,6 +267,7 @@ export const getLeadFacetValues = async (
             }))
             .sort((a, b) => b.count - a.count)
     } catch (error) {
+        console.error('Get lead facet values error:', error)
         throw new Error(`Failed to get lead facet values: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
@@ -301,6 +303,7 @@ export const getAllLeadFacets = async (): Promise<Record<string, LeadFacetValue[
 
         return facets
     } catch (error) {
+        console.error('Get all lead facets error:', error)
         throw new Error(`Failed to get lead facets: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }

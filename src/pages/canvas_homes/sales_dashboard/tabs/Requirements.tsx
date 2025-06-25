@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { enquiryService } from '../../../../services/canvas_homes'
 import RequirementCollectedModal from '../../../../components/canvas_homes/RquirementCollectionModal'
 import { toast } from 'react-toastify'
-import { useSelector /*, useDispatch */ } from 'react-redux'
-// import type { AppDispatch } from '../../../../store'
-// import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
+import { useSelector } from 'react-redux'
 import Dropdown from '../../../../components/design-elements/Dropdown'
 
 // Types
@@ -75,15 +73,6 @@ const PROPERTY_TYPE_OPTIONS = [
     { label: 'Row House', value: 'row house' },
     { label: 'Farm House', value: 'farm house' },
 ]
-
-// const _TYPOLOGY_OPTIONS = [
-//     { label: '1 BHK', value: '1 BHK' },
-//     { label: '2 BHK', value: '2 BHK' },
-//     { label: '3 BHK', value: '3 BHK' },
-//     { label: '4 BHK', value: '4 BHK' },
-//     { label: '5 BHK', value: '5 BHK' },
-//     { label: 'Penthouse', value: 'penthouse' },
-// ]
 
 const PROPERTY_STAGE_OPTIONS = [
     { label: 'Pre Launch', value: 'Pre Launch' },

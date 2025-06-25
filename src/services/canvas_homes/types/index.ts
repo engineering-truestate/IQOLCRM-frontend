@@ -1,10 +1,10 @@
 export interface Lead {
-    leadId: string | null
-    agentId: string | null
+    leadId: string
+    agentId: string
     agentName: string | null
     name: string | null
-    phoneNumber: string | null
-    propertyName: string | null
+    phoneNumber: string
+    propertyName: string
     tag: 'cold' | 'potential' | 'hot' | 'super hot' | string | null
     userId: string | null
     label?: 'whatsapp' | 'call' | null
@@ -32,16 +32,16 @@ export interface Lead {
         | 'closed'
         | null
     state: 'open' | 'closed' | 'fresh' | 'dropped' | string | null
-    added: number | null
-    lastModified: number | null
+    added: number
+    lastModified: number
 }
 
 export interface Enquiry {
-    enquiryId: string | null
-    leadId: string | null
-    agentId: string | null
+    enquiryId: string
+    leadId: string
+    agentId: string
     propertyName: string | null
-    propertyId: string | null
+    propertyId: string
     source: string | null
     leadStatus: string | null
     stage: string | null
@@ -51,17 +51,17 @@ export interface Enquiry {
     tag: 'cold' | 'potential' | 'hot' | 'super hot' | string | null
     documents?:
         | {
-              id: string | null
+              id: string
               name: string | null
               size: string | null
-              uploadDate: string | null
+              uploadDate: string
               url: string | null
               storagePath: string | null
           }[]
         | null
     requirements?:
         | {
-              id: string | null
+              id: string
               name: string | null
               expectedBudget: string | null
               zone: string | null
@@ -72,17 +72,17 @@ export interface Enquiry {
               propertyStage: string | null
               possessionType: string | null
               notes: string | null
-              added: string | null
+              added: string
           }[]
         | null
-    state: 'open' | 'closed' | 'fresh' | 'dropped' | null
-    added: number | null
-    lastModified: number | null
+    state: 'open' | 'closed' | 'fresh' | 'dropped' | string | null
+    added: number
+    lastModified: number
 }
 
 export interface AgentHistoryItem {
-    timestamp: number | null
-    agentId: string | null
+    timestamp: number
+    agentId: string
     agentName: string | null
     lastStage: string | null
 }
@@ -90,14 +90,14 @@ export interface AgentHistoryItem {
 export interface NoteItem {
     timestamp: number
     agentId: string
-    agentName: string
-    taskType: string
-    note: string
+    agentName: string | null
+    taskType: string | null
+    note: string | null
 }
 
 export interface ActivityHistoryItem {
-    activityType: string
-    timestamp: number // includes both date and time
+    activityType: string | null
+    timestamp: number | null // includes both date and time
     agentName: string | null
     data: Record<string, any>
 }
@@ -106,43 +106,43 @@ export interface Task {
     taskId: string
     enquiryId: string
     agentId: string
-    agentName: string
+    agentName: string | null
     name: string
     leadAddDate: number
     propertyName: string
-    taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking' | string
-    eventName?: string
-    status: 'open' | 'complete'
-    stage: string // e.g., "Initial Contacted"
-    leadStatus: string // e.g., "Interested"
-    tag: string // e.g., "Hot"
+    taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking' | string | null
+    eventName?: string | null
+    status: 'open' | 'complete' | null
+    stage: string | null // e.g., "Initial Contacted"
+    leadStatus: string | null // e.g., "Interested"
+    tag: string | null // e.g., "Hot"
     scheduledDate: number
     added: number
-    eoiEntries?: any
-    completionDate?: number
+    eoiEntries?: any | null
+    completionDate?: number | null
     lastModified: number
 }
 
 export interface User {
-    userId: string | null
-    name: string | null
-    phoneNumber: string | null
+    userId: string
+    name: string
+    phoneNumber: string
     emailAddress: string | null
     label?: 'whatsapp' | 'call' | null
-    added: number | null
-    lastModified: number | null
+    added: number
+    lastModified: number
 }
 
 export interface Campaign {
-    campaignId: string
-    propertyName: string
-    campaignName: string
-    source: string
-    medium: string
-    startDate: number
-    endDate: number
-    totalCost: number
-    totalLeads: number
-    added: number
-    lastModified: number
+    campaignId: string | null
+    propertyName: string | null
+    campaignName: string | null
+    source: string | null
+    medium: string | null
+    startDate: number | null
+    endDate: number | null
+    totalCost: number | null
+    totalLeads: number | null
+    added: number | null
+    lastModified: number | null
 }

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { UseLeadDetails } from '../../../hooks/canvas_homes/UseLeadDetails'
+import { useLeadDetails } from '../../../hooks/canvas_homes/useLeadDetails'
 import Layout from '../../../layout/Layout'
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
@@ -24,13 +24,11 @@ import manualIcon from '/icons/canvas_homes/manualicon.svg'
 import whatsapp from '/icons/canvas_homes/whatsappicon.svg'
 import call from '/icons/canvas_homes/callicon.svg'
 import CloseLeadSideModal from '../../../components/canvas_homes/CloseLeadSideModal'
-import { useDispatch } from 'react-redux'
-import type { AppDispatch } from '../../../store'
 import ActivityTracker from './tabs/ActivityTracker'
 import PropertyDetail from './tabs/PropertyDetail'
 
 // Helper function to handle null/undefined values and capitalize first letter of each word
-const formatValue = (value: any): string => {
+const formatValue = (value: string): string => {
     if (value === null || value === undefined || value === '') {
         return '-'
     }
@@ -43,13 +41,11 @@ const formatValue = (value: any): string => {
 
 // Update the interface to make leadId optional since we'll get it from URL
 interface LeadDetailProps {
-    leadId?: string // Optional - will use URL param if not provided
     onClose?: () => void
 }
 
-const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose }) => {
+const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
     const navigate = useNavigate()
-    const dispatch = useDispatch<AppDispatch>()
     const { leadId } = useParams<{ leadId: string }>()
 
     const {
@@ -67,7 +63,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         refreshData,
         addNote,
         createNewTask,
-    } = UseLeadDetails(leadId || '') // Provide empty string as fallback
+    } = useLeadDetails(leadId || null)
 
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false)
     const [isAddDetailsModalOpen, setIsAddDetailsModalOpen] = useState(false)
@@ -110,9 +106,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
     const handleAddDetailsClick = () => {
         setIsAddDetailsModalOpen(true)
     }
-    const handleDetailsAdded = () => {
-        setIsAddDetailsModalOpen(false)
-    }
 
     const handleClose = () => {
         if (onClose) {
@@ -136,24 +129,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
         })
     }
 
-    const formatDateTime = (timestamp: number | null | undefined) => {
-        if (!timestamp) return '-'
-        const date = new Date(timestamp)
-        return (
-            date.toLocaleDateString('en-US', {
-                month: '2-digit',
-                day: '2-digit',
-                year: '2-digit',
-            }) +
-            ' | ' +
-            date.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-            })
-        )
-    }
-
     // Tab Content Renderer
     const renderTabContent = () => {
         switch (activeTab) {
@@ -170,7 +145,6 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ leadId: propLeadId, onClose })
             case 'Documents':
                 return (
                     <Documents
-                        leadId={leadId}
                         enquiryId={selectedEnquiryId}
                         documents={currentEnquiry?.documents || []}
                         onDocumentsUpdate={refreshData}

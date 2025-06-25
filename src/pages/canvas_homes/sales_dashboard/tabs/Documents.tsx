@@ -14,18 +14,12 @@ interface DocumentItem {
 }
 
 interface DocumentsProps {
-    leadId: string
     enquiryId: string | null
     documents?: DocumentItem[]
     onDocumentsUpdate?: () => void
 }
 
-const Documents: React.FC<DocumentsProps> = ({
-    leadId,
-    enquiryId,
-    documents: existingDocuments = [],
-    onDocumentsUpdate,
-}) => {
+const Documents: React.FC<DocumentsProps> = ({ enquiryId, documents: existingDocuments = [], onDocumentsUpdate }) => {
     const [dragActive, setDragActive] = useState(false)
     const [uploading, setUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)

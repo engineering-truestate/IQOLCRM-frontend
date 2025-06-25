@@ -6,7 +6,7 @@ export const sendLeadEmail = (customerEmail: string, content: string, subject: s
     const userID = 'Fx8fCa1UIOsdjb-SV'
 
     const templateParams = {
-        customer_email: 'mail.rajanydv@gmail.com',
+        customer_email: customerEmail || 'mail.rajanydv@gmail.com',
         subject: subject,
         content: content,
     }
