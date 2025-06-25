@@ -21,7 +21,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
     const [isCloseLeadModalOpen, setIsCloseLeadModalOpen] = useState(false)
     const [isTaskCompleteModalOpen, setIsTaskCompleteModalOpen] = useState(false)
     const [taskState, changeTaskState] = useState('connected')
-    const [taskType, setTaskType] = useState('Initial Contact')
+    // const [taskType, setTaskType] = useState('Initial Contact')
 
     const dispatch = useDispatch<AppDispatch>()
 
@@ -56,7 +56,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
                     modal: useCallback(() => {
                         changeTaskState('connected')
                         setIsCloseLeadModalOpen(true)
-                    }, [taskState, setIsCloseLeadModalOpen]),
+                    }, [setIsCloseLeadModalOpen]),
                 },
             ],
         },
@@ -85,7 +85,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
             modal: useCallback(() => {
                 changeTaskState('not conected')
                 setIsCloseLeadModalOpen(true)
-            }, [taskState, setIsCloseLeadModalOpen]),
+            }, [setIsCloseLeadModalOpen]),
         },
     ]
 
@@ -109,7 +109,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
                 <Dropdown
                     options={notConnectedOptions}
                     onSelect={handleSelect}
-                    triggerClassName='flex items-center h-8 w-full justify-between p-2 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] cursor-pointer'
+                    triggerClassName='flex items-center h-8 w-full justify-between p-2 rounded-sm bg-[#F02532] text-sm text-white focus:outline-none min-w-[100px] cursor-pointer'
                     placeholder='Not Connected'
                     defaultValue=''
                 />
@@ -141,7 +141,7 @@ const InitialContactTask: React.FC<InitialContactTaskProps> = ({ setActiveTab, r
             <TaskCompleteModal
                 isOpen={isTaskCompleteModalOpen}
                 onClose={() => setIsTaskCompleteModalOpen(false)}
-                title='initial contacted'
+                title='interested'
                 leadStatus='interested'
                 stage='initial contacted'
                 state='open'

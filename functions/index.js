@@ -2,6 +2,10 @@ import { https, logger } from 'firebase-functions'
 import { getAuth } from 'firebase-admin/auth'
 import { initializeApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
+import { google } from 'googleapis'
+import { onRequest } from 'firebase-functions/v2/https'
+import axios from 'axios'
+import mime from 'mime-types'
 import cors from 'cors'
 
 initializeApp()
@@ -143,3 +147,149 @@ export const setCustomClaims = https.onRequest(async (req, res) => {
         }
     })
 })
+
+// ACN Upload to Google Drive
+
+const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
+oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN })
+
+export const drive = google.drive({ version: 'v3', auth: oauth2Client })
+
+export const uploadToDrive = onRequest(async (req, res) => {
+    return corsHandler(req, res, async () => {
+        try {
+            const { propId, uploadedFileUrls } = req.body
+
+            if (!propId || !uploadedFileUrls) {
+                return res.status(400).json({ error: 'Missing propId or uploadedFiles' })
+            }
+
+            const parentFolderId = '1sfUWHYjBvi_6LTjdyAh8LqX4Bay3neMi'
+            const folderId = await findOrCreateFolder(parentFolderId, propId)
+
+            await emptyGoogleDriveFolder(folderId)
+
+            const uploadedFiles = [...uploadedFileUrls.photo, ...uploadedFileUrls.video, ...uploadedFileUrls.document]
+            for (const file of uploadedFiles) {
+                await uploadFileToDrive(file, folderId)
+            }
+
+            const sharableFolderUrl = await getSharableFolderUrl(folderId)
+
+            res.status(200).json({
+                success: true,
+                sharableFolderUrl,
+            })
+        } catch (error) {
+            console.error('Error uploading to Google Drive:', error)
+            res.status(500).json({ error: error.message })
+        }
+    })
+})
+
+/**
+ * Deletes all files inside a Google Drive folder.
+ */
+export async function emptyGoogleDriveFolder(folderId) {
+    try {
+        // List all files in the folder
+        const response = await drive.files.list({
+            q: `'${folderId}' in parents and trashed=false`,
+            fields: 'files(id, name)',
+        })
+
+        const files = response.data.files
+        if (files.length === 0) {
+            console.log(`Folder (${folderId}) is already empty.`)
+            return
+        }
+
+        // Delete each file in the folder
+        for (const file of files) {
+            await drive.files.delete({ fileId: file.id })
+            console.log(`Deleted file: ${file.name} (ID: ${file.id})`)
+        }
+
+        console.log(`Successfully emptied folder: ${folderId}`)
+    } catch (error) {
+        console.error(`Error emptying folder: ${error.message}`)
+        throw new Error(`Error emptying folder: ${error.message}`)
+    }
+}
+
+// ✅ Helper function to find or create a folder
+export async function findOrCreateFolder(parentFolderId, folderName) {
+    const response = await drive.files.list({
+        q: `'${parentFolderId}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        fields: 'files(id, name)',
+    })
+
+    if (response.data.files.length > 0) {
+        return response.data.files[0].id
+    }
+
+    const folder = await drive.files.create({
+        requestBody: {
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [parentFolderId],
+        },
+        fields: 'id',
+    })
+
+    return folder.data.id
+}
+
+const extractFilenameFromUrl = (fileUrl) => {
+    const urlParts = fileUrl.split('%2F')
+    const lastPart = urlParts[urlParts.length - 1]
+    return decodeURIComponent(lastPart.split('?')[0])
+}
+
+// ✅ Helper function to upload a file from Firebase Storage to Google Drive
+export async function uploadFileToDrive(fileUrl, folderId) {
+    try {
+        const response = await axios.get(fileUrl, { responseType: 'stream' })
+
+        const originalName = extractFilenameFromUrl(fileUrl)
+        const mimeType = mime.lookup(originalName) || 'application/octet-stream'
+
+        const fileMetadata = {
+            name: originalName, // ✅ Use the same filename from Firebase Storage
+            parents: [folderId],
+        }
+        const media = {
+            mimeType: mimeType,
+            body: response.data,
+        }
+
+        const file = await drive.files.create({
+            requestBody: fileMetadata,
+            media: media,
+            fields: 'id',
+        })
+
+        console.log(`Uploaded ${originalName} to Google Drive (ID: ${file.data.id})`)
+    } catch (error) {
+        console.error(`Error uploading ${fileUrl} to Google Drive:`, error)
+        throw new Error(`Error uploading file to Google Drive: ${error.message}`)
+    }
+}
+
+// ✅ Helper function to make the folder sharable
+async function getSharableFolderUrl(folderId) {
+    try {
+        await drive.permissions.create({
+            fileId: folderId,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        })
+
+        return `https://drive.google.com/drive/folders/${folderId}`
+    } catch (error) {
+        console.error('Error setting sharing permissions:', error)
+        throw new Error(`Error setting folder sharing permissions: ${error.message}`)
+    }
+}

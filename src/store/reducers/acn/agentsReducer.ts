@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
-import type { IInventory, IRequirement } from '../../../data_types/acn/types'
+import type { IAgent, IInventory, IRequirement } from '../../../data_types/acn/types'
 import {
     fetchAgentDetails,
     fetchAgentByPhone,
@@ -8,14 +8,12 @@ import {
     addNoteToAgent,
     fetchAgentWithNotes,
     addAgentWithVerification,
+    updateAgentDetailsThunk,
+    updateAgentCreditsThunk,
+    fetchAgentByCpId,
+    upgradeUserPlan,
 } from '../../../services/acn/agents/agentThunkService'
 import type { RootState } from '../../index'
-
-interface AgentInfo {
-    cpId: string
-    agentName: string
-    phoneNumber: string
-}
 
 interface PropertyData {
     inventories: IInventory[]
@@ -24,7 +22,7 @@ interface PropertyData {
 }
 
 interface AgentsState {
-    currentAgent: AgentInfo | null
+    currentAgent: IAgent | null
     resale: PropertyData
     rental: PropertyData
     loading: boolean
@@ -37,6 +35,8 @@ interface AgentsState {
     notesLoading: boolean
     notesError: string | null
     agentNotes: Record<string, any[]> // Store notes by cpId
+    upgradeLoading: boolean // Add this
+    upgradeError: string | null // Add this
 }
 
 const initialPropertyData: PropertyData = {
@@ -59,6 +59,8 @@ const initialState: AgentsState = {
     notesLoading: false,
     notesError: null,
     agentNotes: {}, // Initialize as empty object
+    upgradeLoading: false, // Add this
+    upgradeError: null, // Add this
 }
 
 const agentsSlice = createSlice({
@@ -77,6 +79,7 @@ const agentsSlice = createSlice({
         clearAgentError: (state) => {
             state.error = null
             state.fetchError = null
+            state.upgradeError = null
         },
         clearAgentConnectHistory: (state) => {
             state.currentAgentConnectHistory = []
@@ -85,6 +88,11 @@ const agentsSlice = createSlice({
         clearAgentNotes: (state) => {
             state.agentNotes = {}
             state.notesError = null
+        },
+        updateCurrentAgent: (state, action) => {
+            if (state.currentAgent) {
+                state.currentAgent = { ...state.currentAgent, ...action.payload }
+            }
         },
     },
     extraReducers: (builder) => {
@@ -114,7 +122,7 @@ const agentsSlice = createSlice({
             })
             .addCase(fetchAgentByPhone.fulfilled, (state, action) => {
                 state.fetchLoading = false
-                state.currentAgent = action.payload
+                state.currentAgent = action.payload as unknown as IAgent
             })
             .addCase(fetchAgentByPhone.rejected, (state, action) => {
                 state.fetchLoading = false
@@ -175,13 +183,71 @@ const agentsSlice = createSlice({
                 state.loading = true
                 state.error = null
             })
-            .addCase(addAgentWithVerification.fulfilled, (state, action) => {
+            .addCase(addAgentWithVerification.fulfilled, (state) => {
                 state.loading = false
                 //state.agents.push(action.payload.agentData)
             })
             .addCase(addAgentWithVerification.rejected, (state, action) => {
                 state.loading = false
                 state.error = action.payload as string
+            })
+            .addCase(updateAgentDetailsThunk.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(updateAgentDetailsThunk.fulfilled, (state) => {
+                state.loading = false
+                state.error = null
+            })
+            .addCase(updateAgentDetailsThunk.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.payload as string
+            })
+            .addCase(updateAgentCreditsThunk.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(updateAgentCreditsThunk.fulfilled, (state) => {
+                state.loading = false
+                state.error = null
+            })
+            .addCase(updateAgentCreditsThunk.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.payload as string
+            })
+            .addCase(fetchAgentByCpId.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(fetchAgentByCpId.fulfilled, (state, action) => {
+                state.loading = false
+                state.currentAgent = action.payload
+                state.error = null
+            })
+            .addCase(fetchAgentByCpId.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.payload as string
+            })
+            .addCase(upgradeUserPlan.pending, (state) => {
+                state.upgradeLoading = true
+                state.upgradeError = null
+            })
+            .addCase(upgradeUserPlan.fulfilled, (state, action) => {
+                state.upgradeLoading = false
+                // Update the current agent with the new plan details
+                if (state.currentAgent && state.currentAgent.cpId === action.payload.cpId) {
+                    state.currentAgent = {
+                        ...state.currentAgent,
+                        ...{
+                            ...action.payload.updates,
+                            userType: action.payload.updates.userType as 'basic' | 'trial' | 'premium',
+                        },
+                    }
+                }
+            })
+            .addCase(upgradeUserPlan.rejected, (state, action) => {
+                state.upgradeLoading = false
+                state.upgradeError = action.payload as string
             })
     },
 })
@@ -196,6 +262,12 @@ export const selectAgentNotesLoading = (state: RootState) => {
 
 export const selectAgentConnectHistoryLoading = (state: RootState) => state.agents.connectHistoryLoading
 
-export const { clearAgentDetails, clearCurrentAgent, clearAgentError, clearAgentNotes, clearAgentConnectHistory } =
-    agentsSlice.actions
+export const {
+    clearAgentDetails,
+    clearCurrentAgent,
+    clearAgentError,
+    clearAgentNotes,
+    clearAgentConnectHistory,
+    updateCurrentAgent,
+} = agentsSlice.actions
 export default agentsSlice.reducer

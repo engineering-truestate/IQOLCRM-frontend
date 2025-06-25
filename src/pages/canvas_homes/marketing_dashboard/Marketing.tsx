@@ -1,5 +1,4 @@
-import React from 'react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
@@ -7,6 +6,7 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 import google from '/icons/canvas_homes/google.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
+import { useNavigate } from 'react-router-dom'
 
 // Campaign data type
 type Campaign = {
@@ -448,6 +448,11 @@ const MarketingDashboard = () => {
     const [selectedMedium, setSelectedMedium] = useState('')
     const [selectedCampaignStatus, setSelectedCampaignStatus] = useState('')
     const [campaignData] = useState<Campaign[]>(() => generateCampaignData())
+    const navigate = useNavigate()
+
+    const handleRowClick = () => {
+        navigate('/canvas-homes/marketingdetails')
+    }
 
     // Summary cards data
     const summaryCards: SummaryCard[] = [
@@ -713,6 +718,7 @@ const MarketingDashboard = () => {
                                 className='rounded-lg'
                                 stickyHeader={true}
                                 maxHeight='58vh'
+                                onRowClick={handleRowClick}
                             />
                         </div>
                     </div>

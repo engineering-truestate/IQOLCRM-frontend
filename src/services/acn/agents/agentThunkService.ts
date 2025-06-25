@@ -1,9 +1,8 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { collection, query, where, getDocs, doc, updateDoc, getDoc, arrayUnion, setDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, updateDoc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import type { IInventory, IRequirement } from '../../../data_types/acn/types'
-
-const getCurrentTimestamp = () => Date.now()
+import type { IInventory, IRequirement, IAgent } from '../../../data_types/acn/types'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 interface AgentDetailsResponse {
     inventories: IInventory[]
@@ -20,11 +19,100 @@ interface FetchAgentDetailsParams {
 
 interface AgentData {
     cpId: string
-    agentName: string
+    name: string
     phoneNumber: string
     kamId: string
     kamName: string
+    workAddress: string
     // Add other agent fields as needed
+}
+
+export const upgradeUserPlan = createAsyncThunk(
+    'agents/upgradeUserPlan',
+    async ({ cpId }: { cpId: string }, { rejectWithValue }) => {
+        try {
+            console.log('🔄 Upgrading user plan for:', cpId)
+
+            const agentRef = doc(db, 'acnAgents', cpId)
+            const agentSnapshot = await getDoc(agentRef)
+
+            if (!agentSnapshot.exists()) {
+                throw new Error('Agent not found')
+            }
+
+            const now = getUnixDateTime() // current unix timestamp in seconds
+            const currentData = agentSnapshot.data()
+
+            const updates = {
+                nextRenewal: now + 2592000, // +30 days
+                planExpiry: now + 31536000, // +1 year
+                userType: 'premium',
+                monthlyCredits: 100,
+                lastModified: now,
+            }
+
+            await updateDoc(agentRef, updates)
+
+            console.log('✅ User plan upgraded successfully')
+
+            return {
+                cpId,
+                updates,
+                updatedAgent: {
+                    ...currentData,
+                    ...updates,
+                },
+            }
+        } catch (error: any) {
+            console.error('❌ Error upgrading user plan:', error)
+            return rejectWithValue(error.message || 'Failed to upgrade user plan')
+        }
+    },
+)
+
+export const fetchAgentByCpId = createAsyncThunk(
+    'agents/fetchAgentByCpId',
+    async (cpId: string, { rejectWithValue }) => {
+        try {
+            console.log('🔍 Fetching agent by cpId:', cpId)
+
+            const agentsRef = collection(db, 'acnAgents')
+            const agentQuery = query(agentsRef, where('cpId', '==', cpId))
+            const agentSnapshot = await getDocs(agentQuery)
+
+            if (agentSnapshot.empty) {
+                throw new Error('Agent not found')
+            }
+
+            const agentDoc = agentSnapshot.docs[0]
+            const agentData = agentDoc.data() as IAgent
+            console.log('✅ Agent found:', agentData)
+
+            return agentData
+        } catch (error: any) {
+            console.error('❌ Error fetching agent:', error)
+            return rejectWithValue(error.message || 'Failed to fetch agent')
+        }
+    },
+)
+
+export const listenToAgentUpdates = (cpId: string, dispatch: any) => {
+    const agentsRef = collection(db, 'acnAgents')
+    const agentQuery = query(agentsRef, where('cpId', '==', cpId))
+
+    return onSnapshot(
+        agentQuery,
+        (snapshot) => {
+            if (!snapshot.empty) {
+                const agentDoc = snapshot.docs[0]
+                const agentData = agentDoc.data() as IAgent
+                dispatch({ type: 'agents/fetchAgentByCpId/fulfilled', payload: agentData })
+            }
+        },
+        (error) => {
+            console.error('❌ Error listening to agent updates:', error)
+        },
+    )
 }
 
 export const fetchAgentByPhone = createAsyncThunk(
@@ -49,7 +137,7 @@ export const fetchAgentByPhone = createAsyncThunk(
             // Return the agent details
             return {
                 cpId: agentData.cpId,
-                agentName: agentData.agentName,
+                name: agentData.name,
                 phoneNumber: agentData.phoneNumber,
                 kamId: agentData.kamId,
                 kamName: agentData.kamName,
@@ -145,6 +233,9 @@ export const addCallResultToAgent = createAsyncThunk(
             if (callData.connection === 'connected') {
                 updateData.lastConnected = timestamp
             }
+            // if (callData.connection === 'not connected') {
+            //     updateData.lastTried = timestamp
+            // }
 
             // Add note if provided
             if (note && note.trim()) {
@@ -643,13 +734,20 @@ export const addAgentWithVerification = createAsyncThunk(
 
             const newCpId = `${label}${prefix}${currentCount + 1}`
 
+            let formattedPhoneNumber = verificationData.phoneNumber
+            if (formattedPhoneNumber && !formattedPhoneNumber.startsWith('+91')) {
+                // Remove any existing country code or leading zeros
+                formattedPhoneNumber = formattedPhoneNumber.replace(/^(\+91|91|0+)/, '')
+                formattedPhoneNumber = `+91${formattedPhoneNumber}`
+            }
+
             // Step 2: Prepare agent data
             const timestamp = Math.floor(Date.now() / 1000)
 
             const agentData = {
                 cpId: newCpId,
                 name: verificationData.name,
-                phoneNumber: verificationData.phoneNumber,
+                phoneNumber: formattedPhoneNumber,
                 emailAddress: verificationData.emailAddress,
                 workAddress: verificationData.workAddress || '',
                 reraId: verificationData.reraId || '',
@@ -721,6 +819,55 @@ export const addAgentWithVerification = createAsyncThunk(
         } catch (error: any) {
             console.error('❌ Error creating agent:', error)
             return rejectWithValue(error.message || 'Failed to create agent')
+        }
+    },
+)
+
+export const updateAgentDetailsThunk = createAsyncThunk(
+    'agents/updateAgentDetailsThunk',
+    async ({ cpId, agentDetails }: { cpId: string; agentDetails: IAgent }) => {
+        try {
+            console.log(cpId, agentDetails, 'cpId, agentDetails')
+            const agentRef = doc(db, 'acnAgents', cpId)
+            const agentSnapshot = await getDoc(agentRef)
+            console.log(agentSnapshot, 'agentSnapshot')
+            if (agentSnapshot.exists()) {
+                await updateDoc(agentRef, {
+                    ...agentDetails,
+                    lastModified: Date.now(),
+                })
+                console.log('agent updated')
+            }
+        } catch (error) {
+            console.error('Error updating agent details:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to update agent details',
+            }
+        }
+    },
+)
+
+export const updateAgentCreditsThunk = createAsyncThunk(
+    'agents/updateAgentCreditsThunk',
+    async ({ cpId, credits }: { cpId: string; credits: number }) => {
+        console.log(cpId, credits, 'cpId, credits')
+        try {
+            const agentRef = doc(db, 'acnAgents', cpId)
+            const agentSnapshot = await getDoc(agentRef)
+            if (agentSnapshot.exists()) {
+                await updateDoc(agentRef, {
+                    monthlyCredits: credits,
+                    lastModified: Date.now(),
+                })
+                console.log('agent credits updated')
+            }
+        } catch (error) {
+            console.error('Error updating agent credits:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to update agent credits',
+            }
         }
     },
 )

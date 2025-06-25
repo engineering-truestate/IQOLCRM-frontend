@@ -70,6 +70,26 @@ interface LeadSearchResponse {
 }
 
 class LeadSearchService {
+    // Helper method to get the correct index name based on sorting
+    private getClientAndIndex = (sortBy?: string) => {
+        const client = searchClient
+        const baseIndex = INDEX_NAME
+
+        if (!sortBy || sortBy === 'relevance') {
+            return { client, indexName: baseIndex }
+        }
+
+        const sortIndexMap: Record<string, string> = {
+            added_desc: `${baseIndex}_added_desc`,
+            added_asc: `${baseIndex}_added_asc`,
+            name_asc: `${baseIndex}_name_asc`,
+            name_desc: `${baseIndex}_name_desc`,
+            lastConnect_desc: `${baseIndex}_lastConnect_desc`,
+        }
+
+        return { client, indexName: sortIndexMap[sortBy] || baseIndex }
+    }
+
     async searchLeads(
         query: string = '',
         filters: SearchFilters = {},
@@ -79,6 +99,7 @@ class LeadSearchService {
     ): Promise<LeadSearchResponse> {
         try {
             const filterString = this.buildFilterString(filters)
+            const { client, indexName } = this.getClientAndIndex(sortBy)
 
             const searchParams: any = {
                 query,
@@ -94,8 +115,10 @@ class LeadSearchService {
                 searchParams.filters = filterString
             }
 
-            const response = await searchClient.searchSingleIndex({
-                indexName: INDEX_NAME,
+            console.log(`🔍 Searching index: ${indexName} with sort: ${sortBy || 'relevance'}`)
+
+            const response = await client.searchSingleIndex({
+                indexName,
                 searchParams,
             })
 
@@ -236,6 +259,18 @@ class LeadSearchService {
             console.error(`Error getting facet values for ${facetName}:`, error)
             return []
         }
+    }
+
+    // Helper method to get available sort options
+    getSortOptions() {
+        return [
+            { label: 'Relevance', value: 'relevance' },
+            { label: 'Newest First', value: 'added_desc' },
+            { label: 'Oldest First', value: 'added_asc' },
+            { label: 'Name A-Z', value: 'name_asc' },
+            { label: 'Name Z-A', value: 'name_desc' },
+            { label: 'Last Connect', value: 'lastConnect_desc' },
+        ]
     }
 
     private buildFilterString(filters: SearchFilters): string {

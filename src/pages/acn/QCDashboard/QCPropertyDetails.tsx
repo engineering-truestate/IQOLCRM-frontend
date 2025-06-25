@@ -18,11 +18,8 @@ import MultiSelectDropdown from '../../../components/design-elements/MultiSelect
 import { toast } from 'react-toastify'
 
 // Icons
-import shareIcon from '/icons/acn/share.svg'
 import editIcon from '/icons/acn/edit.svg'
-import priceDropIcon from '/icons/acn/share.svg'
 import { formatCost } from '../../../components/helper/formatCost'
-import { camelCaseToCapitalizedWords } from '../../../components/helper/wordFormatter'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 
 // Available fields for rejection reasons
@@ -397,21 +394,21 @@ const QCPropertyDetailsPage = () => {
     }
 
     // Carousel navigation functions
-    const nextImage = () => {
-        if (propertyImages.length > 0) {
-            setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length)
-        }
-    }
+    // const nextImage = () => {
+    //     if (propertyImages.length > 0) {
+    //         setCurrentImageIndex((prev) => (prev + 1) % propertyImages.length)
+    //     }
+    // }
 
-    const prevImage = () => {
-        if (propertyImages.length > 0) {
-            setCurrentImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length)
-        }
-    }
+    // const prevImage = () => {
+    //     if (propertyImages.length > 0) {
+    //         setCurrentImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length)
+    //     }
+    // }
 
-    const goToImage = (index: number) => {
-        setCurrentImageIndex(index)
-    }
+    // const goToImage = (index: number) => {
+    //     setCurrentImageIndex(index)
+    // }
 
     // Loading and error states
     if (!authInitialized || qcLoading || userLoading) {

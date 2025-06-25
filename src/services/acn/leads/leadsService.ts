@@ -3,12 +3,13 @@ import { createAsyncThunk } from '@reduxjs/toolkit'
 import { doc, getDoc, updateDoc, deleteDoc, setDoc, getDocs, collection, where, query } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { type ILead, leadSearchService } from '../../../services/acn/leads/algoliaLeadsService'
+// import { getCurrentUser } from '../../user/userRoleService'
 
 // Helper function to get current Unix timestamp in milliseconds
 const getCurrentTimestamp = () => Date.now()
-
 // Notes interface matching your database structure
 export interface NoteData {
+    name: string
     kamId: string
     note: string
     source: string
@@ -198,10 +199,7 @@ export const addCallResult = createAsyncThunk(
 // Add note to lead's notes array
 export const addNoteToLead = createAsyncThunk(
     'leads/addNoteToLead',
-    async (
-        { leadId, noteData }: { leadId: string; noteData: Omit<NoteData, 'timestamp' | 'archive'> },
-        { rejectWithValue },
-    ) => {
+    async ({ leadId, noteData }: { leadId: string; noteData: NoteData }, { rejectWithValue }) => {
         try {
             console.log('📝 Adding note to lead:', leadId, noteData)
 
@@ -314,6 +312,7 @@ export const addCallResultToLead = createAsyncThunk(
             let updatedNotes = existingNotes
             if (note && note.trim()) {
                 const newNote: NoteData = {
+                    name: leadData.name,
                     kamId: leadData.kamId || 'UNKNOWN',
                     note: note.trim(),
                     source: `direct - ${callData.connectMedium}`,
@@ -358,6 +357,9 @@ export const addCallResultToLead = createAsyncThunk(
             if (callData.connection === 'connected') {
                 updateData.lastConnect = timestamp
             }
+            // if (callData.connection === 'not connected') {
+            //     updateData.lastTried = timestamp
+            // }
 
             await updateDoc(docRef, updateData)
 
@@ -596,6 +598,7 @@ export const verifyLeadAndCreateAgent = createAsyncThunk(
                 monthlyCredits: 0,
                 boosterCredits: 0,
                 inboundEnqCredits: 0,
+
                 inboundReqCredits: 0,
                 contactStatus: leadData.contactStatus || 'not contact',
                 contactHistory: leadData.connectHistory || [],
@@ -994,6 +997,12 @@ export const addBulkLeads = createAsyncThunk(
                 } catch (error) {
                     console.log('Pipeline doc not found for:', leadData.Number)
                 }
+                let formattedPhoneNumber = leadData.Number
+                if (formattedPhoneNumber && !formattedPhoneNumber.startsWith('+91')) {
+                    // Remove any existing country code or leading zeros
+                    formattedPhoneNumber = formattedPhoneNumber.replace(/^(\+91|91|0+)/, '')
+                    formattedPhoneNumber = `+91${formattedPhoneNumber}`
+                }
 
                 const newLead: ProcessedLeadData = {
                     leadId,
@@ -1088,6 +1097,7 @@ export const addManualLead = createAsyncThunk(
             const notes: NoteData[] = []
             if (manualData.notes.trim()) {
                 notes.push({
+                    name: manualData.name,
                     kamId: manualData.kamId,
                     note: manualData.notes.trim(),
                     source: 'direct',
@@ -1096,10 +1106,17 @@ export const addManualLead = createAsyncThunk(
                 })
             }
 
+            let formattedPhoneNumber = phone
+            if (formattedPhoneNumber && !formattedPhoneNumber.startsWith('+91')) {
+                // Remove any existing country code or leading zeros
+                formattedPhoneNumber = formattedPhoneNumber.replace(/^(\+91|91|0+)/, '')
+                formattedPhoneNumber = `+91${formattedPhoneNumber}`
+            }
+
             const newLead: ProcessedLeadData = {
                 leadId,
                 name: manualData.name,
-                phonenumber: phone,
+                phonenumber: formattedPhoneNumber,
                 emailAddress: manualData.email,
                 source: manualData.leadSource,
                 kamId: manualData.kamId,

@@ -571,7 +571,7 @@ interface InventoryStatus {
     sold: boolean
 }
 
-interface IAgent {
+export interface IAgent {
     planId: string
     inventories: string[]
     requirements: string[]
@@ -583,6 +583,19 @@ interface IAgent {
     emailAddress: string
     workAddress: string
     reraId: string
+    inWhatsappCommunity: boolean
+    onBroadcast: boolean
+    lastSeen: number
+    added: number
+    lastModified: number
+    extraDetails: string
+    lastConnected: number
+    lastTried: number
+    contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
+    contactHistory: ContactHistoryItem[]
+    notes: Note[]
+    appInstalled: boolean
+    communityJoined: boolean
     firmName: string
     firmSize: number
     areaOfOperation: ('north bangalore' | 'south bangalore' | 'east bangalore' | 'west bangalore' | 'pan bangalore')[]
@@ -765,6 +778,7 @@ interface RequirementFilters {
     assetType?: string[]
     configuration?: string[]
     micromarket?: string[]
+    lastFetch?: number
 }
 
 // ==================== AGENT DATA TYPE ====================
@@ -774,6 +788,9 @@ export interface AgentData {
     email: string
     phone: string
     cpId: string
+    name?: string
+    id?: string
+    kamId?: string
     // Add any other fields as needed
 }
 

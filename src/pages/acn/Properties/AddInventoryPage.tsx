@@ -4,11 +4,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../../store/index'
-import {
-    fetchPropertyById,
-    updateProperty,
-    getNextPropertyId,
-} from '../../../services/acn/properties/propertiesService'
+import { fetchPropertyById, updateProperty } from '../../../services/acn/properties/propertiesService'
 import { addQCInventory, updateQCInventory, fetchQCInventoryById } from '../../../services/acn/qc/qcService'
 import { fetchAgentByPhone } from '../../../services/acn/agents/agentThunkService'
 import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
@@ -17,7 +13,7 @@ import { clearCurrentAgent, clearAgentError } from '../../../store/reducers/acn/
 import { getMicromarketFromCoordinates } from '../../../components/helper/findMicromarket'
 import Layout from '../../../layout/Layout'
 import Button from '../../../components/design-elements/Button'
-import PlacesSearch from '../../../components/design-elements/PlacesSearch'
+// import PlacesSearch from '../../../components/design-elements/PlacesSearch'
 import FormFieldRenderer, {
     assetConfigurations,
     getAssetTypeConfig,
@@ -33,6 +29,7 @@ import plotIcon from '/icons/acn/ListingFlow/Plots.svg'
 import villamentIcon from '/icons/acn/ListingFlow/Villaments.svg'
 import rowhouseIcon from '/icons/acn/ListingFlow/RowHouses.svg'
 import independentIcon from '/icons/acn/ListingFlow/IndependentBuildings.svg'
+import { toast } from 'react-toastify'
 
 // Map old PropertyType to new AssetType
 type PropertyType = 'apartments' | 'villa' | 'plot' | 'rowhouse' | 'villament' | 'independent'
@@ -344,7 +341,6 @@ const AddEditInventoryPage = () => {
     const [successMessage, setSuccessMessage] = useState('')
     const [agentPhoneInput, setAgentPhoneInput] = useState('')
     const [selectedPlace, setSelectedPlace] = useState<Places | null>(null)
-
     const loading = propertyLoading || qcLoading
     const error = propertyError || qcError
 
@@ -473,6 +469,7 @@ const AddEditInventoryPage = () => {
         const assetType = propertyTypeToAssetType[selectedAssetType]
         const validation = validateCompulsoryFields(assetType, formData)
 
+        console.log('formData', validation)
         if (!validation.isValid) {
             const newErrors: Record<string, string> = {}
             validation.missingFields.forEach((field) => {
@@ -487,13 +484,14 @@ const AddEditInventoryPage = () => {
     }
 
     const handleSubmit = async () => {
+        console.log('formData', formData)
         if (validateForm()) {
             try {
                 if (isPropertyEdit && property) {
                     // Property edit flow
                     const propertyData = mapFormDataToProperty(formData, selectedAssetType)
                     console.log('📝 Updating property:', property.id, propertyData)
-                    const updatedProperty = await dispatch(
+                    await dispatch(
                         updateProperty({
                             id: property.id,
                             updates: propertyData,
@@ -522,7 +520,7 @@ const AddEditInventoryPage = () => {
                     // QC edit flow
                     const qcData = mapFormDataToQC(formData, selectedAssetType)
                     console.log('📝 Updating QC:', qcInventory.propertyId, qcData)
-                    const updatedQC = await dispatch(
+                    await dispatch(
                         updateQCInventory({
                             id: qcInventory.propertyId,
                             updates: qcData,
@@ -537,7 +535,7 @@ const AddEditInventoryPage = () => {
                     }, 1500)
                 }
             } catch (error) {
-                console.error('❌ Error saving data:', error)
+                toast.error(`${error}`)
             }
         }
     }
@@ -556,6 +554,8 @@ const AddEditInventoryPage = () => {
             </Layout>
         )
     }
+
+    // console.log('assetConfigurations', assetConfigurations)
 
     // Error state
     if (error && (isPropertyEdit || isQCEdit)) {
@@ -591,12 +591,12 @@ const AddEditInventoryPage = () => {
         )
     }
 
-    const getPageTitle = () => {
-        if (isPropertyEdit) return 'Edit Property'
-        if (isQCAdd) return 'Add QC Inventory'
-        if (isQCEdit) return 'Edit QC Inventory'
-        return 'Inventory Management'
-    }
+    // const getPageTitle = () => {
+    //     if (isPropertyEdit) return 'Edit Property'
+    //     if (isQCAdd) return 'Add QC Inventory'
+    //     if (isQCEdit) return 'Edit QC Inventory'
+    //     return 'Inventory Management'
+    // }
 
     const getEditingText = () => {
         if (isPropertyEdit && property) {
@@ -612,7 +612,7 @@ const AddEditInventoryPage = () => {
         <Layout loading={false}>
             <div className='flex'>
                 {/* Sticky Left Sidebar */}
-                <div className='w-64 sticky top-0 h-screen overflow-y-auto border-r p-4'>
+                <div className='w-64 sticky top-0 h-screen overflow-y-auto p-4'>
                     <h2 className='text-lg font-medium text-gray-900 mb-4'>Asset Type</h2>
                     <div className='flex flex-col gap-4'>
                         {assetTypes.map((type) => (
@@ -640,15 +640,15 @@ const AddEditInventoryPage = () => {
                         <div className='py-6 px-6 bg-white min-h-screen'>
                             {/* Header */}
                             <div className='mb-6'>
-                                <h1 className='text-2xl font-semibold text-gray-900 mb-2'>{getPageTitle()}</h1>
+                                {/* <h1 className='text-2xl font-semibold text-gray-900 mb-2'>{getPageTitle()}</h1> */}
 
                                 {getEditingText() && <p className='text-gray-600 mb-6'>{getEditingText()}</p>}
 
-                                {isQCAdd && (
+                                {/* {isQCAdd && (
                                     <div className='mb-6'>
                                         <p className='text-gray-600'>QC ID will be auto-generated (e.g., QCA357)</p>
                                     </div>
-                                )}
+                                )} */}
 
                                 {/* Agent Phone fetch section */}
                                 <div className='mb-6'>
@@ -697,7 +697,7 @@ const AddEditInventoryPage = () => {
                                                     />
                                                 </svg>
                                                 <span className='text-green-700 font-semibold'>
-                                                    {currentAgent.cpId} | {currentAgent.agentName}
+                                                    {currentAgent.cpId} | {currentAgent.name}
                                                 </span>
                                             </div>
                                         </div>
@@ -714,22 +714,6 @@ const AddEditInventoryPage = () => {
                                             Agent cannot be changed in edit mode
                                         </p>
                                     )}
-                                </div>
-
-                                {/* Places Search */}
-                                <div className='mb-6'>
-                                    <PlacesSearch
-                                        key={
-                                            selectedPlace
-                                                ? `${selectedPlace.name}-${selectedPlace.lat}-${selectedPlace.lng}`
-                                                : 'empty'
-                                        }
-                                        selectedPlace={selectedPlace}
-                                        setSelectedPlace={setSelectedPlace}
-                                        placeholder='Search for project name or location...'
-                                        label='Project Name/Location'
-                                        required={true}
-                                    />
                                 </div>
 
                                 {/* Success/Error Messages */}
@@ -765,74 +749,158 @@ const AddEditInventoryPage = () => {
                             {/* Dynamic Form Fields */}
                             <div className='space-y-4'>
                                 <div className='bg-white'>
-                                    <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-                                        {currentConfig.map((field, index) => (
-                                            <FormFieldRenderer
-                                                key={field.field || index}
-                                                field={field}
-                                                value={formData[field.field || '']}
-                                                onChange={(value) => handleFieldChange(field.field || '', value)}
-                                                error={errors[field.field || '']}
-                                                assetType={assetType}
-                                            />
-                                        ))}
+                                    <div className='flex flex-col gap-3'>
+                                        {(() => {
+                                            const rows = []
+                                            let i = 0
+                                            while (i < currentConfig.length) {
+                                                const field = currentConfig[i]
+                                                if (field.colspan === 2) {
+                                                    rows.push(
+                                                        <div className='flex gap-3' key={i}>
+                                                            <div className='w-full'>
+                                                                <FormFieldRenderer
+                                                                    key={field.field || i}
+                                                                    field={field}
+                                                                    value={formData[field.field || '']}
+                                                                    onChange={(value) =>
+                                                                        handleFieldChange(field.field || '', value)
+                                                                    }
+                                                                    error={errors[field.field || '']}
+                                                                    assetType={assetType}
+                                                                    formData={formData}
+                                                                />
+                                                            </div>
+                                                        </div>,
+                                                    )
+                                                    i += 1
+                                                } else {
+                                                    const nextField = currentConfig[i + 1]
+                                                    if (nextField && nextField.colspan !== 2) {
+                                                        rows.push(
+                                                            <div className='flex gap-3' key={i}>
+                                                                <div className='w-1/2'>
+                                                                    <FormFieldRenderer
+                                                                        key={field.field || i}
+                                                                        field={field}
+                                                                        value={formData[field.field || '']}
+                                                                        onChange={(value) =>
+                                                                            handleFieldChange(field.field || '', value)
+                                                                        }
+                                                                        error={errors[field.field || '']}
+                                                                        assetType={assetType}
+                                                                        formData={formData}
+                                                                    />
+                                                                </div>
+                                                                <div className='w-1/2'>
+                                                                    <FormFieldRenderer
+                                                                        key={nextField.field || i + 1}
+                                                                        field={nextField}
+                                                                        value={formData[nextField.field || '']}
+                                                                        onChange={(value) =>
+                                                                            handleFieldChange(
+                                                                                nextField.field || '',
+                                                                                value,
+                                                                            )
+                                                                        }
+                                                                        error={errors[nextField.field || '']}
+                                                                        assetType={assetType}
+                                                                        formData={formData}
+                                                                    />
+                                                                </div>
+                                                            </div>,
+                                                        )
+                                                        i += 2
+                                                    } else {
+                                                        rows.push(
+                                                            <div className='flex gap-3' key={i}>
+                                                                <div className='w-1/2'>
+                                                                    <FormFieldRenderer
+                                                                        key={field.field || i}
+                                                                        field={field}
+                                                                        value={formData[field.field || '']}
+                                                                        onChange={(value) =>
+                                                                            handleFieldChange(field.field || '', value)
+                                                                        }
+                                                                        error={errors[field.field || '']}
+                                                                        assetType={assetType}
+                                                                        formData={formData}
+                                                                    />
+                                                                </div>
+                                                                <div className='w-1/2' />
+                                                            </div>,
+                                                        )
+                                                        i += 1
+                                                    }
+                                                }
+                                            }
+                                            return rows
+                                        })()}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Action Buttons */}
                             <div className='flex justify-end gap-4 mt-8 pt-6'>
-                                <Button
-                                    bgColor={loading ? 'bg-gray-400' : successMessage ? 'bg-green-600' : 'bg-gray-900'}
-                                    textColor='text-white'
-                                    className='px-4 py-2 hover:bg-gray-800 text-base font-medium'
-                                    onClick={handleSubmit}
-                                    disabled={loading || successMessage !== ''}
-                                >
-                                    {loading ? (
-                                        <div className='flex items-center gap-2'>
-                                            <svg className='animate-spin h-4 w-4' fill='none' viewBox='0 0 24 24'>
-                                                <circle
-                                                    className='opacity-25'
-                                                    cx='12'
-                                                    cy='12'
-                                                    r='10'
+                                {
+                                    <Button
+                                        bgColor={
+                                            loading ? 'bg-gray-400' : successMessage ? 'bg-green-600' : 'bg-gray-900'
+                                        }
+                                        textColor='text-white'
+                                        className='px-4 py-2 hover:bg-gray-800 text-base font-medium'
+                                        onClick={handleSubmit}
+                                        disabled={loading || successMessage !== ''}
+                                    >
+                                        {loading ? (
+                                            <div className='flex items-center gap-2'>
+                                                <svg className='animate-spin h-4 w-4' fill='none' viewBox='0 0 24 24'>
+                                                    <circle
+                                                        className='opacity-25'
+                                                        cx='12'
+                                                        cy='12'
+                                                        r='10'
+                                                        stroke='currentColor'
+                                                        strokeWidth='4'
+                                                    ></circle>
+                                                    <path
+                                                        className='opacity-75'
+                                                        fill='currentColor'
+                                                        d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                                                    ></path>
+                                                </svg>
+                                                {isPropertyEdit
+                                                    ? 'Updating...'
+                                                    : isQCEdit
+                                                      ? 'Updating...'
+                                                      : 'Creating...'}
+                                            </div>
+                                        ) : successMessage ? (
+                                            <div className='flex items-center gap-2'>
+                                                <svg
+                                                    className='w-4 h-4'
+                                                    fill='none'
                                                     stroke='currentColor'
-                                                    strokeWidth='4'
-                                                ></circle>
-                                                <path
-                                                    className='opacity-75'
-                                                    fill='currentColor'
-                                                    d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                                                ></path>
-                                            </svg>
-                                            {isPropertyEdit ? 'Updating...' : isQCEdit ? 'Updating...' : 'Creating...'}
-                                        </div>
-                                    ) : successMessage ? (
-                                        <div className='flex items-center gap-2'>
-                                            <svg
-                                                className='w-4 h-4'
-                                                fill='none'
-                                                stroke='currentColor'
-                                                viewBox='0 0 24 24'
-                                            >
-                                                <path
-                                                    strokeLinecap='round'
-                                                    strokeLinejoin='round'
-                                                    strokeWidth={2}
-                                                    d='M5 13l4 4L19 7'
-                                                />
-                                            </svg>
-                                            {isPropertyEdit ? 'Updated!' : isQCEdit ? 'Updated!' : 'Created!'}
-                                        </div>
-                                    ) : isPropertyEdit ? (
-                                        'Update Property'
-                                    ) : isQCEdit ? (
-                                        'Update QC'
-                                    ) : (
-                                        'Submit'
-                                    )}
-                                </Button>
+                                                    viewBox='0 0 24 24'
+                                                >
+                                                    <path
+                                                        strokeLinecap='round'
+                                                        strokeLinejoin='round'
+                                                        strokeWidth={2}
+                                                        d='M5 13l4 4L19 7'
+                                                    />
+                                                </svg>
+                                                {isPropertyEdit ? 'Updated!' : isQCEdit ? 'Updated!' : 'Created!'}
+                                            </div>
+                                        ) : isPropertyEdit ? (
+                                            'Update Property'
+                                        ) : isQCEdit ? (
+                                            'Update QC'
+                                        ) : (
+                                            'Submit'
+                                        )}
+                                    </Button>
+                                }
                             </div>
                         </div>
                     </div>

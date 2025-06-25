@@ -4,7 +4,18 @@ import React, { useState } from 'react'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import { SelectionGroup } from '../../../components/design-elements/SelectionButtonsGroup'
+// Import or create the following field components to match native logic
 import PlacesSearch from '../../../components/design-elements/PlacesSearch'
+import MonthYearPicker from '../../../components/design-elements/ListingFields/MonthYearPicker'
+import TotalAskPrice from '../../../components/design-elements/ListingFields/TotalAskPrice'
+import CheckBox from '../../../components/design-elements/ListingFields/CheckBox'
+import ExtraDetailsField from '../../../components/design-elements/ListingFields/ExtraDetailsField'
+import TextInputField from '../../../components/design-elements/ListingFields/TextInputField'
+import DropdownField from '../../../components/design-elements/ListingFields/DropdownField'
+import RadioButtonSelect from '../../../components/design-elements/ListingFields/RadioButtonSelect'
+import SliderButtonSelect from '../../../components/design-elements/ListingFields/SliderButtonSelect'
+import MultiSelectSlider from '../../../components/design-elements/ListingFields/MultiSelectSlider'
+import DocumentField from '../../../components/design-elements/ListingFields/DocumentField'
 
 // Import your existing component configurations
 import { appartmentComponents } from '../../../components/acn/addInventoryConfigs/apartmentComponents'
@@ -96,296 +107,173 @@ export const getCompulsoryFields = (assetType: AssetType): string[] => {
     return fieldMappings[assetType] || []
 }
 
+const FIELD_COMPONENTS: Record<string, any> = {
+    textInput: TextInputField,
+    text: TextInputField,
+    number: TextInputField,
+    dropdown: DropdownField,
+    Dropdown: DropdownField,
+    radioSelect: RadioButtonSelect,
+    slider: SliderButtonSelect,
+    multiSelectSlider: MultiSelectSlider,
+    Checkbox: CheckBox,
+    MonthYearPicker: MonthYearPicker,
+    TotalAskPrice: TotalAskPrice,
+    ExtraDetails: ExtraDetailsField,
+    projectName: PlacesSearch,
+    placesSearch: PlacesSearch,
+    Document: DocumentField,
+}
+
 interface FormFieldRendererProps {
     field: FormField
     value: any
     onChange: (value: any) => void
     error?: string
     assetType?: AssetType
+    formData?: Record<string, any>
 }
 
-const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({ field, value, onChange, error, assetType }) => {
-    const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-
+const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
+    field,
+    value,
+    onChange,
+    error,
+    // assetType,
+    formData,
+}) => {
     // Check if field is compulsory
-    const fieldKey = field.field || ''
-    const isCompulsoryField = assetType ? getCompulsoryFields(assetType).includes(fieldKey) : false
+    // const fieldKey = field.field || ''
+    // const isCompulsoryField = assetType ? getCompulsoryFields(assetType).includes(fieldKey) : false
+    const isRequired = field.required
+    const FieldComponent = FIELD_COMPONENTS[field.type]
 
-    const renderField = () => {
-        // Custom: Use PlacesSearch for propertyName
-        // if (field.field === 'propertyName') {
-        //     return (
-        //         <PlacesSearch
-        //             selectedPlace={value && value.lat && value.lng ? value : null}
-        //             setSelectedPlace={(place) => {
-        //                 if (place) {
-        //                     // Pass a composite object to parent: { name, address, lat, lng, mapLocation }
-        //                     onChange({
-        //                         name: place.name,
-        //                         address: place.address,
-        //                         lat: place.lat,
-        //                         lng: place.lng,
-        //                         mapLocation: place.mapLocation,
-        //                     })
-        //                 } else {
-        //                     onChange('')
-        //                 }
-        //             }}
-        //             placeholder={field.placeholder || 'Search property name...'}
-        //             label={field.label || 'Property Name'}
-        //             required={field.required}
-        //             error={error}
-        //         />
-        //     )
-        // }
-        switch (field.type) {
-            case 'text':
-            case 'number':
-            case 'textInput':
-                return (
-                    <div className='relative'>
-                        {field.prefix && (
-                            <span className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm'>
-                                {field.prefix}
-                            </span>
-                        )}
-                        <StateBaseTextField
-                            placeholder={field.placeholder}
-                            value={value || ''}
-                            onChange={(e) => onChange(e.target.value)}
-                            type={field.type === 'number' || field.keyboardType === 'numeric' ? 'number' : 'text'}
-                            className={`w-full ${field.prefix ? 'pl-8' : ''} ${field.suffix ? 'pr-12' : ''}`}
-                        />
-                        {field.suffix && (
-                            <span className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm'>
-                                {field.suffix}
-                            </span>
-                        )}
-                    </div>
-                )
-
-            case 'dropdown':
-            case 'Dropdown':
-                return (
-                    <Dropdown
-                        options={field.option || field.options || []}
-                        onSelect={onChange}
-                        defaultValue={value}
-                        placeholder={field.placeholder || `Select ${field.label}`}
-                        className='w-full'
-                        triggerClassName='w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto top-full'
-                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                    />
-                )
-
-            case 'radioSelect':
-                return (
-                    <SelectionGroup
-                        title=''
-                        type='radio'
-                        color='blue'
-                        options={field.options || []}
-                        name={fieldKey}
-                        onChange={(values) => onChange(values[0])}
-                        className='flex gap-6'
-                    />
-                )
-
-            case 'slider':
-                return (
-                    <div className='flex flex-wrap gap-2'>
-                        {field.options?.map((option) => (
-                            <button
-                                key={option.value}
-                                type='button'
-                                onClick={() => onChange(option.value)}
-                                className={`px-4 py-2 text-sm font-medium rounded-md border transition-colors ${
-                                    value === option.value
-                                        ? 'bg-blue-600 text-white border-blue-600'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                }`}
-                            >
-                                {option.label}
-                            </button>
-                        ))}
-                    </div>
-                )
-
-            case 'multiSelectSlider':
-                return (
-                    <SelectionGroup
-                        title=''
-                        type='checkbox'
-                        color='blue'
-                        options={field.options || []}
-                        multiSelect={true}
-                        onChange={onChange}
-                        className='flex gap-4'
-                    />
-                )
-
-            case 'Checkbox':
-                return (
-                    <label className='flex items-center gap-2 cursor-pointer'>
-                        <input
-                            type='checkbox'
-                            checked={value || false}
-                            onChange={(e) => onChange(e.target.checked)}
-                            className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                        />
-                        <span className='text-sm text-gray-700'>{field.label}</span>
-                    </label>
-                )
-
-            case 'TotalAskPrice':
-                return (
-                    <div className='space-y-2'>
-                        <div className='relative'>
-                            <span className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm'>
-                                ₹
-                            </span>
-                            <StateBaseTextField
-                                placeholder='Enter total ask price'
-                                value={value || ''}
-                                onChange={(e) => onChange(e.target.value)}
-                                type='number'
-                                className='w-full pl-8'
-                            />
-                        </div>
-                        {field.numberToStringFooter && value && (
-                            <p className='text-xs text-gray-500'>
-                                {new Intl.NumberFormat('en-IN', {
-                                    style: 'currency',
-                                    currency: 'INR',
-                                    maximumFractionDigits: 0,
-                                }).format(Number(value))}
-                            </p>
-                        )}
-                    </div>
-                )
-
-            case 'MonthYearPicker':
-                return (
-                    <div className='grid grid-cols-2 gap-2'>
-                        <select
-                            value={value?.month || ''}
-                            onChange={(e) => onChange({ ...value, month: e.target.value })}
-                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        >
-                            <option value=''>Month</option>
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <option key={i + 1} value={i + 1}>
-                                    {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            value={value?.year || ''}
-                            onChange={(e) => onChange({ ...value, year: e.target.value })}
-                            className='px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        >
-                            <option value=''>Year</option>
-                            {Array.from({ length: 10 }, (_, i) => {
-                                const year = new Date().getFullYear() + i
-                                return (
-                                    <option key={year} value={year}>
-                                        {year}
-                                    </option>
-                                )
-                            })}
-                        </select>
-                    </div>
-                )
-
-            case 'Document':
-                return (
-                    <div className='space-y-4'>
-                        <div className='border-2 border-dashed border-gray-300 rounded-lg p-6 text-center'>
-                            <div className='flex flex-col items-center'>
-                                <svg
-                                    className='w-8 h-8 text-gray-400 mb-2'
-                                    fill='none'
-                                    stroke='currentColor'
-                                    viewBox='0 0 24 24'
-                                >
-                                    <path
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                        strokeWidth={2}
-                                        d='M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12'
-                                    />
-                                </svg>
-                                <p className='text-sm text-gray-600 mb-2'>Upload property documents</p>
-                                <input
-                                    type='file'
-                                    multiple
-                                    accept='.pdf,.doc,.docx,.jpg,.jpeg,.png'
-                                    onChange={(e) => {
-                                        const files = Array.from(e.target.files || [])
-                                        setUploadedFiles((prev) => [...prev, ...files])
-                                        onChange([...uploadedFiles, ...files])
-                                    }}
-                                    className='hidden'
-                                    id={`file-upload-${fieldKey}`}
-                                />
-                                <label
-                                    htmlFor={`file-upload-${fieldKey}`}
-                                    className='px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md cursor-pointer hover:bg-blue-100'
-                                >
-                                    Browse Documents
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                )
-
-            case 'ExtraDetails':
-                return (
-                    <textarea
-                        placeholder='Add any additional details...'
-                        value={value || ''}
-                        onChange={(e) => onChange(e.target.value)}
-                        rows={4}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm'
-                    />
-                )
-
-            case 'Project Name':
-                return (
-                    <StateBaseTextField
-                        placeholder='Enter project name'
-                        value={value || ''}
-                        onChange={(e) => onChange(e.target.value)}
-                        type='text'
-                        className='w-full'
-                    />
-                )
-
-            default:
-                return (
-                    <div className='p-4 bg-gray-100 rounded-md'>
-                        <p className='text-sm text-gray-600'>Field type "{field.type}" not implemented yet</p>
-                    </div>
-                )
-        }
+    if (!FieldComponent) {
+        return (
+            <div className='p-4 bg-gray-100 rounded-md'>
+                <p className='text-sm text-gray-600'>Field type "{field.type}" not implemented yet</p>
+            </div>
+        )
     }
 
-    const colSpan = field.gridCols || field.colspan || 1
-
-    return (
-        <div className={`space-y-2 ${colSpan === 1 ? 'col-span-1' : 'col-span-2'}`}>
-            {field.type !== 'Checkbox' && field.label && (
-                <label className='block text-sm font-medium text-gray-700'>
-                    {field.label}
-                    {(field.required || isCompulsoryField) && <span className='text-red-500 ml-1'>*</span>}
-                </label>
-            )}
-            {renderField()}
-            {field.footer && <p className='text-xs text-gray-500 mt-1'>{field.footer}</p>}
-            {error && <p className='text-sm text-red-600'>{error}</p>}
-        </div>
-    )
+    // Map props for each field type
+    switch (field.type) {
+        case 'textInput':
+        case 'text':
+        case 'number':
+            return (
+                <TextInputField
+                    value={value}
+                    setValue={onChange}
+                    label={field.label}
+                    required={isRequired}
+                    placeholder={field.placeholder}
+                    prefix={field.prefix}
+                    suffix={field.suffix}
+                    type={field.type === 'number' ? 'number' : 'text'}
+                    error={error}
+                />
+            )
+        case 'dropdown':
+        case 'Dropdown':
+            return (
+                <DropdownField
+                    value={value}
+                    setValue={onChange}
+                    label={field.label}
+                    required={isRequired}
+                    options={field.option || field.options || []}
+                    placeholder={field.placeholder}
+                    error={error}
+                />
+            )
+        case 'radioSelect':
+            return (
+                <RadioButtonSelect
+                    value={value}
+                    setValue={onChange}
+                    label={field.label}
+                    required={isRequired}
+                    options={field.options || []}
+                    error={error}
+                />
+            )
+        case 'slider':
+            return (
+                <SliderButtonSelect
+                    value={value}
+                    setValue={onChange}
+                    label={field.label}
+                    required={isRequired}
+                    options={field.options || []}
+                    footer={field.footer}
+                    error={error}
+                />
+            )
+        case 'multiSelectSlider':
+            return (
+                <MultiSelectSlider
+                    value={value || []}
+                    setValue={onChange}
+                    label={field.label}
+                    required={isRequired}
+                    options={field.options || []}
+                    footer={field.footer}
+                    error={error}
+                />
+            )
+        case 'Checkbox':
+            return <CheckBox checked={!!value} setChecked={onChange} label={field.label} required={isRequired} />
+        case 'MonthYearPicker':
+            return <MonthYearPicker value={value} setValue={onChange} title={field.label} required={isRequired} />
+        case 'TotalAskPrice':
+            return (
+                <TotalAskPrice
+                    onPriceChange={(_unit: string, price: number) => onChange(price)}
+                    initialPrice={value}
+                    title={field.label}
+                    required={isRequired}
+                    sbua={formData?.sbua}
+                />
+            )
+        case 'ExtraDetails':
+            return (
+                <ExtraDetailsField
+                    value={value}
+                    setValue={onChange}
+                    placeholder={field.placeholder}
+                    required={isRequired}
+                />
+            )
+        case 'projectName':
+        case 'placesSearch':
+            return (
+                <PlacesSearch
+                    selectedPlace={value}
+                    setSelectedPlace={onChange}
+                    placeholder={field.placeholder}
+                    label={field.label}
+                    required={isRequired}
+                />
+            )
+        case 'Document':
+            return (
+                <DocumentField
+                    value={value || []}
+                    setValue={onChange}
+                    label={field.label}
+                    required={isRequired}
+                    error={error}
+                    propertyId={formData?.propertyId}
+                />
+            )
+        default:
+            return (
+                <div className='p-4 bg-gray-100 rounded-md'>
+                    <p className='text-sm text-gray-600'>Field type "{field.type}" not implemented yet</p>
+                </div>
+            )
+    }
 }
 
 // Utility functions

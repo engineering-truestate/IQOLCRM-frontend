@@ -9,25 +9,25 @@ import {
     fetchPropertyById,
     updatePropertyStatus,
     addNoteToProperty,
-    removeNoteFromProperty,
 } from '../../../services/acn/properties/propertiesService'
 import { clearCurrentProperty, clearError } from '../../../store/reducers/acn/propertiesReducers'
 import Layout from '../../../layout/Layout'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
+import UpdateInventoryStatusModal from '../../../components/acn/UpdateInventoryModal'
+import PriceDropModal from '../../../components/acn/PriceChangeModal'
 import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import { toast } from 'react-toastify'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import Button from '../../../components/design-elements/Button'
-import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import { formatUnixDateTime } from '../../../components/helper/formatDate'
+import { formatCost } from '../../../components/helper/formatCost'
 
 // Icons
 import shareIcon from '/icons/acn/share-1.svg'
 import editIcon from '/icons/acn/edit.svg'
-import priceDropIcon from '/icons/acn/share.svg'
 import noteIcon from '/icons/acn/note.svg'
 import useAuth from '../../../hooks/useAuth'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 interface Note {
     id: string
@@ -43,13 +43,14 @@ const PropertyDetailsPage = () => {
 
     // Redux state
     const { currentProperty: property, loading, error } = useSelector((state: RootState) => state.properties)
-    const { user, role, platform } = useAuth()
+    const { user } = useAuth()
 
     // Local state
-    const [currentImageIndex, setCurrentImageIndex] = useState(0)
     const [newNote, setNewNote] = useState('')
     const [localProperty, setLocalProperty] = useState<IInventory | null>(null)
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const [isPriceDropModalOpen, setIsPriceDropModalOpen] = useState(false)
 
     // Update local property when Redux property changes
     useEffect(() => {
@@ -72,22 +73,9 @@ const PropertyDetailsPage = () => {
         }
     }, [id, dispatch])
 
-    // Get current user info for notes
-    const getCurrentUserInfo = () => {
-        if (user?.displayName && user?.email) {
-            return {
-                name: user.displayName,
-                email: user.email,
-            }
-        } else {
-            return {
-                name: 'Unknown User',
-                email: 'unknown@example.com',
-            }
-        }
-    }
+    const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
-    // Handle status change
+    // Handle status change - UPDATED TO INTERCEPT SOLD STATUS
     const handleStatusChange = async (option: string) => {
         if (!property?.propertyId) {
             toast.error('Property ID not found')
@@ -95,6 +83,12 @@ const PropertyDetailsPage = () => {
         }
 
         console.log('📝 Status changed to:', option)
+
+        // If status is "Sold", open the modal instead of direct update
+        if (option === 'Sold') {
+            setIsUpdateModalOpen(true)
+            return
+        }
 
         try {
             await dispatch(
@@ -122,9 +116,11 @@ const PropertyDetailsPage = () => {
             console.log('📝 Adding new note:', newNote)
             console.log('🔍 User:', user)
             const newNoteObj = {
+                id: '',
                 author: user?.displayName || 'Unknown User',
                 email: user?.email || 'unknown@example.com',
                 content: newNote.trim(),
+                timestamp: getUnixDateTime(),
             }
 
             try {
@@ -150,28 +146,21 @@ const PropertyDetailsPage = () => {
         }
     }
 
-    // Handle removing a note
-    const handleRemoveNote = async (noteId: string) => {
-        if (localProperty?.propertyId) {
-            console.log('🗑️ Removing note:', noteId)
-            try {
-                await dispatch(
-                    removeNoteFromProperty({
-                        propertyId: localProperty.propertyId,
-                        noteId,
-                    }),
-                ).unwrap()
+    // Handle modal close and refetch data
+    const handleModalClose = () => {
+        setIsUpdateModalOpen(false)
+        // Refetch property details to update the UI after modal closes
+        if (id) {
+            dispatch(fetchPropertyById(id))
+        }
+    }
 
-                // Refetch property details to update the UI
-                if (id) {
-                    dispatch(fetchPropertyById(id))
-                }
-
-                toast.success('Note removed successfully')
-            } catch (error: any) {
-                console.error('Error removing note:', error)
-                toast.error(error.message || 'Failed to remove note')
-            }
+    // Handle price drop modal close and refetch data
+    const handlePriceDropModalClose = () => {
+        setIsPriceDropModalOpen(false)
+        // Refetch property details to update the UI after modal closes
+        if (id) {
+            dispatch(fetchPropertyById(id))
         }
     }
 
@@ -196,8 +185,8 @@ const PropertyDetailsPage = () => {
             textColor: '#B45309',
         },
         {
-            label: 'Delisted',
-            value: 'Delisted',
+            label: 'De-listed',
+            value: 'De-listed',
             color: '#F3F4F6',
             textColor: '#374151',
         },
@@ -247,6 +236,14 @@ const PropertyDetailsPage = () => {
             'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
             'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
         ]
+    }
+
+    // Determine property type based on propertyId
+    const getPropertyType = () => {
+        if (property?.propertyId?.startsWith('RN')) {
+            return 'Rental'
+        }
+        return 'Resale'
     }
 
     // Loading state
@@ -330,20 +327,36 @@ const PropertyDetailsPage = () => {
                         </div>
                     </div>
 
+                    <hr className='border-gray-200 mb-4' />
+
                     {/* Header Actions */}
-                    <div className='flex items-center gap-4 mb-6'>
+                    <div className='flex items-center gap-4 mb-0'>
                         <button
                             onClick={() => setIsShareModalOpen(true)}
-                            className='flex flex-row gap-2 p-2 items-center text-black bg-[#F0F0F5] border border-gray-300 rounded-md hover:bg-gray-50'
+                            className='flex items-center h-8 gap-2 px-2 py-2 text-gray-700 bg-[#F3F3F3] border border-gray-300 rounded-md hover:bg-gray-50'
                         >
-                            <img src={shareIcon} alt='Share' className='w-5 h-5' />
+                            <img src={shareIcon} alt='Share' className='w-4 h-4' />
                             <span className='text-sm font-medium'>Share</span>
                         </button>
                         <button
-                            onClick={() => navigate(`/acn/properties/${id}/edit`)}
-                            className='flex flex-row gap-2 p-2 items-center text-black bg-[#F0F0F5] border border-gray-300 rounded-md hover:bg-gray-50'
+                            onClick={() => setIsPriceDropModalOpen(true)}
+                            className='flex items-center h-8 gap-2 px-2 py-2 text-gray-700 bg-[#F3F3F3] border border-gray-300 rounded-md hover:bg-gray-50'
                         >
-                            <img src={editIcon} alt='Edit' className='w-5 h-5' />
+                            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                <path
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    strokeWidth={2}
+                                    d='M13 17h8m0 0V9m0 8l-8-8-4 4-6-6'
+                                />
+                            </svg>
+                            <span className='text-sm font-medium'>Price Drop</span>
+                        </button>
+                        <button
+                            onClick={() => navigate(`/acn/properties/${id}/edit`)}
+                            className='flex items-center h-8 gap-2 px-2 py-2 text-gray-700 bg-[#F3F3F3] border border-gray-300 rounded-md hover:bg-gray-50'
+                        >
+                            <img src={editIcon} alt='Edit' className='w-4 h-4' />
                             <span className='text-sm font-medium'>Edit Property</span>
                         </button>
                     </div>
@@ -352,11 +365,11 @@ const PropertyDetailsPage = () => {
                         {/* Main Content */}
                         <div className='lg:col-span-2 space-y-6'>
                             {/* Property Header */}
-                            <div className='bg-white rounded-lg p-6'>
+                            <div className='bg-white rounded-lg py-2'>
                                 <div className='flex items-start justify-between mb-4'>
                                     <div>
-                                        <h1 className='text-2xl font-semibold text-gray-900 mb-2'>
-                                            {property.nameOfTheProperty || property.area || 'Unknown Property'}
+                                        <h1 className='text-lg font-semibold text-black mb-4'>
+                                            {property.propertyName || property.area || 'Unknown Property'}
                                         </h1>
                                         <div className='flex items-center gap-6 text-sm text-gray-600'>
                                             <div className='flex items-center gap-1'>
@@ -438,73 +451,97 @@ const PropertyDetailsPage = () => {
                                         </div>
                                     </div>
                                     <div className='text-right'>
-                                        <div className='text-2xl font-bold text-gray-900 mb-2'>
-                                            {formatCurrency(property.totalAskPrice)}
-                                        </div>
-                                        <div className='flex items-center gap-3'>
-                                            <div className='w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
-                                                {property.cpId ? property.cpId.substring(0, 2).toUpperCase() : 'AG'}
-                                            </div>
-                                            <div>
-                                                <div className='font-medium text-gray-900'>Agent</div>
-                                                <div className='text-sm text-gray-600'>
-                                                    {property.cpId || property.cpId} | Contact
-                                                </div>
-                                            </div>
+                                        <div className='text-lg font-bold text-gray-900 mb-2'>
+                                            {formatCost(property.totalAskPrice)}
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Property Images */}
-                                <div className='grid grid-cols-3 gap-4 mb-6'>
-                                    {propertyImages.slice(0, 3).map((image, index) => (
-                                        <div
-                                            key={index}
-                                            className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer ${
-                                                index === 2 ? 'bg-gray-800' : ''
-                                            }`}
-                                            onClick={() => setCurrentImageIndex(index)}
-                                        >
-                                            <img
-                                                src={image}
-                                                alt={`Property ${index + 1}`}
-                                                className='w-full h-full object-cover'
-                                                onError={(e) => {
-                                                    const target = e.target as HTMLImageElement
-                                                    target.src =
-                                                        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
-                                                }}
-                                            />
-                                            {index === 2 && propertyImages.length > 3 && (
-                                                <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center'>
-                                                    <button className='flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 text-white rounded-md backdrop-blur-sm'>
-                                                        <svg
-                                                            className='w-4 h-4'
-                                                            fill='none'
-                                                            stroke='currentColor'
-                                                            viewBox='0 0 24 24'
-                                                        >
-                                                            <path
-                                                                strokeLinecap='round'
-                                                                strokeLinejoin='round'
-                                                                strokeWidth={2}
-                                                                d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
-                                                            />
-                                                        </svg>
-                                                        View all photos ({propertyImages.length})
-                                                    </button>
-                                                </div>
-                                            )}
+                                {/* Image Carousel - 3 pics at a time */}
+                                <div className='relative mb-0'>
+                                    {/* Main Images Display */}
+                                    <div className='relative rounded-lg overflow-hidden bg-gray-200'>
+                                        <div className='flex gap-2 h-40'>
+                                            {propertyImages
+                                                .slice(currentImageIndex, currentImageIndex + 3)
+                                                .map((image, index) => (
+                                                    <div
+                                                        key={currentImageIndex + index}
+                                                        className='flex-1 relative rounded-lg overflow-hidden bg-gray-200'
+                                                    >
+                                                        <img
+                                                            src={image || '/placeholder.svg'}
+                                                            alt={`Property ${currentImageIndex + index + 1}`}
+                                                            className='w-full h-full object-cover'
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement
+                                                                target.src =
+                                                                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ))}
                                         </div>
-                                    ))}
+
+                                        {/* Navigation Arrows */}
+                                        {propertyImages.length > 3 && (
+                                            <>
+                                                <button
+                                                    onClick={() =>
+                                                        setCurrentImageIndex(Math.max(0, currentImageIndex - 3))
+                                                    }
+                                                    disabled={currentImageIndex === 0}
+                                                    className='absolute left-4 top-2/5 transform  bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-30'
+                                                >
+                                                    <svg
+                                                        className='w-5 h-5'
+                                                        fill='none'
+                                                        stroke='currentColor'
+                                                        viewBox='0 0 24 24'
+                                                    >
+                                                        <path
+                                                            strokeLinecap='round'
+                                                            strokeLinejoin='round'
+                                                            strokeWidth={2}
+                                                            d='M15 19l-7-7 7-7'
+                                                        />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() =>
+                                                        setCurrentImageIndex(
+                                                            Math.min(propertyImages.length - 3, currentImageIndex + 3),
+                                                        )
+                                                    }
+                                                    disabled={currentImageIndex >= propertyImages.length - 3}
+                                                    className='absolute right-4 top-2/5 transform bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-30'
+                                                >
+                                                    <svg
+                                                        className='w-5 h-5'
+                                                        fill='none'
+                                                        stroke='currentColor'
+                                                        viewBox='0 0 24 24'
+                                                    >
+                                                        <path
+                                                            strokeLinecap='round'
+                                                            strokeLinejoin='round'
+                                                            strokeWidth={2}
+                                                            d='M9 5l7 7-7 7'
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Property Details */}
-                            <div className='bg-white rounded-lg p-6'>
-                                <h2 className='text-lg font-semibold text-gray-900 mb-6'>Property Details</h2>
+                            <div className='bg-white rounded-lg py-2'>
+                                <h2 className='text-md font-semibold text-gray-900 mb-2'>Property Details</h2>
 
-                                <div className='grid grid-cols-2 gap-x-8 gap-y-4'>
+                                <div className='grid grid-cols-2 gap-x-8 gap-y-0'>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Property Type</span>
                                         <span className='font-medium capitalize'>{property.assetType || 'N/A'}</span>
@@ -601,37 +638,37 @@ const PropertyDetailsPage = () => {
 
                                 {/* Extra Details */}
                                 {property.extraDetails && (
-                                    <div className='mt-6'>
+                                    <div className='mt-2'>
                                         <h3 className='font-medium text-gray-900 mb-3'>Extra Details</h3>
                                         <p className='text-sm text-gray-600 leading-relaxed'>{property.extraDetails}</p>
                                     </div>
                                 )}
 
                                 {/* Location Details */}
-                                <div className='mt-6'>
-                                    <h3 className='font-medium text-gray-900 mb-3'>Location Details</h3>
-                                    <div className='space-y-2 text-sm'>
-                                        <div className='flex justify-between'>
+                                <div className='mt-2'>
+                                    <h3 className='font-medium text-gray-900 mb-2'>Location Details</h3>
+                                    <div className='grid grid-cols-1 gap-0'>
+                                        <div className='flex justify-between py-1 border-b border-gray-100'>
                                             <span className='text-gray-600'>Micromarket</span>
                                             <span className='font-medium'>{property.micromarket || 'N/A'}</span>
                                         </div>
-                                        <div className='flex justify-between'>
+                                        <div className='flex justify-between py-1 border-b border-gray-100'>
                                             <span className='text-gray-600'>Area</span>
                                             <span className='font-medium'>{property.area || 'N/A'}</span>
                                         </div>
-                                        <div className='flex justify-between'>
+                                        <div className='flex justify-between py-1 border-b border-gray-100'>
                                             <span className='text-gray-600'>Map Location</span>
                                             <span className='font-medium'>{property.mapLocation || 'N/A'}</span>
                                         </div>
                                         {property._geoloc && (
-                                            <div className='flex justify-between'>
+                                            <div className='flex justify-between py-1 border-b border-gray-100'>
                                                 <span className='text-gray-600'>Coordinates</span>
                                                 <span className='font-medium'>
                                                     {property._geoloc.lat}, {property._geoloc.lng}
                                                 </span>
                                             </div>
                                         )}
-                                        <div className='flex justify-between items-center'>
+                                        <div className='flex justify-between py-1 border-b border-gray-100'>
                                             <span className='text-gray-600'>Map</span>
                                             <button
                                                 onClick={() => {
@@ -650,28 +687,131 @@ const PropertyDetailsPage = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Price History Section - NEW */}
+                                {property.priceHistory && property.priceHistory.length > 0 && (
+                                    <div className='mt-2'>
+                                        <h3 className='font-medium text-gray-900 mb-2'>Price History</h3>
+                                        <div className='space-y-2'>
+                                            {[...property.priceHistory]
+                                                .sort((a, b) => b.timestamp - a.timestamp)
+                                                .map((priceEntry, index) => (
+                                                    <div
+                                                        key={priceEntry.id || index}
+                                                        className='p-4 bg-gray-50 rounded-lg border border-gray-200'
+                                                    >
+                                                        <div className='flex items-center justify-between mb-2'>
+                                                            <h4 className='font-medium text-gray-900'>Price Change</h4>
+                                                            <span className='text-xs text-gray-500'>
+                                                                {formatDate(priceEntry.timestamp * 1000)}
+                                                            </span>
+                                                        </div>
+                                                        <div className='text-sm text-gray-600 mb-2'>
+                                                            <span className='font-medium'>Updated by:</span>{' '}
+                                                            {priceEntry.kamName || 'Unknown'}
+                                                        </div>
+
+                                                        {/* Total Ask Price Changes */}
+                                                        {priceEntry.oldTotalAskPrice !== undefined &&
+                                                            priceEntry.newTotalAskPrice !== undefined && (
+                                                                <div className='text-sm text-gray-700 mb-2'>
+                                                                    <span className='font-medium'>
+                                                                        Total Ask Price:
+                                                                    </span>
+                                                                    <div className='flex items-center gap-2 mt-1'>
+                                                                        <span className='text-red-600 line-through'>
+                                                                            {formatCurrency(
+                                                                                priceEntry.oldTotalAskPrice,
+                                                                            )}
+                                                                        </span>
+                                                                        <span>→</span>
+                                                                        <span className='text-green-600 font-medium'>
+                                                                            {formatCurrency(
+                                                                                priceEntry.newTotalAskPrice,
+                                                                            )}
+                                                                        </span>
+                                                                        <span className='text-xs text-gray-500 ml-2'>
+                                                                            (
+                                                                            {(
+                                                                                ((priceEntry.newTotalAskPrice -
+                                                                                    priceEntry.oldTotalAskPrice) /
+                                                                                    priceEntry.oldTotalAskPrice) *
+                                                                                100
+                                                                            ).toFixed(1)}
+                                                                            %)
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                        {/* Price Per Sqft Changes */}
+                                                        {priceEntry.oldAskPricePerSqft !== undefined &&
+                                                            priceEntry.newAskPricePerSqft !== undefined && (
+                                                                <div className='text-sm text-gray-700'>
+                                                                    <span className='font-medium'>Price Per Sqft:</span>
+                                                                    <div className='flex items-center gap-2 mt-1'>
+                                                                        <span className='text-red-600 line-through'>
+                                                                            {formatCurrency(
+                                                                                priceEntry.oldAskPricePerSqft,
+                                                                            )}
+                                                                            /sqft
+                                                                        </span>
+                                                                        <span>→</span>
+                                                                        <span className='text-green-600 font-medium'>
+                                                                            {formatCurrency(
+                                                                                priceEntry.newAskPricePerSqft,
+                                                                            )}
+                                                                            /sqft
+                                                                        </span>
+                                                                        <span className='text-xs text-gray-500 ml-2'>
+                                                                            (
+                                                                            {(
+                                                                                ((priceEntry.newAskPricePerSqft -
+                                                                                    priceEntry.oldAskPricePerSqft) /
+                                                                                    priceEntry.oldAskPricePerSqft) *
+                                                                                100
+                                                                            ).toFixed(1)}
+                                                                            %)
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Sidebar */}
-                        <div className='space-y-6'>
+                        <div className='space-y-4'>
+                            <div className='flex items-center gap-3 px-6'>
+                                <div className='w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
+                                    {property.kamName?.substring(0, 2).toUpperCase() || 'AG'}
+                                </div>
+                                <div>
+                                    <div className='font-medium text-gray-900'>{property.kamName || 'NA'}</div>
+                                    <div className='text-sm text-gray-600'>{property.kamId || 'NA'}</div>
+                                </div>
+                            </div>
                             {/* Update Inventory Status */}
-                            <div className='bg-white rounded-lg p-6'>
+                            <div className='bg-white rounded-lg px-6'>
                                 <h3 className='text-lg font-semibold text-gray-900 mb-4'>Update Inventory Status</h3>
 
-                                <div className='flex flex-row justify-between mb-4'>
+                                <div className='flex justify-between mb-0'>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>Status</label>
-                                    <Dropdown
-                                        options={getStatusOptions()}
-                                        onSelect={handleStatusChange}
-                                        defaultValue={property.status}
-                                        placeholder='Select Status'
-                                        className=''
-                                        triggerClassName='w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
-                                        optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md'
-                                    />
                                 </div>
+                                <Dropdown
+                                    options={getStatusOptions()}
+                                    onSelect={handleStatusChange}
+                                    defaultValue={property.status}
+                                    placeholder='Select Status'
+                                    className='mb-2'
+                                    triggerClassName='w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md'
+                                />
 
                                 {/* Inventory Performance */}
                                 <div className='mb-6'>
@@ -732,20 +872,18 @@ const PropertyDetailsPage = () => {
                                             [...localProperty.notes]
                                                 .sort((a, b) => b.timestamp - a.timestamp)
                                                 .map((note: Note) => (
-                                                    <div
-                                                        key={note.id}
-                                                        className='bg-gray-50 rounded-lg p-3 border border-gray-200'
-                                                    >
-                                                        <div className='flex items-center justify-between mb-1'>
-                                                            <span className='text-xs font-medium text-gray-700'>
+                                                    <div key={note.id} className='space-y-2'>
+                                                        <div className='text-sm text-gray-600'>
+                                                            <span className='font-medium text-gray-900'>
                                                                 {note.author}
                                                             </span>
-                                                            <span className='text-xs text-gray-500'>
-                                                                on {formatUnixDateTime(note.timestamp)}
-                                                            </span>
+                                                            {' on '}
+                                                            <span>{formatUnixDateTime(note.timestamp)}</span>
                                                         </div>
-                                                        <div className='text-sm text-gray-600 leading-relaxed'>
-                                                            {note.content}
+                                                        <div className='bg-gray-50 rounded-lg p-4 border border-gray-100'>
+                                                            <p className='text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words'>
+                                                                {note.content}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 ))
@@ -768,6 +906,18 @@ const PropertyDetailsPage = () => {
                 onClose={() => setIsShareModalOpen(false)}
                 property={property}
             />
+
+            {/* Update Status Modal */}
+            <UpdateInventoryStatusModal
+                isOpen={isUpdateModalOpen}
+                onClose={handleModalClose}
+                propertyType={getPropertyType()}
+                selectedCount={1}
+                propertyId={property.propertyId}
+            />
+
+            {/* Price Drop Modal */}
+            <PriceDropModal isOpen={isPriceDropModalOpen} onClose={handlePriceDropModalClose} property={property} />
         </Layout>
     )
 }

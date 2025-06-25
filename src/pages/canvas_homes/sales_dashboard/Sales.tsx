@@ -2,10 +2,19 @@ import React, { useState } from 'react'
 import Layout from '../../../layout/Layout'
 import Leads from './Leads'
 import Tasks from './Tasks'
+import { useNavigate } from 'react-router-dom'
 
 const SalesDashboard: React.FC = () => {
     // Manage active tab state
     const [activeTab, setActiveTab] = useState<'leads' | 'tasks'>('leads')
+    const navigate = useNavigate()
+
+    // Function to handle tab changes while explicitly removing query params
+    const handleTabChange = (tab: 'leads' | 'tasks') => {
+        setActiveTab(tab)
+        // Navigate to base path without query params
+        navigate('/canvas-homes/sales', { replace: true })
+    }
 
     return (
         <Layout loading={false}>
@@ -22,7 +31,7 @@ const SalesDashboard: React.FC = () => {
                             {/* Tab Navigation */}
                             <div className='flex gap-6'>
                                 <button
-                                    onClick={() => setActiveTab('leads')}
+                                    onClick={() => handleTabChange('leads')}
                                     className={`py-3 px-1 text-base font-medium border-b-2 transition-colors duration-150 ${
                                         activeTab === 'leads'
                                             ? 'border-blue-500 text-blue-600'
@@ -32,7 +41,7 @@ const SalesDashboard: React.FC = () => {
                                     Leads
                                 </button>
                                 <button
-                                    onClick={() => setActiveTab('tasks')}
+                                    onClick={() => handleTabChange('tasks')}
                                     className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-150 ${
                                         activeTab === 'tasks'
                                             ? 'border-blue-500 text-blue-600'

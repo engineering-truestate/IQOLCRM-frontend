@@ -5,31 +5,21 @@ import { db } from '../../../firebase' // Adjust path to your Firebase config
 import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import type { INote } from '../../../data_types/acn/types'
-import { getMicromarketFromCoordinates } from '../../../components/helper/findMicromarket'
-import { useSelector } from 'react-redux'
-import type { RootState } from '../../../store'
 
 export const createRequirement = createAsyncThunk(
     'requirements/create',
     async (
         requirementData: {
-            selectedPlace: {
-                name: string
-                lat: number
-                lng: number
-                address: string
-                mapLocation: string
-            }
+            agentPhone: string
+            name: string
+            projectName: string
+            requirementDetails: string
             assetType: string
-            superBuiltUpArea: string
-            plotArea: string
-            bedroom: number
+            configuration: string
+            area: string
             budgetFrom: string
             budgetTo: string
-            builderCategory: string
-            preferredFloor: string
-            facing: string
-            requirementDetails: string
+            asMarketPrice: boolean
             cpId: string
         },
         { rejectWithValue },
@@ -53,41 +43,44 @@ export const createRequirement = createAsyncThunk(
             const nextCount = currentCount + 1
             const requirementId = `${label}${prefix}${nextCount}`
 
-            // Get micromarket from coordinates
-            const [micromarket, zone] = getMicromarketFromCoordinates(requirementData.selectedPlace)
+            // Parse budget values
+            const budgetFrom = requirementData.asMarketPrice ? 0 : parseFloat(requirementData.budgetFrom) || 0
+            const budgetTo = requirementData.asMarketPrice ? 0 : parseFloat(requirementData.budgetTo) || 0
+            const areaValue = parseFloat(requirementData.area) || 0
 
             // Prepare the requirement data
             const newRequirement: IRequirement = {
                 requirementId,
-                cpId: requirementData.cpId || 'CPA123',
-                propertyName: requirementData.selectedPlace.name,
-                location: requirementData.selectedPlace.address,
-                _geoloc: {
-                    lat: requirementData.selectedPlace.lat,
-                    lng: requirementData.selectedPlace.lng,
-                },
+                cpId: requirementData.cpId,
+                propertyName: requirementData.projectName, // Using projectName as propertyName
                 assetType: requirementData.assetType as IRequirement['assetType'],
-                configuration: `${requirementData.bedroom} bhk` as IRequirement['configuration'],
-                micromarket: micromarket || '', // Use the micromarket from coordinates
+                configuration:
+                    requirementData.assetType === 'plot'
+                        ? null
+                        : (requirementData.configuration as IRequirement['configuration']),
+                micromarket: '', // Will need to be determined separately
                 budget: {
-                    from: parseFloat(requirementData.budgetFrom),
-                    to: parseFloat(requirementData.budgetTo),
+                    from: budgetFrom,
+                    to: budgetTo,
                 },
                 size: {
-                    from: parseFloat(requirementData.superBuiltUpArea),
-                    to: parseFloat(requirementData.plotArea),
+                    from: areaValue,
+                    to: areaValue, // Using same value for both since only one area field is provided
                 },
-                bedrooms: requirementData.bedroom.toString(),
-                bathrooms: '', // Not provided in form
-                parking: '', // Not provided in form
+                bedrooms: requirementData.configuration ? requirementData.configuration.replace(/[^0-9]/g, '') : '', // Extract number from configuration
+                bathrooms: '', // Not provided in modal
+                parking: '', // Not provided in modal
                 extraDetails: requirementData.requirementDetails,
-                marketValue: '', // Not provided in form
+                marketValue: requirementData.asMarketPrice ? 'As per market price' : '',
                 requirementStatus: 'open',
                 internalStatus: 'pending',
                 added: getUnixDateTime(),
                 lastModified: getUnixDateTime(),
                 matchingProperties: [],
                 notes: [],
+                // Additional fields from modal that might be useful
+                agentPhone: requirementData.agentPhone,
+                name: requirementData.name,
             }
 
             // Create the requirement document with the generated ID
@@ -100,8 +93,6 @@ export const createRequirement = createAsyncThunk(
             })
 
             console.log('✅ Requirement created successfully:', requirementId)
-            console.log('📍 Micromarket detected:', micromarket)
-            console.log('🌍 Zone detected:', zone)
 
             return newRequirement
         } catch (error: any) {

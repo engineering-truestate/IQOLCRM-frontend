@@ -9,6 +9,7 @@ export type FieldType =
     | 'textarea'
     | 'checkbox'
     | 'radio'
+    | 'projectName'
 
 export interface FormField {
     id: string
@@ -49,7 +50,7 @@ const commonFields: FormField[] = [
     {
         id: 'projectName',
         label: 'Project Name',
-        type: 'text',
+        type: 'projectName',
         required: true,
         placeholder: 'Search Project Name',
     },

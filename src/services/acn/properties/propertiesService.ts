@@ -61,7 +61,6 @@ const setDefaultValues = (propertyData: Partial<IInventory>): Partial<IInventory
         status: propertyData.status || 'Available',
         currentStatus: propertyData.currentStatus || 'Available',
         cpId: propertyData.cpId || '',
-        cpCode: propertyData.cpCode || '',
         extraDetails: propertyData.extraDetails || '',
         driveLink: propertyData.driveLink || '',
         photo: propertyData.photo || [],
@@ -404,9 +403,22 @@ export const fetchPropertiesByIds = createAsyncThunk(
 
 export const updatePropertyStatus = createAsyncThunk(
     'properties/updateStatus',
-    async ({ propertyId, status }: { propertyId: string; status: string }, { rejectWithValue }) => {
+    async (
+        {
+            propertyId,
+            status,
+            soldPrice,
+            notes,
+        }: {
+            propertyId: string
+            status: string
+            soldPrice?: number
+            notes?: string
+        },
+        { rejectWithValue, dispatch },
+    ) => {
         try {
-            console.log('📝 Updating property status:', propertyId, status)
+            console.log('📝 Updating property status:', propertyId, status, soldPrice, notes)
 
             // Determine collection based on property ID prefix
             let dbPath = ''
@@ -423,15 +435,37 @@ export const updatePropertyStatus = createAsyncThunk(
             }
 
             const docRef = doc(db, dbPath, propertyId)
-            await updateDoc(docRef, {
+
+            // Prepare update data
+            const updateData: any = {
                 status: status,
                 currentStatus: status,
-                dateOfStatusLastChecked: getCurrentTimestamp(),
+                dateOfStatusLastChecked: getUnixDateTime(),
                 ageOfStatus: 0,
-            })
+            }
+
+            // Add soldPrice if provided
+            if (soldPrice !== undefined) {
+                updateData.soldPrice = soldPrice
+            }
+
+            await updateDoc(docRef, updateData)
+
+            // Add note if provided
+            if (notes && notes.trim()) {
+                const noteData: INote = {
+                    id: `note_${Date.now()}`,
+                    email: 'system@acn.com', // You might want to get this from user context
+                    author: 'System', // You might want to get this from user context
+                    content: notes.trim(),
+                    timestamp: getUnixDateTime(), // Unix timestamp
+                }
+
+                await dispatch(addNoteToProperty({ propertyId, note: noteData }))
+            }
 
             console.log('✅ Property status updated successfully')
-            return { propertyId, status }
+            return { propertyId, status, soldPrice }
         } catch (error: any) {
             console.error('❌ Error updating property status:', error)
             return rejectWithValue(error.message || 'Failed to update property status')
@@ -448,7 +482,7 @@ export const addNoteToProperty = createAsyncThunk(
             note,
         }: {
             propertyId: string
-            note: Omit<INote, 'id' | 'timestamp'>
+            note: INote
         },
         { rejectWithValue },
     ) => {
@@ -546,3 +580,72 @@ interface INote {
     content: string
     timestamp: number
 }
+
+export const addPriceDropHistory = createAsyncThunk(
+    'properties/addPriceDropHistory',
+    async (
+        {
+            propertyId,
+            priceDropData,
+        }: {
+            propertyId: string
+            priceDropData: {
+                kamId?: string
+                kamName?: string
+                kamEmail?: string
+                oldTotalAskPrice?: number
+                newTotalAskPrice?: number
+                oldAskPricePerSqft?: number
+                newAskPricePerSqft?: number
+                timestamp: number
+            }
+        },
+        { rejectWithValue },
+    ) => {
+        try {
+            console.log('📝 Adding price drop history to property:', propertyId, priceDropData)
+
+            // Determine collection based on property ID prefix
+            let dbPath = ''
+            if (propertyId.startsWith('PA')) {
+                dbPath = 'acnProperties'
+            } else if (propertyId.startsWith('RN')) {
+                dbPath = 'acnRentalInventories'
+            } else {
+                // Fallback to acnProperties for backward compatibility
+                dbPath = 'acnProperties'
+            }
+
+            const docRef = doc(db, dbPath, propertyId)
+
+            // Create the price history entry
+            const priceHistoryEntry = {
+                ...priceDropData,
+                id: `price_${Date.now()}`,
+                timestamp: Math.floor(Date.now() / 1000), // Unix timestamp
+            }
+
+            // Update the document with new price history and current prices
+            const updateData: any = {
+                priceHistory: arrayUnion(priceHistoryEntry),
+                lastModified: getCurrentTimestamp(),
+            }
+
+            // Update current prices based on what was changed
+            if (priceDropData.newTotalAskPrice !== undefined) {
+                updateData.totalAskPrice = priceDropData.newTotalAskPrice
+            }
+            if (priceDropData.newAskPricePerSqft !== undefined) {
+                updateData.askPricePerSqft = priceDropData.newAskPricePerSqft
+            }
+
+            await updateDoc(docRef, updateData)
+
+            console.log('✅ Price drop history added successfully')
+            return { propertyId, priceHistoryEntry, updateData }
+        } catch (error: any) {
+            console.error('❌ Error adding price drop history:', error)
+            return rejectWithValue(error.message || 'Failed to add price drop history')
+        }
+    },
+)

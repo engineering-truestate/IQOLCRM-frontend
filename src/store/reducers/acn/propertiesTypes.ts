@@ -48,6 +48,7 @@ export interface IInventory {
     enquiries?: number
     lastCheck?: number // Unix timestamp in milliseconds
     propertyName?: string
+    soldPrice?: number
 
     // Extended optional properties for different asset types
     communityType?: string
@@ -104,6 +105,24 @@ export interface IInventory {
         email: string
         author: string
         content: string
+        timestamp: number
+    }>
+
+    // KAM details
+    kamId?: string
+    kamName?: string
+    kamEmail?: string
+
+    // Price Drop History - ADD THIS
+    priceHistory?: Array<{
+        id: string
+        kamId?: string
+        kamName?: string
+        kamEmail?: string
+        oldTotalAskPrice?: number
+        newTotalAskPrice?: number
+        oldAskPricePerSqft?: number
+        newAskPricePerSqft?: number
         timestamp: number
     }>
 }

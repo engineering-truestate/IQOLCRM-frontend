@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
-import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
+import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import CustomPagination from '../../../components/design-elements/CustomPagination'
@@ -12,7 +12,6 @@ import ShareInventoryModal from '../../../components/acn/ShareInventoryModal'
 import UpdateInventoryStatusModal from '../../../components/acn/UpdateInventoryModal'
 import MetricsCards from '../../../components/design-elements/MetricCards'
 import resetic from '/icons/acn/rotate-left.svg'
-import addinventoryic from '/icons/acn/user-add.svg'
 import shareic from '/icons/acn/share.svg'
 import editicon from '/icons/acn/write.svg'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
@@ -32,18 +31,18 @@ import crossicon from '/icons/acn/cross.svg'
 // Import our Algolia service
 import algoliaService, {
     type SearchFilters,
-    type AlgoliaSearchResponse,
     type FacetValue,
 } from '../../../services/acn/properties/algoliaPropertiesService'
 import { formatCost } from '../../../components/helper/formatCost'
-import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import StatusSelectCell from '../../../components/acn/Status'
-import { toast } from 'react-toastify'
 import filter from '/icons/acn/filter.svg'
 import BulkShareModal from '../../../components/acn/BulkShareModal'
+import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+
+//icons
+import addIcon from '/icons/acn/add-icon.svg'
 
 type PropertyType = 'Resale' | 'Rental'
-type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'De-listed' | 'Pending QC' | 'Rented'
+//type PropertyStatus = 'Available' | 'Sold' | 'Hold' | 'De-listed' | 'Pending QC' | 'Rented'
 
 interface StatusOption {
     label: string
@@ -53,45 +52,11 @@ interface StatusOption {
     slug?: string
 }
 
-const getMetrics = (activeTab: PropertyType, searchResultFacets: Record<string, FacetValue[]>) => {
-    const statusFacets = searchResultFacets.status || []
-    const statusCounts = statusFacets.reduce(
-        (acc, facet) => {
-            acc[facet.value] = facet.count
-            return acc
-        },
-        {} as Record<string, number>,
-    )
-
-    const totalListings = statusFacets.reduce((sum, facet) => sum + facet.count, 0)
-
-    if (activeTab === 'Resale') {
-        return [
-            { label: 'Total Listings', value: totalListings },
-            { label: 'Available', value: statusCounts['Available'] || 0 },
-            { label: 'Sold', value: statusCounts['Sold'] || 0 },
-            { label: 'Hold', value: statusCounts['Hold'] || 0 },
-            { label: 'De-listed', value: statusCounts['De-listed'] || 0 },
-            { label: 'Pending QC', value: statusCounts['Pending QC'] || 0 },
-        ]
-    } else {
-        return [
-            { label: 'Total Listings', value: totalListings },
-            { label: 'Available', value: statusCounts['Available'] || 0 },
-            { label: 'Rented', value: statusCounts['Rented'] || 0 },
-            { label: 'Hold', value: statusCounts['Hold'] || 0 },
-            { label: 'De-listed', value: statusCounts['De-listed'] || 0 },
-            { label: 'Pending QC', value: statusCounts['Pending QC'] || 0 },
-        ]
-    }
-}
-
 const PropertiesPage = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch<AppDispatch>()
     const [searchParams, setSearchParams] = useSearchParams()
     const [activeTab, setActiveTab] = useState<PropertyType>('Resale')
-    const [statusMap, setStatusMap] = useState<Record<string, string>>({})
     const properties = useSelector((state: RootState) => state.properties.searchResults)
     const nbHits = useSelector((state: RootState) => state.properties.totalHits)
     const nbPages = useSelector((state: RootState) => state.properties.totalPages)
@@ -184,8 +149,8 @@ const PropertiesPage = () => {
         [searchParams],
     )
 
-    // Initialize state from URL parameters
-    const [filterState, setFilterState] = useState(() => ({
+    // Initialize state from URL parameters - CHANGED: Use string array instead of Set
+    const [_, setFilterState] = useState(() => ({
         status: urlParams.status || [],
         assetType: urlParams.assetType || [],
         micromarket: urlParams.micromarket || [],
@@ -395,9 +360,8 @@ const PropertiesPage = () => {
     const [searchResultFacets, setSearchResultFacets] = useState<Record<string, FacetValue[]>>({})
     const [isAddFilterModalOpen, setIsAddFilterModalOpen] = useState(false)
 
-    // UI state
-    const [currentPage, setCurrentPage] = useState(0)
-    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
+    // UI state - CHANGED: Use string array instead of Set
+    const [selectedRows, setSelectedRows] = useState<string[]>([])
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
     const [selectedProperty, setSelectedProperty] = useState<IInventory | null>(null)
@@ -492,9 +456,9 @@ const PropertiesPage = () => {
         [activeTab, dispatch],
     )
 
-    // Effect to reset selections when the tab changes
+    // Effect to reset selections when the tab changes - CHANGED: Use empty array instead of Set
     useEffect(() => {
-        setSelectedRows(new Set())
+        setSelectedRows([])
     }, [activeTab])
 
     // Effect to reset filters when tab changes (Resale vs Rental)
@@ -542,32 +506,6 @@ const PropertiesPage = () => {
 
     const handleKAMChange = useCallback((kams: string[]) => updateURLParams('kamName', kams), [updateURLParams])
 
-    const handleUnitTypeChange = useCallback((types: string[]) => updateURLParams('unitType', types), [updateURLParams])
-
-    const handleBathroomChange = useCallback(
-        (bathrooms: string[]) => updateURLParams('noOfBathrooms', bathrooms),
-        [updateURLParams],
-    )
-
-    const handleBalconyChange = useCallback(
-        (balconies: string[]) => updateURLParams('noOfBalcony', balconies),
-        [updateURLParams],
-    )
-
-    const handleFacingChange = useCallback((facings: string[]) => updateURLParams('facing', facings), [updateURLParams])
-
-    const handleFloorChange = useCallback(
-        (floors: string[]) => updateURLParams('exactFloor', floors),
-        [updateURLParams],
-    )
-
-    const handleAreaChange = useCallback((areas: string[]) => updateURLParams('area', areas), [updateURLParams])
-
-    const handleCurrentStatusChange = useCallback(
-        (statuses: string[]) => updateURLParams('currentStatus', statuses),
-        [updateURLParams],
-    )
-
     const handleSortChange = useCallback((sort: string) => updateURLParams('sort', sort || null), [updateURLParams])
 
     // Handle page change
@@ -606,7 +544,7 @@ const PropertiesPage = () => {
                     }
                 }) as StatusOption[],
         [],
-    ) // getStatusOptions uses activeTab from closure, so no need to include it as dependency
+    )
 
     // Filter Dropdown Components
     const StatusFilter = () => {
@@ -1072,51 +1010,10 @@ const PropertiesPage = () => {
         )
     }
 
-    // Utility functions
-    const formatCurrency = (amount: number | undefined | null) => {
-        if (!amount) return '₹0'
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 0,
-        }).format(amount)
-    }
-    const formatDate = (date: any) => {
-        if (!date) return '-'
-        let dateObj: Date
-
-        if (date?.toDate) {
-            dateObj = date.toDate()
-        } else if (typeof date === 'string') {
-            dateObj = new Date(date)
-        } else if (date instanceof Date) {
-            dateObj = date
-        } else {
-            return '-'
-        }
-
-        return dateObj.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        })
-    }
-
-    // Table columns
+    // Table columns - REMOVED manual checkbox column
     const getColumns = (): TableColumn[] => {
         const baseColumns: TableColumn[] = [
-            {
-                key: 'select',
-                header: '',
-                render: (_, row) => (
-                    <input
-                        type='checkbox'
-                        checked={selectedRows.has(row.propertyId || row.id)}
-                        onChange={(e) => handleRowSelect(row.propertyId || row.id, e.target.checked)}
-                        className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                    />
-                ),
-            },
+            // REMOVED: Manual checkbox column - FlexibleTable will handle this
             {
                 key: 'propertyId',
                 header: 'Property ID',
@@ -1195,7 +1092,6 @@ const PropertiesPage = () => {
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>{value || 'N/A'}</span>
                 ),
             },
-
             {
                 key: 'status',
                 header: 'Status',
@@ -1203,7 +1099,14 @@ const PropertiesPage = () => {
                     options: statusDropdownOptions,
                     placeholder: 'Select Status',
                     onChange: (value, row) => {
-                        handleUpdatePropertyStatus(row.propertyId, value)
+                        // CHANGE THIS: Intercept "Sold" status to show modal
+                        if (value === 'Sold') {
+                            setSelectedProperty(row) // Set the specific property
+                            setSelectedRows([row.propertyId || row.id]) // Set selected rows for the modal
+                            setIsUpdateModalOpen(true) // Open the modal
+                        } else {
+                            handleUpdatePropertyStatus(row.propertyId, value) // Direct update for other statuses
+                        }
                     },
                 },
             },
@@ -1211,7 +1114,7 @@ const PropertiesPage = () => {
                 key: 'dateOfStatusLastChecked',
                 header: 'Last Check',
                 render: (value) => (
-                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatDate(value)}</span>
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDate(value)}</span>
                 ),
             },
             {
@@ -1475,29 +1378,30 @@ const PropertiesPage = () => {
         [searchParams, setSearchParams],
     )
 
-    // Handle row selection
-    const handleRowSelect = (rowId: string, checked: boolean) => {
+    // UPDATED: Handle row selection for FlexibleTable
+    const handleRowSelect = useCallback((rowId: string, selected: boolean) => {
+        console.log(rowId, 'here')
         setSelectedRows((prev) => {
-            const newSet = new Set(prev)
-            if (checked) {
-                newSet.add(rowId)
+            if (selected) {
+                return [...prev, rowId]
             } else {
-                newSet.delete(rowId)
+                return prev.filter((id) => id !== rowId)
             }
-            return newSet
         })
-    }
+    }, [])
 
-    // Handle bulk status update
-    const handleBulkStatusUpdate = (status: PropertyStatus, soldPrice?: string) => {
-        const selectedRowIds = Array.from(selectedRows)
-        // Convert old status name to new if needed
-        const updatedStatus = status === 'De-listed' ? 'De-listed' : status
-        console.log('📝 Bulk updating status for:', selectedRowIds, 'to:', updatedStatus, ' ', soldPrice)
-
-        // TODO: Implement actual bulk update API call
-        setSelectedRows(new Set())
-    }
+    // UPDATED: Handle select all for FlexibleTable
+    const handleSelectAll = useCallback(
+        (selected: boolean) => {
+            if (selected) {
+                const allIds = properties?.map((item) => item.propertyId || item.id).filter(Boolean) || []
+                setSelectedRows(allIds)
+            } else {
+                setSelectedRows([])
+            }
+        },
+        [properties],
+    )
 
     // Handle property status update
     const handleUpdatePropertyStatus = useCallback(
@@ -1523,7 +1427,6 @@ const PropertiesPage = () => {
     }
 
     const currentData = getCurrentData()
-    const totalItems = nbHits || 0
     const totalPages = nbPages || 0
 
     // Helper function to get facet count for a specific value
@@ -1581,10 +1484,10 @@ const PropertiesPage = () => {
                                     />
                                 </div>
                                 <Button
-                                    leftIcon={<img src={addinventoryic} alt='Add Inventory Icon' className='w-5 h-5' />}
-                                    bgColor='bg-[#2D3748]'
+                                    leftIcon={<img src={addIcon} alt='Add Inventory Icon' className='w-5 h-5' />}
+                                    bgColor='bg-[#24252E]'
                                     textColor='text-white'
-                                    className='px-4 h-8 font-semibold'
+                                    className='p-2 h-8 font-semibold'
                                     onClick={() => navigate('/acn/properties/addinv')}
                                 >
                                     Add Inventory
@@ -1606,23 +1509,23 @@ const PropertiesPage = () => {
                                 <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
                             </button>
 
-                            <div className='flex items-center bg-gray-100 rounded-md p-1 h-8'>
+                            <div className='flex items-center bg-gray-600 rounded-md p-1'>
                                 <button
                                     onClick={() => setActiveTab('Resale')}
                                     className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                                         activeTab === 'Resale'
-                                            ? 'bg-white text-black shadow-sm'
-                                            : 'text-gray-600 hover:text-black'
+                                            ? 'bg-white text-black shadow-sm font-bold'
+                                            : 'text-white hover:text-black'
                                     }`}
                                 >
                                     Resale
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('Rental')}
-                                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                                    className={`px-3 py-1 text-sm rounded transition-colors ${
                                         activeTab === 'Rental'
-                                            ? 'bg-white text-black shadow-sm'
-                                            : 'text-gray-600 hover:text-black'
+                                            ? 'bg-white text-black shadow-sm font-bold'
+                                            : 'text-white hover:text-black'
                                     }`}
                                 >
                                     Rental
@@ -1640,7 +1543,6 @@ const PropertiesPage = () => {
                                 textColor='text-black'
                                 leftIcon={<img src={filter} alt='Filter Icon' className='w-5 h-5' />}
                                 className='h-7 font-semibold text-sm'
-                                // onClick={() => console.log('Filter clicked')}
                                 onClick={() => {
                                     setIsAddFilterModalOpen(true)
                                 }}
@@ -1648,7 +1550,8 @@ const PropertiesPage = () => {
                                 Filter
                             </Button>
 
-                            {selectedRows.size > 0 && (
+                            {/* UPDATED: Use array length instead of Set size */}
+                            {selectedRows.length > 0 && (
                                 <div className='flex gap-2 ml-auto'>
                                     <Button
                                         bgColor='bg-white'
@@ -1656,7 +1559,7 @@ const PropertiesPage = () => {
                                         className='px-4 h-8 text-sm border border-gray-300'
                                         onClick={() => setIsUpdateModalOpen(true)}
                                     >
-                                        Update Status ({selectedRows.size})
+                                        Update Status ({selectedRows.length})
                                     </Button>
                                     <Button
                                         bgColor='bg-gray-600'
@@ -1664,7 +1567,7 @@ const PropertiesPage = () => {
                                         className='px-4 h-8 text-sm'
                                         onClick={handleBulkShare}
                                     >
-                                        Share Selected ({selectedRows.size})
+                                        Share Selected ({selectedRows.length})
                                     </Button>
                                 </div>
                             )}
@@ -1672,13 +1575,6 @@ const PropertiesPage = () => {
 
                         {/* Show search info */}
                         {searchLoading && <div className='mb-2 text-sm text-blue-600 flex-shrink-0'>Searching...</div>}
-
-                        {/* {!searchLoading && totalItems > 0 && (
-                            <div className='mb-2 text-sm text-gray-600'>
-                                Found {totalItems.toLocaleString()} properties
-                                {searchQuery && ` for "${searchQuery}"`}
-                            </div>
-                        )} */}
 
                         {searchError && (
                             <div className='mb-2 p-3 bg-red-50 border border-red-200 rounded-lg flex-shrink-0'>
@@ -1722,6 +1618,10 @@ const PropertiesPage = () => {
                                     <FlexibleTable
                                         data={properties}
                                         columns={getColumns()}
+                                        showCheckboxes={true} // ADDED: Enable built-in checkboxes
+                                        selectedRows={selectedRows} // ADDED: Pass selected rows array
+                                        onRowSelect={handleRowSelect} // ADDED: Handle individual row selection
+                                        onSelectAll={handleSelectAll} // ADDED: Handle select all
                                         hoverable={true}
                                         borders={{
                                             table: false,
@@ -1748,7 +1648,6 @@ const PropertiesPage = () => {
                         </div>
 
                         {/* Pagination */}
-                        {/* {!searchLoading && totalPages > 1 && ( */}
                         <div className='flex items-center justify-center flex-shrink-0'>
                             <CustomPagination
                                 currentPage={urlParams.page}
@@ -1757,7 +1656,6 @@ const PropertiesPage = () => {
                                 className=''
                             />
                         </div>
-                        {/* )} */}
                     </div>
 
                     {/* Share Modal */}
@@ -1767,19 +1665,27 @@ const PropertiesPage = () => {
                         property={selectedProperty}
                     />
 
-                    {/* Update Inventory Status Modal */}
+                    {/* Update Inventory Status Modal - UPDATED: Use array length */}
                     <UpdateInventoryStatusModal
                         isOpen={isUpdateModalOpen}
-                        onClose={() => setIsUpdateModalOpen(false)}
+                        onClose={() => {
+                            setIsUpdateModalOpen(false)
+                            setSelectedProperty(null) // Clear selected property when closing
+                        }}
                         propertyType={activeTab}
-                        selectedCount={selectedRows.size}
-                        onUpdate={handleBulkStatusUpdate}
+                        selectedCount={selectedProperty ? 1 : selectedRows.length}
+                        propertyId={selectedProperty?.propertyId || selectedProperty?.id} // Single property from dropdown
+                        selectedPropertyIds={selectedRows} // Bulk selected properties
+                        // onUpdate prop is now optional since modal handles the API calls internally
                     />
 
+                    {/* UPDATED: Filter properties using array includes */}
                     <BulkShareModal
                         isOpen={isBulkShareModalOpen}
                         onClose={() => setIsBulkShareModalOpen(false)}
-                        properties={currentData.filter((item: any) => selectedRows.has(item.propertyId || item.id))}
+                        properties={currentData.filter((item: any) =>
+                            selectedRows.includes(item.propertyId || item.id),
+                        )}
                     />
                 </div>
             </div>

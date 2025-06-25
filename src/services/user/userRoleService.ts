@@ -32,7 +32,7 @@ export const fetchUserRoleByEmail = createAsyncThunk<AgentData, string, { reject
             // Ensure all required properties are present
             const agentData: AgentData = {
                 email: rawAgentData.email || email,
-                role: rawAgentData.role || 'kam',
+                role: rawAgentData.acn.role || 'kam',
                 name: rawAgentData.name || rawAgentData.displayName || email.split('@')[0],
                 id: agentDoc.id,
                 phone: rawAgentData.phone || '',
