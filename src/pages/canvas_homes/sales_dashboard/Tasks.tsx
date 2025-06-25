@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
-import Button from '../../../components/design-elements/Button'
+// import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import DateRangePicker from '../../../components/design-elements/DateRangePicker'
 import { searchTasks, type TaskSearchFilters } from '../../../services/canvas_homes/taskAlgoliaService'
@@ -12,7 +12,6 @@ import superHotIcon from '/icons/canvas_homes/super-hot.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
 import { useNavigate } from 'react-router-dom'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import { formatUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 // Task data type
 type SalesTask = {
@@ -293,6 +292,7 @@ const Tasks = () => {
         selectedLeadStatus,
         selectedDateRange,
         customDateRange,
+        performSearch,
     ])
 
     // Search on text input change (debounced)
@@ -303,7 +303,7 @@ const Tasks = () => {
     // Initial search
     useEffect(() => {
         performSearch()
-    }, [])
+    }, [performSearch])
 
     // Calculate the status counts manually
     const statusCounts = useMemo(() => {
@@ -408,15 +408,15 @@ const Tasks = () => {
 
     // Keep initial facet options and order, only update counts
     const generateDropdownOptions = useCallback(
-        (facetKey: string, defaultLabel: string) => {
+        (facetKey: string, _defaultLabel: string) => {
             const initialFacetData = initialFacets[facetKey] || {}
             const currentFacetData = facets[facetKey] || {}
-            const options = []
+            const options: { label: string; value: string }[] = []
 
             // Use initial facets for options and sorting, current facets only for counts
             Object.entries(initialFacetData)
                 .sort(([, a], [, b]) => b - a) // Keep original sort order from initial load
-                .forEach(([key, initialCount]) => {
+                .forEach(([key, _initialCount]) => {
                     // Use current count if available, otherwise 0
                     const currentCount = currentFacetData[key] || 0
                     options.push({

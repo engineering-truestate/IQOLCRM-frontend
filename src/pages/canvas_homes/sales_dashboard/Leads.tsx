@@ -359,12 +359,12 @@ const Leads = () => {
 
     // Keep initial facet options and order, only update counts
     const generateDropdownOptions = useCallback(
-        (facetKey: string, defaultLabel: string, staticOptions?: any[]) => {
+        (facetKey: string, _defaultLabel: string, staticOptions?: any[]) => {
             if (staticOptions) return staticOptions
 
             const initialFacetData = initialFacets[facetKey] || {}
             const currentFacetData = facets[facetKey] || {}
-            const options = []
+            const options: { label: string; value: string }[] = []
 
             // Use initial facets for options and sorting, current facets only for counts
             Object.entries(initialFacetData)
@@ -528,7 +528,7 @@ const Leads = () => {
         {
             key: 'lastModified',
             header: 'ASLC',
-            render: (value, row) => {
+            render: (_value, row) => {
                 const aslc = calculateALSC(row)
                 return (
                     <span

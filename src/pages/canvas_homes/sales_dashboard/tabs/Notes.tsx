@@ -21,8 +21,8 @@ interface TaskSection {
     notes: Note[]
 }
 
-const Notes: React.FC<NotesProps> = ({ notes = [], onAddNote, loading }) => {
-    const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
+const Notes: React.FC<NotesProps> = ({ notes = [], loading }) => {
+    const [expandedSections, _setExpandedSections] = useState<{ [key: string]: boolean }>({
         'lead-registration': true,
         'site-visit': true,
         'eoi-submitted': true,
@@ -35,10 +35,9 @@ const Notes: React.FC<NotesProps> = ({ notes = [], onAddNote, loading }) => {
     const convertFirebaseNotes = (firebaseNotes: NoteItem[]): Note[] => {
         return firebaseNotes.map((note, index) => ({
             id: `${note?.timestamp}-${index}`,
-            timestamp: note?.timestamp || '--',
+            timestamp: typeof note?.timestamp === 'number' ? note.timestamp : 0,
             content: note?.note,
             agent: note?.agentName,
-            taskType: note?.taskType,
         }))
     }
 
@@ -71,12 +70,12 @@ const Notes: React.FC<NotesProps> = ({ notes = [], onAddNote, loading }) => {
 
     const taskSections: TaskSection[] = notes.length > 0 ? groupNotesByTaskType(notes) : []
 
-    const toggleSection = (sectionId: string) => {
-        setExpandedSections((prev) => ({
-            ...prev,
-            [sectionId]: !prev[sectionId],
-        }))
-    }
+    // const toggleSection = (sectionId: string) => {
+    //     setExpandedSections((prev) => ({
+    //         ...prev,
+    //         [sectionId]: !prev[sectionId],
+    //     }))
+    // }
 
     if (loading) {
         return (

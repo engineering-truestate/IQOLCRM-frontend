@@ -130,7 +130,7 @@ const Requirements: React.FC<RequirementsProps> = ({
         if (existingRequirements.length > 0 && !activeRequirement && !isAddingNew) {
             setActiveRequirement(existingRequirements[0].id)
         }
-    }, [existingRequirements])
+    }, [existingRequirements, activeRequirement, isAddingNew])
 
     // Handle form input changes
     const handleInputChange = (field: string, value: string) => {
@@ -195,7 +195,7 @@ const Requirements: React.FC<RequirementsProps> = ({
             await enquiryService.addNote(enquiryId, {
                 agentId: 'system',
                 agentName: 'System',
-                TaskType: 'requirement collection',
+                taskType: 'requirement collection',
                 note: noteContent,
             })
 
