@@ -46,7 +46,7 @@ const Sidebar = () => {
         if (location.pathname.startsWith('/acn')) {
             setSelectedPlatform('ACN')
         } else if (location.pathname.startsWith('/canvas-homes')) {
-            setSelectedPlatform('Canvas Homes')
+            setSelectedPlatform('Canvas Home')
         } else if (location.pathname.startsWith('/vault')) {
             setSelectedPlatform('Vault')
         } else if (location.pathname.startsWith('/truestate')) {
