@@ -226,11 +226,14 @@ export interface Complaint {
     complaintDate: string
     complaintSubject: string
     projectName: string
+    orderBy: string
+    promoterName: string
+    status: string
 }
 
 // Legal Information
 export interface LegalInformation {
-    litigation: 'Yes' | 'No'
+    litigationStatus: 'Yes' | 'No'
     affidavitLink?: string
     complaints?: {
         complaintsOnProject?: Complaint[]
@@ -361,7 +364,7 @@ export interface PrimaryProperty {
     }>
 
     // Legal Information
-    litigation?: 'Yes' | 'No'
+    litigationStatus?: 'Yes' | 'No'
     affidavitLink?: string
     complaints?: {
         complaintsOnProject?: Complaint[]

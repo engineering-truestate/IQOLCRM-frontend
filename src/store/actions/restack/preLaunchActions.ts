@@ -25,11 +25,11 @@ import type { AppDispatch } from '../../index'
 // Async thunk for fetching pre-launch properties
 export const fetchPreLaunchProperties = createAsyncThunk(
     'preLaunch/fetchProperties',
-    async (filters: PropertyFilters | undefined, { dispatch, rejectWithValue }) => {
+    async (_: PropertyFilters | undefined, { dispatch, rejectWithValue }) => {
         try {
             dispatch(fetchPreLaunchPropertyRequest())
 
-            const properties = await PreLaunchService.fetchProperties(filters)
+            const properties = await PreLaunchService.fetchProperties()
 
             dispatch(fetchPreLaunchPropertySuccess(properties))
             return properties
@@ -127,8 +127,14 @@ export const getPreLaunchPropertyByName = createAsyncThunk(
 
             const property = await PreLaunchService.getPropertyByName(projectName)
 
-            dispatch(fetchPreLaunchPropertySuccess([property]))
-            return property
+            if (property) {
+                dispatch(fetchPreLaunchPropertySuccess([property]))
+                return property
+            } else {
+                const errorMessage = 'Property not found'
+                dispatch(fetchPreLaunchPropertyFailure(errorMessage))
+                return rejectWithValue(errorMessage)
+            }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to fetch property'
             dispatch(fetchPreLaunchPropertyFailure(errorMessage))
@@ -139,7 +145,7 @@ export const getPreLaunchPropertyByName = createAsyncThunk(
 // You should create a new action for handling property names if needed, or just return the string[] result.
 export const getPreLaunchAllPropertyName = createAsyncThunk(
     'preLaunch/getAllPropertyName',
-    async (filters: PropertyFilters | undefined, { dispatch, rejectWithValue }) => {
+    async (_: PropertyFilters | undefined, { rejectWithValue }) => {
         try {
             const propertyNames = await PreLaunchService.getAllPropertyName()
 

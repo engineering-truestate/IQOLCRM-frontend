@@ -2,70 +2,40 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable } from '../../../components/design-elements/FlexibleTable'
-import { generateCompleteProjectDetails } from '../../../pages/dummy_data/restack_primary_details_dummy_data'
-
-// Define interfaces for documents
-interface ProjectDocument {
-    id: string
-    documentName: string
-    link: string
-    type: string
-    uploadDate: string
-    size: string
-}
-
-interface NOCDocument {
-    id: string
-    documentName: string
-    link: string
-    type: string
-    uploadDate: string
-    size: string
-}
-
-interface OtherDocument {
-    id: string
-    documentName: string
-    link: string
-    type: string
-    uploadDate: string
-    size: string
-}
+import { useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '../../../store'
+import { useDispatch } from 'react-redux'
+import { fetchPrimaryPropertyById } from '../../../store/actions/restack/primaryProperties'
+import { clearCurrentProperty } from '../../../store/reducers/acn/propertiesReducers'
 
 const DocumentsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
-    const [loading, setLoading] = useState<boolean>(true)
-    const [projectDocuments, setProjectDocuments] = useState<ProjectDocument[]>([])
-    const [nocDocuments, setNOCDocuments] = useState<NOCDocument[]>([])
-    const [otherDocuments, setOtherDocuments] = useState<OtherDocument[]>([])
+    const dispatch = useDispatch<AppDispatch>()
+
+    const [projectDocuments, setProjectDocuments] = useState<string[]>([])
+    const [nocDocuments, setNOCDocuments] = useState<string[]>([])
+    const [otherDocuments, setOtherDocuments] = useState<string[]>([])
     const [projectName, setProjectName] = useState<string>('')
 
-    useEffect(() => {
-        const loadDocuments = async () => {
-            setLoading(true)
-            try {
-                if (id) {
-                    const details = generateCompleteProjectDetails(id)
+    const { currentProperty, loading } = useSelector((state: RootState) => state.primaryProperties)
 
-                    setProjectDocuments(details.projectDocuments || [])
-                    setNOCDocuments(details.nocDocuments || [])
-                    setOtherDocuments(details.otherDocuments || [])
-                    setProjectName(details.name || details.projectName || 'Unknown Project')
-                }
-            } catch (error) {
-                console.error('Error loading documents:', error)
-                setProjectDocuments([])
-                setNOCDocuments([])
-                setOtherDocuments([])
-                setProjectName('Unknown Project')
-            } finally {
-                setLoading(false)
-            }
+    useEffect(() => {
+        if (id) {
+            dispatch(fetchPrimaryPropertyById(id))
         }
 
-        loadDocuments()
-    }, [id])
+        return () => {
+            dispatch(clearCurrentProperty())
+        }
+    }, [id, dispatch])
+
+    useEffect(() => {
+        setProjectDocuments(currentProperty?.documents?.projectDocuments || [])
+        setNOCDocuments(currentProperty?.documents?.nocDocuments || [])
+        setOtherDocuments(currentProperty?.documents?.otherDocuments || [])
+        setProjectName(currentProperty?.projectName || '')
+    }, [currentProperty])
 
     // Function to handle navigation back to main page
     const handleNavigateToMain = () => {
@@ -93,7 +63,7 @@ const DocumentsPage: React.FC = () => {
         {
             key: 'link',
             header: 'Link',
-            render: (value: any, row: any) => (
+            render: (value: any) => (
                 <button
                     onClick={() => handleDocumentView(value)}
                     className='text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium'
@@ -113,7 +83,7 @@ const DocumentsPage: React.FC = () => {
         {
             key: 'link',
             header: 'Link',
-            render: (value: any, row: any) => (
+            render: (value: any) => (
                 <button
                     onClick={() => handleDocumentView(value)}
                     className='text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium'
@@ -133,7 +103,7 @@ const DocumentsPage: React.FC = () => {
         {
             key: 'link',
             header: 'Link',
-            render: (value: any, row: any) => (
+            render: (value: any) => (
                 <button
                     onClick={() => handleDocumentView(value)}
                     className='text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium'

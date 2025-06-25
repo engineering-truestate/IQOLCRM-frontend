@@ -262,7 +262,11 @@ const leadsSlice = createSlice({
                 const { leadId, updateData } = action.payload
                 state.updating[leadId] = false
                 if (state.leads[leadId]) {
-                    state.leads[leadId] = { ...state.leads[leadId], ...updateData }
+                    state.leads[leadId] = {
+                        ...state.leads[leadId],
+                        ...updateData,
+                        contactStatus: updateData.contactStatus as ILead['contactStatus'],
+                    }
                 }
             })
             .addCase(addCallResult.rejected, (state, action) => {
@@ -279,7 +283,7 @@ const leadsSlice = createSlice({
             })
             .addCase(addNoteToLead.fulfilled, (state, action) => {
                 state.notesLoading = false
-                const { leadId, note, allNotes } = action.payload
+                const { leadId, allNotes } = action.payload
 
                 // Filter out archived notes and sort by timestamp (newest first)
                 const activeNotes = allNotes
@@ -324,7 +328,7 @@ const leadsSlice = createSlice({
                 state.connectHistoryLoading = false
                 const {
                     leadId,
-                    callResult,
+
                     allConnectHistory,
                     allNotes,
                     updateData,

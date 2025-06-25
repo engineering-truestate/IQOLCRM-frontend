@@ -46,4 +46,7 @@ export const canvasMenuItems = [
 export const RestackItems = [
     { label: 'Pre-launch', path: '/restack/prelaunch', icon: prelaunch },
     { label: 'Primary', path: '/restack/primary', icon: primary },
+    { label: 'Stock', path: '/restack/stock', icon: primary },
+    { label: 'Resale', path: '/restack/resale', icon: primary },
+    { label: 'Rental', path: '/restack/rental', icon: primary },
 ]

@@ -1,6 +1,6 @@
 // store/reducers/acn/propertiesTypes.ts
 import { type PayloadAction } from '@reduxjs/toolkit'
-import type { QueryDocumentSnapshot, Timestamp, FieldValue } from 'firebase/firestore'
+import type { QueryDocumentSnapshot } from 'firebase/firestore'
 
 // === Inventory shape ===
 // store/reducers/acn/propertiesTypes.ts

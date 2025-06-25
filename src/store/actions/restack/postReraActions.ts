@@ -9,9 +9,6 @@ import {
     addPostReraPropertySuccess,
     clearPostReraPropertyFilters,
     clearSelectedPostReraProperty,
-    deletePostReraPropertyFailure,
-    deletePostReraPropertyRequest,
-    deletePostReraPropertySuccess,
     fetchPostReraPropertyFailure,
     fetchPostReraPropertyRequest,
     fetchPostReraPropertySuccess,
@@ -124,7 +121,7 @@ export const getPostReraPropertyById = createAsyncThunk(
     },
 )
 
-// // Async thunk for searching post-rera properties
+// Async thunk for searching post-rera properties
 // export const searchPostReraProperties = createAsyncThunk(
 //     'postRera/searchProperties',
 //     async (searchTerm: string, { dispatch, rejectWithValue }) => {

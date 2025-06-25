@@ -430,7 +430,7 @@ const PropertyDetail = ({
                             <label className='text-sm text-gray-600 block mb-1'>Master Plan</label>
                             {projectDetails.documents.masterPlan ? (
                                 <a
-                                    href={projectDetails.documents.masterPlan}
+                                    href={projectDetails.documents.masterPlan[0]}
                                     target='_blank'
                                     rel='noopener noreferrer'
                                     className='text-sm text-blue-600 hover:text-blue-800 underline'
@@ -445,7 +445,7 @@ const PropertyDetail = ({
                             <label className='text-sm text-gray-600 block mb-1'>Project Layout Plan</label>
                             {projectDetails.documents.projectLayoutPlan ? (
                                 <a
-                                    href={projectDetails.documents.projectLayoutPlan}
+                                    href={projectDetails.documents.projectLayoutPlan[0]}
                                     target='_blank'
                                     rel='noopener noreferrer'
                                     className='text-sm text-blue-600 hover:text-blue-800 underline'
@@ -460,7 +460,7 @@ const PropertyDetail = ({
                             <label className='text-sm text-gray-600 block mb-1'>Brochure</label>
                             {projectDetails.documents.brochure ? (
                                 <a
-                                    href={projectDetails.documents.brochure}
+                                    href={projectDetails.documents.brochure[0]}
                                     target='_blank'
                                     rel='noopener noreferrer'
                                     className='text-sm text-blue-600 hover:text-blue-800 underline'

@@ -2,61 +2,40 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable } from '../../../components/design-elements/FlexibleTable'
-import { generateCompleteProjectDetails } from '../../../pages/dummy_data/restack_primary_details_dummy_data'
-
-// Define interfaces locally as a temporary fix
-interface ProjectComplaint {
-    registrationNo: string
-    sNo: number
-    complaintNo: string
-    complaintBy: string
-    complaintDate: string
-    complaintSubject: string
-    projectName: string
-}
-
-interface PromoterComplaint {
-    registrationNo: string
-    sNo: number
-    complaintNo: string
-    complaintBy: string
-    complaintDate: string
-    complaintSubject: string
-    projectName: string
-}
+import { useDispatch } from 'react-redux'
+import type { AppDispatch, RootState } from '../../../store'
+import { fetchPrimaryPropertyById } from '../../../store/actions/restack/primaryProperties'
+import { clearCurrentProperty } from '../../../store/reducers/acn/propertiesReducers'
+import { useSelector } from 'react-redux'
+import type { Complaint } from '../../../data_types/restack/restack-primary'
 
 const ComplaintsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
-    const [loading, setLoading] = useState<boolean>(true)
-    const [projectComplaints, setProjectComplaints] = useState<ProjectComplaint[]>([])
-    const [promoterComplaints, setPromoterComplaints] = useState<PromoterComplaint[]>([])
+    const dispatch = useDispatch<AppDispatch>()
+
+    const [projectComplaints, setProjectComplaints] = useState<Complaint[]>([])
+    const [promoterComplaints, setPromoterComplaints] = useState<Complaint[]>([])
     const [projectName, setProjectName] = useState<string>('')
 
-    useEffect(() => {
-        const loadComplaints = async () => {
-            setLoading(true)
-            try {
-                if (id) {
-                    const details = generateCompleteProjectDetails(id)
+    const { currentProperty, loading } = useSelector((state: RootState) => state.primaryProperties)
 
-                    setProjectComplaints(details.projectComplaints || [])
-                    setPromoterComplaints(details.promoterComplaints || [])
-                    setProjectName(details.name || details.projectName || 'Unknown Project')
-                }
-            } catch (error) {
-                console.error('Error loading complaints:', error)
-                // Set empty arrays as fallback
-                setProjectComplaints([])
-                setPromoterComplaints([])
-                setProjectName('Unknown Project')
-            } finally {
-                setLoading(false)
-            }
+    useEffect(() => {
+        if (id) {
+            dispatch(fetchPrimaryPropertyById(id))
         }
 
-        loadComplaints()
-    }, [id])
+        return () => {
+            dispatch(clearCurrentProperty())
+        }
+    }, [id, dispatch])
+
+    useEffect(() => {
+        console.log(currentProperty, 'daata')
+        setProjectComplaints(currentProperty?.complaints?.complaintsOnProject || [])
+        setPromoterComplaints(currentProperty?.complaints?.complaintsOnPromoter || [])
+        setProjectName(currentProperty?.projectName || 'Unknown Project')
+    }, [currentProperty])
 
     // Function to handle navigation back to main page
     const handleNavigateToMain = () => {
@@ -74,11 +53,11 @@ const ComplaintsPage: React.FC = () => {
             header: 'Registration No',
             render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
-        {
-            key: 'sNo',
-            header: 'S.No.',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
+        // {
+        //     key: 'serialNo',
+        //     header: 'S.No.',
+        //     render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
+        // },
         {
             key: 'complaintNo',
             header: 'Complaint No',
@@ -102,6 +81,16 @@ const ComplaintsPage: React.FC = () => {
                     <span className='text-sm text-gray-600'>{value}</span>
                 </div>
             ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
+        },
+        {
+            key: 'promoterName',
+            header: 'Promoter Name',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
             key: 'projectName',
@@ -116,11 +105,11 @@ const ComplaintsPage: React.FC = () => {
             header: 'Registration No',
             render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
-        {
-            key: 'sNo',
-            header: 'S.No.',
-            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
-        },
+        // {
+        //     key: 'serialNo',
+        //     header: 'S.No.',
+        //     render: (value: any,row:any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
+        // },
         {
             key: 'complaintNo',
             header: 'Complaint No',
@@ -144,6 +133,16 @@ const ComplaintsPage: React.FC = () => {
                     <span className='text-sm text-gray-600'>{value}</span>
                 </div>
             ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
+        },
+        {
+            key: 'promoterName',
+            header: 'Promoter Name',
+            render: (value: any) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
         {
             key: 'projectName',
@@ -161,7 +160,7 @@ const ComplaintsPage: React.FC = () => {
                         onClick={handleNavigateToMain}
                         className='hover:text-gray-700 transition-colors cursor-pointer'
                     >
-                        Projects
+                        Primary
                     </button>
                     <span>/</span>
                     <button

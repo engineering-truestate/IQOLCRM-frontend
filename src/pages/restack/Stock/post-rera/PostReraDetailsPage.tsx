@@ -89,7 +89,7 @@ const PostReraDetailsPage = () => {
     const [originalDetails, setOriginalDetails] = useState<PostReraProperty | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [editingRowId, setEditingRowId] = useState<string | null>(null)
-    const [isAddingRow, setIsAddingRow] = useState(false)
+    const [, setIsAddingRow] = useState(false)
 
     // New states for managing sections
     const [isAddingPhase, setIsAddingPhase] = useState(false)
@@ -389,7 +389,7 @@ const PostReraDetailsPage = () => {
                         label={label}
                         placeholder={`Enter ${label.toLowerCase()}`}
                         value={value as number}
-                        onChange={(numValue: number | null, stringValue: string) => {
+                        onChange={(numValue: number | null) => {
                             updateField(fieldKey, numValue ?? 0)
                         }}
                         numberType='decimal'
@@ -416,9 +416,9 @@ const PostReraDetailsPage = () => {
             }
 
             return (
-                <div className='border-b border-[#D4DBE2] pb-2 mb-4 flex justify-between'>
+                <div className='border-b border-[#D4DBE2] pb-2 mb-4 '>
                     <label className='text-sm text-gray-600 block mb-1'>{label}</label>
-                    <div className='text-sm text-black font-medium'>{displayValue}</div>
+                    <div className='text-sm text-black font-medium'>{displayValue || '-'}</div>
                 </div>
             )
         }
@@ -489,7 +489,7 @@ const PostReraDetailsPage = () => {
                   {
                       key: 'actions',
                       header: 'Actions',
-                      render: (value: any, row: any) => (
+                      render: (_: any, row: any) => (
                           <div className='flex gap-2'>
                               {editingRowId === row.id ? (
                                   <>
@@ -561,10 +561,7 @@ const PostReraDetailsPage = () => {
                                     {projectDetails?.projectName}
                                 </h1>
                                 <div className='text-sm text-gray-500 mt-1'>
-                                    <button
-                                        onClick={() => navigate('/restack/stock/post-rera')}
-                                        className='hover:text-gray-700'
-                                    >
+                                    <button onClick={() => navigate('/restack/stock')} className='hover:text-gray-700'>
                                         Post-rera
                                     </button>
                                     <span className='mx-2'>/</span>
@@ -1160,7 +1157,7 @@ const PostReraDetailsPage = () => {
                         <div>
                             <a
                                 href={`/restack/stock/post-rera/${id}/documents`}
-                                className='text-sm text-blue-600 hover:text-blue-800 underline'
+                                className='bg-black text-white w-25 text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
                             >
                                 View Documents
                             </a>

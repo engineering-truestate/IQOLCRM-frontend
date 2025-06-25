@@ -34,7 +34,7 @@ const resaleReducer = (state = initialState, action: ResaleActionTypes): ResaleS
             return {
                 ...state,
                 loading: false,
-                data: (action.payload as any[]).find((item: any) => item.propertyId === action.propertyId) || null,
+                data: action.payload,
             }
         case FETCH_RESALE_DATA_FAILURE:
             return {

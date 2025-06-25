@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
@@ -41,14 +41,13 @@ const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?:
 }
 
 const TypologyPage = () => {
-    const navigate = useNavigate()
     const { id } = useParams()
 
     const [projectDetails, setProjectDetails] = useState<CompleteProjectDetails | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'apartment' | 'villa' | 'plot'>('apartment')
     const [editingRowId, setEditingRowId] = useState<string | null>(null)
-    const [isAddingRow, setIsAddingRow] = useState(false)
+    const [, setIsAddingRow] = useState(false)
 
     useEffect(() => {
         const loadProjectDetails = async () => {
@@ -235,7 +234,7 @@ const TypologyPage = () => {
         {
             key: 'aptType',
             header: 'Apartment Type',
-            render: (value, row) =>
+            render: (_: any, row) =>
                 renderTableCell(
                     row.aptType,
                     row,
@@ -247,7 +246,7 @@ const TypologyPage = () => {
         {
             key: 'typology',
             header: 'Typology',
-            render: (value, row) =>
+            render: (_: any, row) =>
                 renderTableCell(
                     row.typology,
                     row,
@@ -259,32 +258,32 @@ const TypologyPage = () => {
         {
             key: 'superBuiltUpArea',
             header: 'Super Built-Up Area',
-            render: (value, row) => renderTableCell(row.superBuiltUpArea, row, 'superBuiltUpArea', 'apartment'),
+            render: (_: any, row) => renderTableCell(row.superBuiltUpArea, row, 'superBuiltUpArea', 'apartment'),
         },
         {
             key: 'carpetArea',
             header: 'Carpet Area',
-            render: (value, row) => renderTableCell(row.carpetArea, row, 'carpetArea', 'apartment'),
+            render: (_: any, row) => renderTableCell(row.carpetArea, row, 'carpetArea', 'apartment'),
         },
         {
             key: 'pricePerSqft',
             header: 'Price Per Sq.ft',
-            render: (value, row) => renderTableCell(row.pricePerSqft, row, 'pricePerSqft', 'apartment'),
+            render: (_: any, row) => renderTableCell(row.pricePerSqft, row, 'pricePerSqft', 'apartment'),
         },
         {
             key: 'totalPrice',
             header: 'Total Price',
-            render: (value, row) => renderTableCell(row.totalPrice, row, 'totalPrice', 'apartment'),
+            render: (_: any, row) => renderTableCell(row.totalPrice, row, 'totalPrice', 'apartment'),
         },
         {
             key: 'floorPlan',
             header: 'Floor Plan',
-            render: (value, row) => renderTableCell(row.floorPlan, row, 'floorPlan', 'apartment'),
+            render: (_: any, row) => renderTableCell(row.floorPlan, row, 'floorPlan', 'apartment'),
         },
         {
             key: 'actions',
             header: 'Actions',
-            render: (value, row) => (
+            render: (_: any, row) => (
                 <div className='flex gap-2'>
                     {editingRowId === row.id ? (
                         <>
@@ -338,7 +337,7 @@ const TypologyPage = () => {
         {
             key: 'villaType',
             header: 'Villa Type',
-            render: (value, row) =>
+            render: (_: any, row) =>
                 renderTableCell(
                     row.villaType,
                     row,
@@ -350,7 +349,7 @@ const TypologyPage = () => {
         {
             key: 'typology',
             header: 'Typology',
-            render: (value, row) =>
+            render: (_: any, row) =>
                 renderTableCell(
                     row.typology,
                     row,
@@ -362,47 +361,47 @@ const TypologyPage = () => {
         {
             key: 'plotSize',
             header: 'Plot Size',
-            render: (value, row) => renderTableCell(row.plotSize, row, 'plotSize', 'villa'),
+            render: (_: any, row) => renderTableCell(row.plotSize, row, 'plotSize', 'villa'),
         },
         {
             key: 'builtUpArea',
             header: 'Built-Up Area',
-            render: (value, row) => renderTableCell(row.builtUpArea, row, 'builtUpArea', 'villa'),
+            render: (_: any, row) => renderTableCell(row.builtUpArea, row, 'builtUpArea', 'villa'),
         },
         {
             key: 'carpetArea',
             header: 'Carpet Area',
-            render: (value, row) => renderTableCell(row.carpetArea, row, 'carpetArea', 'villa'),
+            render: (_: any, row) => renderTableCell(row.carpetArea, row, 'carpetArea', 'villa'),
         },
         {
             key: 'pricePerSqft',
             header: 'Price Per Sq.ft',
-            render: (value, row) => renderTableCell(row.pricePerSqft, row, 'pricePerSqft', 'villa'),
+            render: (_: any, row) => renderTableCell(row.pricePerSqft, row, 'pricePerSqft', 'villa'),
         },
         {
             key: 'totalPrice',
             header: 'Total Price',
-            render: (value, row) => renderTableCell(row.totalPrice, row, 'totalPrice', 'villa'),
+            render: (_: any, row) => renderTableCell(row.totalPrice, row, 'totalPrice', 'villa'),
         },
         {
             key: 'uds',
             header: 'UDS',
-            render: (value, row) => renderTableCell(row.uds, row, 'uds', 'villa'),
+            render: (_: any, row) => renderTableCell(row.uds, row, 'uds', 'villa'),
         },
         {
             key: 'noOfFloors',
             header: 'No. of Floors',
-            render: (value, row) => renderTableCell(row.noOfFloors, row, 'noOfFloors', 'villa'),
+            render: (_: any, row) => renderTableCell(row.noOfFloors, row, 'noOfFloors', 'villa'),
         },
         {
             key: 'floorPlan',
             header: 'Floor Plan',
-            render: (value, row) => renderTableCell(row.floorPlan, row, 'floorPlan', 'villa'),
+            render: (_: any, row) => renderTableCell(row.floorPlan, row, 'floorPlan', 'villa'),
         },
         {
             key: 'actions',
             header: 'Actions',
-            render: (value, row) => (
+            render: (_: any, row) => (
                 <div className='flex gap-2'>
                     {editingRowId === row.id ? (
                         <>
@@ -456,7 +455,7 @@ const TypologyPage = () => {
         {
             key: 'plotType',
             header: 'Plot Type',
-            render: (value, row) =>
+            render: (_: any, row) =>
                 renderTableCell(
                     row.plotType,
                     row,
@@ -468,22 +467,22 @@ const TypologyPage = () => {
         {
             key: 'plotArea',
             header: 'Plot Area',
-            render: (value, row) => renderTableCell(row.plotArea, row, 'plotArea', 'plot'),
+            render: (_: any, row) => renderTableCell(row.plotArea, row, 'plotArea', 'plot'),
         },
         {
             key: 'pricePerSqft',
             header: 'Price Per Sq.ft',
-            render: (value, row) => renderTableCell(row.pricePerSqft, row, 'pricePerSqft', 'plot'),
+            render: (_: any, row) => renderTableCell(row.pricePerSqft, row, 'pricePerSqft', 'plot'),
         },
         {
             key: 'totalPrice',
             header: 'Total Price',
-            render: (value, row) => renderTableCell(row.totalPrice, row, 'totalPrice', 'plot'),
+            render: (_: any, row) => renderTableCell(row.totalPrice, row, 'totalPrice', 'plot'),
         },
         {
             key: 'actions',
             header: 'Actions',
-            render: (value, row) => (
+            render: (_: any, row) => (
                 <div className='flex gap-2'>
                     {editingRowId === row.id ? (
                         <>

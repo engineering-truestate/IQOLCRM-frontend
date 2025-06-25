@@ -1,4 +1,4 @@
-import type { IEnquiry } from '../../../store/reducers/types'
+import type { IEnquiry } from '../../../data_types/acn/types'
 import { collection, getDocs, query, where, QueryConstraint } from 'firebase/firestore'
 import { db } from '../../../firebase'
 

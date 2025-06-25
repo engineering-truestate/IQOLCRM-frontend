@@ -30,13 +30,6 @@ interface PropertyData {
     enquiries: any[]
 }
 
-interface AgentInfo {
-    cpId: string
-    agentName: string
-    phoneNumber: string
-    workAddress: string
-}
-
 interface AgentsState {
     currentAgent: IAgent | null
     resale: PropertyData

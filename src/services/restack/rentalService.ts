@@ -25,6 +25,7 @@ export const get99AcresRentalData = async (): Promise<RestackRentalProperty[]> =
             postedBy: docData.postedBy || '',
             url: docData.url || '',
             aboutProject: docData.aboutProject || '',
+            priceHistory: docData.priceHistory || [],
         } as RestackRentalProperty
     })
     return data
@@ -51,6 +52,7 @@ export const getMagicBricksRentalData = async (): Promise<RestackRentalProperty[
             postedBy: docData.postedBy || '',
             url: docData.url || '',
             aboutProject: docData.aboutProject || '',
+            priceHistory: docData.priceHistory || [],
         } as RestackRentalProperty
     })
     return data
@@ -80,6 +82,7 @@ export const get99AcresRentalDataById = async (id: string): Promise<RestackRenta
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined
@@ -114,6 +117,7 @@ export const getMagicBricksRentalDataById = async (id: string): Promise<RestackR
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined
@@ -152,6 +156,7 @@ export const update99AcresRentalDataById = async (
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined
@@ -190,6 +195,7 @@ export const updateMagicBricksRentalDataById = async (
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined
@@ -222,6 +228,7 @@ export const getACNRentalData = async (): Promise<RestackRentalProperty[]> => {
             postedBy: docData.postedBy || '',
             url: docData.url || '',
             aboutProject: docData.aboutProject || '',
+            priceHistory: docData.priceHistory || [],
         } as RestackRentalProperty
     })
     return data
@@ -251,6 +258,7 @@ export const getACNRentalDataById = async (id: string): Promise<RestackRentalPro
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined
@@ -289,6 +297,7 @@ export const updateACNRentalDataById = async (
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined
@@ -321,6 +330,7 @@ export const getMyGateRentalData = async (): Promise<RestackRentalProperty[]> =>
             postedBy: docData.postedBy || '',
             url: docData.url || '',
             aboutProject: docData.aboutProject || '',
+            priceHistory: docData.priceHistory || [],
         } as RestackRentalProperty
     })
     return data
@@ -350,6 +360,7 @@ export const getMyGateRentalDataById = async (id: string): Promise<RestackRental
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined
@@ -388,6 +399,7 @@ export const updateMyGateRentalDataById = async (
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined
@@ -420,6 +432,7 @@ export const getHousingRentalData = async (): Promise<RestackRentalProperty[]> =
             postedBy: docData.postedBy || '',
             url: docData.url || '',
             aboutProject: docData.aboutProject || '',
+            priceHistory: docData.priceHistory || [],
         } as RestackRentalProperty
     })
     return data
@@ -449,6 +462,7 @@ export const getHousingRentalDataById = async (id: string): Promise<RestackRenta
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined
@@ -487,6 +501,7 @@ export const updateHousingRentalDataById = async (
                 postedBy: docData.postedBy || '',
                 url: docData.url || '',
                 aboutProject: docData.aboutProject || '',
+                priceHistory: docData.priceHistory || [],
             } as RestackRentalProperty
         } else {
             return undefined

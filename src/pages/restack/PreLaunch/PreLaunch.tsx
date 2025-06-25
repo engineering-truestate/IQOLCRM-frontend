@@ -13,6 +13,7 @@ import { fetchPreLaunchProperties, addPreLaunchProperty } from '../../../store/a
 import type { Property } from '../../../store/reducers/restack/preLaunchtypes'
 import type { AppDispatch, RootState } from '../../../store'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+import Dropdown from '../../../components/design-elements/Dropdown'
 
 const PreLaunchPage = () => {
     const [searchValue, setSearchValue] = useState('')
@@ -33,22 +34,28 @@ const PreLaunchPage = () => {
         dispatch(fetchPreLaunchProperties())
     }, [dispatch])
 
-    // Filter data based on search
+    const [selectedStage, setSelectedStage] = useState<string | null>(null)
+
+    // Filter data based on search and stage
     useEffect(() => {
-        if (searchValue.trim() === '') {
-            setFilteredData(properties)
-        } else {
-            const filtered = properties.filter(
+        let filtered = properties
+
+        if (searchValue.trim() !== '') {
+            filtered = filtered.filter(
                 (project) =>
                     project.projectName.toLowerCase().includes(searchValue.toLowerCase()) ||
                     project.stage.toLowerCase().includes(searchValue.toLowerCase()) ||
                     project.address?.toLowerCase().includes(searchValue.toLowerCase()) ||
                     project.developerName?.toLowerCase().includes(searchValue.toLowerCase()),
             )
-            setFilteredData(filtered)
         }
+
+        if (selectedStage) {
+            filtered = filtered.filter((project) => project.stage === selectedStage)
+        }
+        setFilteredData(filtered)
         setCurrentPage(1) // Reset to first page when searching
-    }, [searchValue, properties])
+    }, [searchValue, properties, selectedStage])
 
     // Calculate total pages
     const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
@@ -82,9 +89,11 @@ const PreLaunchPage = () => {
         {
             key: 'action',
             header: 'Action',
+            fixed: true,
+            fixedPosition: 'right',
             render: (_, row) => (
                 <button
-                    className='text-gray-900 text-sm font-medium transition-colors cursor-pointer'
+                    className='bg-black text-white w-25 text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
                     onClick={() => navigate(`/restack/prelaunch/${row.projectId}`)}
                 >
                     View Details
@@ -133,9 +142,9 @@ const PreLaunchPage = () => {
                 documents: {
                     villageMaps: [],
                     cdpMaps: [],
-                    masterPlan: '',
-                    projectLayoutPlan: '',
-                    brochure: '',
+                    masterPlan: [],
+                    projectLayoutPlan: [],
+                    brochure: [],
                 },
                 areaUnit: 'sqft',
             }
@@ -159,8 +168,20 @@ const PreLaunchPage = () => {
                     {/* Header */}
                     <div className='mb-2'>
                         <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Pre-Launch</h1>
+                            <h1 className='text-xl font-semibold text-gray-900'>Pre-Launch/EC Properties</h1>
                             <div className='flex items-center gap-4'>
+                                <Dropdown
+                                    options={[
+                                        { label: 'All', value: '' },
+                                        { label: 'EC', value: 'EC' },
+                                        { label: 'Pre-Launch', value: 'Pre Launch' },
+                                    ]}
+                                    placeholder='Select Project Stage'
+                                    onSelect={(value: string | null) => setSelectedStage(value)}
+                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    menuClassName='absolute z-50 mt-1 top-7 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                />
                                 <div className='w-80'>
                                     <StateBaseTextField
                                         leftIcon={
