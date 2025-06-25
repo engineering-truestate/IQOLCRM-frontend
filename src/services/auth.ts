@@ -143,7 +143,11 @@ export const loginUser = async (email: string, password: string) => {
         const idTokenResult = await user.getIdTokenResult()
         const DocRef = doc(db, 'internal-agents', user.uid)
         const DocSnap = await getDoc(DocRef)
-        const platform = DocSnap.data()?.platform
+        const acn = DocSnap.data()?.acn
+        const canvasHomes = DocSnap.data()?.canvasHomes
+        const vault = DocSnap.data()?.vault
+        const truestate = DocSnap.data()?.truestate
+        const restack = DocSnap.data()?.restack
 
         return {
             user,
@@ -155,7 +159,6 @@ export const loginUser = async (email: string, password: string) => {
                 displayName: user.displayName,
                 photoURL: user.photoURL,
                 emailVerified: user.emailVerified,
-                platform: platform,
             },
         }
     } catch (error: any) {

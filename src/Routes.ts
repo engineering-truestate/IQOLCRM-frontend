@@ -69,6 +69,7 @@ import SalesDashboard from './pages/canvas_homes/sales_dashboard/Sales'
 import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
+import ChoosePlatform from './ChoosePlatform'
 // import MarketingDashboard from './pages/canvas_homes/marketing_dashboard/Marketing'
 // import { ResaleDetailsPage } from './pages/restack/Resale/ResalePageDetails'
 // import ResalePage from './pages/restack/Resale/ResalePage'
@@ -97,6 +98,10 @@ export const protectedRoutes: RouteObject[] = [
     {
         path: '/',
         element: React.createElement(React.Suspense, null, React.createElement(Home, null)),
+    },
+    {
+        path: '/home',
+        element: React.createElement(React.Suspense, null, React.createElement(ChoosePlatform, null)),
     },
     {
         path: '/profile',

@@ -2,6 +2,8 @@ import { ClipLoader } from 'react-spinners'
 import Sidebar from '../components/side-bar'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import useAuth from '../hooks/useAuth'
+import { useNavigate } from 'react-router-dom'
 
 const Layout = ({ children, loading }: { children?: React.ReactNode; loading?: boolean }) => {
     return (
