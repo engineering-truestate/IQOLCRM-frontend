@@ -33,7 +33,7 @@ const PostReraDocument: React.FC<PostReraDocumentProps> = ({ documents = [] }) =
     }
 
     return (
-        <div className='max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen'>
+        <div className=' mx-auto p-6 bg-gray-50 min-h-screen'>
             {/* Breadcrumb */}
             <div className='flex items-center text-sm text-gray-600 mb-6'>
                 <span>Post-Rera</span>

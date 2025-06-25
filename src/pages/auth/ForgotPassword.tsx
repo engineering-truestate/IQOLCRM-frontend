@@ -79,51 +79,42 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({
     }
 
     return (
-        <div className={`forgot-password-container ${className}`}>
-            <div className='forgot-password-form'>
-                <h2>Reset Password</h2>
-                <p className='subtitle'>Enter your email address and we'll send you a link to reset your password.</p>
+        <div
+            className='flex flex-col items-center justify-center min-h-screen'
+            style={{
+                backgroundImage: `url(${design})`,
+                backgroundSize: 'cover',
+                backgroundRepeat: 'no-repeat',
+            }}
+        >
+            <div className='bg-white w-[380px] h-[380px] rounded-[3%] p-6 text-center font-sans shadow-lg'>
+                <h2 className='text-[26px] text-[#09342e] font-bold'>Reset Password</h2>
+                <p className='text-[15px] text-[#6d7071] mb-4'>
+                    Enter your email address and we'll send you a link to reset your password.
+                </p>
 
-                {message && <div className={`message ${isSuccess ? 'success' : 'error'}`}>{message}</div>}
+                <div className='mb-4'>
+                    <input
+                        className='w-[300px] h-[45px] rounded-[10px] border border-[#e3e5e5] px-3 text-[#706f6c] font-medium text-[15px]'
+                        id='email'
+                        type='email'
+                        placeholder='Your email'
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
+                </div>
 
-                {!isSuccess ? (
-                    <form onSubmit={handleSubmit}>
-                        <div className='form-group'>
-                            <label htmlFor='email'>Email Address</label>
-                            <input
-                                type='email'
-                                id='email'
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder='Enter your email'
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
+                <button
+                    className='w-[300px] h-[45px] rounded-[10px] text-white font-bold text-[19px] bg-gradient-to-l from-[#0f3d2e] to-[#1b5e3c] hover:bg-gray-600 transition-all duration-300'
+                    onClick={handleSubmit}
+                >
+                    Send Reset Email
+                </button>
 
-                        <button type='submit' disabled={isLoading || !email.trim()} className='submit-button'>
-                            {isLoading ? 'Sending...' : 'Send Reset Email'}
-                        </button>
-                    </form>
-                ) : (
-                    <div className='success-actions'>
-                        <p>Didn't receive the email? Check your spam folder or try again.</p>
-                        <button
-                            onClick={() => {
-                                setIsSuccess(false)
-                                setMessage('')
-                            }}
-                            className='try-again-button'
-                        >
-                            Try Again
-                        </button>
-                    </div>
-                )}
-
-                <div className='back-to-login'>
-                    <button onClick={handleBackToLogin} className='back-button' type='button'>
+                <div className='mt-4 text-[15px] text-[#b2b7ba]'>
+                    <a onClick={handleBackToLogin} className='hover:underline'>
                         ← Back to Login
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>

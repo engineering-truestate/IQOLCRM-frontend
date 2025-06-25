@@ -151,6 +151,7 @@ export interface PostReraPropertyState {
 
 export interface PostReraPropertyFilters {
     projectType?: string
+    stockType?: string
     status?: string
     developerTier?: string
     district?: string

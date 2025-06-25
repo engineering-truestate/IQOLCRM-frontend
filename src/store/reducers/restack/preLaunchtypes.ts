@@ -36,9 +36,9 @@ export interface PropertyConfigurations {
 export interface PropertyDocuments {
     villageMaps: string[]
     cdpMaps: string[]
-    masterPlan: string
-    projectLayoutPlan: string
-    brochure: string
+    masterPlan: string[]
+    projectLayoutPlan: string[]
+    brochure: string[]
 }
 
 export interface Property {
@@ -73,8 +73,8 @@ export interface Property {
     amenities: string[]
     documents: PropertyDocuments
     areaUnit: string
-    lastUpdated: string
-    createdAt: string
+    lastUpdated: number
+    createdAt: number
 }
 
 export interface PropertyState {

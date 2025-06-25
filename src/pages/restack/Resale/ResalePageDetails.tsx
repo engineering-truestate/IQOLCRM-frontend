@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
@@ -9,7 +8,7 @@ import NumberInput from '../../../components/design-elements/StateBaseNumberFiel
 import DateInput from '../../../components/design-elements/DateInputUnixTimestamps'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 import editic from '/icons/acn/edit.svg'
-import type { ResaleData } from '../../../store/actionTypes/restack/resaleActionTypes'
+
 import type { RestackResaleProperty } from '../../../data_types/restack/restack-resale'
 import {
     get99AcresResaleDataById,
@@ -29,14 +28,15 @@ import { FlexibleTable } from '../../../components/design-elements/FlexibleTable
 const propertyTypes = [
     { label: 'Residential', value: 'Residential' },
     { label: 'Commercial', value: 'Commercial' },
-    { label: 'Industrial', value: 'Industrial' },
+    { label: 'Plotted', value: 'Plotted' },
 ]
 
 const subTypes = [
-    { label: 'Apartment', value: 'Apartment' },
+    { label: 'Flat', value: 'Flat' },
     { label: 'Villa', value: 'Villa' },
     { label: 'Plot', value: 'Plot' },
-    { label: 'Penthouse', value: 'Penthouse' },
+    { label: 'House', value: 'House' },
+    { label: 'Office', value: 'Office' },
 ]
 
 const configurations = [
@@ -44,6 +44,7 @@ const configurations = [
     { label: '2 BHK', value: '2 BHK' },
     { label: '3 BHK', value: '3 BHK' },
     { label: '4 BHK', value: '4 BHK' },
+    { label: '5 BHK', value: '5 BHK' },
     { label: '5+ BHK', value: '5+ BHK' },
 ]
 
@@ -73,15 +74,15 @@ const facingOptions = [
 // Image Gallery Component
 const ImageGallery = ({ images }: { images?: any[] }) => {
     const [selectedImage, setSelectedImage] = useState(0)
-    const [imageError, setImageError] = useState<{ [key: string]: boolean }>({})
+    const [, setImageError] = useState<{ [key: string]: boolean }>({})
 
     const handleImageError = (imageId: string) => {
         setImageError((prev) => ({ ...prev, [imageId]: true }))
     }
 
-    const handleImageLoad = (imageId: string) => {
-        setImageError((prev) => ({ ...prev, [imageId]: false }))
-    }
+    // const handleImageLoad = (imageId: string) => {
+    //     setImageError((prev) => ({ ...prev, [imageId]: false }))
+    // }
 
     if (!images || images.length === 0) {
         return (
@@ -93,7 +94,7 @@ const ImageGallery = ({ images }: { images?: any[] }) => {
         )
     }
 
-    const currentImage = images[selectedImage] || images[0]
+    // const currentImage = images[selectedImage] || images[0]
 
     return (
         <div className='mb-6'>
@@ -167,7 +168,6 @@ const ImageGallery = ({ images }: { images?: any[] }) => {
 const ResaleDetailsPage = () => {
     const navigate = useNavigate()
     const { type, id } = useParams()
-    const dispatch = useDispatch()
 
     const [propertyDetails, setPropertyDetails] = useState<RestackResaleProperty | null>(null)
     const [originalDetails, setOriginalDetails] = useState<RestackResaleProperty | null>(null)

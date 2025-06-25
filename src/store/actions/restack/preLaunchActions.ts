@@ -29,7 +29,7 @@ export const fetchPreLaunchProperties = createAsyncThunk(
         try {
             dispatch(fetchPreLaunchPropertyRequest())
 
-            const properties = await PreLaunchService.fetchProperties(filters)
+            const properties = await PreLaunchService.fetchProperties()
 
             dispatch(fetchPreLaunchPropertySuccess(properties))
             return properties
@@ -127,8 +127,14 @@ export const getPreLaunchPropertyByName = createAsyncThunk(
 
             const property = await PreLaunchService.getPropertyByName(projectName)
 
-            dispatch(fetchPreLaunchPropertySuccess([property]))
-            return property
+            if (property) {
+                dispatch(fetchPreLaunchPropertySuccess([property]))
+                return property
+            } else {
+                const errorMessage = 'Property not found'
+                dispatch(fetchPreLaunchPropertyFailure(errorMessage))
+                return rejectWithValue(errorMessage)
+            }
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to fetch property'
             dispatch(fetchPreLaunchPropertyFailure(errorMessage))

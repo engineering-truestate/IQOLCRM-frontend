@@ -15,4 +15,8 @@ export interface RestackRentalProperty {
     postedBy: string
     url: string
     aboutProject: string
+    priceHistory: {
+        date: string
+        price: number
+    }[]
 }

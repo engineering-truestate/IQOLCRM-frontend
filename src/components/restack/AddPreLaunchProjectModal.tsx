@@ -1,11 +1,6 @@
-// src/components/prelaunch/PreLaunchModal.tsx
-'use client'
-
 import React, { useState, useEffect } from 'react'
 import StateBaseTextField from '../design-elements/StateBaseTextField'
 import Button from '../design-elements/Button'
-import type { ProjectStage } from '../../pages/dummy_data/restack_prelaunch_dummy_data'
-import { locations, developers, projectTypes } from '../../pages/dummy_data/restack_prelaunch_dummy_data'
 import Dropdown from '../design-elements/Dropdown'
 import NumberInput from '../design-elements/StateBaseNumberField'
 import DateInput from '../design-elements/DateInputUnixTimestamps'
@@ -13,7 +8,7 @@ import DateInput from '../design-elements/DateInputUnixTimestamps'
 export interface PreLaunchFormData {
     projectName: string
     projectType: string
-    stage: ProjectStage
+    stage: string
     developerName: string
     projectSize: number
     pricePerSqft: number
@@ -24,7 +19,6 @@ export interface PreLaunchFormData {
     latitude: number
     longitude: number
     totalUnits: number
-    eoiAmount: number
     totalFloors: number
     numberOfTowers: number
     carParking: number
@@ -37,7 +31,8 @@ interface PreLaunchModalProps {
     onSave: (data: PreLaunchFormData) => void
 }
 
-const stages: ProjectStage[] = ['Pre Launch', 'EC']
+const stages = ['Pre Launch', 'EC']
+const projectTypes = ['Apartment', 'Villa', 'Plot']
 
 const PreLaunchModal: React.FC<PreLaunchModalProps> = ({ isOpen, onClose, onSave }) => {
     const empty: PreLaunchFormData = {
@@ -54,7 +49,6 @@ const PreLaunchModal: React.FC<PreLaunchModalProps> = ({ isOpen, onClose, onSave
         latitude: 0,
         longitude: 0,
         totalUnits: 0,
-        eoiAmount: 0,
         totalFloors: 0,
         numberOfTowers: 0,
         carParking: 0,
@@ -101,28 +95,20 @@ const PreLaunchModal: React.FC<PreLaunchModalProps> = ({ isOpen, onClose, onSave
                             placeholder='Enter'
                             value={form.projectName}
                             onChange={(e) => handleField('projectName', e.target.value)}
+                            required={true}
                         />
                     </div>
 
                     {/* Project Type */}
                     <div>
                         <label className='block text-sm font-medium mb-1'>Project Type</label>
-                        {/* <select
-                            className='mt-1 block w-full border border-gray-300 rounded p-2 bg-white'
-                            value={form.projectType}
-                            onChange={(e) => handleField('projectType', e.target.value)}
-                        >
-                            <option value=''>Enter</option>
-                            {projectTypes.map((pt) => (
-                                <option key={pt} value={pt}>
-                                    {pt}
-                                </option>
-                            ))}
-                        </select> */}
                         <Dropdown
                             options={projectTypes.map((pt) => ({ label: pt, value: pt }))}
                             defaultValue={form.projectType}
-                            onSelect={(value) => handleField('projectType', value)}
+                            onSelect={(value) => handleField('projectType', value.toLocaleLowerCase())}
+                            triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            menuClassName='absolute z-50 mt-1 top-7 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                            optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                         />
                     </div>
 
@@ -133,13 +119,16 @@ const PreLaunchModal: React.FC<PreLaunchModalProps> = ({ isOpen, onClose, onSave
                         <Dropdown
                             options={stages.map((pt) => ({ label: pt, value: pt }))}
                             defaultValue={form.stage}
-                            onSelect={(value) => handleField('stage', value as ProjectStage)}
+                            onSelect={(value) => handleField('stage', value)}
+                            triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            menuClassName='absolute z-50 mt-1 top-7 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                            optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                         />
                     </div>
 
                     {/* Developer/Promoter */}
                     <div>
-                        <label className='block text-sm font-medium mb-1'>Developer/Promoter</label>
+                        <label className='block text-sm font-medium mb-1'>Developer/Promoter Name</label>
                         <StateBaseTextField
                             placeholder='Type'
                             value={form.developerName}
@@ -174,7 +163,7 @@ const PreLaunchModal: React.FC<PreLaunchModalProps> = ({ isOpen, onClose, onSave
                         placeholder='Select start date'
                         value={form.tentativeStartDate}
                         onChange={(timestamp) => handleField('tentativeStartDate', timestamp ?? 0)}
-                        minDate={new Date().toISOString().split('T')[0]} // Today's date as minimum
+                        // minDate={new Date().toISOString().split('T')[0]} // Today's date as minimum
                         fullWidth
                     />
 
@@ -184,7 +173,6 @@ const PreLaunchModal: React.FC<PreLaunchModalProps> = ({ isOpen, onClose, onSave
                         placeholder='Select completion date'
                         value={form.proposedCompletionDate}
                         onChange={(timestamp) => handleField('proposedCompletionDate', timestamp ?? 0)}
-                        minDate={new Date().toISOString().split('T')[0]} // Today's date as minimum
                         fullWidth
                     />
 
@@ -253,17 +241,6 @@ const PreLaunchModal: React.FC<PreLaunchModalProps> = ({ isOpen, onClose, onSave
                         fullWidth
                     />
 
-                    {/* EOI Amount (₹)
-                    <div>
-                        <label className='block text-sm font-medium mb-1'>EOI Amount (₹)</label>
-                        <StateBaseTextField
-                            placeholder='Enter'
-                            value={form.eoiAmount}
-                            onChange={(e) => handleField('eoiAmount', e.target.value)}
-                        />
-                    </div> */}
-
-                    {/* Total No. of Floors */}
                     <NumberInput
                         label='Total No. of Floors'
                         placeholder='Enter number of floors'

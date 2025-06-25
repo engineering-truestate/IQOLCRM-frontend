@@ -10,8 +10,6 @@ import Dropdown from '../../../../components/design-elements/Dropdown'
 import usePreRera from '../../../../hooks/restack/usePreRera'
 import type { PreReraProperty } from '../../../../store/reducers/restack/preReraTypes'
 import { formatUnixDate } from '../../../../components/helper/getUnixDateTime'
-import editic from '/icons/acn/edit.svg'
-import addcircleic from '/icons/acn/add-circle.svg'
 
 const PreReraProjectDetails = () => {
     const { id } = useParams()
@@ -19,17 +17,17 @@ const PreReraProjectDetails = () => {
     const [project, setProject] = useState<PreReraProperty | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [fetchError, setFetchError] = useState<string | null>(null)
-    const [originalDetails, setOriginalDetails] = useState<PreReraProperty | null>(null)
-    const [isEditingProjectOverview, setIsEditingProjectOverview] = useState(false)
-    const [isEditingProjectLocation, setIsEditingProjectLocation] = useState(false)
-    const [isEditingProjectTimeline, setIsEditingProjectTimeline] = useState(false)
-    const [isEditingProjectConfiguration, setIsEditingProjectConfiguration] = useState(false)
-    const [isEditingProjectResources, setIsEditingProjectResources] = useState(false)
-    const [isEditingAmenities, setIsEditingAmenities] = useState(false)
-    const [isEditingDeveloperDetails, setIsEditingDeveloperDetails] = useState(false)
-    const [isEditingKhataDetails, setIsEditingKhataDetails] = useState(false)
-    const [editingTowerRowId, setEditingTowerRowId] = useState<string | null>(null)
-    const [isAddingTowerRow, setIsAddingTowerRow] = useState(false)
+    const [, setOriginalDetails] = useState<PreReraProperty | null>(null)
+    // const [isEditingProjectOverview, setIsEditingProjectOverview] = useState(false)
+    // const [isEditingProjectLocation, setIsEditingProjectLocation] = useState(false)
+    // const [isEditingProjectTimeline, setIsEditingProjectTimeline] = useState(false)
+    const [isEditingProjectConfiguration] = useState(false)
+    // const [isEditingProjectResources, setIsEditingProjectResources] = useState(false)
+    const [isEditingAmenities] = useState(false)
+    // const [isEditingDeveloperDetails, setIsEditingDeveloperDetails] = useState(false)
+    // const [isEditingKhataDetails, setIsEditingKhataDetails] = useState(false)
+    const [editingTowerRowId] = useState<string | null>(null)
+    // const [isAddingTowerRow, setIsAddingTowerRow] = useState(false)
 
     const { getPropertyById, loading, error } = usePreRera()
 
@@ -73,30 +71,30 @@ const PreReraProjectDetails = () => {
         })
     }
 
-    // Generic handle edit for sections
-    const handleEditSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
-        setter(true)
-    }
+    // // Generic handle edit for sections
+    // const handleEditSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+    //     setter(true)
+    // }
 
-    // Generic handle cancel for sections
-    const handleCancelSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
-        if (originalDetails) {
-            setProject(originalDetails)
-        }
-        setter(false)
-        setEditingTowerRowId(null)
-        setIsAddingTowerRow(false)
-    }
+    // // Generic handle cancel for sections
+    // const handleCancelSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+    //     if (originalDetails) {
+    //         setProject(originalDetails)
+    //     }
+    //     setter(false)
+    //     setEditingTowerRowId(null)
+    //     setIsAddingTowerRow(false)
+    // }
 
-    // Generic handle save for sections
-    const handleSaveSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
-        if (project) {
-            setOriginalDetails(project)
-            setter(false)
-            setEditingTowerRowId(null)
-            setIsAddingTowerRow(false)
-        }
-    }
+    // // Generic handle save for sections
+    // const handleSaveSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+    //     if (project) {
+    //         setOriginalDetails(project)
+    //         setter(false)
+    //         setEditingTowerRowId(null)
+    //         setIsAddingTowerRow(false)
+    //     }
+    // }
 
     // Handle tower data updates
     const updateTowerData = (rowId: string, field: string, value: string) => {
@@ -500,7 +498,7 @@ const PreReraProjectDetails = () => {
                             'Latitude',
                             String(project.lat),
                             'Longitude',
-                            project.long,
+                            String(project?.long),
                             'lat',
                             'long',
                             undefined,

@@ -1,7 +1,6 @@
 import {
     collection,
     getDocs,
-    addDoc,
     updateDoc,
     deleteDoc,
     doc,
@@ -12,17 +11,55 @@ import {
     startAfter,
     QueryDocumentSnapshot,
     QueryConstraint,
-    serverTimestamp,
     where,
+    runTransaction,
+    setDoc,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
-import type { Property, PropertyFilters } from '../../store/reducers/restack/preLaunchtypes'
+import type { Property } from '../../store/reducers/restack/preLaunchtypes'
+import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 
 export class PreLaunchService {
     /**
      * Fetch all pre-launch properties with optional filters
      */
-    static async fetchProperties(filters?: PropertyFilters): Promise<Property[]> {
+
+    static generateUniquePropertyId = async (): Promise<string> => {
+        return await runTransaction(db, async (transaction) => {
+            // console.log('🔢 Generating unique property ID from admin collection')
+
+            const adminDocRef = doc(db, 'acn-admin', 'lastPLPId')
+            const adminDoc = await transaction.get(adminDocRef)
+
+            if (!adminDoc.exists()) {
+                const initialData = {
+                    count: 0,
+                    label: 'PLP',
+                    prefix: 'A',
+                }
+                transaction.set(adminDocRef, initialData)
+                const newPropertyId = `${initialData.prefix}${initialData.label}${initialData.count + 1}`
+                console.log('🆕 Initialized admin document and generated first property ID:', newPropertyId)
+                return newPropertyId
+            }
+
+            const adminData = adminDoc.data()
+            const currentCount = adminData.count || 0
+            const label = adminData.label || 'PL'
+            // const prefix = adminData.prefix || 'A'
+
+            const newCount = currentCount + 1
+            // const newPropertyId = `${label}${prefix}${newCount}`
+            const newPropertyId = `${label}${newCount}`
+
+            transaction.update(adminDocRef, { count: newCount })
+
+            console.log('✅ Generated unique property ID:', newPropertyId, 'with count:', newCount)
+            return newPropertyId
+        })
+    }
+
+    static async fetchProperties(): Promise<Property[]> {
         try {
             const colRef = collection(db, 'restack_pre_launch_properties')
             const q = query(colRef, orderBy('createdAt', 'desc'))
@@ -98,23 +135,30 @@ export class PreLaunchService {
         try {
             const colRef = collection(db, 'restack_pre_launch_properties')
 
-            // Add timestamps
+            // Generate unique project ID
+            const projectId = await this.generateUniquePropertyId()
+
+            // Add timestamps and projectId
             const propertyWithTimestamps = {
                 ...propertyData,
-                createdAt: new Date().toISOString(),
-                lastUpdated: new Date().toISOString(),
+                projectId: projectId,
+                createdAt: getUnixDateTime(),
+                lastUpdated: getUnixDateTime(),
             }
 
-            const docRef = await addDoc(colRef, propertyWithTimestamps)
+            // Create document reference and check if it exists
+            const docRef = doc(colRef, projectId)
+            const existingDoc = await getDoc(docRef)
 
-            // Get the created document to return complete data
-            const createdDoc = await getDoc(docRef)
-            const createdProperty = {
-                ...createdDoc.data(),
-                projectId: createdDoc.id,
-            } as Property
+            if (existingDoc.exists()) {
+                throw new Error(`Property with projectId ${projectId} already exists`)
+            }
 
-            return createdProperty
+            // Use setDoc with the generated projectId as document ID
+            await setDoc(docRef, propertyWithTimestamps)
+
+            // Return the complete property data
+            return propertyWithTimestamps as Property
         } catch (error) {
             console.error('Error adding pre-launch property:', error)
             throw error
