@@ -233,9 +233,9 @@ interface QCNote {
 
 // Add Agent Data interface for role-based operations
 interface AgentData {
-    role: 'kam' | 'data' | 'kamModerator'
+    role: string | undefined
     email: string
-    phone: string
+    phone?: string
     name: string
     kamId?: string
     id: string

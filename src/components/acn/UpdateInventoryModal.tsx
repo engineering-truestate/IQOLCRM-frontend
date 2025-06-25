@@ -5,10 +5,15 @@ import Dropdown from '../design-elements/Dropdown'
 import StateBaseTextField from '../design-elements/StateBaseTextField'
 import Button from '../design-elements/Button'
 import { toast } from 'react-toastify'
-import { useDispatch } from 'react-redux'
-import type { AppDispatch } from '../../store'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '../../store'
 import { updatePropertyStatus } from '../../services/acn/properties/propertiesService'
 import { updatePropertyStatusOptimistic, updatePropetiesLocal } from '../../store/reducers/acn/propertiesReducers'
+import {
+    fetchSellingPlatforms,
+    addSellingPlatform,
+    searchSellingPlatforms,
+} from '../../services/acn/constants/constantService'
 import type { IInventory } from '../../store/reducers/acn/propertiesTypes'
 
 // Use the correct types from IInventory
@@ -35,22 +40,62 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
     onUpdate,
 }) => {
     const dispatch = useDispatch<AppDispatch>()
+    const { sellingPlatforms } = useSelector((state: RootState) => state.constants)
+
     const [selectedStatus, setSelectedStatus] = useState<PropertyStatus>('Available')
     const [soldPrice, setSoldPrice] = useState('')
+    const [sellingPlatform, setSellingPlatform] = useState('')
+    const [platformSearchTerm, setPlatformSearchTerm] = useState('')
+    const [showPlatformDropdown, setShowPlatformDropdown] = useState(false)
     const [notes, setNotes] = useState('')
     const [isUpdating, setIsUpdating] = useState(false)
 
     // Check if this is a single property update (show sold price field)
     const isSinglePropertyUpdate = selectedCount === 1 || Boolean(propertyId)
 
+    // Fetch selling platforms on component mount
+    useEffect(() => {
+        if (isOpen) {
+            dispatch(fetchSellingPlatforms())
+        }
+    }, [isOpen, dispatch])
+
+    // Handle platform search
+    useEffect(() => {
+        if (platformSearchTerm !== undefined) {
+            dispatch(searchSellingPlatforms(platformSearchTerm))
+        }
+    }, [platformSearchTerm, dispatch])
+
     // Reset form when modal opens
     useEffect(() => {
         if (isOpen) {
             setSelectedStatus('Available')
             setSoldPrice('')
+            setSellingPlatform('')
+            setPlatformSearchTerm('')
+            setShowPlatformDropdown(false)
             setNotes('')
         }
     }, [isOpen])
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement
+            if (!target.closest('.selling-platform-dropdown')) {
+                setShowPlatformDropdown(false)
+            }
+        }
+
+        if (showPlatformDropdown) {
+            document.addEventListener('mousedown', handleClickOutside)
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [showPlatformDropdown])
 
     if (!isOpen) return null
 
@@ -95,6 +140,25 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
         return baseOptions
     }
 
+    const handlePlatformSelect = (platform: string) => {
+        setSellingPlatform(platform)
+        setPlatformSearchTerm(platform)
+        setShowPlatformDropdown(false)
+    }
+
+    const handleAddNewPlatform = async () => {
+        if (platformSearchTerm.trim() && !sellingPlatforms.allNames.includes(platformSearchTerm.trim())) {
+            try {
+                await dispatch(addSellingPlatform(platformSearchTerm.trim())).unwrap()
+                setSellingPlatform(platformSearchTerm.trim())
+                setShowPlatformDropdown(false)
+                toast.success('New selling platform added successfully')
+            } catch (error) {
+                toast.error('Failed to add new selling platform')
+            }
+        }
+    }
+
     const handleUpdate = async () => {
         setIsUpdating(true)
 
@@ -114,6 +178,12 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                 !soldPrice.trim()
             ) {
                 toast.error(`Please enter ${selectedStatus === 'Sold' ? 'sold price' : 'monthly rent'}`)
+                return
+            }
+
+            // Validate selling platform for Sold status
+            if (isSinglePropertyUpdate && selectedStatus === 'Sold' && !sellingPlatform.trim()) {
+                toast.error('Please select a selling platform')
                 return
             }
 
@@ -145,14 +215,26 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                     propertyId: string
                     status: string
                     soldPrice?: number
+                    sold?: {
+                        date: number
+                        soldPrice: number
+                        sellingPlatform: string
+                    }
                     notes?: string
                 } = {
                     propertyId: id,
                     status: selectedStatus,
                 }
 
-                // Add sold price only for single property updates
-                if (isSinglePropertyUpdate && soldPrice && (selectedStatus === 'Sold' || selectedStatus === 'Rented')) {
+                // Add sold object for Sold status
+                if (isSinglePropertyUpdate && selectedStatus === 'Sold' && soldPrice && sellingPlatform) {
+                    updateParams.sold = {
+                        date: Math.floor(Date.now() / 1000), // Unix timestamp
+                        soldPrice: parseFloat(soldPrice),
+                        sellingPlatform: sellingPlatform.trim(),
+                    }
+                } else if (isSinglePropertyUpdate && soldPrice && selectedStatus === 'Rented') {
+                    // For rented, still use soldPrice field
                     updateParams.soldPrice = parseFloat(soldPrice)
                 }
 
@@ -234,6 +316,55 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                         </div>
                     )}
 
+                    {/* Selling Platform Field - Only show for Sold status */}
+                    {isSinglePropertyUpdate && selectedStatus === 'Sold' && (
+                        <div className='selling-platform-dropdown'>
+                            <label className='block text-sm font-medium text-gray-700 mb-2'>Selling Platform *</label>
+                            <div className='relative'>
+                                <StateBaseTextField
+                                    placeholder='Search or select selling platform'
+                                    value={platformSearchTerm}
+                                    onChange={(e) => {
+                                        setPlatformSearchTerm(e.target.value)
+                                        setShowPlatformDropdown(true)
+                                    }}
+                                    onFocus={() => setShowPlatformDropdown(true)}
+                                    className='w-full'
+                                />
+
+                                {/* Dropdown for selling platforms */}
+                                {showPlatformDropdown && (
+                                    <div className='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                                        {sellingPlatforms.filteredNames.length > 0 ? (
+                                            sellingPlatforms.filteredNames.map((platform, index) => (
+                                                <div
+                                                    key={index}
+                                                    className='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100'
+                                                    onClick={() => handlePlatformSelect(platform)}
+                                                >
+                                                    {platform}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className='px-3 py-2 text-sm text-gray-500'>No platforms found</div>
+                                        )}
+
+                                        {/* Add new platform option */}
+                                        {platformSearchTerm.trim() &&
+                                            !sellingPlatforms.allNames.includes(platformSearchTerm.trim()) && (
+                                                <div
+                                                    className='px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 text-blue-600 border-t border-gray-200'
+                                                    onClick={handleAddNewPlatform}
+                                                >
+                                                    + Add "{platformSearchTerm.trim()}"
+                                                </div>
+                                            )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Notes Field */}
                     <div>
                         <label className='block text-sm font-medium text-gray-700 mb-2'>Notes (Optional)</label>
@@ -253,9 +384,9 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                                 <div className='ml-3'>
                                     <p className='text-sm text-blue-700'>
                                         <strong>Note:</strong>{' '}
-                                        {selectedStatus === 'Sold' ? 'Sold price' : 'Monthly rent'} cannot be set for
-                                        bulk updates. Please update properties individually to set{' '}
-                                        {selectedStatus === 'Sold' ? 'sold prices' : 'monthly rent'}.
+                                        {selectedStatus === 'Sold' ? 'Sold price and selling platform' : 'Monthly rent'}{' '}
+                                        cannot be set for bulk updates. Please update properties individually to set{' '}
+                                        {selectedStatus === 'Sold' ? 'sold details' : 'monthly rent'}.
                                     </p>
                                 </div>
                             </div>

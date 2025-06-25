@@ -3,7 +3,6 @@ import { createAsyncThunk } from '@reduxjs/toolkit'
 import { doc, getDoc, updateDoc, deleteDoc, setDoc, getDocs, collection, where, query } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { type ILead, leadSearchService } from '../../../services/acn/leads/algoliaLeadsService'
-// import { getCurrentUser } from '../../user/userRoleService'
 
 // Helper function to get current Unix timestamp in milliseconds
 const getCurrentTimestamp = () => Date.now()
