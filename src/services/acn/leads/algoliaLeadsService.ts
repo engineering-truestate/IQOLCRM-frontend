@@ -1,5 +1,5 @@
 // services/algolia/leadSearchService.ts
-import { algoliasearch } from 'algoliasearch'
+import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
 // Algolia client configuration
 const searchClient = algoliasearch('KFYKBHE5TN', '9c5e86a5e2148415d3fca9817617fd0e')
