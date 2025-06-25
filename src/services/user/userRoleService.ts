@@ -30,9 +30,16 @@ export const fetchUserRoleByEmail = createAsyncThunk<AgentData, string, { reject
             console.log('✅ Agent role fetched successfully:', rawAgentData.role)
 
             // Ensure all required properties are present
+            // Only allow specific roles
+            const allowedRoles = ['data', 'kam', 'kamModerator'] as const
+            let role: AgentData['role'] = 'kam'
+            if (rawAgentData.acn && allowedRoles.includes(rawAgentData.acn.role)) {
+                role = rawAgentData.acn.role
+            }
+
             const agentData: AgentData = {
                 email: rawAgentData.email || email,
-                role: rawAgentData.acn.role || 'kam',
+                role,
                 name: rawAgentData.name || rawAgentData.displayName || email.split('@')[0],
                 id: agentDoc.id,
                 phone: rawAgentData.phone || '',
