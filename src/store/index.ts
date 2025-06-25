@@ -9,7 +9,6 @@ import preLaunchReducer from './reducers/restack/preLaunchReducer'
 import preReraReducer from './reducers/restack/preReraReducer'
 import primaryPropertiesReducer from './reducers/restack/primaryProperties'
 import requirementsReducer from './reducers/acn/requirementsReducers'
-import userReducer from './reducers/user/userReducer'
 import qcReducer from './reducers/acn/qcReducer'
 import postReraReducer from './reducers/restack/postReraReducer'
 import leadsReducer from './reducers/acn/leadsReducers'
@@ -69,7 +68,6 @@ const rootReducer = combineReducers({
     preLaunch: preLaunchReducer,
     preRera: preReraReducer,
     requirements: requirementsReducer,
-    user: userReducer, // This will serve as auth state
     qc: qcReducer,
     taskId: taskIdReducer,
     leads: leadsReducer,
@@ -90,7 +88,6 @@ export const store = configureStore({
         preRera: preReraReducer,
         postRera: postReraReducer,
         requirements: requirementsReducer,
-        user: userReducer,
         qc: qcReducer,
         taskId: taskIdReducer,
         leads: leadsReducer,

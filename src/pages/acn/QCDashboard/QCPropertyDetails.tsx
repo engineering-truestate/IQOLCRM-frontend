@@ -10,7 +10,6 @@ import {
     updateQCStatusWithRoleCheck,
     addQCInventoryNote,
 } from '../../../services/acn/qc/qcService'
-import { initializeAuthListener } from '../../../services/user/userRoleService'
 import { clearCurrentQCInventory, clearError } from '../../../store/reducers/acn/qcReducer'
 import Layout from '../../../layout/Layout'
 import Dropdown from '../../../components/design-elements/Dropdown'
@@ -21,6 +20,16 @@ import { toast } from 'react-toastify'
 import editIcon from '/icons/acn/edit.svg'
 import { formatCost } from '../../../components/helper/formatCost'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import useAuth from '../../../hooks/useAuth'
+
+interface AgentData {
+    role: string | undefined
+    email: string
+    phone?: string
+    name: string
+    kamId?: string
+    id: string
+}
 
 // Available fields for rejection reasons
 // Available fields for rejection reasons - formatted for your MultiSelectDropdown
@@ -84,14 +93,31 @@ const QCPropertyDetailsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
     const { id } = useParams()
 
-    // Redux state
-    const {
-        user: currentUser,
-        agentData,
-        loading: userLoading,
-        authInitialized,
-        error: userError,
-    } = useSelector((state: RootState) => state.user)
+    const { user: currentUser, platform, loading: authLoading } = useAuth()
+
+    // Safe access with optional chaining
+    const acnRole = platform?.[0]?.role
+
+    // Create agentData from auth information
+    const agentData: AgentData | null = useMemo(() => {
+        if (!currentUser || !platform?.[0]) return null
+
+        return {
+            role: platform[0].role,
+            email: currentUser.email || '',
+            phone: currentUser.phoneNumber || '',
+            name: currentUser.displayName || currentUser.email || '',
+            kamId: currentUser.uid,
+            id: currentUser.uid,
+        }
+    }, [currentUser, platform])
+
+    // Check if auth is initialized
+    const authInitialized = !authLoading && currentUser !== undefined
+
+    // Add these missing variables that are referenced in your code
+    const userLoading = authLoading
+    const userError = null
 
     const {
         currentQCInventory: qcProperty,
@@ -134,12 +160,6 @@ const QCPropertyDetailsPage = () => {
             .split(/\s+/)
             .filter((word) => word.length > 0).length
     }, [newNote])
-
-    // Initialize auth listener
-    useEffect(() => {
-        console.log('🔄 Initializing auth listener')
-        dispatch(initializeAuthListener())
-    }, [dispatch])
 
     // Load QC property data when component mounts
     useEffect(() => {
@@ -187,7 +207,7 @@ const QCPropertyDetailsPage = () => {
     const getActiveTab = () => {
         if (!qcProperty || !agentData) return 'kam'
 
-        if (agentData.role === 'kamModerator') {
+        if (acnRole === 'kamModerator') {
             if (qcProperty.stage === 'notApproved') {
                 return 'kam'
             }
@@ -195,7 +215,7 @@ const QCPropertyDetailsPage = () => {
                 return 'data'
             }
             return 'kam'
-        } else if (agentData.role === 'data') {
+        } else if (acnRole === 'data') {
             return 'data'
         } else {
             return 'kam'
@@ -241,7 +261,7 @@ const QCPropertyDetailsPage = () => {
                     property: qcProperty,
                     status,
                     agentData: {
-                        role: agentData.role,
+                        role: acnRole,
                         email: agentData.email || currentUser.email || '',
                         phone: agentData.phone || '',
                         name: agentData.name || currentUser.displayName || '',
@@ -360,7 +380,7 @@ const QCPropertyDetailsPage = () => {
     const canEdit = () => {
         if (!qcProperty || !agentData) return false
 
-        switch (agentData.role) {
+        switch (acnRole) {
             case 'kam':
                 return qcProperty.stage === 'kam' || qcProperty.stage === 'notApproved'
             case 'data':
@@ -1124,10 +1144,10 @@ const QCPropertyDetailsPage = () => {
                                     <div className='mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg'>
                                         <div className='text-sm text-yellow-800'>
                                             {qcProperty.stage === 'notApproved'
-                                                ? agentData.role === 'data'
+                                                ? acnRole === 'data'
                                                     ? 'Data team cannot edit properties in notApproved stage. Only KAM and KAM Moderators can update.'
                                                     : 'You cannot edit this property in its current stage'
-                                                : agentData.role === 'data' && qcProperty.kamStatus !== 'approved'
+                                                : acnRole === 'data' && qcProperty.kamStatus !== 'approved'
                                                   ? 'You can only edit when KAM status is approved'
                                                   : 'You cannot edit this property in its current stage'}
                                         </div>
