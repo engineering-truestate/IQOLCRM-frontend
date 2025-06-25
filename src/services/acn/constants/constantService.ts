@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, where, updateDoc, arrayUnion } from 'firebase/firestore'
 import { db } from '../../../firebase'
 
 // Fetch micromarkets from acn-admin
