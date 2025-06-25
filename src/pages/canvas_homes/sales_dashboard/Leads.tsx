@@ -224,15 +224,6 @@ const Leads = () => {
     useEffect(() => {
         let filtered = allLeadsData
 
-        if (searchValue) {
-            filtered = filtered.filter(
-                (lead) =>
-                    lead.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
-                    lead.phoneNumber?.includes(searchValue) ||
-                    lead.agentName?.toLowerCase().includes(searchValue.toLowerCase()),
-            )
-        }
-
         if (activeStatusCard !== 'All') {
             const stateValue = activeStatusCard.toLowerCase()
             filtered = filtered.filter((lead) => lead.state?.toLowerCase() === stateValue)
@@ -567,7 +558,7 @@ const Leads = () => {
                     : ''
 
                 return (
-                    <div className='flex flex-col -mx-4'>
+                    <div className='flex flex-col -mx-4 w-fit'>
                         <div className='text-sm font-medium text-gray-900 '>{taskType}</div>
                         {(formattedDate || formattedTime) && (
                             <div className='text-xs text-gray-500'>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useEffect } from 'react'
 import Dropdown from '../../components/design-elements/Dropdown'
 import { leadService } from '../../services/canvas_homes'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
@@ -50,6 +51,13 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         dueDate: getCurrentDateTime(),
     })
 
+    useEffect(() => {
+        setFormData({
+            task: '',
+            dueDate: getCurrentDateTime(),
+        })
+    }, [isOpen])
+
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -99,7 +107,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         setIsLoading(true)
 
         try {
-            const scheduledDate = new Date(formData.dueDate)
+            const scheduledDate = Math.floor(new Date(formData.dueDate).getTime() / 1000)
+            const currentTimestamp = getUnixDateTime()
             const taskData = {
                 enquiryId,
                 agentId,
@@ -113,28 +122,28 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 stage: stage,
                 leadStatus: leadStatus,
                 tag: tag,
-                scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
-                added: getUnixDateTime(),
+                scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
+                added: currentTimestamp,
                 completionDate: null,
-                lastModified: getUnixDateTime(),
+                lastModified: currentTimestamp,
             }
 
             // Create promises for each async operation
             const updateLead = leadService.update(leadId, {
                 state: 'open',
                 taskType: formData.task.toLowerCase(),
-                lastModified: getUnixDateTime(),
-                scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
+                lastModified: currentTimestamp,
+                scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
             })
 
             const addActivityPromise = enquiryId
                 ? enquiryService.addActivity(enquiryId, {
                       activityType: 'task created',
-                      timestamp: getUnixDateTime(),
+                      timestamp: currentTimestamp,
                       agentName: agentName || null,
                       data: {
                           taskType: formData.task.toLowerCase(),
-                          scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
+                          scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
                       },
                   })
                 : null

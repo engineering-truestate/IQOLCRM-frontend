@@ -58,20 +58,22 @@ const TaskCreatedCard: React.FC<TaskCreatedCardProps> = ({ activity }) => {
     const { taskType = '', scheduledDate = 0 } = data || {}
 
     return (
-        <div className='bg-white shadow-sm border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm'>
-            <div className='flex justify-between items-start'>
-                <div className='font-semibold text-gray-800'>
-                    {capitalizeWords(activityType)}{' '}
-                    <span className='text-gray-500 font-normal'>| {formatTime(timestamp)}</span>
+        <div className='bg-white flex flex-row justify-between border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-3xl mx-auto text-sm'>
+            <div>
+                <div className='flex justify-between items-start'>
+                    <div className='font-semibold text-gray-800'>
+                        {capitalizeWords(activityType)}{' '}
+                        <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(Number(timestamp))}</span>
+                    </div>
                 </div>
-                <div className='text-gray-500 text-sm'>
-                    Agent: <span className='text-gray-700'>{capitalizeWords(agentName)}</span>
+
+                <div className='mt-1 text-gray-500 text-sm font-medium'>
+                    {taskType && `${capitalizeWords(taskType)}`}{' '}
+                    <span className='text-gray-500 text-[13px] font-normal'>| {formatDateTime(scheduledDate)}</span>
                 </div>
             </div>
-
-            <div className='mt-1 text-gray-700 font-medium'>
-                {taskType && `${capitalizeWords(taskType)}`}{' '}
-                <span className='text-gray-500 font-normal'>| {formatDateTime(scheduledDate)}</span>
+            <div className='text-gray-500 text-sm flex items-center gap-1'>
+                Agent: <span className='text-gray-700'>{capitalizeWords(agentName)}</span>
             </div>
         </div>
     )
