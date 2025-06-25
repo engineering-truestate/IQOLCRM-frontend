@@ -114,7 +114,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             } transition-all duration-200 ]`}
         >
             <div
-                className={`grid grid-cols-3 rounded-t-md gap-40 px-3 py-2.5 items-start hover:bg-gray-100 ${isExpanded ? 'bg-gray-100' : ''}`}
+                className={`grid grid-cols-3 rounded-t-md gap-36 px-3 py-2.5 items-start hover:bg-gray-100 ${isExpanded ? 'bg-gray-100' : ''}`}
             >
                 {/* Task Title & Date */}
                 <div className='flex items-center justify-between'>
