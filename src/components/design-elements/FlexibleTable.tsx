@@ -348,6 +348,7 @@ export function FlexibleTable({
                                     className={`w-12 px-4 py-2 text-center bg-[#F3F3F3] ${hasLeftFixedColumns ? 'sticky left-0 z-40' : ''} ${getCellBorderClasses(true)}`}
                                     style={hasLeftFixedColumns ? { boxShadow: '2px 0 4px -2px rgba(0,0,0,0.1)' } : {}}
                                 >
+                                    {/* fixed to handle deselect some when minus is shown */}
                                     <input
                                         type='checkbox'
                                         className='h-4 w-4 rounded border-gray-300'
@@ -355,7 +356,25 @@ export function FlexibleTable({
                                         ref={(el) => {
                                             if (el) el.indeterminate = someSelected
                                         }}
-                                        onChange={handleSelectAll}
+                                        onClick={(e) => {
+                                            if (someSelected) {
+                                                e.preventDefault()
+                                                e.stopPropagation()
+                                                onSelectAll?.(false)
+
+                                                // Immediately remove the visual minus sign
+                                                const input = e.currentTarget as HTMLInputElement
+                                                requestAnimationFrame(() => {
+                                                    input.indeterminate = false
+                                                })
+                                            }
+                                        }}
+                                        onChange={(e) => {
+                                            // This only runs when checkbox is not indeterminate
+                                            if (!someSelected) {
+                                                onSelectAll?.(e.target.checked)
+                                            }
+                                        }}
                                     />
                                 </th>
                             )}
@@ -386,7 +405,9 @@ export function FlexibleTable({
                             {scrollableColumns.map((column) => (
                                 <th
                                     key={column.key}
-                                    className={`px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] ${headerClassName} ${getCellBorderClasses(true)} ${
+                                    className={`${
+                                        /\bpx-\d+\b/.test(headerClassName || '') ? '' : 'px-4'
+                                    } py-2 whitespace-nowrap text-center text-sm font-medium text-black bg-[#F3F3F3] ${headerClassName} ${getCellBorderClasses(true)} ${
                                         column.width ? `w-${column.width}` : ''
                                     } ${column.minWidth ? `min-w-${column.minWidth}` : ''}`}
                                 >
@@ -443,7 +464,9 @@ export function FlexibleTable({
                                 return (
                                     <tr
                                         key={row.id || index}
-                                        className={`${rowClasses} ${onRowClick ? 'cursor-pointer' : ''}`}
+                                        className={`transition-colors ${onRowClick ? 'cursor-pointer' : ''} ${
+                                            isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                                        }`}
                                     >
                                         {showCheckboxes && (
                                             <td
@@ -513,7 +536,9 @@ export function FlexibleTable({
                                         {scrollableColumns.map((column) => (
                                             <td
                                                 key={column.key}
-                                                className={`py-2 px-4 text-center align-middle text-sm ${getCellBorderClasses()} ${cellClassName}`}
+                                                className={`py-2 text-center align-middle text-sm ${getCellBorderClasses()} ${
+                                                    /\bpx-\d+\b/.test(cellClassName || '') ? '' : 'px-4'
+                                                } ${cellClassName}`}
                                                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                                             >
                                                 {column.checkbox ? (

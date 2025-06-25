@@ -1,7 +1,7 @@
-import React from 'react'
+// import React from 'react'
 
 // Format time from Unix timestamp in seconds
-const formatTime = (timestamp) => {
+const formatTime = (timestamp: number) => {
     if (!timestamp) return ''
 
     // Convert seconds to milliseconds for Date object
@@ -15,7 +15,7 @@ const formatTime = (timestamp) => {
 }
 
 // Capitalize first letter of each word
-const capitalizeWords = (text) => {
+const capitalizeWords = (text: string) => {
     if (!text) return ''
     return String(text)
         .split(' ')
@@ -23,8 +23,21 @@ const capitalizeWords = (text) => {
         .join(' ')
 }
 
-const LeadStateCard = ({ activity }) => {
-    const { activityType = '', timestamp = '', agentName = '', data = {} } = activity || {}
+interface LeadStateCardProps {
+    activity: {
+        activityType?: string
+        timestamp?: number
+        agentName?: string
+        data?: {
+            reason?: string
+            [key: string]: any
+        }
+        [key: string]: any
+    }
+}
+
+const LeadStateCard = ({ activity }: LeadStateCardProps) => {
+    const { activityType = '', timestamp = 0, agentName = '', data = {} } = activity || {}
     const { reason = '' } = data || {}
 
     return (

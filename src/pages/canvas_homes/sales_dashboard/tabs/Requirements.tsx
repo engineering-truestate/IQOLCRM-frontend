@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { enquiryService } from '../../../../services/canvas_homes'
 import RequirementCollectedModal from '../../../../components/canvas_homes/RquirementCollectionModal'
 import { toast } from 'react-toastify'
-import { useSelector, useDispatch } from 'react-redux'
-import type { AppDispatch } from '../../../../store'
-import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
+import { useSelector /*, useDispatch */ } from 'react-redux'
+// import type { AppDispatch } from '../../../../store'
+// import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 import Dropdown from '../../../../components/design-elements/Dropdown'
+import { toCapitalizedWords } from '../../../../components/helper/toCapitalize'
 
 // Types
 interface Requirement {
@@ -39,7 +40,6 @@ interface RequirementsProps {
 
 // Dropdown options
 const BUDGET_OPTIONS = [
-    //{ label: 'Please Select', value: '' },
     { label: '0.5 - 0.75 Cr', value: '0.5 - 0.75 Cr' },
     { label: '0.76 - 1 Cr', value: '0.76 - 1 Cr' },
     { label: '1.01 - 1.25 Cr', value: '1.01 - 1.25 Cr' },
@@ -50,7 +50,6 @@ const BUDGET_OPTIONS = [
 ]
 
 const ZONE_OPTIONS = [
-    //{ label: 'Please Select', value: '' },
     { label: 'North', value: 'north' },
     { label: 'South', value: 'south' },
     { label: 'East', value: 'east' },
@@ -58,7 +57,6 @@ const ZONE_OPTIONS = [
 ]
 
 const MICRO_MARKET_OPTIONS = [
-    //{ label: 'Please Select', value: '' },
     { label: 'Whitefield', value: 'whitefield' },
     { label: 'Koramangala', value: 'koramangala' },
     { label: 'Indiranagar', value: 'indiranagar' },
@@ -71,7 +69,6 @@ const MICRO_MARKET_OPTIONS = [
 ]
 
 const PROPERTY_TYPE_OPTIONS = [
-    // { label: 'Please Select', value: '' },
     { label: 'Plot', value: 'plot' },
     { label: 'Apartment', value: 'apartment' },
     { label: 'Villa', value: 'villa' },
@@ -80,18 +77,16 @@ const PROPERTY_TYPE_OPTIONS = [
     { label: 'Farm House', value: 'farm house' },
 ]
 
-const TYPOLOGY_OPTIONS = [
-    //{ label: 'Please Select', value: '' },
-    { label: '1 BHK', value: '1 BHK' },
-    { label: '2 BHK', value: '2 BHK' },
-    { label: '3 BHK', value: '3 BHK' },
-    { label: '4 BHK', value: '4 BHK' },
-    { label: '5 BHK', value: '5 BHK' },
-    { label: 'Penthouse', value: 'penthouse' },
-]
+// const _TYPOLOGY_OPTIONS = [
+//     { label: '1 BHK', value: '1 BHK' },
+//     { label: '2 BHK', value: '2 BHK' },
+//     { label: '3 BHK', value: '3 BHK' },
+//     { label: '4 BHK', value: '4 BHK' },
+//     { label: '5 BHK', value: '5 BHK' },
+//     { label: 'Penthouse', value: 'penthouse' },
+// ]
 
 const PROPERTY_STAGE_OPTIONS = [
-    // { label: 'Please Select', value: '' },
     { label: 'Pre Launch', value: 'Pre Launch' },
     { label: 'Launch', value: 'Launch' },
     { label: 'Under Construction', value: 'Under Construction' },
@@ -116,7 +111,7 @@ const Requirements: React.FC<RequirementsProps> = ({
     enquiryId,
     requirements: existingRequirements = [],
     onRequirementsUpdate,
-    refreshData,
+    // refreshData,
 }) => {
     // State management
     const [activeRequirement, setActiveRequirement] = useState<string | null>(null)
@@ -126,7 +121,7 @@ const Requirements: React.FC<RequirementsProps> = ({
     const [requirements, setRequirements] = useState<Requirement[]>(existingRequirements)
     const [isRequirementModalOpen, setIsRequirementModalOpen] = useState(false)
 
-    const dispatch = useDispatch<AppDispatch>()
+    // const dispatch = useDispatch<AppDispatch>()
     const { taskState } = useSelector((state: RootState) => state.taskId)
 
     // Update local requirements when props change
@@ -135,7 +130,7 @@ const Requirements: React.FC<RequirementsProps> = ({
         if (existingRequirements.length > 0 && !activeRequirement && !isAddingNew) {
             setActiveRequirement(existingRequirements[0].id)
         }
-    }, [existingRequirements])
+    }, [existingRequirements, activeRequirement, isAddingNew])
 
     // Handle form input changes
     const handleInputChange = (field: string, value: string) => {
@@ -200,7 +195,7 @@ const Requirements: React.FC<RequirementsProps> = ({
             await enquiryService.addNote(enquiryId, {
                 agentId: 'system',
                 agentName: 'System',
-                TaskType: 'requirement collection',
+                taskType: 'requirement collection',
                 note: noteContent,
             })
 
@@ -272,13 +267,23 @@ const Requirements: React.FC<RequirementsProps> = ({
     const currentYear = new Date().getFullYear()
     const possessionOptions = [
         ...Array.from({ length: 15 }, (_, i) => {
-            const year = (currentYear - i).toString()
+            const year = (currentYear + i).toString()
             return { label: year, value: year }
         }),
     ]
 
     // Get current requirement for display
     const currentRequirement = requirements.find((req) => req.id === activeRequirement)
+
+    // Helper function to get dropdown trigger class based on selected value
+    const getDropdownTriggerClassName = (fieldValue: string) => {
+        const baseClassName =
+            'w-full px-3 py-2 w-63.5 bg-white text-gray-500 border rounded-md flex items-center justify-between text-left h-[32px] '
+        const borderClass = fieldValue
+            ? 'border border-gray-300 text-gray-900 focus:outline-none focus:border-black'
+            : 'border border-gray-300 focus:outline-none focus:border-black'
+        return `${baseClassName} ${borderClass}`
+    }
 
     // No enquiry selected state
     if (!enquiryId) {
@@ -306,86 +311,79 @@ const Requirements: React.FC<RequirementsProps> = ({
     }
 
     // Common styling
-    const labelClassName = 'block text-sm font-medium text-gray-600 w-fit h-fit'
+    const labelClassName = 'block text-sm font-medium text-gray-900 mb-1.5 text-sm placeholder:text-sm'
     const readOnlyFieldClassName =
-        'w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 w-[254px] h-[32px] flex items-center'
-    const dropdownClassName = 'w-[254px] h-[32px]'
-    const dropdownTriggerClassName =
-        'w-full px-[28px] py-2 border border-gray-300 bg-white text-gray-700 rounded-md flex items-center justify-between text-left h-[36px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-gray-500'
+        'w-63.5 border border-gray-200 rounded-md px-3 py-2 text-gray-500 bg-gray-50 text-gray-700 h-[32px] flex items-center text-sm'
+    const dropdownClassName = 'w-full focus:outline-none focus:border-black rounded-md text-sm'
     const dropdownMenuClassName =
-        'absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[200px] overflow-auto'
+        'absolute z-10 top-full w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[200px] overflow-auto'
     const dropdownOptionClassName = 'px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer'
     const inputClassName =
-        'border border-gray-300 rounded-md px-3 py-2 text-gray-700 w-[254px] h-[32px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+        'border border-gray-300 rounded-md px-3 py-2 text-gray-900 w-63.5 h-[32px] focus:outline-none focus:border-black text-sm'
 
     return (
         <div className='bg-white rounded-lg p-5'>
             {/* Requirement Tabs */}
             {(requirements.length > 0 || isAddingNew) && (
                 <div className='border-b border-gray-200 mb-6'>
-                    <nav className='flex items-center space-x-6'>
-                        <div className='flex space-x-4 overflow-x-auto scrollbar-hide'>
-                            {requirements.map((requirement, index) => (
-                                <button
-                                    key={requirement.id}
-                                    onClick={() => handleRequirementSelect(requirement.id)}
-                                    className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                                        activeRequirement === requirement.id && !isAddingNew
-                                            ? 'border-blue-500 text-blue-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
-                                >
-                                    Requirement {index + 1}
-                                </button>
-                            ))}
+                    <nav className='flex space-x-8'>
+                        {requirements.map((requirement, index) => (
+                            <button
+                                key={requirement.id}
+                                onClick={() => handleRequirementSelect(requirement.id)}
+                                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                    activeRequirement === requirement.id && !isAddingNew
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                            >
+                                Requirement {index + 1}
+                            </button>
+                        ))}
 
-                            {isAddingNew && (
-                                <button className='py-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm whitespace-nowrap'>
-                                    New Requirement
-                                </button>
-                            )}
+                        {isAddingNew && (
+                            <button className='py-2 px-1 border-b-2 border-black text-black font-medium text-sm'>
+                                Requirement
+                            </button>
+                        )}
+                        <div className='py-2'>
+                            <button
+                                onClick={handleAddNew}
+                                className='flex items-center py-2 gap-2 bg-gray-200 text-gray-900 px-4 rounded-md text-sm w-[78px] h-[28px] font-medium hover:bg-glack'
+                                disabled={isAddingNew}
+                            >
+                                <svg width='8' height='8' viewBox='0 0 16 16' fill='none'>
+                                    <path
+                                        d='M8 1V15M1 8H15'
+                                        stroke='currentColor'
+                                        strokeWidth='2'
+                                        strokeLinecap='round'
+                                        strokeLinejoin='round'
+                                    />
+                                </svg>
+                                Add
+                            </button>
                         </div>
-
-                        <button
-                            onClick={handleAddNew}
-                            className='flex items-center gap-2 bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors ml-auto h-[32px]'
-                            disabled={isAddingNew}
-                        >
-                            <svg width='10' height='10' viewBox='0 0 16 16' fill='none'>
-                                <path
-                                    d='M8 1V15M1 8H15'
-                                    stroke='currentColor'
-                                    strokeWidth='2'
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                />
-                            </svg>
-                            <span>Add</span>
-                        </button>
                     </nav>
                 </div>
             )}
-
             {/* Content Area */}
             {isAddingNew ? (
                 // Add New Requirement Form
                 <div>
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-4 mb-6'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-7 mb-6 w-fit'>
                         {/* Row 1 */}
-                        <div
-                            className='w-fit'
-                            // constructor(parameters) {
-
-                            // }
-                        >
-                            <label className={labelClassName}>Expected Budget</label>
+                        <div>
+                            <label className={labelClassName}>
+                                Expected Budget<span className='text-red-500'> *</span>
+                            </label>
                             <Dropdown
                                 options={BUDGET_OPTIONS}
                                 onSelect={(value) => handleInputChange('expectedBudget', value)}
                                 defaultValue={formData.expectedBudget}
                                 placeholder='Please Select'
                                 className={dropdownClassName}
-                                triggerClassName={dropdownTriggerClassName}
+                                triggerClassName={getDropdownTriggerClassName(formData.expectedBudget)}
                                 menuClassName={dropdownMenuClassName}
                                 optionClassName={dropdownOptionClassName}
                                 disabled={saving}
@@ -400,7 +398,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 defaultValue={formData.zone}
                                 placeholder='Please Select'
                                 className={dropdownClassName}
-                                triggerClassName={dropdownTriggerClassName}
+                                triggerClassName={getDropdownTriggerClassName(formData.zone)}
                                 menuClassName={dropdownMenuClassName}
                                 optionClassName={dropdownOptionClassName}
                                 disabled={saving}
@@ -415,7 +413,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 defaultValue={formData.microMarket}
                                 placeholder='Please Select'
                                 className={dropdownClassName}
-                                triggerClassName={dropdownTriggerClassName}
+                                triggerClassName={getDropdownTriggerClassName(formData.microMarket)}
                                 menuClassName={dropdownMenuClassName}
                                 optionClassName={dropdownOptionClassName}
                                 disabled={saving}
@@ -424,42 +422,30 @@ const Requirements: React.FC<RequirementsProps> = ({
 
                         {/* Row 2 */}
                         <div>
-                            <label className={labelClassName}>Property Type</label>
+                            <label className={labelClassName}>
+                                Property Type<span className='text-red-500'> *</span>
+                            </label>
                             <Dropdown
                                 options={PROPERTY_TYPE_OPTIONS}
                                 onSelect={(value) => handleInputChange('propertyType', value)}
                                 defaultValue={formData.propertyType}
                                 placeholder='Please Select'
                                 className={dropdownClassName}
-                                triggerClassName={dropdownTriggerClassName}
+                                triggerClassName={getDropdownTriggerClassName(formData.propertyType)}
                                 menuClassName={dropdownMenuClassName}
                                 optionClassName={dropdownOptionClassName}
                                 disabled={saving}
                             />
                         </div>
 
-                        {/* <div>
-                            <label className={labelClassName}>Typology</label>
-                            <Dropdown
-                                options={TYPOLOGY_OPTIONS}
-                                onSelect={(value) => handleInputChange('typology', value)}
-                                defaultValue={formData.typology}
-                                placeholder='Please Select'
-                                className={dropdownClassName}
-                                triggerClassName={dropdownTriggerClassName}
-                                menuClassName={dropdownMenuClassName}
-                                optionClassName={dropdownOptionClassName}
-                                disabled={saving}
-                            />
-                        </div> */}
                         <div>
                             <label className={labelClassName}>Typology</label>
                             <input
                                 type='text'
-                                value={formData.size}
-                                onChange={(e) => handleInputChange('size', e.target.value)}
-                                placeholder='Please Select'
-                                className='w-full px-4 py-2 border font-medium border-gray-300 rounded-lg focus:outline-none focus:border-black text-sm'
+                                value={formData.typology}
+                                onChange={(e) => handleInputChange('typology', e.target.value)}
+                                placeholder='Select Typology'
+                                className={inputClassName}
                                 disabled={saving}
                             />
                         </div>
@@ -478,14 +464,16 @@ const Requirements: React.FC<RequirementsProps> = ({
 
                         {/* Row 3 */}
                         <div>
-                            <label className={labelClassName}>Property Stage</label>
+                            <label className={labelClassName}>
+                                Property Stage<span className='text-red-500'> *</span>
+                            </label>
                             <Dropdown
                                 options={PROPERTY_STAGE_OPTIONS}
                                 onSelect={(value) => handleInputChange('propertyStage', value)}
                                 defaultValue={formData.propertyStage}
                                 placeholder='Please Select'
                                 className={dropdownClassName}
-                                triggerClassName={dropdownTriggerClassName}
+                                triggerClassName={getDropdownTriggerClassName(formData.propertyStage)}
                                 menuClassName={dropdownMenuClassName}
                                 optionClassName={dropdownOptionClassName}
                                 disabled={saving}
@@ -500,7 +488,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 defaultValue={formData.possessionType}
                                 placeholder='Select Year'
                                 className={dropdownClassName}
-                                triggerClassName={dropdownTriggerClassName}
+                                triggerClassName={getDropdownTriggerClassName(formData.possessionType)}
                                 menuClassName={dropdownMenuClassName}
                                 optionClassName={dropdownOptionClassName}
                                 disabled={saving}
@@ -515,7 +503,8 @@ const Requirements: React.FC<RequirementsProps> = ({
                             value={formData.notes}
                             onChange={(e) => handleInputChange('notes', e.target.value)}
                             placeholder='Any specific requirements or preferences...'
-                            className='w-[557px] h-[71px] border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-700'
+                            rows={3}
+                            className='w-[536px] border border-gray-300 rounded-sm px-3 py-2 w-128 focus:outline-none focus:ring-1 focus:ring-black-500 focus:border-black-500 text-gray-900'
                             disabled={saving}
                         />
                     </div>
@@ -525,14 +514,16 @@ const Requirements: React.FC<RequirementsProps> = ({
                         <button
                             onClick={handleDiscard}
                             disabled={saving}
-                            className='px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium disabled:opacity-50'
+                            className='px-6 py-2 w-30 text-gray-600 bg-gray-200 rounded-sm hover:text-gray-800 hover:bg-gray-300 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                         >
                             Discard
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={saving}
-                            className='px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 min-w-[80px]'
+                            disabled={
+                                saving || !formData.expectedBudget || !formData.propertyType || !formData.propertyStage
+                            }
+                            className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {saving && (
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
@@ -557,7 +548,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                         </div>
                     </div>
 
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-7 md:gap-7 mb-6 w-fit'>
                         {/* Row 1 */}
                         <div>
                             <label className={labelClassName}>Expected Budget</label>
@@ -568,13 +559,15 @@ const Requirements: React.FC<RequirementsProps> = ({
 
                         <div>
                             <label className={labelClassName}>Zone</label>
-                            <div className={readOnlyFieldClassName}>{currentRequirement.zone || 'Not specified'}</div>
+                            <div className={readOnlyFieldClassName}>
+                                {toCapitalizedWords(currentRequirement.zone) || 'Not specified'}
+                            </div>
                         </div>
 
                         <div>
                             <label className={labelClassName}>Micro Market</label>
                             <div className={readOnlyFieldClassName}>
-                                {currentRequirement.microMarket || 'Not specified'}
+                                {toCapitalizedWords(currentRequirement.microMarket) || 'Not specified'}
                             </div>
                         </div>
 
@@ -582,7 +575,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                         <div>
                             <label className={labelClassName}>Property Type</label>
                             <div className={readOnlyFieldClassName}>
-                                {currentRequirement.propertyType || 'Not specified'}
+                                {toCapitalizedWords(currentRequirement.propertyType) || 'Not specified'}
                             </div>
                         </div>
 
@@ -618,7 +611,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                     {currentRequirement.notes && (
                         <div className='mb-6'>
                             <label className={labelClassName}>Notes</label>
-                            <div className='w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 min-h-[80px]'>
+                            <div className='w-[536px] border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-700 min-h-[80px]'>
                                 {currentRequirement.notes}
                             </div>
                         </div>

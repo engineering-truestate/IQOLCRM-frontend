@@ -99,20 +99,22 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
 
     // Get appropriate label for the date field
-    const getDateLabel = () => {
-        if (task.status === 'complete' && task.firebaseTask?.completionDate) {
-            return 'Completed On:'
-        }
-        return 'Scheduled For:'
-    }
+    // const getDateLabel = () => {
+    //     if (task.status === 'complete' && task.firebaseTask?.completionDate) {
+    //         return 'Completed On:'
+    //     }
+    //     return 'Scheduled For:'
+    // }
 
     return (
         <div
             onClick={handleCardClick}
-            className='rounded-md border border-gray-300 cursor-pointer transition-all duration-200 '
+            className={`rounded-md border border-gray-300 ${
+                task?.status === 'complete' ? 'cursor-not-allowed' : 'cursor-pointer'
+            } transition-all duration-200 ]`}
         >
             <div
-                className={`grid grid-cols-3 rounded-t-md gap-40 px-3 py-2.5 items-start ${isExpanded ? 'bg-gray-100' : ''}`}
+                className={`grid grid-cols-3 rounded-t-md gap-36 px-3 py-2.5 items-start hover:bg-gray-100 ${isExpanded ? 'bg-gray-100' : ''}`}
             >
                 {/* Task Title & Date */}
                 <div className='flex items-center justify-between'>
@@ -121,33 +123,38 @@ const TaskCard: React.FC<TaskCardProps> = ({
                             Task {index + 1}: {formatValue(task.title)}
                         </div>
                         <div className='text-xs text-gray-500'>
-                            Date: {task.date ? formatUnixDateTime(task.date) : 'Not Available'}
+                            Created:{' '}
+                            {task.date
+                                ? formatUnixDateTime(typeof task.date === 'string' ? Number(task.date) : task.date)
+                                : 'Not Available'}
                         </div>
                     </div>
                 </div>
 
                 {/* Status Dropdown */}
                 <div>
-                    <div className='text-sm font-medium text-gray-900'>Task Status</div>
+                    <div className='text-sm font-medium text-gray-900 '>Task Status</div>
                     <Dropdown
                         onSelect={handleStatusChange}
-                        disabled={task.status === 'complete' || task.type !== 'lead registration'}
+                        disabled={task.type !== 'lead registration' || task.status === 'complete'}
                         options={taskStatusOptions}
                         defaultValue={task.status}
-                        className='w-22'
+                        className='w-22 inline-block '
                         triggerClassName={`relative w-full h-4.5 px-2 py-1 border border-gray-300 rounded-sm text-xs text-gray-700 bg-white flex items-center justify-between focus:outline-none 
-${
-    task.status === 'complete' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-} ${task.status ? '[&>span]:font-medium text-black capitalize' : ''}`}
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
+  ${task.type !== 'lead registration' || task.status === 'complete' ? 'opacity-50 cursor-not-allowed [&>svg]:hidden' : 'cursor-pointer'}
+  ${task.status ? '[&>span]:font-medium text-black capitalize' : ''}`}
+                        menuClassName='absolute z-50 mt-0.5 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                        optionClassName='px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
                     />
+
                     {updating && <div className='text-xs text-blue-500 mt-1'>Updating...</div>}
                 </div>
 
                 {/* Scheduled Info */}
                 <div>
-                    <div className='font-medium text-sm text-gray-900 mb-1'>{formatValue(task.scheduledInfo)}</div>
+                    <div className='font-medium text-sm text-gray-900 mb-1'>
+                        {task.firebaseTask?.completionDate ? 'Completion Date' : formatValue(task.scheduledInfo)}
+                    </div>
                     <div className='text-xs text-gray-500'>{getFormattedDate()}</div>
                 </div>
             </div>

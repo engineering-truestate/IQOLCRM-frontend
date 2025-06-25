@@ -95,7 +95,7 @@ const CommonInput: React.FC<CommonInputProps> = ({
             {/* Input Section */}
             <div className='relative'>
                 <div
-                    className={`flex items-center rounded-lg border transition-colors ${
+                    className={`flex items-center rounded-lg border transition-colors ${className} ${
                         statusClasses[actualStatus]
                     } ${className}`}
                 >
