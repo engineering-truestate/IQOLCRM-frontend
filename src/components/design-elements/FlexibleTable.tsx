@@ -273,7 +273,7 @@ export function FlexibleTable({
     }
 
     const handleRowSelect = (rowId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-        console.log(rowId)
+        //console.log(rowId, 'here2')
         onRowSelect?.(rowId, e.target.checked)
     }
 
@@ -431,7 +431,9 @@ export function FlexibleTable({
                             </tr>
                         ) : (
                             data.map((row, index) => {
-                                const isSelected = selectedRows.includes(row?.taskId || row?.leadId || row.id)
+                                const isSelected = selectedRows.includes(
+                                    row?.taskId || row?.leadId || row?.propertyId || row.id,
+                                )
                                 const rowClasses = [
                                     hoverable ? 'hover:bg-gray-50' : '',
                                     striped && index % 2 === 0 ? 'bg-gray-50' : '',
@@ -442,7 +444,7 @@ export function FlexibleTable({
 
                                 return (
                                     <tr
-                                        key={row.id || index}
+                                        key={row.id || index || row?.propertyId}
                                         className={`${rowClasses} ${onRowClick ? 'cursor-pointer' : ''}`}
                                     >
                                         {showCheckboxes && (
@@ -458,7 +460,9 @@ export function FlexibleTable({
                                                     type='checkbox'
                                                     className='h-4 w-4 rounded border-gray-300'
                                                     checked={isSelected}
-                                                    onChange={(e) => handleRowSelect(row?.leadId || row.id, e)}
+                                                    onChange={(e) =>
+                                                        handleRowSelect(row?.leadId || row.id || row?.propertyId, e)
+                                                    }
                                                 />
                                             </td>
                                         )}

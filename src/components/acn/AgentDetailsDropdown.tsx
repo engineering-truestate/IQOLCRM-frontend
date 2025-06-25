@@ -311,7 +311,7 @@ export default function AgentDetailsDropdown({
                                     disabled={upgradeLoading || agentDetails.userType === 'premium'}
                                     className={`w-full px-3 py-2 text-xs font-medium rounded-md transition-colors ${
                                         agentDetails.userType === 'premium'
-                                            ? 'bg-green-700 text-white cursor-not-allowed'
+                                            ? 'bg-black text-white cursor-not-allowed'
                                             : upgradeLoading
                                               ? 'bg-black text-white cursor-not-allowed'
                                               : 'bg-black text-white'
