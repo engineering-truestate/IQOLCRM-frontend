@@ -21,14 +21,14 @@ import {
     selectKAMOptions,
     selectKAMOptionsLoading,
     selectLeadValidationLoading,
-    selectLeadValidationError,
+    // selectLeadValidationError,
     clearCSVValidationError,
     clearValidatedCSVData,
     clearBulkAddError,
     clearManualAddError,
     clearLeadValidationError,
 } from '../../store/reducers/acn/leadsReducers'
-import type { AppDispatch, RootState } from '../../store'
+import type { AppDispatch } from '../../store'
 import { toast } from 'react-toastify'
 
 interface BulkLeadData {
@@ -69,7 +69,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
     const kamOptions = useSelector(selectKAMOptions)
     const kamOptionsLoading = useSelector(selectKAMOptionsLoading)
     const leadValidationLoading = useSelector(selectLeadValidationLoading)
-    const leadValidationError = useSelector(selectLeadValidationError)
+    // const leadValidationError = useSelector(selectLeadValidationError)
 
     // Manual upload form state
     const [manualForm, setManualForm] = useState({

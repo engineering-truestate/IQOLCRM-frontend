@@ -1,9 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
-import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import Dropdown from '../../../components/design-elements/Dropdown'
-import { SelectionGroup } from '../../../components/design-elements/SelectionButtonsGroup'
+import React from 'react'
 // Import or create the following field components to match native logic
 import PlacesSearch from '../../../components/design-elements/PlacesSearch'
 import MonthYearPicker from '../../../components/design-elements/ListingFields/MonthYearPicker'

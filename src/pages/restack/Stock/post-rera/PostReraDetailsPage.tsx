@@ -489,7 +489,7 @@ const PostReraDetailsPage = () => {
                   {
                       key: 'actions',
                       header: 'Actions',
-                      render: (value: any, row: any) => (
+                      render: (_: any, row: any) => (
                           <div className='flex gap-2'>
                               {editingRowId === row.id ? (
                                   <>

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { MdLocationOn } from 'react-icons/md'
 import algoliaAgentsService from '../../services/acn/agents/algoliaAgentsService'
 import type { AgentSearchFilters } from '../../services/acn/agents/algoliaAgentsService'
 import AlgoliaFacetMultiSelect from '../design-elements/AlgoliaFacetMultiSelect'
 import DateRangePicker from '../design-elements/DateRangePicker'
 import Button from '../design-elements/Button'
-import { getUnixDateTimeCustom } from '../helper/getUnixDateTime'
 
 // ---------- Types ----------
 
@@ -14,11 +12,6 @@ interface AgentsFiltersModalProps {
     onClose: () => void
     filters: AgentSearchFilters
     onFiltersChange: (filters: AgentSearchFilters) => void
-}
-
-// Helper function to get Unix timestamp from date string
-const getUnixTimestamp = (dateString: string): number => {
-    return getUnixDateTimeCustom(dateString)
 }
 
 // Helper function to get start of day timestamp

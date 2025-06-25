@@ -56,9 +56,7 @@ const StatusCard = ({
         >
             <div className='flex w-full items-center gap-2'>
                 <span className='text-sm font-normal w-17.5 text-gray-700'>{title}</span>
-                <span className={`text-lg font-semibold font-normal ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>
-                    {count}
-                </span>
+                <span className={`text-lg font-semibold ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>{count}</span>
             </div>
         </button>
     )

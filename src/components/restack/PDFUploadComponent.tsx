@@ -26,7 +26,7 @@ const PDFUploadComponent: React.FC<PDFUploadProps> = ({
 }) => {
     const [isDragOver, setIsDragOver] = useState(false)
     const [uploading, setUploading] = useState(false)
-    const [previewFile, setPreviewFile] = useState<string | null>(null)
+    // const [previewFile, setPreviewFile] = useState<string | null>(null)
 
     // Filter out null, undefined, and empty string values from files array
     const validFiles = files.filter((file) => file && file.trim() !== '')

@@ -4,9 +4,7 @@ import type { SearchFilters, FacetValue } from '../../services/acn/properties/al
 import AlgoliaFacetMultiSelect from '../design-elements/AlgoliaFacetMultiSelect'
 import DateRangePicker from '../design-elements/DateRangePicker'
 import Button from '../design-elements/Button'
-import { getUnixDateTimeCustom } from '../helper/getUnixDateTime'
 import { SelectionGroup } from '../design-elements/SelectionButtonsGroup'
-import StateBaseTextField from '../design-elements/StateBaseTextField'
 import PlacesSearch from '../design-elements/PlacesSearch'
 
 function useDebouncedCallback<A extends any[]>(callback: (...args: A) => void, wait: number): (...args: A) => void {
@@ -96,11 +94,6 @@ const RangeInput = ({
     )
 }
 
-// Helper function to get Unix timestamp from date string
-const getUnixTimestamp = (dateString: string): number => {
-    return getUnixDateTimeCustom(dateString)
-}
-
 // Helper function to get start of day timestamp
 const getStartOfDayTimestamp = (dateString: string): number => {
     const date = new Date(dateString)
@@ -134,7 +127,7 @@ export const PropertiesFiltersModal: React.FC<PropertiesFiltersModalProps> = ({
     }>({
         dateOfStatusLastChecked: { min: 0, max: Math.floor(Date.now() / 1000) },
     })
-    const [dateRanges, setDateRanges] = useState<{
+    const [_, setDateRanges] = useState<{
         dateOfStatusLastChecked: { start?: string; end?: string }
     }>({
         dateOfStatusLastChecked: {},
@@ -215,11 +208,6 @@ export const PropertiesFiltersModal: React.FC<PropertiesFiltersModalProps> = ({
             setLandmarkValue(filters.landmark || '')
         }
     }, [filters.landmark])
-
-    const handleLandmarkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setLandmarkValue(e.target.value)
-        debouncedOnFiltersChange({ ...filters, landmark: e.target.value })
-    }
 
     const handleReset = () => {
         onFiltersChange({})

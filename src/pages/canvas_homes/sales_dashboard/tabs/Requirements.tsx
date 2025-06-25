@@ -504,7 +504,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                             onChange={(e) => handleInputChange('notes', e.target.value)}
                             placeholder='Any specific requirements or preferences...'
                             rows={3}
-                            className='w-[536px] border border-gray-300 rounded-sm px-3 py-2 w-128 focus:outline-none focus:ring-1 focus:ring-black-500 focus:border-black-500 text-gray-900'
+                            className='border border-gray-300 rounded-sm px-3 py-2 w-128 focus:outline-none focus:ring-1 focus:ring-black-500 focus:border-black-500 text-gray-900'
                             disabled={saving}
                         />
                     </div>

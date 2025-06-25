@@ -675,7 +675,7 @@ text-decoration-line: underline'
                                     </div>
                                 </div>
                                 <div className='mt-0'>
-                                    <button className='w-full py-1 text-sm rounded-md pb-1 bg-gray-200 text-sm font-normal text-[#3A3A47] hover:bg-gray-300 transition-colors'>
+                                    <button className='w-full py-1 text-sm rounded-md pb-1 bg-gray-200 font-normal text-[#3A3A47] hover:bg-gray-300 transition-colors'>
                                         Details From Sign 3
                                     </button>
                                 </div>

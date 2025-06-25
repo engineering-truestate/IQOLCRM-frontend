@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
 
 import editic from '/icons/acn/edit.svg'
 
 import { toast } from 'react-toastify'
-import type { AppDispatch } from '../../../store'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import DateInput from '../../../components/design-elements/DateInputUnixTimestamps'
-import NumberInput from '../../../components/design-elements/StateBaseNumberField'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 import Layout from '../../../layout/Layout'
@@ -38,14 +35,14 @@ const configurationOptions = [
     { label: '4BHK Flat', value: '4BHK Flat' },
 ]
 
-const propertyTypes = [
-    { label: 'Apartment', value: 'Apartment' },
-    { label: 'Villa', value: 'Villa' },
-    { label: 'Plot', value: 'Plot' },
-    { label: 'Office', value: 'Office' },
-    { label: 'Shop', value: 'Shop' },
-    { label: 'Warehouse', value: 'Warehouse' },
-]
+// const propertyTypes = [
+//     { label: 'Apartment', value: 'Apartment' },
+//     { label: 'Villa', value: 'Villa' },
+//     { label: 'Plot', value: 'Plot' },
+//     { label: 'Office', value: 'Office' },
+//     { label: 'Shop', value: 'Shop' },
+//     { label: 'Warehouse', value: 'Warehouse' },
+// ]
 
 const furnishingOptions = [
     { label: 'Furnished', value: 'Furnished' },
@@ -53,30 +50,30 @@ const furnishingOptions = [
     { label: 'Unfurnished', value: 'Unfurnished' },
 ]
 
-const ageOfPropertyOptions = [
-    { label: 'New Construction', value: 'New Construction' },
-    { label: '1-5 years', value: '1-5 years' },
-    { label: '5-10 years', value: '5-10 years' },
-    { label: '10+ years', value: '10+ years' },
-]
+// const ageOfPropertyOptions = [
+//     { label: 'New Construction', value: 'New Construction' },
+//     { label: '1-5 years', value: '1-5 years' },
+//     { label: '5-10 years', value: '5-10 years' },
+//     { label: '10+ years', value: '10+ years' },
+// ]
 
-const listingStatusOptions = [
-    { label: 'Active', value: 'active' },
-    { label: 'Inactive', value: 'inactive' },
-    { label: 'Rented', value: 'rented' },
-]
+// const listingStatusOptions = [
+//     { label: 'Active', value: 'active' },
+//     { label: 'Inactive', value: 'inactive' },
+//     { label: 'Rented', value: 'rented' },
+// ]
 
-const tenantTypeOptions = [
-    { label: 'Family', value: 'Family' },
-    { label: 'Bachelor', value: 'Bachelor' },
-    { label: 'Company', value: 'Company' },
-    { label: 'Any', value: 'Any' },
-]
+// const tenantTypeOptions = [
+//     { label: 'Family', value: 'Family' },
+//     { label: 'Bachelor', value: 'Bachelor' },
+//     { label: 'Company', value: 'Company' },
+//     { label: 'Any', value: 'Any' },
+// ]
 
 const RentalDetailsPage = () => {
     const navigate = useNavigate()
     const { type, id } = useParams()
-    const dispatch = useDispatch<AppDispatch>()
+    // const dispatch = useDispatch<AppDispatch>()
     const [propertyDetails, setPropertyDetails] = useState<RestackRentalProperty | null>(null)
     const [originalDetails, setOriginalDetails] = useState<RestackRentalProperty | null>(null)
     const [isEditing, setIsEditing] = useState(false)

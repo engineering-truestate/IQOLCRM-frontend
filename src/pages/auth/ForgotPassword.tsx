@@ -7,19 +7,19 @@ interface ForgotPasswordProps {
     onBackToLogin?: () => void
     onSuccess?: (email: string) => void
     onError?: (error: string) => void
-    className?: string
+    // className?: string
 }
 
 const ForgotPassword: React.FC<ForgotPasswordProps> = ({
     onSuccess = () => console.log('hiii'),
     onError,
-    className = '',
+    // className = '',
 }) => {
     const navigate = useNavigate()
     const [email, setEmail] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
-    const [message, setMessage] = useState('')
-    const [isSuccess, setIsSuccess] = useState(false)
+    // const [_, setIsLoading] = useState(false)
+    // const [_, setMessage] = useState('')
+    // const [_, setIsSuccess] = useState(false)
 
     const validateEmail = (email: string): boolean => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -31,26 +31,26 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({
 
         if (!email.trim()) {
             const errorMsg = 'Please enter your email address'
-            setMessage(errorMsg)
+            // setMessage(errorMsg)
             onError?.(errorMsg)
             return
         }
 
         if (!validateEmail(email)) {
             const errorMsg = 'Please enter a valid email address'
-            setMessage(errorMsg)
+            // setMessage(errorMsg)
             onError?.(errorMsg)
             return
         }
 
-        setIsLoading(true)
-        setMessage('')
+        // setIsLoading(true)
+        // setMessage('')
 
         try {
             await sendForgotPasswordEmail(email)
-            const successMsg = 'Password reset email sent! Check your inbox.'
-            setMessage(successMsg)
-            setIsSuccess(true)
+            // const successMsg = 'Password reset email sent! Check your inbox.'
+            // setMessage(successMsg)
+            // setIsSuccess(true)
             onSuccess?.(email)
         } catch (error: any) {
             let errorMessage = 'Failed to send password reset email'
@@ -66,11 +66,11 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({
                 errorMessage = error.message
             }
 
-            setMessage(errorMessage)
-            setIsSuccess(false)
+            // setMessage(errorMessage)
+            // setIsSuccess(false)
             onError?.(errorMessage)
         } finally {
-            setIsLoading(false)
+            // setIsLoading(false)
         }
     }
 
@@ -82,7 +82,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({
         <div
             className='flex flex-col items-center justify-center min-h-screen'
             style={{
-                backgroundImage: `url(${design})`,
+                // backgroundImage: `url(${design})`,
                 backgroundSize: 'cover',
                 backgroundRepeat: 'no-repeat',
             }}

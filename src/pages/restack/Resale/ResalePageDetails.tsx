@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
@@ -23,6 +23,7 @@ import {
     updateMyGateResaleDataById,
 } from '../../../services/restack/resaleService'
 import { FlexibleTable } from '../../../components/design-elements/FlexibleTable'
+import Breadcrumb from '../../../components/acn/Breadcrumb'
 
 // Property type options
 const propertyTypes = [
@@ -166,7 +167,6 @@ const ImageGallery = ({ images }: { images?: any[] }) => {
 }
 
 const ResaleDetailsPage = () => {
-    const navigate = useNavigate()
     const { type, id } = useParams()
 
     const [propertyDetails, setPropertyDetails] = useState<RestackResaleProperty | null>(null)
@@ -391,6 +391,11 @@ const ResaleDetailsPage = () => {
                         <div className='flex items-center justify-between mb-4'>
                             <h1 className='text-xl font-semibold text-gray-900'>Property Details</h1>
                         </div>
+                        <Breadcrumb
+                            link={`/restack/resale/${type}`}
+                            parent='Resale'
+                            child={propertyDetails.propertyId}
+                        />
                     </div>
                     <hr className='border-gray-200 mb-4 w-full' />
 
@@ -407,13 +412,6 @@ const ResaleDetailsPage = () => {
                         <div className='flex items-center justify-between mb-2'>
                             <h2 className='text-xl font-semibold text-black'>{propertyDetails.projectName}</h2>
                             <span className='text-lg font-semibold text-black'>{propertyDetails.price}</span>
-                        </div>
-                        <div className='text-sm text-gray-500 mt-1'>
-                            <button onClick={() => navigate(`/restack/resale/${type}`)} className='hover:text-gray-700'>
-                                Resale
-                            </button>
-                            <span className='mx-2'>/</span>
-                            <span className='text-black font-medium'>{propertyDetails.propertyId}</span>
                         </div>
                     </div>
 

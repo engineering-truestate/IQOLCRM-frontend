@@ -110,7 +110,7 @@ const Notes: React.FC<NotesProps> = ({ notes = [], loading }) => {
                 {taskSections.map(
                     (section) =>
                         section.notes.length > 0 && (
-                            <div key={section.id} className='border border-gray-300 border-2 bg-red rounded-md h-45'>
+                            <div key={section.id} className='border border-gray-300 bg-red rounded-md h-45'>
                                 {/* Task Header */}
                                 <div className='flex items-center h-10 px-2 justify-between cursor-pointer border-b-2 border-gray-300 rounded-t-md'>
                                     <div className='flex flex-row'>

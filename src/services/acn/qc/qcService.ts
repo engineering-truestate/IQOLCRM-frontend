@@ -1,32 +1,14 @@
 // services/acn/qc/qcService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    where,
-    orderBy,
-    limit,
-    updateDoc,
-    arrayUnion,
-    serverTimestamp,
-    Timestamp,
-    setDoc,
-} from 'firebase/firestore'
+import { doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import type {
     IQCInventory,
     UpdateQCStatusParams,
-    UpdateKAMStatusParams,
-    UpdateDataTeamStatusParams,
     AddNoteParams,
     UpdateStatusResponse,
     AddNoteResponse,
     QCNote,
-    QCHistoryItem,
-    ReviewDetails,
 } from '../../../data_types/acn/types'
 
 // Helper function to get current timestamp
@@ -64,7 +46,7 @@ export const addQCInventory = createAsyncThunk<IQCInventory, Partial<IQCInventor
             console.log('🔄 Adding new QC inventory')
 
             const nextId = await getNextQcId()
-            const qcCollection = collection(db, 'acnQCInventories')
+            // const qcCollection = collection(db, 'acnQCInventories')
             const currentTime = getCurrentTimestamp()
 
             const newQcData: Partial<IQCInventory> = {
@@ -183,7 +165,7 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
 
             // Safely get current statuses with fallbacks
             const currentKamStatus = property.kamStatus || 'pending'
-            const currentDataStatus = property.qcStatus || 'pending'
+            // const currentDataStatus = property.qcStatus || 'pending'
 
             // Base QC review object
             const baseQCReview = {

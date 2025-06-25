@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
-import Button from '../../../../components/design-elements/Button'
+
 import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
 import usePreRera from '../../../../hooks/restack/usePreRera'
 import { formatUnixDate } from '../../../../components/helper/getUnixDateTime'
@@ -79,12 +79,6 @@ const PreReraPage = () => {
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
     ]
-
-    const [, setShowModal] = useState(false)
-
-    const handleAddProject = () => {
-        setShowModal(true)
-    }
 
     return (
         <Layout loading={loading}>

@@ -253,12 +253,12 @@ export function FlexibleTable({
     onSelectAll,
     actions = [],
     className = '',
-    rowClassName = '',
+    // rowClassName = '',
     headerClassName = '',
     cellClassName = '',
     emptyMessage = 'No data available',
-    hoverable = true,
-    striped = false,
+    // hoverable = true,
+    // striped = false,
     borders = {},
     maxHeight,
     stickyHeader = false,
@@ -268,9 +268,9 @@ export function FlexibleTable({
     const allSelected = data.length > 0 && selectedRows.length === data.length
     const someSelected = selectedRows.length > 0 && selectedRows.length < data.length
 
-    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onSelectAll?.(e.target.checked)
-    }
+    // const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     onSelectAll?.(e.target.checked)
+    // }
 
     const handleRowSelect = (rowId: string, e: React.ChangeEvent<HTMLInputElement>) => {
         //console.log(rowId, 'here2')
@@ -455,13 +455,13 @@ export function FlexibleTable({
                                 const isSelected = selectedRows.includes(
                                     row?.taskId || row?.leadId || row?.propertyId || row.id,
                                 )
-                                const rowClasses = [
-                                    hoverable ? 'hover:bg-gray-50' : '',
-                                    striped && index % 2 === 0 ? 'bg-gray-50' : '',
-                                    rowClassName,
-                                ]
-                                    .filter(Boolean)
-                                    .join(' ')
+                                // const rowClasses = [
+                                //     hoverable ? 'hover:bg-gray-50' : '',
+                                //     striped && index % 2 === 0 ? 'bg-gray-50' : '',
+                                //     rowClassName,
+                                // ]
+                                //     .filter(Boolean)
+                                //     .join(' ')
 
                                 return (
                                     <tr

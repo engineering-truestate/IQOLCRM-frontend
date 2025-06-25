@@ -137,7 +137,7 @@ const PreReraProjectEdit = () => {
         if (!project) return
         setProject({
             ...project,
-            TowerDetails: [...project.TowerDetails, { name: '', floors: 0 }],
+            TowerDetails: [...project.TowerDetails, { id: '1', name: '', floors: 0 }],
         })
     }
 

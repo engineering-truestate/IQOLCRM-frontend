@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useDispatch } from 'react-redux'
 import type { RestackRentalProperty } from '../../../data_types/restack/restack-rental.d'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Layout from '../../../layout/Layout'
@@ -101,7 +100,7 @@ const RentalPage = () => {
         {
             key: 'propertyName',
             header: 'Project Name',
-            render: (value: string, row: RestackRentalProperty) => (
+            render: (value: string, _: RestackRentalProperty) => (
                 <span className='whitespace-nowrap text-sm font-medium text-gray-900'>{value}</span>
             ),
         },
@@ -133,7 +132,7 @@ const RentalPage = () => {
         {
             key: 'actions',
             header: 'View Details',
-            render: (value: any, row: RestackRentalProperty) => (
+            render: (_: any, row: RestackRentalProperty) => (
                 <button
                     onClick={() => navigate(`/restack/rental/${type}/${row.propertyId}/details`)}
                     className='bg-black text-white text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'

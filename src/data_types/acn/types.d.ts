@@ -791,6 +791,7 @@ export interface AgentData {
     name?: string
     id?: string
     kamId?: string
+    lastFetch?: number
     // Add any other fields as needed
 }
 

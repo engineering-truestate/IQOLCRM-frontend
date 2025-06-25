@@ -80,7 +80,7 @@ export const generateRequirements = (): RequirementData[] => {
         const matchedPropertyIds = hasMatchedProperties
             ? Array.from(
                   { length: Math.floor(Math.random() * 4) + 1 },
-                  (_, j) => `PA${String(Math.floor(Math.random() * 1000) + 1).padStart(5, '0')}`,
+                  (_) => `PA${String(Math.floor(Math.random() * 1000) + 1).padStart(5, '0')}`,
               )
             : []
 

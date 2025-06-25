@@ -6,17 +6,17 @@ interface PlacePrediction {
     description: string
 }
 
-interface PlaceDetails {
-    name: string
-    formatted_address: string
-    geometry: {
-        location: {
-            lat: () => number
-            lng: () => number
-        }
-    }
-    url: string
-}
+// interface PlaceDetails {
+//     name: string
+//     formatted_address: string
+//     geometry: {
+//         location: {
+//             lat: () => number
+//             lng: () => number
+//         }
+//     }
+//     url: string
+// }
 
 interface Places {
     name: string
@@ -110,8 +110,8 @@ const PlacesSearch: React.FC<PlacesSearchProps> = ({
     const [blurredAndNotSelected, setBlurredAndNotSelected] = useState(false)
     const [apiError, setApiError] = useState<string | null>(null)
 
-    const autocompleteService = useRef<google.maps.places.AutocompleteSuggestion | null>(null)
-    const placesService = useRef<google.maps.places.Place | null>(null)
+    const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null)
+    const placesService = useRef<google.maps.places.PlacesService | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -127,8 +127,10 @@ const PlacesSearch: React.FC<PlacesSearchProps> = ({
                     // Add a small delay to ensure Google Maps is fully initialized
                     setTimeout(() => {
                         if (window.google && window.google.maps && window.google.maps.places) {
-                            autocompleteService.current = new window.google.maps.places.AutocompleteSuggestion()
-                            placesService.current = new window.google.maps.places.Place(document.createElement('div'))
+                            autocompleteService.current = new window.google.maps.places.AutocompleteService()
+                            placesService.current = new window.google.maps.places.PlacesService(
+                                document.createElement('div'),
+                            )
                             console.log('✅ Google Maps services initialized')
                         } else {
                             setApiError('Google Maps Places API not available')
@@ -170,7 +172,7 @@ const PlacesSearch: React.FC<PlacesSearchProps> = ({
         }
 
         setIsLoading(true)
-        autocompleteService.current.placePrediction(
+        autocompleteService.current.getPlacePredictions(
             {
                 input: query,
                 componentRestrictions: { country: 'in' },
@@ -178,7 +180,7 @@ const PlacesSearch: React.FC<PlacesSearchProps> = ({
             (predictions, status) => {
                 setIsLoading(false)
                 if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-                    setSearchResults(predictions)
+                    setSearchResults(predictions as PlacePrediction[])
                 } else if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
                     setApiError(`Places API error: ${status}`)
                 } else {
