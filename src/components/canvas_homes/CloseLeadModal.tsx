@@ -88,11 +88,11 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                 ...prev,
                 leadStatus,
                 stage,
+                tag: leadData?.tag || prev.tag, // Ensure tag is set from leadData
                 timestamp: getUnixDateTime(),
             }))
         }
-    }, [isOpen, taskState, taskIds, agentId, agentName])
-
+    }, [isOpen, taskState, taskIds, agentId, agentName, leadData])
     const reasonOptions = [
         // { value: '', label: 'Select reason' },
         { value: 'incorrect contact details', label: 'Incorrect Contact Details' },
@@ -132,9 +132,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
             const currentTimestamp = getUnixDateTime()
 
             if (taskIds && enquiryId && leadId) {
-                // Prepare all promises for parallel execution
-
-                // Prepare enquiry update data
                 const enqData = {
                     state: 'dropped' as 'open' | 'closed' | 'fresh' | 'dropped' | null,
                     stage: formData.stage,
@@ -143,7 +140,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     lastModified: currentTimestamp,
                 }
 
-                // Add Lead Closed activity to enquiry
                 const addLeadClosedActivity = enquiryService.addActivity(enquiryId, {
                     activityType: 'lead closed',
                     timestamp: currentTimestamp,
@@ -151,7 +147,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     data: { reason: formData.reason },
                 })
 
-                // Add Task Execution activity to enquiry
                 const addTaskExecutionActivity = enquiryService.addActivity(enquiryId, {
                     activityType: 'task execution',
                     timestamp: currentTimestamp,
@@ -165,7 +160,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     },
                 })
 
-                // Add note to enquiry if provided
                 const addNotePromise = formData.note
                     ? enquiryService.addNote(enquiryId, {
                           note: formData.note,
@@ -174,41 +168,46 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                           agentId: agentId,
                           taskType: taskType,
                       })
-                    : Promise.resolve() // Resolve immediately if no note
+                    : Promise.resolve()
 
-                // Update lead using service
-                const updateLeadData = {
-                    state: 'dropped',
-                    stage: formData.stage,
-                    leadStatus: formData.leadStatus as
-                        | 'not connected'
-                        | 'closed'
-                        | 'interested'
-                        | 'follow up'
-                        | 'not interested'
-                        | 'visit unsuccessful'
-                        | 'visit dropped'
-                        | 'eoi dropped'
-                        | 'booking dropped'
-                        | 'requirement collected'
-                        | null
-                        | undefined,
-                    completionDate: currentTimestamp,
-                    tag: formData.tag,
-                    lastModified: currentTimestamp,
+                const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
+                const remainingOpenTasks = openTasks.filter((task) => !taskIds.includes(task.taskId))
+
+                let updateLeadData
+
+                if (remainingOpenTasks.length > 0) {
+                    const earliestTask = remainingOpenTasks.sort((a, b) => a.scheduledDate - b.scheduledDate)[0]
+
+                    updateLeadData = {
+                        state: 'dropped',
+                        stage: formData.stage,
+                        leadStatus: formData.leadStatus as any,
+                        completionDate: currentTimestamp,
+                        tag: formData.tag,
+                        taskType: earliestTask.taskType,
+                        scheduledDate: earliestTask.scheduledDate,
+                        lastModified: currentTimestamp,
+                    }
+                } else {
+                    updateLeadData = {
+                        state: 'dropped',
+                        stage: formData.stage,
+                        leadStatus: formData.leadStatus as any,
+                        completionDate: currentTimestamp,
+                        tag: formData.tag,
+                        scheduledDate: null,
+                        lastModified: currentTimestamp,
+                    }
                 }
 
-                // Update task status using service
                 const updateTaskStatus = taskService.update(taskIds, {
                     status: 'complete',
                     completionDate: currentTimestamp,
                 })
 
-                // Update enquiry and lead concurrently using Promise.all
                 const enquiryUpdatePromise = enquiryService.update(enquiryId, enqData)
                 const leadUpdatePromise = leadService.update(leadId, updateLeadData)
 
-                // Wait for all promises to complete
                 await Promise.all([
                     enquiryUpdatePromise,
                     leadUpdatePromise,
@@ -218,14 +217,12 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     addNotePromise,
                 ])
 
-                // Refresh data after all operations complete
                 await refreshData()
 
                 toast.success('Lead closed successfully')
                 onClose()
                 navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
 
-                // Reset form
                 setFormData({
                     reason: '',
                     status: 'Complete',

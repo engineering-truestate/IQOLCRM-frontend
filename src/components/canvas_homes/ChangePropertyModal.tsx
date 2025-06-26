@@ -34,9 +34,6 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     const agentName = user?.displayName || ''
     const previousPropertyName = leadData?.propertyName || 'Previous Property'
 
-    // const currentTimestamp = getUnixDateTime()
-    // const enquiryDateTimestamp = currentTimestamp
-
     const [formData, setFormData] = useState({
         reason: '',
         leadId: leadId,
@@ -45,7 +42,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
         propertyName: '',
         agentId: agentId,
         agentName: agentName,
-        tag: '',
+        tag: leadData?.tag || 'cold', // Initialize with leadData.tag if available
         status: 'complete',
         note: '',
         newProperty: '',
@@ -54,6 +51,16 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     })
 
     const [isLoading, setIsLoading] = useState(false)
+
+    // Update tag when leadData changes
+    useEffect(() => {
+        if (leadData?.tag) {
+            setFormData((prev) => ({
+                ...prev,
+                tag: leadData?.tag,
+            }))
+        }
+    }, [leadData])
 
     useEffect(() => {
         // Reset form data when modal opens
@@ -81,12 +88,9 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     }, [properties])
 
     const reasonOptions = [
-        // { value: '', label: 'Select reason' },
         { value: 'not interested in current property', label: 'Not Interested in Current Property' },
         { value: 'other', label: 'Other' },
     ]
-
-    // const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
 
     const tagOptions = [
         { value: 'cold', label: 'Cold' },
@@ -131,10 +135,13 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             if (enquiryId && leadId && taskIds) {
                 const currentTimestamp = getUnixDateTime()
 
+                // Get all open tasks for the current enquiry
+                const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
+                const remainingOpenTasks = openTasks.filter((task) => !taskIds.includes(task.taskId))
+
                 // Update existing enquiry and add activity in parallel
                 const enquiryUpdate = enquiryService.update(enquiryId, {
                     leadStatus: 'property changed',
-                    stage: null,
                     state: 'open',
                     lastModified: currentTimestamp,
                 })
@@ -156,8 +163,8 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     ? enquiryService.addNote(enquiryId, {
                           note: formData.note,
                           timestamp: currentTimestamp,
-                          agentName: formData.agentName,
-                          agentId: formData.agentId,
+                          agentName: agentName,
+                          agentId: agentId,
                           taskType: taskType,
                       })
                     : Promise.resolve()
@@ -168,13 +175,13 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     agentId: agentId,
                     propertyId: formData.propertyId,
                     propertyName: formData.propertyName,
-                    source: 'Manual',
+                    source: 'manual',
                     leadStatus: 'interested', // Default status
                     stage: null,
                     agentHistory: [
                         {
-                            agentId: agentId,
-                            agentName: agentName,
+                            agentId: leadData?.agentId,
+                            agentName: leadData?.agentName,
                             timestamp: currentTimestamp,
                             lastStage: null,
                         },
@@ -200,31 +207,37 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
                 const createNewEnquiry = enquiryService.create(newEnquiry)
 
-                // Prepare lead update data
-                const leadData = {
-                    stage: null,
-                    state: 'open',
-                    propertyName: formData.propertyName,
-                    propertyId: formData.propertyId,
-                    tag: formData.tag,
-                    leadStatus: 'interested' as
-                        | 'closed'
-                        | 'interested'
-                        | 'follow up'
-                        | 'not interested'
-                        | 'not connected'
-                        | 'visit unsuccessful'
-                        | 'visit dropped'
-                        | 'eoi dropped'
-                        | 'booking dropped'
-                        | 'requirement collected'
-                        | null
-                        | undefined,
-                    completionDate: currentTimestamp,
-                    lastModified: currentTimestamp,
+                // Determine lead update data based on remaining tasks
+                let leadUpdateData
+
+                if (remainingOpenTasks.length > 0) {
+                    // If there are other open tasks, use the earliest one for lead data
+                    const earliestTask = remainingOpenTasks[0]
+
+                    leadUpdateData = {
+                        stage: null,
+                        state: 'open',
+                        propertyName: formData.propertyName,
+                        tag: formData.tag,
+                        leadStatus: 'interested' as any,
+                        taskType: earliestTask.taskType,
+                        scheduledDate: earliestTask.scheduledDate,
+                        lastModified: currentTimestamp,
+                    }
+                } else {
+                    // No other open tasks, set new property details
+                    leadUpdateData = {
+                        stage: null,
+                        state: 'open',
+                        propertyName: formData.propertyName,
+                        tag: formData.tag,
+                        scheduledDate: null,
+                        leadStatus: 'interested' as any,
+                        lastModified: currentTimestamp,
+                    }
                 }
 
-                const leadUpdate = leadService.update(leadId, leadData)
+                const leadUpdate = leadService.update(leadId, leadUpdateData)
 
                 // Update task status in parallel
                 const taskUpdate = taskService.update(taskIds, {
@@ -252,7 +265,6 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             setIsLoading(false)
         }
     }
-
     const handleDiscard = () => {
         setFormData((prev) => ({
             ...prev,
@@ -260,7 +272,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             newProperty: '',
             propertyId: '',
             propertyName: '',
-            tag: 'cold',
+            tag: leadData?.tag || 'cold', // Reset to leadData.tag if available
             note: '',
         }))
         onClose()
@@ -413,7 +425,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                         <Dropdown
                                             options={tagOptions}
                                             onSelect={(value) => handleInputChange('tag', value)}
-                                            // defaultValue={formData.tag}
+                                            defaultValue={formData.tag} // Use formData.tag here
                                             placeholder='Select Tag'
                                             className='w-full relative inline-block'
                                             triggerClassName={`relative w-full h-8 px-3  border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none disabled:opacity-50 ${

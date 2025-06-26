@@ -35,6 +35,7 @@ export interface Lead {
     added: number | null
     lastModified: number | null
     completionDate?: number | null
+    lastScheduledDate?: number | null
 }
 
 export interface Enquiry {

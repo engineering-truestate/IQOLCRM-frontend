@@ -54,7 +54,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
     // Agent details from auth
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
-    const currentTaskType = taskType || taskState || ''
+    let currentTaskType = taskType || taskState || ''
 
     useEffect(() => {
         if (isOpen) {
@@ -95,42 +95,52 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
 
             const currentTimestamp = getUnixDateTime()
 
-            // 1. Determine lead state and stage based on task type
-            let leadState: 'closed' | 'open' | 'fresh' | 'dropped' = 'open'
+            // 1. Determine lead stage based on task type
             let leadStage = currentTaskType
 
             switch (currentTaskType.toLowerCase()) {
                 case 'initial contact':
                     leadStage = 'initital contacted'
+                    currentTaskType = 'initial contact'
                     break
                 case 'site visit':
                     leadStage = 'site visited'
+                    currentTaskType = 'site visit'
                     break
                 case 'site not visit':
                     leadStage = leadData?.stage || ''
+                    currentTaskType = 'site visit'
                     break
                 case 'eoi not collected':
                     leadStage = leadData?.stage || ''
+                    currentTaskType = 'eoi collection'
                     break
                 case 'booking unsuccessful':
                     leadStage = leadData?.stage || ''
+                    currentTaskType = 'booking'
                     break
                 default:
-                    leadState = 'dropped'
                     break
             }
 
-            // 2. Update task to complete, enquiry, and lead in parallel
+            // Get open tasks for the current enquiry
+            const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
+            const remainingOpenTasks = openTasks.filter((task) => task.taskId !== taskId)
+
+            // 2. Update task to complete
             const updateTask = taskService.update(taskId, {
                 status: 'complete',
                 lastModified: currentTimestamp,
                 completionDate: currentTimestamp,
             })
 
+            // Determine enquiry state based on remaining tasks
+            const enquiryState = 'dropped'
+
             const updateEnquiry = enquiryService.update(enquiryId, {
                 tag: selectedTag,
                 leadStatus: 'requirement collected',
-                state: leadState,
+                state: enquiryState,
                 stage: leadStage,
                 lastModified: currentTimestamp,
             })
@@ -157,14 +167,36 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                   })
                 : Promise.resolve()
 
-            const updateLead = leadService.update(leadId, {
-                tag: selectedTag,
-                leadStatus: 'requirement collected',
-                state: 'dropped',
-                stage: leadStage,
-                completionDate: currentTimestamp,
-                lastModified: currentTimestamp,
-            })
+            // Create lead update data based on remaining tasks
+            let leadUpdateData
+
+            if (remainingOpenTasks.length > 0) {
+                // If there are remaining open tasks, find the earliest one
+                const earliestTask = remainingOpenTasks[0]
+
+                leadUpdateData = {
+                    tag: selectedTag,
+                    leadStatus: 'requirement collected',
+                    state: 'dropped',
+                    stage: leadStage,
+                    taskType: earliestTask.taskType,
+                    scheduledDate: earliestTask.scheduledDate,
+                    lastModified: currentTimestamp,
+                }
+            } else {
+                // No remaining tasks
+                leadUpdateData = {
+                    tag: selectedTag,
+                    leadStatus: 'requirement collected',
+                    state: 'dropped',
+                    stage: leadStage,
+                    scheduledDate: null,
+                    completionDate: currentTimestamp,
+                    lastModified: currentTimestamp,
+                }
+            }
+
+            const updateLead = leadService.update(leadId, leadUpdateData)
 
             // Wait for all promises to complete in parallel
             await Promise.all([updateTask, updateEnquiry, addActivity, addNote, updateLead])
