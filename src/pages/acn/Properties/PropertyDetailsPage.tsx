@@ -20,8 +20,7 @@ import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import { toast } from 'react-toastify'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import { formatUnixDateTime } from '../../../components/helper/formatDate'
-import { formatCost, formatExactCostToLacsOrCrs } from '../../../components/helper/formatCost'
-import { formatUnixTime } from '../../../components/helper/getUnixDateTime'
+import { formatExactCostToLacsOrCrs } from '../../../components/helper/formatCost'
 
 // Icons
 import shareIcon from '/icons/acn/share-1.svg'
