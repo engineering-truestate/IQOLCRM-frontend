@@ -15,8 +15,56 @@ const Register: React.FC = () => {
     const [picture, setPicture] = useState<File | null>(null)
     const [role, setRole] = useState<string>('')
     const [platforms, setPlatforms] = useState<Platform[]>([])
-
+    const [phoneNumber, setPhoneNumber] = useState<string>('')
+    const [phoneError, setPhoneError] = useState<string>('')
     const [picturePreview, setPicturePreview] = useState<string | null>(null)
+
+    // Phone number validation function
+    const validatePhoneNumber = (phone: string): boolean => {
+        // Remove all non-digit characters for validation
+        const digitsOnly = phone.replace(/\D/g, '')
+
+        // Check if it's a valid Indian phone number (10 digits starting with 6-9)
+        const indianPhoneRegex = /^[6-9]\d{9}$/
+
+        if (digitsOnly.length === 0) {
+            setPhoneError('Phone number is required')
+            return false
+        } else if (digitsOnly.length < 10) {
+            setPhoneError('Phone number must be at least 10 digits')
+            return false
+        } else if (digitsOnly.length > 15) {
+            setPhoneError('Phone number cannot exceed 15 digits')
+            return false
+        } else if (!indianPhoneRegex.test(digitsOnly)) {
+            setPhoneError('Please enter a valid Indian phone number')
+            return false
+        } else {
+            setPhoneError('')
+            return true
+        }
+    }
+
+    // Handle phone number input with validation
+    const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        // Only allow digits, spaces, dashes, and plus sign
+        const sanitizedValue = value.replace(/[^\d\s\-+]/g, '')
+
+        setPhoneNumber(sanitizedValue)
+
+        // Clear error when user starts typing
+        if (phoneError) {
+            setPhoneError('')
+        }
+    }
+
+    // Validate phone number on blur
+    const handlePhoneBlur = () => {
+        validatePhoneNumber(phoneNumber)
+    }
+
     const handlePictureChange = (e: ChangeEvent<HTMLInputElement>): void => {
         const file = e.target.files?.[0]
         if (file) {
@@ -71,6 +119,11 @@ const Register: React.FC = () => {
 
     const handleRegister = async (): Promise<void> => {
         try {
+            // Validate phone number
+            if (!validatePhoneNumber(phoneNumber)) {
+                return
+            }
+
             // Validate required fields
             if (!email || !password || !name || !role || platforms.length === 0) {
                 alert('Please fill in all required fields')
@@ -86,7 +139,7 @@ const Register: React.FC = () => {
 
             console.log(platforms)
 
-            await registerUser(email, password, name, picture, role, platforms)
+            await registerUser(email, password, name, picture, role, platforms, phoneNumber)
             alert('Registration successful!')
 
             // Clean up preview URL
@@ -149,6 +202,35 @@ const Register: React.FC = () => {
                         onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                         required
                     />
+                </div>
+
+                {/* Phone Number Field */}
+                <div className='mb-4'>
+                    <label className='block text-gray-700 text-sm font-bold mb-2' htmlFor='phoneNumber'>
+                        Phone Number *
+                    </label>
+                    <div className='flex items-center gap-2'>
+                        <div className='shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'>
+                            +91
+                        </div>
+                        <input
+                            className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
+                                phoneError ? 'border-red-500' : ''
+                            }`}
+                            id='phoneNumber'
+                            type='tel'
+                            placeholder='Enter your phone number (e.g., 9876543210)'
+                            value={phoneNumber}
+                            onChange={handlePhoneChange}
+                            onBlur={handlePhoneBlur}
+                            maxLength={10}
+                            required
+                        />
+                    </div>
+                    {phoneError && <p className='text-red-500 text-xs mt-1'>{phoneError}</p>}
+                    <p className='text-gray-500 text-xs mt-1'>
+                        Enter a valid Indian phone number (10 digits starting with 6-9)
+                    </p>
                 </div>
 
                 {/* Picture Upload */}
@@ -260,7 +342,15 @@ const Register: React.FC = () => {
                         className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50'
                         type='button'
                         onClick={handleRegister}
-                        disabled={!email || !password || !name || !role || platforms.length === 0}
+                        disabled={
+                            !email ||
+                            !password ||
+                            !name ||
+                            !role ||
+                            platforms.length === 0 ||
+                            !!phoneError ||
+                            !phoneNumber
+                        }
                     >
                         Register
                     </button>

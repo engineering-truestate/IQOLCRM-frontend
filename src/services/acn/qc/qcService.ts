@@ -1,7 +1,8 @@
 // services/acn/qc/qcService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, arrayUnion, setDoc, collection, getDocs } from 'firebase/firestore'
 import { db } from '../../../firebase'
+import { addProperty } from '../properties/propertiesService'
 import type {
     IQCInventory,
     UpdateQCStatusParams,
@@ -10,11 +11,84 @@ import type {
     AddNoteResponse,
     QCNote,
 } from '../../../data_types/acn/types'
+import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
 
 // Helper function to get current timestamp
 const getCurrentTimestamp = (): number => {
     return Date.now()
 }
+
+// Helper function to convert QC inventory to property format
+const convertQCInventoryToProperty = (qcInventory: IQCInventory): Partial<IInventory> => {
+    return {
+        propertyName: qcInventory.propertyName,
+        _geoloc: qcInventory._geoloc,
+        area: qcInventory.area,
+        micromarket: qcInventory.micromarket,
+        mapLocation: qcInventory.mapLocation,
+        assetType: qcInventory.assetType,
+        unitType: qcInventory.unitType,
+        subType: qcInventory.subType,
+        sbua: qcInventory.sbua,
+        carpet: qcInventory.carpet,
+        plotSize: qcInventory.plotSize,
+        floorNo: qcInventory.floorNo ? qcInventory.floorNo.toString() : '',
+        facing: qcInventory.facing,
+        totalAskPrice: qcInventory.totalAskPrice,
+        askPricePerSqft: qcInventory.askPricePerSqft,
+        status: 'Available',
+        currentStatus: qcInventory.currentStatus,
+        cpId: qcInventory.cpId,
+        extraDetails: qcInventory.extraDetails,
+        driveLink: qcInventory.driveLink,
+        photo: qcInventory.photo,
+        video: qcInventory.video,
+        document: qcInventory.document,
+        tenanted: qcInventory.tenanted,
+        ocReceived: qcInventory.ocReceived,
+        handoverDate: qcInventory.handoverDate,
+        buildingAge: qcInventory.buildingAge,
+        buildingKhata: qcInventory.buildingKhata,
+        landKhata: qcInventory.landKhata,
+        bdaApproved: qcInventory.bdaApproved,
+        biappaApproved: qcInventory.biappaApproved,
+    }
+}
+
+// Prefetch all kamId to kamName mappings from acnQCInventories
+export const prefetchKamNameMappings = createAsyncThunk<Record<string, string>, void, { rejectValue: string }>(
+    'qc/prefetchKamNameMappings',
+    async (_, { rejectWithValue }) => {
+        try {
+            console.log('🔄 Prefetching kamId to kamName mappings')
+
+            const qcCollection = collection(db, 'acnQCInventories')
+            const querySnapshot = await getDocs(qcCollection)
+
+            const kamMappings: Record<string, string> = {}
+
+            querySnapshot.forEach((doc) => {
+                const data = doc.data()
+                const kamId = data.kamId
+                const kamName = data.kamName
+
+                if (kamId && kamId !== 'N/A' && kamName && kamName !== 'N/A') {
+                    kamMappings[kamId] = kamName
+                }
+            })
+
+            console.log(
+                '✅ KamId to kamName mappings prefetched successfully:',
+                Object.keys(kamMappings).length,
+                'mappings',
+            )
+            return kamMappings
+        } catch (error: any) {
+            console.error('❌ Error prefetching kamId to kamName mappings:', error)
+            return rejectWithValue(error.message || 'Failed to prefetch kamId to kamName mappings')
+        }
+    },
+)
 
 // Helper function to get next QC ID
 const getNextQcId = async (): Promise<string> => {
@@ -148,7 +222,10 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
     { rejectValue: string }
 >(
     'qc/updateStatusWithRoleCheck',
-    async ({ property, status, agentData, activeTab, reviewedBy, comments, additionalData }, { rejectWithValue }) => {
+    async (
+        { property, status, agentData, activeTab, reviewedBy, comments, additionalData },
+        { rejectWithValue, dispatch },
+    ) => {
         try {
             let dataToSave: Partial<IQCInventory> = {}
             let shouldCreateProperty = false
@@ -510,6 +587,21 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
             // Update the document in Firestore
             const docRef = doc(db, 'acnQCInventories', property.propertyId)
             await updateDoc(docRef, dataToSave)
+
+            // Create property in acnProperties collection when approved
+            if (shouldCreateProperty) {
+                try {
+                    console.log('🏠 Creating new property from approved QC inventory:', property.propertyId)
+
+                    const propertyData = convertQCInventoryToProperty(property)
+                    await dispatch(addProperty(propertyData))
+
+                    console.log('✅ Property creation dispatched successfully for QC inventory:', property.propertyId)
+                } catch (propertyError: any) {
+                    console.error('❌ Error creating property from QC inventory:', propertyError)
+                    // Don't fail the entire operation if property creation fails
+                }
+            }
 
             console.log('✅ Status updated successfully:', {
                 propertyId: property.propertyId,

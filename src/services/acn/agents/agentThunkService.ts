@@ -311,7 +311,7 @@ export const fetchAgentDetails = createAsyncThunk(
                     id: doc.id,
                     propertyId: data.propertyId || doc.id,
                     cpId: data.cpId || agentId,
-                    propertyName: data.propertyName || data.nameOfTheProperty || '',
+                    propertyName: data.propertyName || data.propertyName || '',
                     _geoloc: data._geoloc || { lat: 0, lng: 0 },
                     area: data.area || '',
                     micromarket: data.micromarket || '',

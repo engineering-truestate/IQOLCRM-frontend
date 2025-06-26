@@ -18,7 +18,6 @@ interface CallModalProps {
         leadId?: string
         cpId?: string
         name: string
-        phonenumber?: string
         phoneNumber?: string
         leadStatus?: string
         agentStatus?: string
@@ -144,7 +143,7 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
 
     // Get the appropriate ID and phone number based on context
     const displayId = isLeadsContext ? rowData.leadId : rowData.cpId
-    const phoneNumber = rowData.phonenumber || rowData.phoneNumber || ''
+    const phoneNumber = rowData.phoneNumber || rowData.phoneNumber || ''
 
     return (
         <>

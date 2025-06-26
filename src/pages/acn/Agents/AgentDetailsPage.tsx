@@ -49,7 +49,7 @@ const AgentDetailsPage = () => {
     const [selectedInternalStatus, setSelectedInternalStatus] = useState('')
 
     // Enquiry type switcher
-    const [enquiryType, setEnquiryType] = useState<'Enquired' | 'Received'>('Enquired')
+    const [enquiryType, setEnquiryType] = useState<'Enquired' | 'Received'>('Received')
 
     // Get data from Redux store
     const { resale, rental, loading, error } = useSelector((state: RootState) => state.agents)
@@ -512,7 +512,7 @@ const AgentDetailsPage = () => {
                         ),
                     },
                     {
-                        key: 'cpCode',
+                        key: 'cpId',
                         header: 'Agent',
                         render: (_) => (
                             <span className='whitespace-nowrap text-sm font-normal w-auto'>
@@ -1063,9 +1063,9 @@ const AgentDetailsPage = () => {
                                     {activeTab === 'Enquiry' && (
                                         <div className='flex items-center bg-gray-100 rounded-md mb-1 h-7 w-fit'>
                                             <button
-                                                onClick={() => setEnquiryType('Enquired')}
+                                                onClick={() => setEnquiryType('Received')}
                                                 className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                                                    enquiryType === 'Enquired'
+                                                    enquiryType === 'Received'
                                                         ? 'bg-white text-black shadow-sm'
                                                         : 'text-gray-600 shadow-2xl hover:text-black'
                                                 }`}
@@ -1073,9 +1073,9 @@ const AgentDetailsPage = () => {
                                                 Enquired
                                             </button>
                                             <button
-                                                onClick={() => setEnquiryType('Received')}
+                                                onClick={() => setEnquiryType('Enquired')}
                                                 className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                                                    enquiryType === 'Received'
+                                                    enquiryType === 'Enquired'
                                                         ? 'bg-white text-black shadow-sm'
                                                         : 'text-gray-600 shadow-2xl hover:text-black'
                                                 }`}

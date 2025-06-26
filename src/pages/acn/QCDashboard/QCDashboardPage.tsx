@@ -1,8 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
+import useAuth from '../../../hooks/useAuth'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../../firebase'
+import { useDispatch, useSelector } from 'react-redux'
+import { prefetchKamNameMappings } from '../../../services/acn/qc/qcService'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
@@ -26,22 +31,58 @@ export type QCReviewStatus = 'pending' | 'approved' | 'duplicate' | 'primary' | 
 type TabType = 'kam' | 'data' | 'notApproved'
 
 const QCDashboardPage = () => {
+    const { user } = useAuth()
+    const navigate = useNavigate()
+    const dispatch = useDispatch()
+    const ITEMS_PER_PAGE = 50
+
+    // Get prefetched kamNameMappings from Redux store
+    const { kamNameMappings } = useSelector((state: any) => state.qc)
+
+    // User data state
+    const [currentUserKamId, setCurrentUserKamId] = useState<string>('all')
+    const [currentUserKamName, setCurrentUserKamName] = useState<string>('')
+
     const [activeTab, setActiveTab] = useState<TabType>('kam')
     const [searchValue, setSearchValue] = useState('')
     const [selectedSort, setSelectedSort] = useState('')
     const [currentPage, setCurrentPage] = useState(0) // Algolia uses 0-based pagination
     const [qcData, setQcData] = useState<IQCInventory[]>([])
-    const [, setLoading] = useState(false)
-    const [, setTotalHits] = useState(0)
+    const [loading, setLoading] = useState(false)
+    // const [totalHits, setTotalHits] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
     const [facets, setFacets] = useState<Record<string, { value: string; count: number }[]>>({})
-    const [, setKamCounts] = useState({ kam: 0, data: 0, notApproved: 0 })
-    const [selectedKAM, setSelectedKAM] = useState<string[]>(['CURRENT_USER_ID'])
+    const [_, setKamCounts] = useState({ kam: 0, data: 0, notApproved: 0 })
+    const [selectedKAM, setSelectedKAM] = useState<string[]>([])
     const [selectedAssetType, setSelectedAssetType] = useState<string[]>(['all'])
-    //const [selectedStage, setSelectedStage] = useState<string[]>(['all'])
+    // const [selectedStage, setSelectedStage] = useState<string[]>(['all'])
     const [selectedKamStatus, setSelectedKamStatus] = useState<string[]>(['all'])
 
     const [stageCounts, setStageCounts] = useState<Record<string, number>>({})
+
+    // Fetch current user's kamId and kamName
+    const fetchCurrentUserData = async () => {
+        if (!user?.uid) return
+
+        try {
+            const docRef = doc(db, 'internal-agents', user.uid)
+            const docSnap = await getDoc(docRef)
+
+            if (docSnap.exists()) {
+                const userData = docSnap.data()
+                const kamId = userData?.acn?.kamId
+                const kamName = userData?.name || user.displayName || 'Unknown'
+
+                if (kamId) {
+                    setCurrentUserKamId(kamId)
+                    setCurrentUserKamName(kamName)
+                    setSelectedKAM([kamId]) // Set default selection to current user's kamId
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching user data:', error)
+        }
+    }
 
     const fetchStageCounts = async () => {
         try {
@@ -52,10 +93,6 @@ const QCDashboardPage = () => {
             setStageCounts({})
         }
     }
-
-    const navigate = useNavigate()
-    const ITEMS_PER_PAGE = 50
-    //const DEFAULT_KAM_ID = 'INT103'
 
     // Enhanced data transformation with proper nested structure handling
     const transformAlgoliaData = (hits: any[]): IQCInventory[] => {
@@ -193,7 +230,7 @@ const QCDashboardPage = () => {
                     kamId: selectedKAM.includes('all') ? undefined : selectedKAM,
                     stage: getStageFilters(),
                     assetType: selectedAssetType.includes('all') ? undefined : selectedAssetType,
-                    KamStatus: selectedKamStatus.includes('all') ? undefined : selectedKamStatus,
+                    kamStatus: selectedKamStatus.includes('all') ? undefined : selectedKamStatus,
                 },
                 page: currentPage,
                 hitsPerPage: ITEMS_PER_PAGE,
@@ -203,12 +240,12 @@ const QCDashboardPage = () => {
             const response: InventorySearchResponse = await searchInventory(searchParams)
             const transformedData = transformAlgoliaData(response.hits)
             setQcData(transformedData)
-            setTotalHits(response.nbHits)
+            // setTotalHits(response.nbHits)
             setTotalPages(response.nbPages)
         } catch (error) {
             console.error('Error fetching QC data from Algolia:', error)
             setQcData([])
-            setTotalHits(0)
+            // setTotalHits(0)
             setTotalPages(0)
         } finally {
             setLoading(false)
@@ -275,10 +312,20 @@ const QCDashboardPage = () => {
 
     // Effect hooks for data fetching
     useEffect(() => {
+        fetchCurrentUserData()
         fetchTabCounts()
         fetchFacets()
         fetchStageCounts()
-    }, [])
+        // Dispatch prefetch kamNameMappings
+        dispatch(prefetchKamNameMappings() as any)
+    }, [user, dispatch])
+
+    // Effect to fetch user data when user changes
+    useEffect(() => {
+        if (user) {
+            fetchCurrentUserData()
+        }
+    }, [user])
 
     useEffect(() => {
         fetchQCData()
@@ -288,13 +335,42 @@ const QCDashboardPage = () => {
         setCurrentPage(0)
     }, [activeTab, searchValue, selectedKAM, selectedSort, selectedAssetType])
 
-    // Generate dropdown options from facets
+    // Create a comprehensive mapping from kamId to kamName
+    const kamIdToNameMap = useMemo(() => {
+        const map = new Map<string, string>()
+
+        // Add prefetched mappings first (highest priority)
+        Object.entries(kamNameMappings).forEach(([kamId, kamName]) => {
+            if (kamId && kamId !== 'N/A' && kamName && kamName !== 'N/A') {
+                map.set(kamId, kamName as string)
+            }
+        })
+
+        // Add current user's mapping (override if available)
+        if (currentUserKamId && currentUserKamId !== 'all' && currentUserKamName) {
+            map.set(currentUserKamId, currentUserKamName)
+        }
+
+        // Add mappings from current data (lowest priority)
+        qcData.forEach((item) => {
+            if (item.kamId && item.kamId !== 'N/A' && item.kamName && item.kamName !== 'N/A') {
+                map.set(item.kamId, item.kamName)
+            }
+        })
+
+        return map
+    }, [kamNameMappings, qcData, currentUserKamId, currentUserKamName])
+
+    // Generate dropdown options from facets with kamName in labels
     const kamOptions = [
         { label: 'All KAMs', value: 'all' },
-        ...(facets.kamName || []).map((facet) => ({
-            label: `${facet.value} (${facet.count})`,
-            value: facet.value,
-        })),
+        ...(facets.kamId || []).map((facet) => {
+            const kamName = kamIdToNameMap.get(facet.value) || `KAM ${facet.value}`
+            return {
+                label: `${kamName} (${facet.count})`,
+                value: facet.value, // Keep kamId as value for filtering
+            }
+        }),
     ]
 
     const assetTypeOptions = [
@@ -304,6 +380,14 @@ const QCDashboardPage = () => {
             value: facet.value.toLowerCase(),
         })),
     ]
+
+    // const kamStatusOptions = [
+    //     { label: 'All Statuses', value: 'all' },
+    //     ...(facets.kamStatus || []).map((facet) => ({
+    //         label: `${facet.value} (${facet.count})`,
+    //         value: facet.value,
+    //     })),
+    // ]
 
     const sortOptions = [
         { label: 'Sort by Date', value: '' },
@@ -346,6 +430,38 @@ const QCDashboardPage = () => {
             </span>
         )
     }
+
+    // const handleKamSelection = (value: string) => {
+    //     if (value === 'all') {
+    //         setSelectedKAM(['all'])
+    //     } else {
+    //         setSelectedKAM((prev) => {
+    //             const filtered = prev.filter((v) => v !== 'all')
+    //             if (filtered.includes(value)) {
+    //                 const newSelection = filtered.filter((v) => v !== value)
+    //                 return newSelection.length === 0 ? ['all'] : newSelection
+    //             } else {
+    //                 return [...filtered, value]
+    //             }
+    //         })
+    //     }
+    // }
+
+    // const handleAssetTypeSelection = (value: string) => {
+    //     if (value === 'all') {
+    //         setSelectedAssetType(['all'])
+    //     } else {
+    //         setSelectedAssetType((prev) => {
+    //             const filtered = prev.filter((v) => v !== 'all')
+    //             if (filtered.includes(value)) {
+    //                 const newSelection = filtered.filter((v) => v !== value)
+    //                 return newSelection.length === 0 ? ['all'] : newSelection
+    //             } else {
+    //                 return [...filtered, value]
+    //             }
+    //         })
+    //     }
+    // }
 
     // Base columns for kam and data tabs
     const getBaseColumns = (): TableColumn[] => [
@@ -431,7 +547,7 @@ const QCDashboardPage = () => {
         {
             key: 'qcReview.kamReview',
             header: 'Kam Review',
-            render: (row) => {
+            render: (_, row) => {
                 const kamStatus = row.status || row.kamStatus || 'pending'
                 return (
                     <div className='whitespace-nowrap w-auto'>
@@ -443,7 +559,7 @@ const QCDashboardPage = () => {
         {
             key: 'qcReview',
             header: 'Reviewed By',
-            render: (row) => {
+            render: (_, row) => {
                 const reviewedBy = row.qcReview?.kamReview?.reviewedBy || row.kamName || 'N/A'
                 return <span className='whitespace-nowrap text-sm font-normal w-auto'>{reviewedBy}</span>
             },
@@ -482,7 +598,7 @@ const QCDashboardPage = () => {
     }, [selectedKAM]) // Add this to update counts when KAM filter changes
 
     return (
-        <Layout loading={false}>
+        <Layout loading={loading}>
             <div className='w-full overflow-hidden font-sans h-screen flex flex-col'>
                 <div
                     className='flex flex-col gap-4 pt-2 px-6 bg-white flex-1 overflow-hidden'
@@ -529,7 +645,9 @@ const QCDashboardPage = () => {
                                 className='p-1 text-gray-500 border-gray-300 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors'
                                 onClick={() => {
                                     setSearchValue('')
-                                    setSelectedKAM(['all'])
+                                    setSelectedKAM(
+                                        currentUserKamId && currentUserKamId !== 'all' ? [currentUserKamId] : ['all'],
+                                    )
                                     setSelectedSort('')
                                     setSelectedAssetType(['all'])
                                     setSelectedKamStatus(['all'])
@@ -583,7 +701,11 @@ const QCDashboardPage = () => {
                                     selected.includes('all')
                                         ? 'All KAMs'
                                         : selected.length === 1
-                                          ? kamOptions.find((opt) => opt.value === selected[0])?.label || selected[0]
+                                          ? (() => {
+                                                const kamId = selected[0]
+                                                const kamName = kamIdToNameMap.get(kamId) || `KAM ${kamId}`
+                                                return kamName
+                                            })()
                                           : `${selected.length} KAMs`
                                 }
                                 className='relative inline-block min-w-[120px]'
