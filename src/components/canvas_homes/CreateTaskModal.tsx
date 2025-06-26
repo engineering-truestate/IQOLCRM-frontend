@@ -3,8 +3,10 @@ import { useEffect } from 'react'
 import Dropdown from '../../components/design-elements/Dropdown'
 import { leadService } from '../../services/canvas_homes'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
+import { taskService } from '../../services/canvas_homes/taskService'
 import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 import { toast } from 'react-toastify'
+import useAuth from '../../hooks/useAuth'
 // import { useNavigate } from 'react-router-dom'
 
 interface CreateTaskModalProps {
@@ -60,6 +62,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const { user } = useAuth()
 
     const taskOptions = [
         // { label: 'Please select', value: '' },
@@ -128,19 +131,35 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 lastModified: currentTimestamp,
             }
 
-            // Create promises for each async operation
-            const updateLead = leadService.update(leadId, {
+            let updateLeadData = {
                 state: 'open',
                 taskType: formData.task.toLowerCase(),
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
-            })
+            }
+
+            if (enquiryId) {
+                const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
+
+                const earliestTask = openTasks[0]
+
+                if (earliestTask && earliestTask.scheduledDate < updateLeadData.scheduledDate) {
+                    updateLeadData = {
+                        state: 'open',
+                        lastModified: currentTimestamp,
+                        taskType: earliestTask?.taskType,
+                        scheduledDate: earliestTask?.scheduledDate,
+                    }
+                }
+            }
+
+            const updateLead = leadService.update(leadId, updateLeadData)
 
             const addActivityPromise = enquiryId
                 ? enquiryService.addActivity(enquiryId, {
                       activityType: 'task created',
                       timestamp: currentTimestamp,
-                      agentName: agentName || null,
+                      agentName: user?.displayName || null,
                       data: {
                           taskType: formData.task.toLowerCase(),
                           scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
@@ -150,7 +169,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
             const createTaskPromise = onTaskCreated ? onTaskCreated(taskData) : null
 
-            // Wait for all promises to resolve concurrently
             await Promise.all([updateLead, addActivityPromise, createTaskPromise])
 
             toast.success('Task Created Successfully')
@@ -158,8 +176,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             refreshData()
         } catch (error) {
             console.error('Error creating task:', error)
-            setError('Failed to create task. Please try again.')
-            toast.error('Failed to Create Task')
+            toast.error('Failed to create task')
         } finally {
             setIsLoading(false)
         }

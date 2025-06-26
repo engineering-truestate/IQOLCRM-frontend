@@ -115,6 +115,23 @@ class TaskService {
             throw error
         }
     }
+    async getOpenByEnquiryId(enquiryId: string): Promise<Task[]> {
+        try {
+            const q = query(
+                collection(db, this.collectionName),
+                where('enquiryId', '==', enquiryId),
+                where('status', '==', 'open'),
+            )
+            const querySnapshot = await getDocs(q)
+
+            return querySnapshot.docs
+                .map((doc) => ({ taskId: doc.id, ...doc.data() }) as Task)
+                .sort((a, b) => (a.scheduledDate ?? 0) - (b.scheduledDate ?? 0))
+        } catch (error) {
+            console.error('Error fetching tasks by enquiry ID:', error)
+            throw error
+        }
+    }
 
     async delete(taskId: string): Promise<void> {
         try {
@@ -124,11 +141,11 @@ class TaskService {
             throw error
         }
     }
-    async getEarliestTaskByLeadId(leadId: string): Promise<Task | null> {
+    async getEarliestTaskByLeadId(enquiryId: string): Promise<Task | null> {
         try {
             const q = query(
                 collection(db, this.collectionName),
-                where('leadId', '==', leadId),
+                where('enquiryId', '==', enquiryId),
                 where('scheduledDate', '!=', null),
                 where('status', '==', 'open'),
                 orderBy('scheduledDate', 'asc'),

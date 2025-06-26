@@ -338,7 +338,7 @@ const Leads = () => {
             return 'bg-[#EFEFEF] border border-[#8F8FA2]'
         } else if (totalHours > 6 && totalHours <= 12) {
             return 'bg-[#FFF1D4] border border-[#FCCE74]'
-        } else if (totalHours > 13 && totalHours <= 24) {
+        } else if (totalHours >= 13 && totalHours <= 24) {
             return 'bg-[#FFDDDE] border border-[#F02532]'
         } else if (totalHours > 24) {
             return 'bg-[#FAC8C9] border border-[#A4151E]'
@@ -532,7 +532,7 @@ const Leads = () => {
             key: 'taskType',
             header: 'Schedule Task',
             render: (value, row) => {
-                if (row?.completionDate && row?.completionDate < row?.scheduledDate) {
+                if (row?.completionDate && row?.completionDate > row?.scheduledDate) {
                     return <div className='text-sm text-gray-500'>-</div>
                 }
 
