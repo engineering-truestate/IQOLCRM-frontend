@@ -30,28 +30,10 @@ export const UseLeadDetails = (leadId: string) => {
     // Computed values
     const currentEnquiry = enquiries.find((e) => e.enquiryId === selectedEnquiryId) || null
 
-    // Load user data
-    const loadUserData = useCallback(async (userId: string) => {
-        if (!userId) return
-
-        setLoading((prev) => ({ ...prev, user: true }))
-        setErrors((prev) => ({ ...prev, user: null }))
-
-        try {
-            const user = await userService.getById(userId.trim())
-            setUserData(user)
-        } catch (error: any) {
-            console.error('Error in loadUserData:', error)
-            setErrors((prev) => ({ ...prev, user: error.message || 'Failed to load user data' }))
-        } finally {
-            setLoading((prev) => ({ ...prev, user: false }))
-        }
-    }, [])
-
     // Load lead data
     const loadLeadData = useCallback(async () => {
         if (!leadId) {
-            console.error('Invalid leadId provided to UseLeadDetails:', leadId)
+            console.error('Invalid leadId provided to useLeadDetails:', leadId)
             setErrors((prev) => ({ ...prev, lead: 'Invalid lead ID provided' }))
             return
         }
@@ -75,7 +57,7 @@ export const UseLeadDetails = (leadId: string) => {
         } finally {
             setLoading((prev) => ({ ...prev, lead: false }))
         }
-    }, [leadId, loadUserData])
+    }, [leadId])
 
     // Load enquiries data
     const loadEnquiriesData = useCallback(async () => {
@@ -122,6 +104,22 @@ export const UseLeadDetails = (leadId: string) => {
     }, [selectedEnquiryId])
 
     // Load user data
+    const loadUserData = useCallback(async (userId: string) => {
+        if (!userId) return
+
+        setLoading((prev) => ({ ...prev, user: true }))
+        setErrors((prev) => ({ ...prev, user: null }))
+
+        try {
+            const user = await userService.getById(userId.trim())
+            setUserData(user)
+        } catch (error: any) {
+            console.error('Error in loadUserData:', error)
+            setErrors((prev) => ({ ...prev, user: error.message || 'Failed to load user data' }))
+        } finally {
+            setLoading((prev) => ({ ...prev, user: false }))
+        }
+    }, [])
 
     // Actions
     const updateTaskStatus = useCallback(
@@ -250,7 +248,7 @@ export const UseLeadDetails = (leadId: string) => {
                 loadTasksData()
             }
         }
-    }, [loadLeadData, loadEnquiriesData, loadTasksData, leadId, selectedEnquiryId])
+    }, [loadLeadData, loadEnquiriesData, loadTasksData, leadId, selectedEnquiryId, leadData])
 
     // Effects
     useEffect(() => {
@@ -260,13 +258,13 @@ export const UseLeadDetails = (leadId: string) => {
         } else {
             setErrors((prev) => ({ ...prev, lead: 'Invalid lead ID provided' }))
         }
-    }, [leadId, loadLeadData, loadEnquiriesData])
+    }, [leadId])
 
     useEffect(() => {
         if (selectedEnquiryId) {
             loadTasksData()
         }
-    }, [selectedEnquiryId, loadTasksData])
+    }, [selectedEnquiryId])
 
     return {
         // Data
