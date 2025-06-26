@@ -20,7 +20,7 @@ interface VerificationModalProps {
         leadId?: string
         cpId?: string
         name: string
-        phonenumber?: string
+        phoneNumber?: string
         phoneNumber?: string
         leadStatus?: string
         agentStatus?: string
@@ -100,7 +100,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
             //console.log('here3')
             setFormData({
                 name: rowData.name || '',
-                phoneNumber: rowData.phonenumber || rowData.phoneNumber || '',
+                phoneNumber: rowData.phoneNumber || rowData.phoneNumber || '',
                 emailAddress: '', // This needs to be filled by user
                 workAddress: '', // Not mandatory
                 reraId: '',

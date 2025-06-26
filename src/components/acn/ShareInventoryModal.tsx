@@ -27,7 +27,7 @@ const ShareInventoryModal: React.FC<ShareInventoryModalProps> = ({ isOpen, onClo
         const shareText = `
 Property Details
 
-Property Name: ${property.nameOfTheProperty || property.area || 'Unknown'}
+Property Name: ${property.propertyName || property.area || 'Unknown'}
 Property ID: ${property.propertyId || property.id}
 Location: ${property.micromarket || 'Unknown'}
 Asset Type: ${property.assetType || 'Unknown'}
@@ -56,7 +56,7 @@ Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || pr
         const shareText = `
 *🏠 Property Details*
 
- *Property Name:* ${property.nameOfTheProperty || property.area || 'Unknown'}
+ *Property Name:* ${property.propertyName || property.area || 'Unknown'}
  *Property ID:* ${property.propertyId || property.id}
  *Location:* ${property.micromarket || 'Unknown'}
  *Asset Type:* ${property.assetType || 'Unknown'}
@@ -75,11 +75,11 @@ Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || pr
     }
 
     //     const handleEmailShare = () => {
-    //         const subject = `Property Details - ${property.nameOfTheProperty || property.area || 'Unknown'}`
+    //         const subject = `Property Details - ${property.propertyName || property.area || 'Unknown'}`
     //         const body = `
     // Property Details
 
-    // Property Name: ${property.nameOfTheProperty || property.area || 'Unknown'}
+    // Property Name: ${property.propertyName || property.area || 'Unknown'}
     // Property ID: ${property.propertyId || property.id}
     // Location: ${property.micromarket || 'Unknown'}
     // Asset Type: ${property.assetType || 'Unknown'}
@@ -128,7 +128,7 @@ Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || pr
                                 <div className='flex '>
                                     <span className='text-[#121417] text-[14px]'>Project Name :&nbsp;</span>
                                     <span className='font-bold text-[#121417] text-[14px]'>
-                                        {property.nameOfTheProperty || property.area || 'Unknown'}
+                                        {property.propertyName || property.area || 'Unknown'}
                                     </span>
                                 </div>
                                 <div className='flex'>

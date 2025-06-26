@@ -6,7 +6,7 @@ const INDEX_NAME = 'qc-inventories'
 export interface InventorySearchFilters {
     kamId?: string[]
     stage?: string[]
-    KamStatus?: string[]
+    kamStatus?: string[]
     assetType?: string[]
 }
 
@@ -34,11 +34,12 @@ const buildFilterString = (filters: InventorySearchFilters = {}): string => {
     if (filters.kamId?.length && !filters.kamId.includes('all')) {
         filterParts.push(`(${filters.kamId.map((s) => `kamId:${s}`).join(' OR ')})`)
     }
+
     if (filters.stage?.length && !filters.stage.includes('all')) {
         filterParts.push(`(${filters.stage.map((s) => `stage:${s}`).join(' OR ')})`)
     }
-    if (filters.KamStatus?.length && !filters.KamStatus.includes('all')) {
-        filterParts.push(`(${filters.KamStatus.map((s) => `KamStatus:${s}`).join(' OR ')})`)
+    if (filters.kamStatus?.length && !filters.kamStatus.includes('all')) {
+        filterParts.push(`(${filters.kamStatus.map((s) => `kamStatus:${s}`).join(' OR ')})`)
     }
     if (filters.assetType?.length && !filters.assetType.includes('all')) {
         filterParts.push(`(${filters.assetType.map((t) => `assetType:${t}`).join(' OR ')})`)
@@ -70,7 +71,7 @@ export const searchInventory = async (params: InventorySearchParams): Promise<In
                     page,
                     hitsPerPage,
                     filters: buildFilterString(filters),
-                    facets: ['kamId', 'stage', 'KamStatus', 'assetType', 'kamName'],
+                    facets: ['kamId', 'stage', 'kamStatus', 'assetType', 'kamName'],
                     maxValuesPerFacet: 100,
                 },
             },
@@ -101,7 +102,7 @@ export const getInventoryFacets = async (): Promise<Record<string, { value: stri
                 params: {
                     query: '',
                     hitsPerPage: 0,
-                    facets: ['kamId', 'stage', 'KamStatus', 'assetType', 'kamName'],
+                    facets: ['kamId', 'stage', 'kamStatus', 'assetType', 'kamName'],
                     maxValuesPerFacet: 100,
                 },
             },

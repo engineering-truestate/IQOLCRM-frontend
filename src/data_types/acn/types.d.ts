@@ -330,8 +330,8 @@ interface BaseQCInventory {
 
     // Missing fields from IInventory - added with optional (?)
     id?: string
-    cpCode?: string
-    nameOfTheProperty?: string
+    cpId?: string
+    propertyName?: string
     builder_name?: string | null
     objectID?: string
     enquiries?: number
@@ -377,6 +377,8 @@ type QCInventoryState = {
     qcInventories: BaseQCInventory[]
     currentQCInventory: BaseQCInventory | null
     selectedInventory?: BaseQCInventory | null
+    kamNameMappings: Record<string, string>
+    kamMappingsLoading: boolean
     loading: boolean
     error: string | null
     lastFetch: number | null
@@ -657,7 +659,7 @@ interface ConnectHistoryItem {
 interface ILead {
     leadId: string
     name: string
-    phonenumber: string
+    phoneNumber: string
     emailAddress: string
     source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct'
     leadStatus: 'interested' | 'not interested' | 'not contact yet'

@@ -12,12 +12,15 @@ import {
     addQCInventoryNote,
     addQCInventory,
     updateQCInventory,
+    prefetchKamNameMappings,
 } from '../../../services/acn/qc/qcService'
 
 const initialState: QCInventoryState = {
     qcInventories: [],
     currentQCInventory: null,
     selectedInventory: null,
+    kamNameMappings: {},
+    kamMappingsLoading: false,
     loading: false,
     error: null,
     lastFetch: null,
@@ -194,6 +197,21 @@ const qcSlice = createSlice({
             })
             .addCase(addQCInventoryNote.rejected, (state, action) => {
                 state.noteLoading = false
+                state.error = action.payload as string
+            })
+
+            // Prefetch kamId to kamName mappings
+            .addCase(prefetchKamNameMappings.pending, (state) => {
+                state.kamMappingsLoading = true
+                state.error = null
+            })
+            .addCase(prefetchKamNameMappings.fulfilled, (state, action) => {
+                state.kamMappingsLoading = false
+                state.kamNameMappings = action.payload
+                state.error = null
+            })
+            .addCase(prefetchKamNameMappings.rejected, (state, action) => {
+                state.kamMappingsLoading = false
                 state.error = action.payload as string
             })
     },

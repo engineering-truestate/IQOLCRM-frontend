@@ -38,7 +38,7 @@ Property Details:
 ${properties
     .map(
         (prop, index) => `
-${index + 1}. ${prop.nameOfTheProperty || prop.area || 'Unknown Property'}
+${index + 1}. ${prop.propertyName || prop.area || 'Unknown Property'}
    ID: ${prop.propertyId || prop.id || 'Unknown'}
    Location: ${prop.micromarket || 'Unknown'}
    Asset Type: ${prop.assetType || 'Unknown'}
@@ -77,7 +77,7 @@ Shared via Property Management System
 ${properties
     .map(
         (prop, index) => `
-*${index + 1}.* ${prop.nameOfTheProperty || prop.area || 'Unknown Property'}
+*${index + 1}.* ${prop.propertyName || prop.area || 'Unknown Property'}
    🆔 *ID:* ${prop.propertyId || prop.id || 'Unknown'}
    📍 *Location:* ${prop.micromarket || 'Unknown'}
    🏠 *Asset Type:* ${prop.assetType || 'Unknown'}
@@ -108,7 +108,7 @@ _Shared via Property Management System_
     // ${properties
     //     .map(
     //         (prop, index) => `
-    // ${index + 1}. ${prop.nameOfTheProperty || prop.area || 'Unknown Property'}
+    // ${index + 1}. ${prop.propertyName || prop.area || 'Unknown Property'}
     //    ID: ${prop.propertyId || prop.id || 'Unknown'}
     //    Location: ${prop.micromarket || 'Unknown'}
     //    Asset Type: ${prop.assetType || 'Unknown'}

@@ -663,7 +663,7 @@ const LeadsPage = () => {
                 ),
             },
             {
-                key: 'phonenumber',
+                key: 'phoneNumber',
                 header: 'Contact Number',
                 render: (value) => (
                     <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>

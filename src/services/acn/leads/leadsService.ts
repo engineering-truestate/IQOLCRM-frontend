@@ -654,7 +654,7 @@ interface BulkLeadData {
 interface ProcessedLeadData {
     leadId: string
     name: string
-    phonenumber: string
+    phoneNumber: string
     emailAddress: string
     source: string
     kamId: string
@@ -747,14 +747,14 @@ export const validateCSVData = createAsyncThunk(
                             // Check in acnLeads collection
                             const leadsQuery = query(
                                 collection(db, 'acnLeads'),
-                                where('phonenumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
+                                where('phoneNumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
                             )
                             const leadsSnapshot = await getDocs(leadsQuery)
 
                             // Check in acnAgents collection
                             const agentsQuery = query(
                                 collection(db, 'acnAgents'),
-                                where('phonenumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
+                                where('phoneNumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
                             )
                             const agentsSnapshot = await getDocs(agentsQuery)
 
@@ -919,39 +919,39 @@ export const addBulkLeads = createAsyncThunk(
                 // Check for duplicate phone numbers
                 try {
                     // Check in acnLeads collection with original format
-                    const leadsQuery = query(collection(db, 'acnLeads'), where('phonenumber', '==', leadData.Number))
+                    const leadsQuery = query(collection(db, 'acnLeads'), where('phoneNumber', '==', leadData.Number))
                     const leadsSnapshot = await getDocs(leadsQuery)
 
                     // Check with +91 prefix
                     const phoneWithPrefix = `+91${phoneToCheck}`
                     const leadsQueryWithPrefix = query(
                         collection(db, 'acnLeads'),
-                        where('phonenumber', '==', phoneWithPrefix),
+                        where('phoneNumber', '==', phoneWithPrefix),
                     )
                     const leadsSnapshotWithPrefix = await getDocs(leadsQueryWithPrefix)
 
                     // Check without prefix (just 10 digits)
                     const leadsQueryWithoutPrefix = query(
                         collection(db, 'acnLeads'),
-                        where('phonenumber', '==', phoneToCheck),
+                        where('phoneNumber', '==', phoneToCheck),
                     )
                     const leadsSnapshotWithoutPrefix = await getDocs(leadsQueryWithoutPrefix)
 
                     // Check in acnAgents collection with original format
-                    const agentsQuery = query(collection(db, 'acnAgents'), where('phonenumber', '==', leadData.Number))
+                    const agentsQuery = query(collection(db, 'acnAgents'), where('phoneNumber', '==', leadData.Number))
                     const agentsSnapshot = await getDocs(agentsQuery)
 
                     // Check agents with +91 prefix
                     const agentsQueryWithPrefix = query(
                         collection(db, 'acnAgents'),
-                        where('phonenumber', '==', phoneWithPrefix),
+                        where('phoneNumber', '==', phoneWithPrefix),
                     )
                     const agentsSnapshotWithPrefix = await getDocs(agentsQueryWithPrefix)
 
                     // Check agents without prefix
                     const agentsQueryWithoutPrefix = query(
                         collection(db, 'acnAgents'),
-                        where('phonenumber', '==', phoneToCheck),
+                        where('phoneNumber', '==', phoneToCheck),
                     )
                     const agentsSnapshotWithoutPrefix = await getDocs(agentsQueryWithoutPrefix)
 
@@ -1006,7 +1006,7 @@ export const addBulkLeads = createAsyncThunk(
                 const newLead: ProcessedLeadData = {
                     leadId,
                     name: leadData.Name,
-                    phonenumber: leadData.Number,
+                    phoneNumber: leadData.Number,
                     emailAddress: leadData.Email,
                     source: leadData['Lead Source'],
                     kamId,
@@ -1105,6 +1105,23 @@ export const addManualLead = createAsyncThunk(
                 })
             }
 
+            // Check if phone exists in acnPipeline for KAM details
+            let kamId = ''
+            let kamName = ''
+
+            try {
+                const pipelineDocRef = doc(db, 'acnPipeline', phone)
+                const pipelineDoc = await getDoc(pipelineDocRef)
+
+                if (pipelineDoc.exists()) {
+                    const pipelineData = pipelineDoc.data()
+                    kamId = pipelineData.kamId || ''
+                    kamName = pipelineData.kamName || ''
+                }
+            } catch (error) {
+                console.log('Pipeline doc not found for:', phone)
+            }
+
             let formattedPhoneNumber = phone
             if (formattedPhoneNumber && !formattedPhoneNumber.startsWith('+91')) {
                 // Remove any existing country code or leading zeros
@@ -1115,7 +1132,7 @@ export const addManualLead = createAsyncThunk(
             const newLead: ProcessedLeadData = {
                 leadId,
                 name: manualData.name,
-                phonenumber: formattedPhoneNumber,
+                phoneNumber: formattedPhoneNumber,
                 emailAddress: manualData.email,
                 source: manualData.leadSource,
                 kamId: manualData.kamId,
@@ -1171,21 +1188,21 @@ export const validateLeadData = createAsyncThunk(
             const phoneToCheck = phone.replace(/^\+91/, '')
 
             // Check in acnLeads collection
-            const leadsQuery = query(collection(db, 'acnLeads'), where('phonenumber', '==', phone))
+            const leadsQuery = query(collection(db, 'acnLeads'), where('phoneNumber', '==', phone))
             const leadsSnapshot = await getDocs(leadsQuery)
 
             // Also check without +91 prefix
-            const leadsQueryWithoutPrefix = query(collection(db, 'acnLeads'), where('phonenumber', '==', phoneToCheck))
+            const leadsQueryWithoutPrefix = query(collection(db, 'acnLeads'), where('phoneNumber', '==', phoneToCheck))
             const leadsSnapshotWithoutPrefix = await getDocs(leadsQueryWithoutPrefix)
 
             // Check in acnAgents collection
-            const agentsQuery = query(collection(db, 'acnAgents'), where('phonenumber', '==', phone))
+            const agentsQuery = query(collection(db, 'acnAgents'), where('phoneNumber', '==', phone))
             const agentsSnapshot = await getDocs(agentsQuery)
 
             // Also check agents without +91 prefix
             const agentsQueryWithoutPrefix = query(
                 collection(db, 'acnAgents'),
-                where('phonenumber', '==', phoneToCheck),
+                where('phoneNumber', '==', phoneToCheck),
             )
             const agentsSnapshotWithoutPrefix = await getDocs(agentsQueryWithoutPrefix)
 

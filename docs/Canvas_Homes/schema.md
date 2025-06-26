@@ -22,7 +22,7 @@ Stores basic information about users including contact details and timestamps fo
 | ------------ | ----------- | -------------------- | ------- |
 | userId       | string      | "user_001"           | —       |
 | name         | string      | "Anjali Sinha"       | —       |
-| phonenumber  | string      | "+919999999999"      | —       |
+| phoneNumber  | string      | "+919999999999"      | —       |
 | emailAddress | string      | "anjali@example.com" | —       |
 | added        | number (TS) | 1717833600000        | —       |
 | lastModified | number (TS) | 1717916400000        | —       |
