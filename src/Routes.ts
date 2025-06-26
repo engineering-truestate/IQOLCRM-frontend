@@ -46,9 +46,9 @@ import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
 import ChoosePlatform from './ChoosePlatform'
-import { ResaleDetailsPage } from './pages/restack/Resale/ResalePageDetails'
 import Resale from './pages/restack/Resale/Resale'
 import ResalePage from './pages/restack/Resale/ResalePage'
+import { ResaleDetailsPage } from './pages/restack/Resale/ResalePageDetails'
 
 export const authRoutes: RouteObject[] = [
     {
