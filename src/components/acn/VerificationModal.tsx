@@ -21,7 +21,6 @@ interface VerificationModalProps {
         cpId?: string
         name: string
         phoneNumber?: string
-        phoneNumber?: string
         leadStatus?: string
         agentStatus?: string
         contactStatus: string

@@ -9,7 +9,7 @@ export interface IInventory {
     id: string
     propertyId: string
     cpId: string
-    propertyName: string
+    // propertyName: string
     _geoloc: { lat: number; lng: number }
     area: string
     micromarket: string

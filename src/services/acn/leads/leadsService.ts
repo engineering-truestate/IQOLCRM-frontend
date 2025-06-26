@@ -1117,6 +1117,8 @@ export const addManualLead = createAsyncThunk(
                     const pipelineData = pipelineDoc.data()
                     kamId = pipelineData.kamId || ''
                     kamName = pipelineData.kamName || ''
+                } else {
+                    throw new Error(`Pipeline doc not found for: ${kamId} ${kamName}`)
                 }
             } catch (error) {
                 console.log('Pipeline doc not found for:', phone)

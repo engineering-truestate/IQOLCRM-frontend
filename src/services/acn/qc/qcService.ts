@@ -1,6 +1,6 @@
 // services/acn/qc/qcService.ts
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { doc, getDoc, updateDoc, arrayUnion, setDoc, collection, getDocs, query } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, arrayUnion, setDoc, collection, getDocs } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { addProperty } from '../properties/propertiesService'
 import type {
