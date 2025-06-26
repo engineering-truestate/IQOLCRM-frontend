@@ -153,7 +153,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 {/* Scheduled Info */}
                 <div>
                     <div className='font-medium text-sm text-gray-900 mb-1'>
-                        {task.firebaseTask?.completionDate ? 'Completion Date' : formatValue(task.scheduledInfo)}
+                        {task.status === 'complete' ? 'Completion Date' : formatValue(task.scheduledInfo)}
                     </div>
                     <div className='text-xs text-gray-500'>{getFormattedDate()}</div>
                 </div>

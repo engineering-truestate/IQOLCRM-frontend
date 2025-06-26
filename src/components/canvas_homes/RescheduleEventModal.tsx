@@ -75,7 +75,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
         if (taskType === 'initial contact' && taskState === 'connected') {
             return 'initial contacted'
         } else if (taskType === 'initial contact' && taskState === 'not connected') {
-            return 'lead registered'
+            return leadData?.stage
         }
         return null
     }

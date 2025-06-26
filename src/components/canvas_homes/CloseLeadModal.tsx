@@ -36,7 +36,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
         reason: '',
-        tag: 'cold',
+        tag: leadData?.tag || '',
         note: '',
         status: 'Complete',
         state: 'dropped',
@@ -62,7 +62,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     break
                 case 'not connected':
                     leadStatus = 'not connected'
-                    stage = 'lead registered'
+                    stage = leadData?.stage || ''
                     break
                 case 'visited':
                     leadStatus = 'visit unsuccessful'
@@ -70,15 +70,15 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     break
                 case 'not visited':
                     leadStatus = 'visit dropped'
-                    stage = 'initial contacted'
+                    stage = leadData?.stage || ''
                     break
                 case 'eoi not collected':
                     leadStatus = 'eoi dropped'
-                    stage = 'site visited'
+                    stage = leadData?.stage || ''
                     break
                 case 'booking unsuccessful':
                     leadStatus = 'booking dropped'
-                    stage = 'eoi collected'
+                    stage = leadData?.stage || ''
                     break
                 default:
                     leadStatus = 'not connected'
@@ -230,7 +230,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     reason: '',
                     status: 'Complete',
                     leadStatus: 'not connected',
-                    tag: 'cold',
+                    tag: leadData?.tag || '',
                     state: 'dropped',
                     note: '',
                     stage: '',
