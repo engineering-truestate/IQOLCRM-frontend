@@ -1191,9 +1191,7 @@ const PrimaryDetailsPage = () => {
                     <hr className='border-gray-200 w-full' />
 
                     {/* Project Overview */}
-                    <h2 className='text-xl font-bold text-[32px] text-[#111518] px-4 py-4'>
-                        {projectDetails?.projectName}
-                    </h2>
+                    <h2 className='text-2xl font-bold  text-[#111518] px-4 py-4'>{projectDetails?.projectName}</h2>
                     <div className='px-4 pt-5 pb-3 text-[22px] font-bold font-[Inter] text-[#111518]'>
                         Project Overview
                     </div>
@@ -1305,7 +1303,7 @@ const PrimaryDetailsPage = () => {
                         )}
                         {renderField(
                             'RERA Registration Application Status',
-                            projectDetails?.reraStatus || '',
+                            projectDetails?.reraStatus || 'Approved',
                             'reraStatus',
                             reraStatuses,
                             'text',
@@ -1375,6 +1373,20 @@ const PrimaryDetailsPage = () => {
                             'Area of Garage (Sq Mtr)',
                             projectDetails?.garageArea?.toString() || '',
                             'garageArea',
+                            undefined,
+                            'number',
+                        )}
+                        {renderField(
+                            'Total Parking',
+                            projectDetails?.totalParking?.toString() || '',
+                            'totalParking',
+                            undefined,
+                            'number',
+                        )}
+                        {renderField(
+                            'Total Parking',
+                            projectDetails?.totalParking?.toString() || '',
+                            'totalParking',
                             undefined,
                             'number',
                         )}

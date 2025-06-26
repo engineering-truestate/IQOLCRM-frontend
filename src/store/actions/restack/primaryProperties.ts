@@ -148,3 +148,25 @@ export const updatePrimaryProperty = createAsyncThunk(
 export const clearCurrentProperty = () => ({
     type: 'primary/clearCurrentProperty',
 })
+
+export const FETCH_TOWER_DETAILS = 'FETCH_TOWER_DETAILS'
+
+export const fetchTowerDetails = createAsyncThunk(
+    'towerDetails/fetchTowerDetails',
+    async (projectId: string, { rejectWithValue }) => {
+        try {
+            const querySnapshot = await getDocs(collection(db, 'restackTowers'))
+            const towers = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }))
+            const tower = towers.find((tower) => tower.id === projectId)
+
+            if (!tower) {
+                return rejectWithValue('Tower details not found for this project.')
+            }
+
+            return tower
+        } catch (error) {
+            console.error('Error fetching tower details:', error)
+            return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch tower details')
+        }
+    },
+)

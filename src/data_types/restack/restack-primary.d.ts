@@ -161,7 +161,7 @@ export interface TowerDetail {
 export interface ApartmentConfig {
     id: string
     aptType: 'Simplex' | 'Duplex' | 'Triplex' | 'Penthouse'
-    typology: 'Studio' | '1 BHK' | '2 BHK' | '3 BHK' | '4 BHK' | '5+ BHK'
+    typology: string
     superBuiltUpArea: number
     carpetArea: number
     currentPricePerSqft: number
@@ -172,7 +172,7 @@ export interface ApartmentConfig {
 export interface VillaConfig {
     id: string
     villaType: 'UDS' | 'Plot' | 'Independent Villa'
-    typology: '2 BHK' | '3 BHK' | '4 BHK' | '5+ BHK'
+    typology: string
     plotSize: number
     builtUpArea: number
     uds: string
@@ -182,11 +182,12 @@ export interface VillaConfig {
     currentPricePerSqft: number
     totalPrice: number
     carpetArea: number
+    floorPlan?: string
 }
 
 export interface PlotConfig {
     id: string
-    plotType: 'ODD PLOT' | '9.14x15.24'
+    plotType: string
     plotArea: number
     currentPricePerSqft: number
     totalPrice: number

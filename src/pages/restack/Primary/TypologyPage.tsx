@@ -1,22 +1,33 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { updatePrimaryProperty, fetchPrimaryPropertyById } from '../../../store/actions/restack/primaryProperties'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import {
-    generateCompleteProjectDetails,
-    type CompleteProjectDetails,
-    apartmentTypologies,
-    villaTypologies,
-    plotTypes,
-    type ApartmentUnit,
-    type VillaUnit,
-    type PlotUnit,
-    sampleFloorPlans,
-    type FloorPlan,
-} from '../../../pages/dummy_data/restack_primary_details_dummy_data'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch, RootState } from '../../../store'
+import { useSelector } from 'react-redux'
+import { clearCurrentProperty } from '../../../store/reducers/acn/propertiesReducers'
+import type {
+    ApartmentConfig,
+    PlotConfig,
+    PrimaryProperty,
+    VillaConfig,
+} from '../../../data_types/restack/restack-primary'
+
+const apartmentTypes = [
+    { label: 'Simplex', value: 'simplex' },
+    { label: 'Duplex', value: 'duplex' },
+    { label: 'Triplex', value: 'triplex' },
+    { label: 'Penthouse', value: 'penthouse' },
+]
+
+const villaTypes = [
+    { label: 'UDS', value: 'uds' },
+    { label: 'Plot', value: 'plot' },
+]
 
 // Floor plan image component
 const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
@@ -41,54 +52,55 @@ const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?:
 }
 
 const TypologyPage = () => {
-    const { id } = useParams()
+    const { id } = useParams<{ id: string }>()
+    const dispatch = useDispatch<AppDispatch>()
 
-    const [projectDetails, setProjectDetails] = useState<CompleteProjectDetails | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [projectDetails, setProjectDetails] = useState<PrimaryProperty | null>(null)
     const [activeTab, setActiveTab] = useState<'apartment' | 'villa' | 'plot'>('apartment')
     const [editingRowId, setEditingRowId] = useState<string | null>(null)
     const [, setIsAddingRow] = useState(false)
 
+    const { currentProperty, loading } = useSelector((state: RootState) => state.primaryProperties)
+
     useEffect(() => {
-        const loadProjectDetails = async () => {
-            try {
-                setIsLoading(true)
-                if (id) {
-                    const details = generateCompleteProjectDetails(id)
-                    setProjectDetails(details)
-                    console.log('TypologyPage - id:', id)
-                    console.log('TypologyPage - Loaded project details:', details)
-                }
-            } catch (error) {
-                console.error('Error loading project details on TypologyPage:', error)
-                const defaultProject = generateCompleteProjectDetails('P0001')
-                setProjectDetails(defaultProject)
-                console.log('TypologyPage - Falling back to default project:', defaultProject)
-            } finally {
-                setIsLoading(false)
-            }
+        if (id) {
+            dispatch(fetchPrimaryPropertyById(id))
         }
-        loadProjectDetails()
-    }, [id])
+
+        return () => {
+            dispatch(clearCurrentProperty())
+        }
+    }, [id, dispatch])
+
+    useEffect(() => {
+        if (currentProperty) {
+            setProjectDetails({
+                ...currentProperty,
+                apartments: currentProperty.apartments || [],
+                villas: currentProperty.villas || [],
+                plots: currentProperty.plots || [],
+            })
+        }
+    }, [currentProperty, loading])
 
     const updateDataRow = (dataType: 'apartment' | 'villa' | 'plot', rowId: string, field: string, value: string) => {
         if (!projectDetails) return
 
-        let fieldName: keyof CompleteProjectDetails
+        let fieldName: keyof PrimaryProperty
         let dataRows: any[]
 
         switch (dataType) {
             case 'apartment':
-                fieldName = 'apartmentUnits'
-                dataRows = projectDetails[fieldName]
+                fieldName = 'apartments'
+                dataRows = (projectDetails?.apartments as ApartmentConfig[]) || []
                 break
             case 'villa':
-                fieldName = 'villaUnits'
-                dataRows = projectDetails[fieldName]
+                fieldName = 'villas'
+                dataRows = (projectDetails?.villas as VillaConfig[]) || []
                 break
             case 'plot':
-                fieldName = 'plotUnits'
-                dataRows = projectDetails[fieldName]
+                fieldName = 'plots'
+                dataRows = (projectDetails?.plots as PlotConfig[]) || []
                 break
             default:
                 return
@@ -96,58 +108,73 @@ const TypologyPage = () => {
 
         const updatedDataRows = dataRows.map((row) => (row.id === rowId ? { ...row, [field]: value } : row))
 
-        setProjectDetails((prev) =>
-            prev ? { ...prev, [fieldName as keyof CompleteProjectDetails]: updatedDataRows } : null,
-        )
+        setProjectDetails((prev) => {
+            if (!prev) return null
+            return {
+                ...prev,
+                [fieldName as keyof PrimaryProperty]: updatedDataRows,
+            }
+        })
+
+        if (projectDetails.projectId) {
+            dispatch(
+                updatePrimaryProperty({
+                    projectId: projectDetails.projectId,
+                    updates: { [fieldName]: updatedDataRows },
+                }),
+            )
+        }
     }
 
     const addNewUnit = (unitType: 'apartment' | 'villa' | 'plot') => {
         if (!projectDetails) return
 
         const newId = `${unitType}_${Date.now()}`
-        let newUnit: ApartmentUnit | VillaUnit | PlotUnit
+        let newUnit: ApartmentConfig | VillaConfig | PlotConfig
 
         switch (unitType) {
             case 'apartment':
                 newUnit = {
                     id: newId,
-                    aptType: '',
+                    aptType: 'Simplex',
                     typology: '',
-                    superBuiltUpArea: '',
-                    carpetArea: '',
-                    pricePerSqft: '',
-                    totalPrice: '',
+                    superBuiltUpArea: 0,
+                    carpetArea: 0,
+                    currentPricePerSqft: 0,
+                    totalPrice: 0,
                     floorPlan: '',
-                }
+                } as ApartmentConfig
                 break
             case 'villa':
                 newUnit = {
                     id: newId,
-                    villaType: '',
-                    typology: '',
-                    plotSize: '',
-                    builtUpArea: '',
-                    carpetArea: '',
-                    pricePerSqft: '',
-                    totalPrice: '',
+                    villaType: 'UDS',
+                    typology: '2 BHK',
+                    plotSize: 0,
+                    builtUpArea: 0,
+                    carpetArea: 0,
+                    currentPricePerSqft: 0,
+                    totalPrice: 0,
                     uds: '',
-                    noOfFloors: '',
+                    udsPercentage: 0,
+                    udsArea: 0,
+                    numberOfFloors: 0,
                     floorPlan: '',
-                }
+                } as VillaConfig
                 break
             case 'plot':
                 newUnit = {
                     id: newId,
                     plotType: '',
-                    plotArea: '',
-                    pricePerSqft: '',
-                    totalPrice: '',
-                }
+                    plotArea: 0,
+                    currentPricePerSqft: 0,
+                    totalPrice: 0,
+                } as PlotConfig
                 break
         }
 
-        const fieldName = `${unitType}Units` as keyof CompleteProjectDetails
-        const units = projectDetails[fieldName] as any[]
+        const fieldName = `${unitType}s` as keyof PrimaryProperty
+        const units = ((projectDetails[fieldName as keyof PrimaryProperty] as any) || []) as any[]
 
         setProjectDetails((prev) => (prev ? { ...prev, [fieldName]: [...units, newUnit] } : null))
         setIsAddingRow(true)
@@ -157,13 +184,20 @@ const TypologyPage = () => {
     const deleteUnit = (unitType: 'apartment' | 'villa' | 'plot', unitId: string) => {
         if (!projectDetails) return
 
-        const fieldName = `${unitType}Units` as keyof CompleteProjectDetails
-        const units = projectDetails[fieldName] as any[]
-        const updatedUnits = units.filter((unit) => unit.id !== unitId)
+        const fieldName = `${unitType}s` as keyof PrimaryProperty
+        const units = ((projectDetails[fieldName as keyof PrimaryProperty] as any) || []) as any[]
+        const updatedUnits = units.filter((unit: any) => unit.id !== unitId)
 
         setProjectDetails((prev) => (prev ? { ...prev, [fieldName]: updatedUnits } : null))
         setEditingRowId(null)
         setIsAddingRow(false)
+
+        // Dispatch updatePrimaryProperty to persist changes to Firebase
+        if (projectDetails.projectId) {
+            dispatch(
+                updatePrimaryProperty({ projectId: projectDetails.projectId, updates: { [fieldName]: updatedUnits } }),
+            )
+        }
     }
 
     const handleEditRow = (rowId: string) => {
@@ -190,13 +224,16 @@ const TypologyPage = () => {
         const isEditing = editingRowId === row.id
 
         if (isEditing) {
-            if (field === 'typology' || field === 'aptType' || field === 'villaType' || field === 'plotType') {
+            if (field === 'aptType' || field === 'villaType') {
                 return (
                     <Dropdown
                         options={options || []}
                         defaultValue={value ? String(value) : ''}
                         onSelect={(selectedValue) => updateDataRow(dataType, row.id, field, selectedValue)}
-                        placeholder='Select'
+                        placeholder='Select Type'
+                        triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
+                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                        optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                     />
                 )
             } else if (field === 'floorPlan' && dataType !== 'plot') {
@@ -219,13 +256,6 @@ const TypologyPage = () => {
             }
         } else {
             // Not editing
-            if (field === 'floorPlan' && value) {
-                const floorPlanId = String(value)
-                const floorPlanImage: FloorPlan | undefined = sampleFloorPlans.find((fp) => fp.id === floorPlanId)
-                if (floorPlanImage) {
-                    return <FloorPlanImage imageUrl={floorPlanImage.url} />
-                }
-            }
             return value === null || value === undefined || value === '' ? '' : String(value)
         }
     }
@@ -234,26 +264,12 @@ const TypologyPage = () => {
         {
             key: 'aptType',
             header: 'Apartment Type',
-            render: (_: any, row) =>
-                renderTableCell(
-                    row.aptType,
-                    row,
-                    'aptType',
-                    'apartment',
-                    apartmentTypologies.map((item) => ({ label: item.name, value: item.typology })),
-                ),
+            render: (_: any, row) => renderTableCell(row.aptType, row, 'aptType', 'apartment', apartmentTypes),
         },
         {
             key: 'typology',
             header: 'Typology',
-            render: (_: any, row) =>
-                renderTableCell(
-                    row.typology,
-                    row,
-                    'typology',
-                    'apartment',
-                    apartmentTypologies.map((item) => ({ label: item.name, value: item.typology })),
-                ),
+            render: (_: any, row) => renderTableCell(row.typology, row, 'typology', 'apartment'),
         },
         {
             key: 'superBuiltUpArea',
@@ -266,9 +282,9 @@ const TypologyPage = () => {
             render: (_: any, row) => renderTableCell(row.carpetArea, row, 'carpetArea', 'apartment'),
         },
         {
-            key: 'pricePerSqft',
+            key: 'currentPricePerSqft',
             header: 'Price Per Sq.ft',
-            render: (_: any, row) => renderTableCell(row.pricePerSqft, row, 'pricePerSqft', 'apartment'),
+            render: (_: any, row) => renderTableCell(row.currentPricePerSqft, row, 'currentPricePerSqft', 'apartment'),
         },
         {
             key: 'totalPrice',
@@ -337,26 +353,12 @@ const TypologyPage = () => {
         {
             key: 'villaType',
             header: 'Villa Type',
-            render: (_: any, row) =>
-                renderTableCell(
-                    row.villaType,
-                    row,
-                    'villaType',
-                    'villa',
-                    villaTypologies.map((item) => ({ label: item.name, value: item.typology })),
-                ),
+            render: (_: any, row) => renderTableCell(row.villaType, row, 'villaType', 'villa', villaTypes),
         },
         {
             key: 'typology',
             header: 'Typology',
-            render: (_: any, row) =>
-                renderTableCell(
-                    row.typology,
-                    row,
-                    'typology',
-                    'villa',
-                    villaTypologies.map((item) => ({ label: item.name, value: item.typology })),
-                ),
+            render: (_: any, row) => renderTableCell(row.typology, row, 'typology', 'villa'),
         },
         {
             key: 'plotSize',
@@ -374,9 +376,10 @@ const TypologyPage = () => {
             render: (_: any, row) => renderTableCell(row.carpetArea, row, 'carpetArea', 'villa'),
         },
         {
-            key: 'pricePerSqft',
+            key: 'currentPricePerSqft',
             header: 'Price Per Sq.ft',
-            render: (_: any, row) => renderTableCell(row.pricePerSqft, row, 'pricePerSqft', 'villa'),
+            // Fixed: Changed 'pricePerSqft' to 'currentPricePerSqft'
+            render: (_: any, row) => renderTableCell(row.currentPricePerSqft, row, 'currentPricePerSqft', 'villa'),
         },
         {
             key: 'totalPrice',
@@ -389,9 +392,20 @@ const TypologyPage = () => {
             render: (_: any, row) => renderTableCell(row.uds, row, 'uds', 'villa'),
         },
         {
-            key: 'noOfFloors',
+            key: 'udsPercentage',
+            header: 'UDS Percentage',
+            render: (_: any, row) => renderTableCell(row.udsPercentage, row, 'udsPercentage', 'villa'),
+        },
+        {
+            key: 'udsArea',
+            header: 'UDS Area',
+            render: (_: any, row) => renderTableCell(row.udsArea, row, 'udsArea', 'villa'),
+        },
+        {
+            key: 'numberOfFloors',
             header: 'No. of Floors',
-            render: (_: any, row) => renderTableCell(row.noOfFloors, row, 'noOfFloors', 'villa'),
+            // Fixed: Changed 'noOfFloors' to 'numberOfFloors'
+            render: (_: any, row) => renderTableCell(row.numberOfFloors, row, 'numberOfFloors', 'villa'),
         },
         {
             key: 'floorPlan',
@@ -455,14 +469,7 @@ const TypologyPage = () => {
         {
             key: 'plotType',
             header: 'Plot Type',
-            render: (_: any, row) =>
-                renderTableCell(
-                    row.plotType,
-                    row,
-                    'plotType',
-                    'plot',
-                    plotTypes.map((item) => ({ label: item.type, value: item.type })),
-                ),
+            render: (_: any, row) => renderTableCell(row.plotType, row, 'plotType', 'plot'),
         },
         {
             key: 'plotArea',
@@ -470,9 +477,10 @@ const TypologyPage = () => {
             render: (_: any, row) => renderTableCell(row.plotArea, row, 'plotArea', 'plot'),
         },
         {
-            key: 'pricePerSqft',
+            key: 'currentPricePerSqft',
             header: 'Price Per Sq.ft',
-            render: (_: any, row) => renderTableCell(row.pricePerSqft, row, 'pricePerSqft', 'plot'),
+            // Fixed: Changed 'pricePerSqft' to 'currentPricePerSqft'
+            render: (_: any, row) => renderTableCell(row.currentPricePerSqft, row, 'currentPricePerSqft', 'plot'),
         },
         {
             key: 'totalPrice',
@@ -532,9 +540,9 @@ const TypologyPage = () => {
         },
     ]
 
-    if (isLoading) {
+    if (loading) {
         return (
-            <Layout loading={isLoading}>
+            <Layout loading={loading}>
                 <div className='flex h-full items-center justify-center'>Loading Typology & Unit Plan...</div>
             </Layout>
         )
@@ -542,7 +550,7 @@ const TypologyPage = () => {
 
     if (!projectDetails) {
         return (
-            <Layout loading={isLoading}>
+            <Layout loading={loading}>
                 <div className='flex h-full items-center justify-center text-red-500'>
                     Error: Project details not found.
                 </div>
@@ -551,8 +559,8 @@ const TypologyPage = () => {
     }
 
     return (
-        <Layout loading={isLoading}>
-            <div className='pt-8'>
+        <Layout loading={loading}>
+            <div className='p-8'>
                 <div className='text-sm text-gray-500 mb-4'>
                     <a href='/restack/prelaunch' className='hover:text-gray-700'>
                         Projects
@@ -627,10 +635,18 @@ const TypologyPage = () => {
                         }
                         data={
                             activeTab === 'apartment'
-                                ? projectDetails.apartmentUnits
+                                ? Array.isArray(projectDetails?.apartments)
+                                    ? projectDetails?.apartments
+                                    : []
                                 : activeTab === 'villa'
-                                  ? projectDetails.villaUnits
-                                  : projectDetails.plotUnits
+                                  ? Array.isArray(projectDetails?.villas)
+                                      ? projectDetails?.villas
+                                      : []
+                                  : activeTab === 'plot'
+                                    ? Array.isArray(projectDetails?.plots)
+                                        ? projectDetails?.plots
+                                        : []
+                                    : []
                         }
                     />
                     <Button
@@ -640,7 +656,7 @@ const TypologyPage = () => {
                         className='!h-[28px] !w-[unset] px-3 text-sm mt-4'
                         onClick={() => addNewUnit(activeTab)}
                     >
-                        Add New {activeTab === 'apartment' ? 'Apartment' : activeTab === 'villa' ? 'Villa' : 'Plot'}{' '}
+                        Add New {activeTab === 'apartment' ? 'Apartment' : activeTab === 'villa' ? 'Villa' : 'Plot'}
                         Unit
                     </Button>
                 </div>

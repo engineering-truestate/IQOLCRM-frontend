@@ -7,7 +7,11 @@ import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 
-import { getPreLaunchPropertyById, updatePreLaunchProperty } from '../../../store/actions/restack/preLaunchActions'
+import {
+    getPreLaunchPropertyById,
+    updatePreLaunchProperty,
+    deletePreLaunchPropertyById,
+} from '../../../store/actions/restack/preLaunchActions'
 import type { Property } from '../../../store/reducers/restack/preLaunchtypes'
 import type { AppDispatch, RootState } from '../../../store'
 import editic from '/icons/acn/edit.svg'
@@ -721,15 +725,30 @@ const PreLaunchDetailsPage = () => {
                                         </Button>
                                     </>
                                 ) : (
-                                    <Button
-                                        leftIcon={<img src={editic} alt='Edit' className='w-4 h-4' />}
-                                        bgColor='bg-[#F3F3F3]'
-                                        textColor='text-[#3A3A47]'
-                                        className='px-4 h-8 font-semibold'
-                                        onClick={handleEdit}
-                                    >
-                                        Edit
-                                    </Button>
+                                    <>
+                                        <Button
+                                            leftIcon={<img src={editic} alt='Edit' className='w-4 h-4' />}
+                                            bgColor='bg-[#F3F3F3]'
+                                            textColor='text-[#3A3A47]'
+                                            className='px-4 h-8 font-semibold'
+                                            onClick={handleEdit}
+                                        >
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            bgColor='bg-red-500'
+                                            textColor='text-white'
+                                            className='px-4 h-8 font-semibold'
+                                            onClick={() => {
+                                                if (projectDetails && projectDetails.projectId) {
+                                                    dispatch(deletePreLaunchPropertyById(projectDetails.projectId))
+                                                    navigate('/restack/prelaunch')
+                                                }
+                                            }}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </>
                                 )}
                             </div>
                         </div>
