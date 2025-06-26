@@ -63,7 +63,7 @@ export const SelectionButton: React.FC<SelectionButtonProps> = ({
     disabled = false,
     color = 'blue',
     state = 'default',
-    className,
+    // className,
     onChange,
     name,
 }) => {

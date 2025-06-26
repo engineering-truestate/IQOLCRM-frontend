@@ -1,4 +1,5 @@
 export interface TowerDetail {
+    id: string
     name: string
     floors: number
 }

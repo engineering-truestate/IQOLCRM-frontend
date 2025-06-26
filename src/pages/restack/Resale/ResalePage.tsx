@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useNavigate, useLocation, Link, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
@@ -15,9 +15,9 @@ import {
     getMyGateResaleData,
 } from '../../../services/restack/resaleService'
 import Dropdown from '../../../components/design-elements/Dropdown'
+import Breadcrumb from '../../../components/acn/Breadcrumb'
 
 const ResalePage = () => {
-    const location = useLocation()
     const navigate = useNavigate()
     const [searchValue, setSearchValue] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
@@ -146,13 +146,30 @@ const ResalePage = () => {
 
     return (
         <Layout loading={loading}>
-            <div className='w-full overflow-hidden font-sans'>
+            <div className='w-full h-full overflow-hidden font-sans'>
                 <div className='py-4 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
                     <div className='mb-2'>
-                        <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Resale /{type}</h1>
+                        <div className='flex items-center justify-between mb-2'>
+                            <div>
+                                <h1 className='text-xl font-semibold text-gray-900'>
+                                    {type} Properties ({properties.length})
+                                </h1>
+                                <Breadcrumb link={'/restack/resale'} parent={'Resale'} child={type as string} />
+                            </div>
                             <div className='flex items-center gap-4'>
+                                <Dropdown
+                                    defaultValue=''
+                                    placeholder='Select Status'
+                                    options={[
+                                        { label: 'All', value: 'All' },
+                                        { label: 'Ready to Move', value: 'ready to move' },
+                                    ]}
+                                    onSelect={(value: string) => handleFilterClick(value as 'Owner' | 'Broker')}
+                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    menuClassName='absolute z-50 mt-1 top-7 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                />
                                 <Dropdown
                                     defaultValue=''
                                     placeholder='Listed by'
@@ -162,7 +179,9 @@ const ResalePage = () => {
                                         { label: 'Listed by Broker', value: 'Broker' },
                                     ]}
                                     onSelect={(value: string) => handleFilterClick(value as 'Owner' | 'Broker')}
-                                    className='z-40'
+                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    menuClassName='absolute z-50 mt-1 top-7 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                 />
                                 <div className='w-80'>
                                     <StateBaseTextField
@@ -188,39 +207,6 @@ const ResalePage = () => {
                                     />
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Filter Buttons */}
-                        <div className='flex items-center gap-3 mb-4'>
-                            {/* <button
-                                onClick={() => handleFilterClick('Owner')}
-                                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
-                                    listedByFilter === 'Owner'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                            >
-                                Listed by Owner
-                            </button>
-                            <button
-                                onClick={() => handleFilterClick('Broker')}
-                                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
-                                    listedByFilter === 'Broker'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                            >
-                                Listed by Broker
-                            </button> */}
-
-                            {/* {(listedByFilter === 'Owner' || listedByFilter === 'Broker') && (
-                                <button
-                                    onClick={() => handleFilterClick('All')}
-                                    className='px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors'
-                                >
-                                    Clear Filter
-                                </button>
-                            )} */}
                         </div>
                     </div>
                     <hr className='border-gray-200 mb-4 w-full' />

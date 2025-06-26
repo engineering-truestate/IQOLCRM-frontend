@@ -12,18 +12,10 @@ import type {
     PrimaryProperty,
     DevelopmentDetail,
     TowerDetail,
-    ApartmentConfig,
-    VillaConfig,
-    PlotConfig,
-    FloorPlan,
-    UnitDetail,
     ClubhouseDetail,
-    ProjectType,
-    ProjectStatus,
-    ProjectSubType,
 } from '../../../data_types/restack/restack-primary'
 import editic from '/icons/acn/edit.svg'
-import addcircleic from '/icons/acn/add-circle.svg'
+
 import { clearCurrentProperty, updatePrimaryProperty } from '../../../store/actions/restack/primaryProperties'
 import type { RootState } from '../../../store/reducers'
 import { fetchPrimaryPropertyById } from '../../../store/actions/restack/primaryProperties'
@@ -87,60 +79,60 @@ const reraStatuses = [
     { label: 'Not Required', value: 'Not Required' },
 ]
 
-const developerTiers = [
-    { label: 'A', value: 'A' },
-    { label: 'B', value: 'B' },
-    { label: 'C', value: 'C' },
-    { label: 'D', value: 'D' },
-]
+// const developerTiers = [
+//     { label: 'A', value: 'A' },
+//     { label: 'B', value: 'B' },
+//     { label: 'C', value: 'C' },
+//     { label: 'D', value: 'D' },
+// ]
 
-const areaUnits = [
-    { label: 'Square Meters', value: 'sqMtr' },
-    { label: 'Square Feet', value: 'sqft' },
-    { label: 'Acres', value: 'acres' },
-    { label: 'Hectares', value: 'hectares' },
-]
+// const areaUnits = [
+//     { label: 'Square Meters', value: 'sqMtr' },
+//     { label: 'Square Feet', value: 'sqft' },
+//     { label: 'Acres', value: 'acres' },
+//     { label: 'Hectares', value: 'hectares' },
+// ]
 
-const amenitiesOptions = [
-    { label: 'Swimming Pool', value: 'Swimming Pool' },
-    { label: 'Gym', value: 'Gym' },
-    { label: 'Playground', value: 'Playground' },
-    { label: 'Clubhouse', value: 'Clubhouse' },
-    { label: 'Security', value: 'Security' },
-    { label: 'Parking', value: 'Parking' },
-    { label: 'Garden', value: 'Garden' },
-    { label: 'Elevator', value: 'Elevator' },
-    { label: 'Power Backup', value: 'Power Backup' },
-    { label: 'Water Supply', value: 'Water Supply' },
-    { label: 'Waste Management', value: 'Waste Management' },
-    { label: 'CCTV Surveillance', value: 'CCTV Surveillance' },
-    { label: 'Fire Safety', value: 'Fire Safety' },
-    { label: 'Kids Play Area', value: 'Kids Play Area' },
-    { label: 'Senior Citizen Area', value: 'Senior Citizen Area' },
-    { label: 'Jogging Track', value: 'Jogging Track' },
-]
+// const amenitiesOptions = [
+//     { label: 'Swimming Pool', value: 'Swimming Pool' },
+//     { label: 'Gym', value: 'Gym' },
+//     { label: 'Playground', value: 'Playground' },
+//     { label: 'Clubhouse', value: 'Clubhouse' },
+//     { label: 'Security', value: 'Security' },
+//     { label: 'Parking', value: 'Parking' },
+//     { label: 'Garden', value: 'Garden' },
+//     { label: 'Elevator', value: 'Elevator' },
+//     { label: 'Power Backup', value: 'Power Backup' },
+//     { label: 'Water Supply', value: 'Water Supply' },
+//     { label: 'Waste Management', value: 'Waste Management' },
+//     { label: 'CCTV Surveillance', value: 'CCTV Surveillance' },
+//     { label: 'Fire Safety', value: 'Fire Safety' },
+//     { label: 'Kids Play Area', value: 'Kids Play Area' },
+//     { label: 'Senior Citizen Area', value: 'Senior Citizen Area' },
+//     { label: 'Jogging Track', value: 'Jogging Track' },
+// ]
 
 // Floor plan image component
-const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
-    const sizeClasses = size === 'small' ? 'w-10 h-10' : 'w-16 h-16'
+// const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
+//     const sizeClasses = size === 'small' ? 'w-10 h-10' : 'w-16 h-16'
 
-    return (
-        <div className={`${sizeClasses} rounded-full overflow-hidden bg-gray-200 flex items-center justify-center`}>
-            {imageUrl ? (
-                <img
-                    src={imageUrl}
-                    alt='Floor Plan'
-                    className='w-full h-full object-cover'
-                    onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                        e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                    }}
-                />
-            ) : null}
-            <div className={`${imageUrl ? 'hidden' : ''} text-xs text-gray-500 text-center`}>No Image</div>
-        </div>
-    )
-}
+//     return (
+//         <div className={`${sizeClasses} rounded-full overflow-hidden bg-gray-200 flex items-center justify-center`}>
+//             {imageUrl ? (
+//                 <img
+//                     src={imageUrl}
+//                     alt='Floor Plan'
+//                     className='w-full h-full object-cover'
+//                     onError={(e) => {
+//                         e.currentTarget.style.display = 'none'
+//                         e.currentTarget.nextElementSibling?.classList.remove('hidden')
+//                     }}
+//                 />
+//             ) : null}
+//             <div className={`${imageUrl ? 'hidden' : ''} text-xs text-gray-500 text-center`}>No Image</div>
+//         </div>
+//     )
+// }
 
 const PrimaryDetailsPage = () => {
     const navigate = useNavigate()
@@ -153,7 +145,7 @@ const PrimaryDetailsPage = () => {
     const [originalDetails, setOriginalDetails] = useState<PrimaryProperty | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [editingRowId, setEditingRowId] = useState<number | null>(null)
-    const [isAddingRow, setIsAddingRow] = useState(false)
+    const [, setIsAddingRow] = useState(false)
 
     // States for managing sections
     const [isAddingDevelopment, setIsAddingDevelopment] = useState(false)
@@ -163,7 +155,7 @@ const PrimaryDetailsPage = () => {
     const [newTower, setNewTower] = useState<Partial<TowerDetail>>({})
     const [newClubhouse, setNewClubhouse] = useState<Partial<ClubhouseDetail>>({})
     const [newAmenity, setNewAmenity] = useState('')
-    const [selectedAmenity, setSelectedAmenity] = useState('')
+    const [, setSelectedAmenity] = useState('')
 
     // Tower selection for floor plans and unit details
     const [selectedTowerForFloorPlan, setSelectedTowerForFloorPlan] = useState<TowerDetail | null>(null)
@@ -467,50 +459,50 @@ const PrimaryDetailsPage = () => {
     }
 
     // Amenities management
-    const handleAddAmenityFromDropdown = () => {
-        if (selectedAmenity && projectDetails) {
-            const currentAmenities = projectDetails.amenities || []
-            if (!currentAmenities.includes(selectedAmenity)) {
-                setProjectDetails((prev) =>
-                    prev
-                        ? {
-                              ...prev,
-                              amenities: [...currentAmenities, selectedAmenity],
-                          }
-                        : null,
-                )
-            }
-            setSelectedAmenity('')
-        }
-    }
+    // const handleAddAmenityFromDropdown = () => {
+    //     if (selectedAmenity && projectDetails) {
+    //         const currentAmenities = projectDetails.amenities || []
+    //         if (!currentAmenities.includes(selectedAmenity)) {
+    //             setProjectDetails((prev) =>
+    //                 prev
+    //                     ? {
+    //                           ...prev,
+    //                           amenities: [...currentAmenities, selectedAmenity],
+    //                       }
+    //                     : null,
+    //             )
+    //         }
+    //         setSelectedAmenity('')
+    //     }
+    // }
 
-    const handleAddCustomAmenity = () => {
-        if (newAmenity.trim() && projectDetails) {
-            const currentAmenities = projectDetails.amenities || []
-            if (!currentAmenities.includes(newAmenity.trim())) {
-                setProjectDetails((prev) =>
-                    prev
-                        ? {
-                              ...prev,
-                              amenities: [...currentAmenities, newAmenity.trim()],
-                          }
-                        : null,
-                )
-            }
-            setNewAmenity('')
-        }
-    }
+    // const handleAddCustomAmenity = () => {
+    //     if (newAmenity.trim() && projectDetails) {
+    //         const currentAmenities = projectDetails.amenities || []
+    //         if (!currentAmenities.includes(newAmenity.trim())) {
+    //             setProjectDetails((prev) =>
+    //                 prev
+    //                     ? {
+    //                           ...prev,
+    //                           amenities: [...currentAmenities, newAmenity.trim()],
+    //                       }
+    //                     : null,
+    //             )
+    //         }
+    //         setNewAmenity('')
+    //     }
+    // }
 
-    const handleRemoveAmenity = (amenityToRemove: string) => {
-        setProjectDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      amenities: (prev.amenities || []).filter((amenity) => amenity !== amenityToRemove),
-                  }
-                : null,
-        )
-    }
+    // const handleRemoveAmenity = (amenityToRemove: string) => {
+    //     setProjectDetails((prev) =>
+    //         prev
+    //             ? {
+    //                   ...prev,
+    //                   amenities: (prev.amenities || []).filter((amenity) => amenity !== amenityToRemove),
+    //               }
+    //             : null,
+    //     )
+    // }
 
     const renderField = (
         label: string,
@@ -558,7 +550,7 @@ const PrimaryDetailsPage = () => {
                         label={label}
                         placeholder={`Enter ${label.toLowerCase()}`}
                         value={value as number}
-                        onChange={(numValue: number | null, stringValue: string) => {
+                        onChange={(numValue: number | null) => {
                             updateField(fieldKey, numValue ?? 0)
                         }}
                         numberType='decimal'
@@ -586,11 +578,15 @@ const PrimaryDetailsPage = () => {
 
             return (
                 <div
-                    className={`border-b border-[#D4DBE2] gap-1 pb-2 mb-4 flex flex-col justify-between ${onClick ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                    className={`border-b border-[#D4DBE2] gap-1 pb-2 mb-4 flex flex-col justify-between`}
                     onClick={onClick}
                 >
                     <label className='text-sm text-gray-600 block mb-1'>{label} </label>
-                    <div className='text-sm text-black font-medium'>{displayValue}</div>
+                    <div
+                        className={`text-sm text-black font-medium ${onClick ? 'cursor-pointer text-blue-600 ' : ''} `}
+                    >
+                        {displayValue || '-'}
+                    </div>
                 </div>
             )
         }
@@ -603,7 +599,7 @@ const PrimaryDetailsPage = () => {
             render: (value: any, row: any) => {
                 const index =
                     projectDetails?.developmentDetails?.findIndex(
-                        (dev, i) =>
+                        (dev) =>
                             dev.typeOfInventory === row.typeOfInventory &&
                             dev.numberOfInventory === row.numberOfInventory,
                     ) ?? -1
@@ -624,7 +620,7 @@ const PrimaryDetailsPage = () => {
             render: (value: any, row: any) => {
                 const index =
                     projectDetails?.developmentDetails?.findIndex(
-                        (dev, i) =>
+                        (dev) =>
                             dev.typeOfInventory === row.typeOfInventory &&
                             dev.numberOfInventory === row.numberOfInventory,
                     ) ?? -1
@@ -651,7 +647,7 @@ const PrimaryDetailsPage = () => {
             render: (value: any, row: any) => {
                 const index =
                     projectDetails?.developmentDetails?.findIndex(
-                        (dev, i) =>
+                        (dev) =>
                             dev.typeOfInventory === row.typeOfInventory &&
                             dev.numberOfInventory === row.numberOfInventory,
                     ) ?? -1
@@ -678,7 +674,7 @@ const PrimaryDetailsPage = () => {
             render: (value: any, row: any) => {
                 const index =
                     projectDetails?.developmentDetails?.findIndex(
-                        (dev, i) =>
+                        (dev) =>
                             dev.typeOfInventory === row.typeOfInventory &&
                             dev.numberOfInventory === row.numberOfInventory,
                     ) ?? -1
@@ -705,7 +701,7 @@ const PrimaryDetailsPage = () => {
             render: (value: any, row: any) => {
                 const index =
                     projectDetails?.developmentDetails?.findIndex(
-                        (dev, i) =>
+                        (dev) =>
                             dev.typeOfInventory === row.typeOfInventory &&
                             dev.numberOfInventory === row.numberOfInventory,
                     ) ?? -1
@@ -731,10 +727,10 @@ const PrimaryDetailsPage = () => {
                   {
                       key: 'actions',
                       header: 'Actions',
-                      render: (value: any, row: any) => {
+                      render: (row: any) => {
                           const index =
                               projectDetails?.developmentDetails?.findIndex(
-                                  (dev, i) =>
+                                  (dev) =>
                                       dev.typeOfInventory === row.typeOfInventory &&
                                       dev.numberOfInventory === row.numberOfInventory,
                               ) ?? -1
@@ -907,7 +903,7 @@ const PrimaryDetailsPage = () => {
                   {
                       key: 'actions',
                       header: 'Actions',
-                      render: (value: any, row: any) => (
+                      render: (row: any) => (
                           <div className='flex gap-2'>
                               {editingRowId === row.id ? (
                                   <>
@@ -1009,7 +1005,7 @@ const PrimaryDetailsPage = () => {
                   {
                       key: 'actions',
                       header: 'Actions',
-                      render: (value: any, row: any) => (
+                      render: (row: any) => (
                           <div className='flex gap-2'>
                               {editingRowId === row.id ? (
                                   <>
@@ -1155,7 +1151,7 @@ const PrimaryDetailsPage = () => {
                     )} */}
 
                     {/* Header */}
-                    <div className=''>
+                    <div className='mb-4'>
                         <div className='flex items-center justify-between px-6'>
                             <Breadcrumb link='/restack/primary' parent='Primary' child={projectDetails?.projectName} />
                             <div className='flex gap-2'>
@@ -1746,7 +1742,7 @@ const PrimaryDetailsPage = () => {
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
                         <h2 className='text-xl font-semibold text-gray-900'>Ground Data</h2>
                         <div className='flex items-center gap-2'>
-                            {isEditing ? (
+                            {isEditing && (
                                 <>
                                     <Button
                                         className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
@@ -1761,17 +1757,6 @@ const PrimaryDetailsPage = () => {
                                         Save
                                     </Button>
                                 </>
-                            ) : (
-                                <div className='flex flex-row items-center gap-2'>
-                                    <Button
-                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
-                                        leftIcon={<img src={editic} alt='edit' className='w-4 h-4' />}
-                                        onClick={handleEdit}
-                                        disabled={!isEditing}
-                                    >
-                                        Edit
-                                    </Button>
-                                </div>
                             )}
                         </div>
                     </div>
@@ -1790,12 +1775,30 @@ const PrimaryDetailsPage = () => {
                             undefined,
                             'text',
                         )}
-                        {renderField('Images', 'View Images', '', undefined, 'text', () =>
-                            navigate(`/restack/primary/${id}/documents`),
-                        )}
-                        {renderField('Typology & Unit Plan', 'View Units plan', '', undefined, 'text', () =>
-                            navigate(`/restack/primary/${id}/typology`),
-                        )}
+                        <div className='items-left border-b mb-4 pb-2 border-[#D4DBE2] flex flex-col gap-2  mt-0  '>
+                            <p className='text-[#5c738a] text-sm font-normal leading-normal '>Images</p>
+
+                            <button
+                                onClick={() => {
+                                    navigate(`/restack/primary/${id}/Images`)
+                                }}
+                                className='bg-black text-white w-25 cursor-pointer text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
+                            >
+                                View Images
+                            </button>
+                        </div>
+                        <div className='items-left border-b mb-4  pb-2 border-[#D4DBE2] flex flex-col gap-2  mt-0  '>
+                            <p className='text-[#5c738a] text-sm font-normal leading-normal '>Typology & Unit Plan</p>
+
+                            <button
+                                onClick={() => {
+                                    navigate(`/restack/primary/${id}/typology`)
+                                }}
+                                className='bg-black text-white w-45 cursor-pointer text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
+                            >
+                                View Typology & Units plan
+                            </button>
+                        </div>
                         {renderField('Master Plan', 'View Master plan', '', undefined, 'text', () =>
                             navigate(`/restack/primary/${id}/masterplan`),
                         )}
@@ -1814,7 +1817,7 @@ const PrimaryDetailsPage = () => {
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
                         <h2 className='text-xl font-semibold text-gray-900'>Amenities</h2>
                         <div className='flex items-center gap-2'>
-                            {isEditing ? (
+                            {isEditing && (
                                 <>
                                     <Button
                                         className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
@@ -1829,15 +1832,6 @@ const PrimaryDetailsPage = () => {
                                         Save
                                     </Button>
                                 </>
-                            ) : (
-                                <Button
-                                    className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
-                                    leftIcon={<img src={editic} alt='edit' className='w-4 h-4' />}
-                                    onClick={handleEdit}
-                                    disabled={!isEditing}
-                                >
-                                    Edit
-                                </Button>
                             )}
                         </div>
                     </div>
@@ -1977,7 +1971,7 @@ const PrimaryDetailsPage = () => {
                             </div>
                             <div className='w-3/4'>
                                 <p className='text-[#101418] text-sm font-normal leading-normal'>
-                                    {projectDetails?.litigation}
+                                    {projectDetails?.litigationStatus}
                                 </p>
                             </div>
                         </div>
@@ -1990,7 +1984,7 @@ const PrimaryDetailsPage = () => {
                             <div className='w-3/4'>
                                 <button
                                     onClick={() => {
-                                        const url = projectDetails?.litigation || ''
+                                        const url = projectDetails?.affidavitLink || ''
                                         if (url) window.open(url, '_blank')
                                     }}
                                     className='text-blue-600 underline text-sm font-normal leading-normal text-left cursor-pointer hover:text-blue-800'
@@ -2011,7 +2005,7 @@ const PrimaryDetailsPage = () => {
                                         console.log('Navigating to Complaints for pId:', id)
                                         navigate(`/restack/primary/${id}/complaints`)
                                     }}
-                                    className='text-blue-600 underline text-sm font-normal leading-normal text-left cursor-pointer hover:text-blue-800'
+                                    className='bg-black text-white cursor-pointer text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
                                 >
                                     View Complaints
                                 </button>
@@ -2023,7 +2017,7 @@ const PrimaryDetailsPage = () => {
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Documents</h2>
                     <div className='flex px-4 py-3 justify-start'>
                         <Button
-                            className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300'
+                            className='bg-black text-white cursor-pointer text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
                             onClick={() => {
                                 console.log('Navigating to Documents for id:', id)
                                 navigate(`/restack/primary/${id}/documents`)

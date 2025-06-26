@@ -3,7 +3,6 @@ import { createSlice } from '@reduxjs/toolkit'
 import type {
     BaseQCInventory,
     QCInventoryState,
-    UpdateQCStatusPayload,
     AddNoteResponse,
     UpdateStatusResponse,
 } from '../../../data_types/acn/types'
@@ -63,7 +62,7 @@ const qcSlice = createSlice({
                 const payload = action.payload as BaseQCInventory
                 state.loading = false
                 state.currentQCInventory = payload
-                state.lastFetch = new Date()
+                // state.lastFetch = new Date()
                 state.error = null
 
                 // Update or add to qcInventories array
@@ -90,7 +89,7 @@ const qcSlice = createSlice({
                 state.loading = false
                 state.currentQCInventory = payload
                 state.qcInventories.push(payload)
-                state.lastFetch = new Date()
+                // state.lastFetch = new Date()
                 state.error = null
             })
             .addCase(addQCInventory.rejected, (state, action) => {
@@ -107,7 +106,7 @@ const qcSlice = createSlice({
                 const payload = action.payload as BaseQCInventory
                 state.updateLoading = false
                 state.currentQCInventory = payload
-                state.lastFetch = new Date()
+                // state.lastFetch = new Date()
                 state.error = null
 
                 // Update in qcInventories array

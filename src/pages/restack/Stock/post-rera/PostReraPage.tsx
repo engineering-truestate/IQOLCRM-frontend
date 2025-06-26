@@ -5,21 +5,22 @@ import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../../components/design-elements/FlexibleTable'
-import Button from '../../../../components/design-elements/Button'
 import StateBaseTextField from '../../../../components/design-elements/StateBaseTextField'
 import { formatUnixDate } from '../../../../components/helper/getUnixDateTime'
 import { fetchPostReraProperties } from '../../../../store/actions/restack/postReraActions'
 import type { PostReraProperty } from '../../../../store/reducers/restack/postReraTypes'
 import type { RootState } from '../../../../store'
 import Dropdown from '../../../../components/design-elements/Dropdown'
+import { setFilters } from '../../../../store/actions/restack/postReraActions'
 
 const PostReraPage = () => {
     const [searchValue, setSearchValue] = useState('')
+    // const [filter, setFilter] = useState<PostReraPropertyFilters>({})
     const [currentPage, setCurrentPage] = useState(1)
     const navigate = useNavigate()
     const dispatch = useDispatch<any>()
 
-    const { properties, loading, error } = useSelector((state: RootState) => state.postRera)
+    const { properties, loading, error, filters } = useSelector((state: RootState) => state.postRera)
 
     const ITEMS_PER_PAGE = 50
 
@@ -27,8 +28,8 @@ const PostReraPage = () => {
     const [paginatedProperties, setPaginatedProperties] = useState<PostReraProperty[]>([])
 
     useEffect(() => {
-        dispatch(fetchPostReraProperties(undefined))
-    }, [dispatch])
+        dispatch(fetchPostReraProperties(filters))
+    }, [dispatch, filters])
 
     useEffect(() => {
         const filtered = properties.filter(
@@ -82,13 +83,29 @@ const PostReraPage = () => {
             header: 'Age of the Building',
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>,
         },
+        {
+            key: 'stockType',
+            header: 'Action',
+            fixed: true,
+            fixedPosition: 'right',
+            render: (value, row) => (
+                <button
+                    className='bg-black text-white w-25 text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
+                    onClick={() => {
+                        navigate(`/restack/stock/${value || 'post-rera'}/${row.projectId}/details`)
+                    }}
+                >
+                    View Details
+                </button>
+            ),
+        },
     ]
 
-    const [, setShowModal] = useState(false)
+    // const [, setShowModal] = useState(false)
 
-    const handleAddProject = () => {
-        setShowModal(true)
-    }
+    // const handleAddProject = () => {
+    //     setShowModal(true)
+    // }
 
     return (
         <Layout loading={loading}>
@@ -97,18 +114,20 @@ const PostReraPage = () => {
                     {/* Header */}
                     <div className='mb-2'>
                         <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Stock</h1>
+                            <h1 className='text-xl font-semibold text-gray-900'>Stock ({properties.length})</h1>
                             <div className='flex items-center gap-4'>
                                 <Dropdown
                                     defaultValue=''
-                                    placeholder='Stock Type'
+                                    placeholder='Select Stock Type'
                                     options={[
                                         { label: 'All', value: '' },
                                         { label: 'Pre-Rera', value: 'pre-rera' },
                                         { label: 'Post-Rera', value: 'post-rera' },
                                     ]}
-                                    onSelect={(value: string) => setSearchValue(value as 'Owner' | 'Broker')}
-                                    className='z-40'
+                                    onSelect={(value) => dispatch(setFilters({ stockType: value }))}
+                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                    menuClassName='absolute z-50 mt-1 top-7 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
                                 />
                                 <div className='w-80'>
                                     <StateBaseTextField

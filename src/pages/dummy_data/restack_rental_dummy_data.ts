@@ -1,6 +1,6 @@
-import type { RentalProperty } from '../../data_types/restack/restack-rental'
+// import type { RentalProperty } from '../../data_types/restack/restack-rental'
 
-export const rentalPropertiesDummyData: RentalProperty[] = [
+export const rentalPropertiesDummyData: any[] = [
     {
         id: '1',
         projectName: 'Rental Project 1',

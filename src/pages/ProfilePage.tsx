@@ -70,7 +70,8 @@ const ProfilePage: React.FC = () => {
                             <span className='font-semibold'>Last Sign-in:</span> {user.metadata?.lastSignInTime}
                         </div>
                         <div>
-                            <span className='font-semibold'>Platform:</span> {platform || 'No Platform'}
+                            <span className='font-semibold'>Platform:</span>{' '}
+                            {Array.isArray(platform) ? platform.join(', ') : platform || 'N/A'}
                         </div>
                         <div>
                             <span className='font-semibold'>Providers:</span>{' '}

@@ -24,9 +24,9 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const [isOpen, setIsOpen] = useState(false)
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
-    const [displayText, setDisplayText] = useState(placeholder)
+    const [_, setDisplayText] = useState(placeholder)
     const [selectedPreset, setSelectedPreset] = useState('')
-    const [borderClass, setBorderClass] = useState('')
+    // const [borderClass, setBorderClass] = useState('')
 
     const dropdownRef = useRef<HTMLDivElement>(null)
 

@@ -24,6 +24,7 @@ export interface RestackResaleProperty {
     maplink: string
     lat: number
     long: number
+    lastModified: string
     postedBy: string
     postedOn: string
     inventoryDetails: {

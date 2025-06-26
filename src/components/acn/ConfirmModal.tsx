@@ -37,7 +37,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                     </p>
                     <div className='flex gap-2 justify-between text-[14px]'>
                         <button
-                            className='px-4 py-2 w-full border-[1px] border text-black rounded-[4px] text-[14px] font-semibold leading-[21px]'
+                            className='px-4 py-2 w-full border-[1px]  text-black rounded-[4px] text-[14px] font-semibold leading-[21px]'
                             onClick={onCancel}
                         >
                             Cancel

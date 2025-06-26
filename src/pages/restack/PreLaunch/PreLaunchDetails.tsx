@@ -10,18 +10,34 @@ import StateBaseTextField from '../../../components/design-elements/StateBaseTex
 import { getPreLaunchPropertyById, updatePreLaunchProperty } from '../../../store/actions/restack/preLaunchActions'
 import type { Property } from '../../../store/reducers/restack/preLaunchtypes'
 import type { AppDispatch, RootState } from '../../../store'
-import {
-    projectTypes,
-    projectStages,
-    apartmentTypologies,
-    villaTypologies,
-    plotTypes,
-} from '../../dummy_data/restack_prelaunch_details_dummy_data'
 import editic from '/icons/acn/edit.svg'
 import addcircleic from '/icons/acn/add-circle.svg'
 import NumberInput from '../../../components/design-elements/StateBaseNumberField'
 import DateInput from '../../../components/design-elements/DateInputUnixTimestamps'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+import PDFUploadComponent from '../../../components/restack/PDFUploadComponent'
+
+const projectStages = [
+    { label: 'Pre Launch', value: 'Pre Launch' },
+    { label: 'EC', value: 'EC' },
+]
+const projectTypes = [
+    { label: 'Apartment', value: 'apartment' },
+    { label: 'Villa', value: 'villa' },
+    { label: 'Plot', value: 'plot' },
+]
+const apartmentTypes = [
+    { label: 'Simplex', value: 'simplex' },
+    { label: 'Duplex', value: 'duplex' },
+    { label: 'Triplex', value: 'triplex' },
+    { label: 'Penthouse', value: 'penthouse' },
+]
+
+// Villa typologies
+const villaTypes = [
+    { label: 'UDS', value: 'uds' },
+    { label: 'Plot', value: 'plot' },
+]
 
 // Floor plan image component
 const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
@@ -244,7 +260,7 @@ const PreLaunchDetailsPage = () => {
     }
 
     // Update maps/plans
-    const updateMapPlan = (mapType: string, value: string) => {
+    const updateMapPlan = (mapType: string, value: string[]) => {
         if (!projectDetails) return
 
         const updatedDocuments = { ...projectDetails.documents }
@@ -284,7 +300,7 @@ const PreLaunchDetailsPage = () => {
                             placeholder={`Select ${label}`}
                             className='relative w-full'
                             triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
-                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                            menuClassName='absolute z-50 mt-1 top-8 w-full bg-white border border-gray-300 rounded-md shadow-lg'
                             optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
                         />
                     </div>
@@ -372,7 +388,7 @@ const PreLaunchDetailsPage = () => {
                         placeholder='Select'
                         className='relative w-full'
                         triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded text-xs text-black hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-500 w-full cursor-pointer'
-                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg'
+                        menuClassName='absolute z-[100] mt-1 top-8 w-full bg-white border border-gray-300 rounded shadow-lg'
                         optionClassName='px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 cursor-pointer'
                     />
                 )
@@ -409,12 +425,12 @@ const PreLaunchDetailsPage = () => {
         {
             key: 'aptType',
             header: 'Apt Type',
-            render: (value, row) => renderTableCell(value, row.id, 'aptType', 'apartment'),
+            render: (value, row) => renderTableCell(value, row.id, 'aptType', 'apartment', apartmentTypes),
         },
         {
             key: 'typology',
             header: 'Typology',
-            render: (value, row) => renderTableCell(value, row.id, 'typology', 'apartment', apartmentTypologies),
+            render: (value, row) => renderTableCell(value, row.id, 'typology', 'apartment'),
         },
         {
             key: 'superBuiltUpArea',
@@ -486,12 +502,12 @@ const PreLaunchDetailsPage = () => {
         {
             key: 'villaType',
             header: 'Villa Type',
-            render: (value, row) => renderTableCell(value, row.id, 'villaType', 'villa'),
+            render: (value, row) => renderTableCell(value, row.id, 'villaType', 'villa', villaTypes),
         },
         {
             key: 'typology',
             header: 'Typology',
-            render: (value, row) => renderTableCell(value, row.id, 'typology', 'villa', villaTypologies),
+            render: (value, row) => renderTableCell(value, row.id, 'typology', 'villa'),
         },
         {
             key: 'plotSize',
@@ -572,7 +588,7 @@ const PreLaunchDetailsPage = () => {
         {
             key: 'plotType',
             header: 'Plot Type',
-            render: (value, row) => renderTableCell(value, row.id, 'plotType', 'plot', plotTypes),
+            render: (value, row) => renderTableCell(value, row.id, 'plotType', 'plot'),
         },
         {
             key: 'plotArea',
@@ -672,7 +688,7 @@ const PreLaunchDetailsPage = () => {
                     <div className='mb-6'>
                         <div className='flex items-center justify-between mb-4'>
                             <div>
-                                <h1 className='text-xl font-semibold text-black'>{projectDetails.projectName}</h1>
+                                <h1 className='text-2xl font-semibold text-black'>{projectDetails.projectName}</h1>
                                 <div className='text-sm text-gray-500 mt-1'>
                                     <button
                                         onClick={() => navigate('/restack/prelaunch')}
@@ -805,13 +821,6 @@ const PreLaunchDetailsPage = () => {
                                 )}
                             </div>
                             <div className='space-y-4'>
-                                {/* {renderField(
-                                    'EOI Amount (₹)',
-                                    projectDetails.eoiAmount,
-                                    'eoiAmount',
-                                    undefined,
-                                    'number',
-                                )} */}
                                 {renderField(
                                     'No. of Towers',
                                     projectDetails.numberOfTowers,
@@ -929,64 +938,37 @@ const PreLaunchDetailsPage = () => {
                         <h2 className='text-lg font-semibold text-black mb-4'>Maps & Plans</h2>
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                             <div>
-                                <label className='text-sm text-gray-600 block mb-1'>Master Plan</label>
-                                {isEditing ? (
-                                    <StateBaseTextField
-                                        value={projectDetails.documents.masterPlan}
-                                        onChange={(e) => updateMapPlan('masterPlan', e.target.value)}
-                                        className='w-full text-sm'
-                                        placeholder='Enter Master Plan URL'
-                                    />
-                                ) : (
-                                    <a
-                                        href={projectDetails.documents.masterPlan}
-                                        target='_blank'
-                                        rel='noopener noreferrer'
-                                        className='text-sm text-blue-600 hover:text-blue-800 underline'
-                                    >
-                                        Master Plan
-                                    </a>
-                                )}
+                                <PDFUploadComponent
+                                    files={projectDetails.documents.masterPlan}
+                                    onFilesChange={(files) => updateMapPlan('masterPlan', files)}
+                                    maxFiles={5}
+                                    maxSizeMB={10}
+                                    storagePath={`restack/PreLauchprojects/${projectDetails.projectId}/documents`}
+                                    title='Master Plan'
+                                    isEdit={isEditing}
+                                />
                             </div>
                             <div>
-                                <label className='text-sm text-gray-600 block mb-1'>Project Layout Plan</label>
-                                {isEditing ? (
-                                    <StateBaseTextField
-                                        value={projectDetails.documents.projectLayoutPlan}
-                                        onChange={(e) => updateMapPlan('projectLayoutPlan', e.target.value)}
-                                        className='w-full text-sm'
-                                        placeholder='Enter Project Layout Plan URL'
-                                    />
-                                ) : (
-                                    <a
-                                        href={projectDetails.documents.projectLayoutPlan}
-                                        target='_blank'
-                                        rel='noopener noreferrer'
-                                        className='text-sm text-blue-600 hover:text-blue-800 underline'
-                                    >
-                                        Project Layout Plan
-                                    </a>
-                                )}
+                                <PDFUploadComponent
+                                    files={projectDetails.documents.projectLayoutPlan}
+                                    onFilesChange={(files) => updateMapPlan('projectLayoutPlan', files)}
+                                    maxFiles={5}
+                                    maxSizeMB={10}
+                                    storagePath={`restack/PreLauchprojects/${projectDetails.projectId}/documents`}
+                                    title='Project Layout Plan'
+                                    isEdit={isEditing}
+                                />
                             </div>
                             <div>
-                                <label className='text-sm text-gray-600 block mb-1'>Brochure</label>
-                                {isEditing ? (
-                                    <StateBaseTextField
-                                        value={projectDetails.documents.brochure}
-                                        onChange={(e) => updateMapPlan('brochure', e.target.value)}
-                                        className='w-full text-sm'
-                                        placeholder='Enter Brochure URL'
-                                    />
-                                ) : (
-                                    <a
-                                        href={projectDetails.documents.brochure}
-                                        target='_blank'
-                                        rel='noopener noreferrer'
-                                        className='text-sm text-blue-600 hover:text-blue-800 underline'
-                                    >
-                                        Brochure
-                                    </a>
-                                )}
+                                <PDFUploadComponent
+                                    files={projectDetails.documents.brochure}
+                                    onFilesChange={(files) => updateMapPlan('brochure', files)}
+                                    maxFiles={5}
+                                    maxSizeMB={10}
+                                    storagePath={`restack/PreLauchprojects/${projectDetails.projectId}/documents`}
+                                    title='Brochure'
+                                    isEdit={isEditing}
+                                />
                             </div>
                         </div>
                     </div>

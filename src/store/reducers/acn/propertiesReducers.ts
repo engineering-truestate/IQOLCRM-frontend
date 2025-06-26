@@ -9,7 +9,6 @@ import {
     updatePropertyStatus,
     addPriceDropHistory,
 } from '../../../services/acn/properties/propertiesService'
-import type { ILead } from '../../../services/acn/leads/algoliaLeadsService'
 
 const initialState: PropertiesState = {
     // Original properties state
@@ -284,7 +283,7 @@ const propertiesSlice = createSlice({
             })
 
             // Update property status cases
-            .addCase(updatePropertyStatus.pending, (state) => {
+            .addCase(updatePropertyStatus.pending, (_) => {
                 console.log('⏳ Update property status - pending')
             })
             .addCase(updatePropertyStatus.fulfilled, (state, action) => {
@@ -309,7 +308,7 @@ const propertiesSlice = createSlice({
                 console.log('❌ Update property status - rejected:', action.payload)
                 state.error = action.payload as string
             })
-            .addCase(addPriceDropHistory.pending, (state) => {
+            .addCase(addPriceDropHistory.pending, (_) => {
                 console.log('⏳ Add price drop history - pending')
             })
             .addCase(addPriceDropHistory.fulfilled, (state, action) => {
