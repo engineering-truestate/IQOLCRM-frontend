@@ -115,7 +115,7 @@ const TaskExecutionCard = ({ activity }: TaskExecutionCardProps) => {
     }
 
     return (
-        <div className='bg-white border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-3xl mx-auto text-sm'>
+        <div className='bg-white border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-3xl ml-4 text-sm'>
             <div className='flex flex-row justify-between '>
                 <div>
                     <div className='flex justify-between items-start'>

@@ -8,15 +8,15 @@ export function calculateALSC(data: Lead): string | null {
         const currentTime = getUnixDateTime()
         let timeDifferenceSeconds: number
 
-        if (!data.scheduledDate) {
+        if (!data.lastScheduledDate) {
             // Case 1: No scheduled date → use current time - added
             timeDifferenceSeconds = currentTime - data.added
-        } else if (data.completionDate && data.completionDate > data.scheduledDate) {
+        } else if (data.completionDate && data.completionDate > data.lastScheduledDate) {
             // Case 2a: scheduled exists AND completion > scheduled
             timeDifferenceSeconds = data.completionDate - currentTime
         } else {
             // Case 2b: scheduled exists AND no completion or completion <= scheduled
-            timeDifferenceSeconds = data.scheduledDate - currentTime
+            timeDifferenceSeconds = data.lastScheduledDate - currentTime
         }
 
         // Prevent negative result

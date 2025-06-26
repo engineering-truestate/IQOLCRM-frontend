@@ -201,7 +201,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                 // No remaining tasks
                 leadUpdateData = {
                     stage: 'lead registered',
-                    state: 'closed',
+                    state: 'open',
                     scheduledDate: null,
                     completionDate: currentUnixTime,
                     lastModified: currentUnixTime,

@@ -42,7 +42,7 @@ const AgentTransferCard = ({ activity }: { activity: AgentTransferActivity }) =>
     const { fromAgent = '', toAgent = '' } = data
 
     return (
-        <div className='bg-white flex flex-row justify-between border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-3xl mx-auto text-sm'>
+        <div className='bg-white flex flex-row justify-between border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-3xl ml-4 text-sm'>
             <div>
                 <div className='flex justify-between items-start'>
                     <div className='font-semibold text-gray-800'>

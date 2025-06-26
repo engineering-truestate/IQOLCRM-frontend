@@ -135,10 +135,6 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             if (enquiryId && leadId && taskIds) {
                 const currentTimestamp = getUnixDateTime()
 
-                // Get all open tasks for the current enquiry
-                const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
-                const remainingOpenTasks = openTasks.filter((task) => !taskIds.includes(task.taskId))
-
                 // Update existing enquiry and add activity in parallel
                 const enquiryUpdate = enquiryService.update(enquiryId, {
                     leadStatus: 'property changed',
@@ -208,33 +204,16 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                 const createNewEnquiry = enquiryService.create(newEnquiry)
 
                 // Determine lead update data based on remaining tasks
-                let leadUpdateData
 
-                if (remainingOpenTasks.length > 0) {
-                    // If there are other open tasks, use the earliest one for lead data
-                    const earliestTask = remainingOpenTasks[0]
-
-                    leadUpdateData = {
-                        stage: null,
-                        state: 'open',
-                        propertyName: formData.propertyName,
-                        tag: formData.tag,
-                        leadStatus: 'interested' as any,
-                        taskType: earliestTask.taskType,
-                        scheduledDate: earliestTask.scheduledDate,
-                        lastModified: currentTimestamp,
-                    }
-                } else {
-                    // No other open tasks, set new property details
-                    leadUpdateData = {
-                        stage: null,
-                        state: 'open',
-                        propertyName: formData.propertyName,
-                        tag: formData.tag,
-                        scheduledDate: null,
-                        leadStatus: 'interested' as any,
-                        lastModified: currentTimestamp,
-                    }
+                // No other open tasks, set new property details
+                const leadUpdateData = {
+                    stage: null,
+                    state: 'open',
+                    propertyName: formData.propertyName,
+                    tag: formData.tag,
+                    scheduledDate: null,
+                    leadStatus: 'interested' as any,
+                    lastModified: currentTimestamp,
                 }
 
                 const leadUpdate = leadService.update(leadId, leadUpdateData)
