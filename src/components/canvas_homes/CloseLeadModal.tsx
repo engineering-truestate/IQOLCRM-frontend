@@ -36,7 +36,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
         reason: '',
-        tag: 'cold',
+        tag: leadData?.tag || '',
         note: '',
         status: 'Complete',
         state: 'dropped',
@@ -230,7 +230,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     reason: '',
                     status: 'Complete',
                     leadStatus: 'not connected',
-                    tag: 'cold',
+                    tag: leadData?.tag || '',
                     state: 'dropped',
                     note: '',
                     stage: '',

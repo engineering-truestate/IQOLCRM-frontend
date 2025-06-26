@@ -104,21 +104,19 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                     leadStage = 'initital contacted'
                     break
                 case 'site visit':
-                    leadState = 'open'
                     leadStage = 'site visited'
                     break
                 case 'site not visit':
-                    leadStage = 'initial contacted'
+                    leadStage = leadData?.stage || ''
                     break
                 case 'eoi not collected':
-                    leadStage = 'site visited'
+                    leadStage = leadData?.stage || ''
                     break
                 case 'booking unsuccessful':
-                    leadState = 'dropped'
-                    leadStage = 'eoi collected'
+                    leadStage = leadData?.stage || ''
                     break
                 default:
-                    leadState = 'open'
+                    leadState = 'dropped'
                     break
             }
 
@@ -162,7 +160,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
             const updateLead = leadService.update(leadId, {
                 tag: selectedTag,
                 leadStatus: 'requirement collected',
-                state: leadState,
+                state: 'dropped',
                 stage: leadStage,
                 completionDate: currentTimestamp,
                 lastModified: currentTimestamp,
