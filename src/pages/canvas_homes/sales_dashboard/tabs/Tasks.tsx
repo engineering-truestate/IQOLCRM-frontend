@@ -162,9 +162,11 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                         }),
                         enquiryService.addActivity(task.enquiryId, {
                             activityType: 'task execution',
-                            agentName: user?.displayName || 'Unknown Agent',
+                            agentName: user?.displayName || null,
                             timestamp: currentUnixTime,
-                            data: {},
+                            data: {
+                                taskType: 'lead registration',
+                            },
                         }),
                     ])
                         .then(() => resolve())

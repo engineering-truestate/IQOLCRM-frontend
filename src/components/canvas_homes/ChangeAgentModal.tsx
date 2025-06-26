@@ -5,6 +5,7 @@ import { taskService } from '../../services/canvas_homes/taskService'
 import Dropdown from '../design-elements/Dropdown'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { toast } from 'react-toastify'
+import useAuth from '../../hooks/useAuth'
 
 interface ChangeAgentModalProps {
     isOpen: boolean
@@ -31,6 +32,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
+    const { user } = useAuth()
 
     // Agent options with IDs
     const agentOptions = [
@@ -124,7 +126,7 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
                 timestamp: getUnixDateTime(),
                 agentId: formData.agentId,
                 agentName: formData.agentName,
-                lastStage: currentEnquiry?.stage,
+                lastStage: null,
                 assignedAt: getUnixDateTime(),
             }
 
@@ -142,9 +144,9 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
             await enquiryService.addActivity(enquiryId, {
                 activityType: 'agent transfer',
                 timestamp: currentTimestamp,
-                agentName: agentName,
+                agentName: user?.displayName || '',
                 data: {
-                    fromAgent: agentName || 'Unknown',
+                    fromAgent: agentName,
                     toAgent: formData.agentName,
                 },
             })

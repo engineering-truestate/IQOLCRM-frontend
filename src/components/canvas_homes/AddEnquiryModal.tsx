@@ -55,7 +55,6 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
             if (!properties || properties.length === 0) {
                 await dispatch(fetchPreLaunchProperties())
             }
-            console.log('Properties loaded:', properties)
             return properties.map((property) => ({
                 label: property.projectName,
                 value: `${property.projectId}|${property.projectName}`,

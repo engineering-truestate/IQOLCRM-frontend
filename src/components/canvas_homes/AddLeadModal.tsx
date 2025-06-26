@@ -5,11 +5,11 @@ import { userService } from '../../services/canvas_homes/userService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import type { Lead, User, Enquiry } from '../../services/canvas_homes/types'
 import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
-// import { useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch, RootState } from '../../store'
 import { useSelector } from 'react-redux'
 import { fetchPreLaunchProperties } from '../../store/actions/restack/preLaunchActions'
+import useAuth from '../../hooks/useAuth'
 
 interface AddLeadModalProps {
     isOpen: boolean
@@ -35,6 +35,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
     const [error, setError] = useState<string | null>(null)
     const [isRefreshingAlgolia, _setIsRefreshingAlgolia] = useState(false)
     const [phoneError, setPhoneError] = useState('')
+    const { user } = useAuth()
 
     const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
     // Property options with IDs
@@ -178,7 +179,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
             const userData: Omit<User, 'userId'> = {
                 name: formData.name.trim().toLowerCase(),
                 phoneNumber: formattedPhoneNumber,
-                emailAddress: '',
+                emailAddress: null,
                 label: null,
                 added: getUnixDateTime(),
                 lastModified: getUnixDateTime(),
@@ -190,20 +191,21 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
             userId = await userService.create(userData)
 
             const leadData: Omit<Lead, 'leadId'> = {
-                agentId: formData.agentId || 'agent001',
-                agentName: (formData.agentName || 'deepak goyal').toLowerCase(),
+                agentId: formData.agentId,
+                agentName: formData.agentName.toLowerCase(),
                 name: formData.name.trim().toLowerCase(),
                 phoneNumber: formattedPhoneNumber,
-                propertyName: (formData.propertyName || '').toLowerCase(),
+                propertyName: formData.propertyName.toLowerCase(),
                 tag: null,
                 userId: userId,
-                source: (formData.source || 'direct').toLowerCase(),
+                source: formData.source.toLowerCase(),
                 stage: null,
                 taskType: null,
                 scheduledDate: null,
                 leadStatus: null,
                 state: 'fresh',
                 added: getUnixDateTime(),
+                completionDate: null,
                 lastModified: getUnixDateTime(),
             }
 
@@ -211,10 +213,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
             const enquiryData: Omit<Enquiry, 'enquiryId'> = {
                 leadId: leadId,
-                agentId: formData.agentId || 'agent001',
-                propertyId: formData.propertyId || 'prop001',
-                propertyName: (formData.propertyName || '').toLowerCase(),
-                source: (formData.source || 'direct').toLowerCase(),
+                agentId: formData.agentId,
+                propertyId: formData.propertyId,
+                propertyName: formData.propertyName.toLowerCase(),
+                source: formData.source.toLowerCase(),
                 leadStatus: null,
                 stage: null,
                 agentHistory: [
@@ -230,7 +232,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                     {
                         activityType: 'lead added',
                         timestamp: getUnixDateTime(),
-                        agentName: formData.agentName ? formData.agentName.toLowerCase() : '',
+                        agentName: user?.displayName ? user?.displayName.toLowerCase() : null,
                         data: {},
                     },
                 ],
@@ -247,7 +249,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                 window.location.href = '/canvas-homes/sales'
                 handleDiscard()
                 setIsLoading(false)
-            }, 1000)
+            }, 2000)
         } catch (error) {
             setError('Failed to create lead. Please try again.')
         }

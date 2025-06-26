@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store'
 import { useParams } from 'react-router'
@@ -12,10 +12,8 @@ import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
-// import { useNavigate } from 'react-router'
 import Dropdown from '../design-elements/Dropdown'
 import { toCapitalizedWords } from '../helper/toCapitalize'
-// import type { Lead } from '../../services/canvas_homes'
 
 interface TaskCompleteModalProps {
     isOpen: boolean
@@ -61,11 +59,19 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
 
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
-        tag: leadData?.tag || '',
+        tag: '',
         note: '',
     })
 
-    // const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
+    // Update form data when leadData changes
+    useEffect(() => {
+        if (leadData) {
+            setFormData((prev) => ({
+                ...prev,
+                tag: leadData.tag || '',
+            }))
+        }
+    }, [leadData])
 
     const tagOptions = [
         { value: 'cold', label: 'Cold' },
@@ -91,6 +97,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
 
         try {
             const currentTimestamp = getUnixDateTime()
+            // Send null if tag is empty string
+            const tagValue = formData.tag.trim() || null
 
             // Prepare the task update promise
             const taskUpdatePromise = taskService.update(taskId, {
@@ -103,7 +111,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 state: state,
                 stage: stage,
                 leadStatus: leadStatus,
-                tag: formData.tag,
+                tag: tagValue,
                 lastModified: currentTimestamp,
             })
 
@@ -118,15 +126,21 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                   })
                 : Promise.resolve() // If no note, resolve immediately
 
+            // Handle tags in activity log properly
+            const prevTag = leadData?.tag || null
+            const activityTags = []
+            if (prevTag) activityTags.push(prevTag)
+            if (tagValue && prevTag !== tagValue) activityTags.push(tagValue)
+
             // Prepare activity log for task execution in enquiry
             const activityLogPromise = enquiryService.addActivity(enquiryId, {
                 activityType: 'task execution',
                 timestamp: currentTimestamp,
                 agentName: agentName,
                 data: {
-                    taskType: taskType || 'Task',
+                    taskType: taskType,
                     leadStatus: leadStatus,
-                    tag: (leadData?.tag ?? '') !== formData.tag ? [leadData?.tag ?? '', formData.tag] : [formData.tag],
+                    tag: activityTags.length > 0 ? activityTags : null,
                     note: formData.note.trim() || '',
                 },
             })
@@ -136,7 +150,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 state: state,
                 stage: stage,
                 leadStatus: leadStatus,
-                tag: formData.tag,
+                tag: tagValue,
                 completionDate: currentTimestamp,
                 lastModified: currentTimestamp,
             })
@@ -176,7 +190,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
 
             {/* Modal Container */}
             <div
-                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[589px] bg-white z-50 rounded-2xl shadow-2xl'
+                className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[589px] bg-white z-50 rounded-2xl shadow-2xl'
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='flex flex-col'>
@@ -224,7 +238,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                     <div className='px-10 pt-0'>
                         <div className='space-y-6'>
                             {/* Status and Tag Fields */}
-                            <div className='grid grid-cols-3 gap-4'>
+                            <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
                                 <div>
                                     <label className='block text-sm font-medium text-gray-700 mb-2'>Task Status</label>
                                     <input
@@ -250,8 +264,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                                     <Dropdown
                                         options={tagOptions}
                                         onSelect={(value) => handleInputChange('tag', value)}
-                                        // defaultValue={toCapitalizedWords(leadData?.tag)}
-                                        defaultValue={leadData?.tag || ''}
+                                        value={formData.tag}
+                                        defaultValue={formData.tag}
                                         placeholder='Select Tag'
                                         className='w-full relative inline-block'
                                         triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
@@ -291,7 +305,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isLoading || (!leadData?.tag && !formData.tag)}
+                            disabled={isLoading}
                             className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (
