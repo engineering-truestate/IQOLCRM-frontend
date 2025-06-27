@@ -444,7 +444,6 @@ const Marketing = () => {
             header: 'Medium',
             render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>Search</span>,
         },
-
         {
             key: 'startDate',
             header: 'Start Date',
@@ -453,33 +452,24 @@ const Marketing = () => {
         {
             key: 'endDate',
             header: 'End Date',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>{value}</span>,
+            render: (value) => {
+                const dateMatch = value?.split('on ')[1] || value // fallback if format is unexpected
+                return <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>{dateMatch}</span>
+            },
         },
+
         {
-            key: 'status',
-            header: 'Status',
-            render: (value, row) => (
-                <div className='flex flex-col'>
-                    <span
-                        className={`whitespace-nowrap text-sm font-normal ${row.isPaused ? 'text-orange-600' : 'text-green-600'}`}
-                    >
-                        {row.isPaused ? 'Paused' : 'Active'}
-                    </span>
-                    {row.activeDuration && <span className='text-xs text-gray-500'>{row.activeDuration}</span>}
-                </div>
-            ),
+            key: 'activeDuration',
+            header: 'No. of days',
+            render: (value) => {
+                return <span className='whitespace-nowrap text-sm font-normal'>{value}</span>
+            },
         },
+
         {
             key: 'totalCost',
             header: 'Total Cost',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
-        },
-        {
-            key: 'totalClicks',
-            header: 'Total Clicks',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal'>{value?.toLocaleString() || '0'}</span>
-            ),
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>₹{value}</span>,
         },
         {
             key: 'totalConversions',
@@ -487,14 +477,21 @@ const Marketing = () => {
             render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value || '0'}</span>,
         },
         {
-            key: 'averageCpc',
-            header: 'Avg CPC',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
-        },
-        {
-            key: 'ctr',
-            header: 'CTR',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            key: 'cpl',
+            header: 'CPL',
+            render: (_, row) => {
+                const cost = parseFloat(row.totalCost) || 0
+                const leads = parseInt(row.totalConversions) || 0
+
+                if (!leads) {
+                    return <span className='text-sm text-gray-500'>—</span> // or "N/A"
+                }
+
+                const cpl = cost / leads
+                const formattedCPL = cpl.toFixed(2) // round to 2 decimal places
+
+                return <span className='whitespace-nowrap text-sm font-normal'>₹{formattedCPL}</span>
+            },
         },
     ]
 
