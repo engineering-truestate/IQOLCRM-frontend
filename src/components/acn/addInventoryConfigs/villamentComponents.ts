@@ -9,9 +9,15 @@ export const villamentComponents = [
         ],
         colspan: 2,
     },
-
     {
-        label: 'Row House No.',
+        label: 'Property Name/Location',
+        type: 'projectName',
+        field: 'propertyName',
+        placeholder: 'Search Property Name',
+        colspan: 2,
+    },
+    {
+        label: 'Villament No.',
         type: 'textInput',
         field: 'unitNo',
         // suffix: "Sqft",

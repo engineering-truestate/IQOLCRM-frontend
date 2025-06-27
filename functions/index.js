@@ -3,17 +3,18 @@ import { getAuth } from 'firebase-admin/auth'
 import { initializeApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 import { google } from 'googleapis'
-import { onRequest } from 'firebase-functions/v2/https'
+import { onRequest, onCall } from 'firebase-functions/v2/https'
 import axios from 'axios'
 import mime from 'mime-types'
 import cors from 'cors'
+import crypto from 'crypto'
 
 initializeApp()
 const db = getFirestore()
 
 // Configure CORS to allow all origins and methods
 const corsHandler = cors({
-    origin: true,
+    origin: ['*'],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -293,3 +294,112 @@ async function getSharableFolderUrl(folderId) {
         throw new Error(`Error setting folder sharing permissions: ${error.message}`)
     }
 }
+
+export const initiatePhonePePayment = onCall(async (request) => {
+    try {
+        const { amount, transactionId, redirectUrl, mobileNumber } = request.data
+        const userId = request.data.userId || 'INT000'
+
+        if (!amount || !transactionId || !redirectUrl) {
+            throw new Error('Missing required parameters: amount, transactionId, redirectUrl')
+        }
+
+        const amountInPaise = parseInt(amount) * 100
+
+        // Construct the payload
+        const payload = {
+            merchantId: PHONEPE_MERCHANT_ID,
+            merchantTransactionId: transactionId,
+            amount: amountInPaise,
+            merchantUserId: userId,
+            redirectUrl: redirectUrl,
+            redirectMode: 'REDIRECT',
+            callbackUrl: 'https://phonepewebhook-wi5onpxm7q-uc.a.run.app',
+            mobileNumber: mobileNumber,
+            paymentInstrument: {
+                type: 'PAY_PAGE', // Redirect to PhonePe's payment page
+            },
+        }
+
+        // Convert payload to base64
+        const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+
+        // Generate SHA-256 hash signature
+        const apiPath = '/pg/v1/pay'
+        const checksum =
+            crypto
+                .createHash('sha256')
+                .update(payloadBase64 + apiPath + PHONEPE_SALT_KEY)
+                .digest('hex') + `###${PHONEPE_SALT_INDEX}`
+
+        // ✅ Save mobileNumber in Firestore before calling PhonePe
+        const paymentRef = db.collection('acnPayments').doc(transactionId)
+        await paymentRef.set({
+            status: 'INITIATED',
+            phonenumber: mobileNumber, // ✅ Store mobileNumber
+            createdAt: new Date(),
+        })
+
+        // Send payment request
+        const response = await axios.post(
+            `${PHONEPE_BASE_URL}${apiPath}`,
+            { request: payloadBase64 },
+            { headers: { 'Content-Type': 'application/json', 'X-VERIFY': checksum } },
+        )
+
+        console.log('response', response.data)
+        const responseData = response.data
+        if (responseData.success) {
+            return { success: true, paymentUrl: responseData.data.instrumentResponse.redirectInfo.url }
+        } else {
+            throw new Error(responseData.message)
+        }
+    } catch (error) {
+        console.error('PhonePe Payment Error:', error.message)
+        return { success: false, error: error.message }
+    }
+})
+
+export const phonePeWebhook = onRequest(async (req, res) => {
+    try {
+        console.log('✅ Webhook received:', JSON.stringify(req.body, null, 2))
+
+        if (!req.body.response) {
+            return res.status(400).json({ error: "Missing 'response' field in request body" })
+        }
+
+        const decodedResponse = JSON.parse(Buffer.from(req.body.response, 'base64').toString('utf-8'))
+        console.log('🔍 Decoded Webhook Response:', JSON.stringify(decodedResponse, null, 2))
+
+        if (!decodedResponse.data || !decodedResponse.data.merchantTransactionId) {
+            return res.status(400).json({ error: 'Missing merchantTransactionId', receivedData: decodedResponse })
+        }
+
+        const { success, code, message, data } = decodedResponse
+
+        // if (!data?.merchantTransactionId) {
+        //     return res.status(400).json({ error: "Missing merchantTransactionId" });
+        // }
+
+        // Update Firestore with payment status
+        const paymentRef = db.collection('acnPayments').doc(data?.merchantTransactionId)
+        const existingDoc = await paymentRef.get()
+        const existingData = existingDoc.exists ? existingDoc.data() : {}
+        await paymentRef.set(
+            {
+                ...existingData, // Keep existing fields (like mobileNumber)
+                status: code,
+                message,
+                data,
+                updatedAt: new Date(),
+            },
+            { merge: true },
+        )
+
+        console.log(`✅ Payment updated in Firestore: ${data?.merchantTransactionId} -> ${code}`)
+        res.status(200).json({ success: true })
+    } catch (error) {
+        console.error('PhonePe Webhook Error:', error)
+        res.status(500).json({ error: error.message })
+    }
+})

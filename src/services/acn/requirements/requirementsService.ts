@@ -2,7 +2,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
 import { doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore'
 import { db } from '../../../firebase' // Adjust path to your Firebase config
-import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
+import type { IRequirement } from '../../../data_types/acn/types'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import type { INote } from '../../../data_types/acn/types'
 
@@ -21,6 +21,9 @@ export const createRequirement = createAsyncThunk(
             budgetTo: string
             asMarketPrice: boolean
             cpId: string
+            kamId: string
+            kamName: string
+            kamPhoneNumber: string
         },
         { rejectWithValue },
     ) => {
@@ -63,10 +66,7 @@ export const createRequirement = createAsyncThunk(
                     from: budgetFrom,
                     to: budgetTo,
                 },
-                size: {
-                    from: areaValue,
-                    to: areaValue, // Using same value for both since only one area field is provided
-                },
+                area: areaValue,
                 bedrooms: requirementData.configuration ? requirementData.configuration.replace(/[^0-9]/g, '') : '', // Extract number from configuration
                 bathrooms: '', // Not provided in modal
                 parking: '', // Not provided in modal
@@ -78,9 +78,13 @@ export const createRequirement = createAsyncThunk(
                 lastModified: getUnixDateTime(),
                 matchingProperties: [],
                 notes: [],
+                // kam details
+                kamId: requirementData.kamId,
+                kamName: requirementData.kamName,
+                kamPhoneNumber: requirementData.kamPhoneNumber,
                 // Additional fields from modal that might be useful
-                agentPhone: requirementData.agentPhone,
-                name: requirementData.name,
+                agentPhoneNumber: requirementData.agentPhone,
+                agentName: requirementData.name,
             }
 
             // Create the requirement document with the generated ID

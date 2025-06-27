@@ -242,7 +242,7 @@ const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
                 />
             )
         case 'projectName':
-        case 'placesSearch':
+            // case 'placesSearch':
             return (
                 <PlacesSearch
                     selectedPlace={value}

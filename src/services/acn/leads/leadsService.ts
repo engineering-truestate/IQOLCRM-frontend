@@ -3,6 +3,8 @@ import { createAsyncThunk } from '@reduxjs/toolkit'
 import { doc, getDoc, updateDoc, deleteDoc, setDoc, getDocs, collection, where, query } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { type ILead, leadSearchService } from '../../../services/acn/leads/algoliaLeadsService'
+import type { IAgent } from '../../../data_types/acn/types'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 // Helper function to get current Unix timestamp in milliseconds
 const getCurrentTimestamp = () => Date.now()
@@ -441,56 +443,56 @@ interface Note {
     archive: boolean
 }
 
-interface IAgent {
-    cpId: string
-    name: string
-    phoneNumber: string
-    emailAddress: string
-    workAddress: string
-    reraId: string
-    firmName: string
-    firmSize: number
-    areaOfOperation: ('north bangalore' | 'south bangalore' | 'east bangalore' | 'west bangalore' | 'pan bangalore')[]
-    businessCategory: ('resale' | 'rental' | 'primary')[]
-    preferedMicromarket: string
-    userType: 'basic' | 'trial' | 'premium'
-    activity: 'active' | 'nudge' | 'no activity'
-    agentStatus: 'interested' | 'not interested' | 'not contact yet'
-    verified: boolean
-    verficationDate: number
-    blackListed: boolean
-    trialUsed: boolean
-    trialStartedAt: number
-    noOfinventories: number
-    inventoryStatus: InventoryStatus
-    noOfEnquiries: number
-    noOfrequirements: number
-    noOfleagalLeads: number
-    lastEnquiry: number
-    payStatus: 'will pay' | 'paid' | 'will not' | 'paid by team'
-    planExpiry: number
-    nextRenewal: number
-    paymentHistory: PaymentHistoryItem[]
-    monthlyCredits: number
-    boosterCredits: number
-    inboundEnqCredits: number
-    inboundReqCredits: number
-    contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
-    contactHistory: ContactHistoryItem[]
-    lastTried: number
-    kamName: string
-    kamId: string
-    notes: Note[]
-    appInstalled: boolean
-    communityJoined: boolean
-    onBroadcast: boolean
-    onboardingComplete: boolean
-    source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct' | 'meta'
-    lastSeen: number
-    added: number
-    lastModified: number
-    extraDetails: string
-}
+// interface IAgent {
+//     cpId: string
+//     name: string
+//     phoneNumber: string
+//     emailAddress: string
+//     workAddress: string
+//     reraId: string
+//     firmName: string
+//     firmSize: number
+//     areaOfOperation: ('north bangalore' | 'south bangalore' | 'east bangalore' | 'west bangalore' | 'pan bangalore')[]
+//     businessCategory: ('resale' | 'rental' | 'primary')[]
+//     preferedMicromarket: string
+//     userType: 'basic' | 'trial' | 'premium'
+//     activity: 'active' | 'nudge' | 'no activity'
+//     agentStatus: 'interested' | 'not interested' | 'not contact yet'
+//     verified: boolean
+//     verficationDate: number
+//     blackListed: boolean
+//     trialUsed: boolean
+//     trialStartedAt: number
+//     noOfInventories: number
+//     inventoryStatus: InventoryStatus
+//     noOfEnquiries: number
+//     noOfRequirements: number
+//     noOfLegalLeads: number
+//     lastEnquiry: number
+//     payStatus: 'will pay' | 'paid' | 'will not' | 'paid by team'
+//     planExpiry: number
+//     nextRenewal: number
+//     paymentHistory: PaymentHistoryItem[]
+//     monthlyCredits: number
+//     boosterCredits: number
+//     inboundEnqCredits: number
+//     inboundReqCredits: number
+//     contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
+//     contactHistory: ContactHistoryItem[]
+//     lastTried: number
+//     kamName: string
+//     kamId: string
+//     notes: Note[]
+//     appInstalled: boolean
+//     communityJoined: boolean
+//     onBroadcast: boolean
+//     onboardingComplete?: boolean
+//     source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct' | 'meta'
+//     lastSeen: number
+//     added: number
+//     lastModified: number
+//     extraDetails: string
+// }
 
 interface AgentVerificationData {
     name: string
@@ -560,6 +562,11 @@ export const verifyLeadAndCreateAgent = createAsyncThunk(
             const timestamp = Math.floor(Date.now() / 1000)
 
             const agentData: IAgent = {
+                planId: '',
+                inventories: [],
+                requirements: [],
+                enquiries: [],
+                legalLeads: [],
                 cpId: newCpId,
                 name: verificationData.name,
                 phoneNumber: verificationData.phoneNumber,
@@ -579,7 +586,7 @@ export const verifyLeadAndCreateAgent = createAsyncThunk(
                 blackListed: false,
                 trialUsed: false,
                 trialStartedAt: 0,
-                noOfinventories: 0,
+                noOfInventories: 0,
                 inventoryStatus: {
                     available: false,
                     delisted: false,
@@ -587,28 +594,28 @@ export const verifyLeadAndCreateAgent = createAsyncThunk(
                     sold: false,
                 },
                 noOfEnquiries: 0,
-                noOfrequirements: 0,
-                noOfleagalLeads: 0,
+                noOfRequirements: 0,
+                noOfLegalLeads: 0,
                 lastEnquiry: 0,
                 payStatus: 'will not',
                 planExpiry: 0,
                 nextRenewal: 0,
                 paymentHistory: [],
-                monthlyCredits: 0,
+                monthlyCredits: 5,
                 boosterCredits: 0,
-                inboundEnqCredits: 0,
-
-                inboundReqCredits: 0,
+                inboundEnqCredits: 5,
+                inboundReqCredits: 5,
                 contactStatus: leadData.contactStatus || 'not contact',
                 contactHistory: leadData.connectHistory || [],
                 lastTried: leadData.lastTried || 0,
+                lastConnected: 0,
                 kamName: verificationData.kamName,
                 kamId: verificationData.kamId,
                 notes: leadData.notes || [],
                 appInstalled: false,
                 communityJoined: leadData.communityJoined || false,
                 onBroadcast: leadData.onBroadcast || false,
-                onboardingComplete: false,
+                inWhatsappCommunity: false,
                 source: leadData.source || 'direct',
                 lastSeen: 0,
                 added: leadData.added || timestamp,

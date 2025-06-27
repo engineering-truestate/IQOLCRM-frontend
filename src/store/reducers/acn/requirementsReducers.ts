@@ -1,6 +1,6 @@
 // store/reducers/requirementsReducer.ts
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
+import type { IRequirement } from '../../../data_types/acn/types'
 import {
     fetchRequirementById,
     updateRequirement,

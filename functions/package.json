@@ -15,6 +15,7 @@
     "main": "index.js",
     "dependencies": {
         "axios": "^1.10.0",
+        "crypto": "^1.0.1",
         "firebase-admin": "^12.7.0",
         "firebase-functions": "^6.3.2",
         "googleapis": "^150.0.1"

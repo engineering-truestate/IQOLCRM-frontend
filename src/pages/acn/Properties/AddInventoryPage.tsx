@@ -30,6 +30,7 @@ import villamentIcon from '/icons/acn/ListingFlow/Villaments.svg'
 import rowhouseIcon from '/icons/acn/ListingFlow/RowHouses.svg'
 import independentIcon from '/icons/acn/ListingFlow/IndependentBuildings.svg'
 import { toast } from 'react-toastify'
+import useAuth from '../../../hooks/useAuth'
 
 // Map old PropertyType to new AssetType
 type PropertyType = 'apartments' | 'villa' | 'plot' | 'rowhouse' | 'villament' | 'independent'
@@ -225,7 +226,12 @@ const mapFormDataToProperty = (formData: Record<string, any>, assetType: Propert
 }
 
 // Helper function to map form data to QC
-const mapFormDataToQC = (formData: Record<string, any>, assetType: PropertyType): Partial<IQCInventory> => {
+const mapFormDataToQC = (
+    formData: Record<string, any>,
+    assetType: PropertyType,
+    kamId: string,
+    kamName: string,
+): Partial<IQCInventory> => {
     return {
         propertyName: formData.propertyName || '',
         address: formData.area || formData.propertyName || '',
@@ -277,9 +283,9 @@ const mapFormDataToQC = (formData: Record<string, any>, assetType: PropertyType)
         document: Array.isArray(formData.document) ? formData.document : [],
         driveLink: formData.driveLink || '',
         extraDetails: formData.extraDetails || '',
-        cpId: formData.cpId || 'CURRENT_USER_ID',
-        kamName: 'CURRENT_USER_NAME',
-        kamId: 'CURRENT_USER_ID',
+        cpId: formData.cpId,
+        kamName: kamName,
+        kamId: kamId,
         city: 'Bangalore',
         state: 'Karnataka',
         price: formData.totalAskPrice ? parseInt(formData.totalAskPrice) : 0,
@@ -313,6 +319,10 @@ const AddEditInventoryPage = () => {
     const { id } = useParams<{ id: string }>()
     const dispatch = useDispatch<AppDispatch>()
 
+    const { platform, user } = useAuth()
+    const kamId = platform?.acn?.kamId || 'INT003'
+    const kamName = user?.displayName || 'Siddharth Gujrathi'
+
     // Determine the mode based on URL
     const isPropertyEdit = location.pathname.includes('/properties/') && location.pathname.includes('/edit')
     const isQCAdd = location.pathname.includes('/addinv')
@@ -341,6 +351,7 @@ const AddEditInventoryPage = () => {
     const [successMessage, setSuccessMessage] = useState('')
     const [agentPhoneInput, setAgentPhoneInput] = useState('')
     const [selectedPlace, setSelectedPlace] = useState<Places | null>(null)
+    const [placesApiError, setPlacesApiError] = useState<string>('')
     const loading = propertyLoading || qcLoading
     const error = propertyError || qcError
 
@@ -410,18 +421,29 @@ const AddEditInventoryPage = () => {
             // Get micromarket from coordinates
             const [micromarket, zone] = getMicromarketFromCoordinates(selectedPlace)
 
+            // Validate coordinates before setting
+            const validLat = selectedPlace.lat && !isNaN(selectedPlace.lat) ? selectedPlace.lat : 0
+            const validLng = selectedPlace.lng && !isNaN(selectedPlace.lng) ? selectedPlace.lng : 0
+
             setFormData((prev) => ({
                 ...prev,
-                propertyName: selectedPlace.name,
-                area: selectedPlace.address,
-                mapLocation: selectedPlace.mapLocation,
+                propertyName: selectedPlace.name || '',
+                area: selectedPlace.address || '',
+                mapLocation: selectedPlace.mapLocation || '',
                 micromarket: micromarket || '',
                 _geoloc: {
-                    lat: selectedPlace.lat,
-                    lng: selectedPlace.lng,
+                    lat: validLat,
+                    lng: validLng,
                 },
             }))
 
+            console.log('📊 Form data updated with Places API data:', {
+                propertyName: selectedPlace.name,
+                area: selectedPlace.address,
+                micromarket: micromarket,
+                coordinates: { lat: validLat, lng: validLng },
+                mapLocation: selectedPlace.mapLocation,
+            })
             console.log('🏘️ Micromarket detected:', micromarket)
             console.log('🌍 Zone detected:', zone)
         }
@@ -456,8 +478,9 @@ const AddEditInventoryPage = () => {
             setFormData((prev) => ({
                 ...prev,
                 cpId: result.cpId,
-                kamId: result.kamId,
-                kamName: result.kamName,
+                kamId: kamId,
+                name: result.name,
+                kamName: kamName,
             }))
             console.log('👤 Agent fetched, updating cpId:', result)
         } catch (error) {
@@ -506,7 +529,7 @@ const AddEditInventoryPage = () => {
                     }, 1500)
                 } else if (isQCAdd) {
                     // QC add flow
-                    const qcData = mapFormDataToQC(formData, selectedAssetType)
+                    const qcData = mapFormDataToQC(formData, selectedAssetType, kamId, kamName)
                     console.log('➕ Creating new QC:', qcData)
                     const newQC = await dispatch(addQCInventory(qcData)).unwrap()
 
@@ -518,7 +541,7 @@ const AddEditInventoryPage = () => {
                     }, 1500)
                 } else if (isQCEdit && qcInventory) {
                     // QC edit flow
-                    const qcData = mapFormDataToQC(formData, selectedAssetType)
+                    const qcData = mapFormDataToQC(formData, selectedAssetType, kamId, kamName)
                     console.log('📝 Updating QC:', qcInventory.propertyId, qcData)
                     await dispatch(
                         updateQCInventory({
@@ -651,69 +674,48 @@ const AddEditInventoryPage = () => {
                                 )} */}
 
                                 {/* Agent Phone fetch section */}
-                                <div className='mb-6'>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                        Agent Phone Number
-                                    </label>
-                                    <div className='flex gap-2 items-center'>
+                                <div className='mb-4'>
+                                    <label className='block text-sm py-2 text-gray-600'>Agent phone no.</label>
+                                    <div className='flex gap-2'>
                                         <input
                                             type='text'
-                                            placeholder='Enter agent phone number'
-                                            className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1'
                                             value={agentPhoneInput}
                                             onChange={(e) => setAgentPhoneInput(e.target.value)}
-                                            disabled={isPropertyEdit || isQCEdit}
+                                            placeholder='Type here'
+                                            className='flex-1 p-2 border border-gray-300 rounded text-[14px] text-black placeholder-gray-400'
                                         />
                                         <button
-                                            className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed'
                                             onClick={handleFetchAgent}
-                                            disabled={
-                                                agentFetchLoading ||
-                                                !agentPhoneInput.trim() ||
-                                                isPropertyEdit ||
-                                                isQCEdit
-                                            }
-                                            type='button'
+                                            disabled={agentFetchLoading}
+                                            className='px-4 py-2 bg-black text-white rounded text-sm hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed'
                                         >
                                             {agentFetchLoading ? 'Fetching...' : 'Fetch Agent'}
                                         </button>
                                     </div>
+                                </div>
 
-                                    {/* Agent fetch results */}
-                                    {currentAgent && (
-                                        <div className='mt-2 p-3 bg-green-50 border border-green-200 rounded-lg'>
-                                            <div className='flex items-center gap-2'>
-                                                <svg
-                                                    className='w-5 h-5 text-green-600'
-                                                    fill='none'
-                                                    stroke='currentColor'
-                                                    viewBox='0 0 24 24'
-                                                >
-                                                    <path
-                                                        strokeLinecap='round'
-                                                        strokeLinejoin='round'
-                                                        strokeWidth={2}
-                                                        d='M5 13l4 4L19 7'
-                                                    />
-                                                </svg>
-                                                <span className='text-green-700 font-semibold'>
-                                                    {currentAgent.cpId} | {currentAgent.name}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {agentFetchError && (
-                                        <div className='mt-2 p-3 bg-red-50 border border-red-200 rounded-lg'>
-                                            <div className='text-sm text-red-700'>{agentFetchError}</div>
-                                        </div>
-                                    )}
-
-                                    {(isPropertyEdit || isQCEdit) && (
-                                        <p className='text-sm text-gray-500 mt-2'>
-                                            Agent cannot be changed in edit mode
-                                        </p>
-                                    )}
+                                {/* Agent Details */}
+                                <div className='flex gap-2'>
+                                    <div className='flex-1'>
+                                        <input
+                                            type='text'
+                                            value={formData.cpId}
+                                            onChange={(e) => handleFieldChange('cpId', e.target.value)}
+                                            placeholder='Agent ID'
+                                            className='w-full p-2 border border-gray-300 rounded text-[14px] text-black placeholder-gray-400 bg-gray-100'
+                                            readOnly
+                                        />
+                                    </div>
+                                    <div className='flex-1'>
+                                        <input
+                                            type='text'
+                                            value={formData.name}
+                                            onChange={(e) => handleFieldChange('name', e.target.value)}
+                                            placeholder='Agent name'
+                                            className='w-full p-2 border border-gray-300 rounded text-[14px] text-black placeholder-gray-400 bg-gray-100'
+                                            readOnly
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Success/Error Messages */}
@@ -744,6 +746,29 @@ const AddEditInventoryPage = () => {
                                         <div className='text-sm text-red-700'>{error}</div>
                                     </div>
                                 )}
+
+                                {placesApiError && (
+                                    <div className='mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg'>
+                                        <div className='flex items-center gap-2'>
+                                            <svg
+                                                className='w-5 h-5 text-yellow-600'
+                                                fill='none'
+                                                stroke='currentColor'
+                                                viewBox='0 0 24 24'
+                                            >
+                                                <path
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                    strokeWidth={2}
+                                                    d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z'
+                                                />
+                                            </svg>
+                                            <div className='text-sm text-yellow-700'>
+                                                Places API Warning: {placesApiError}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Dynamic Form Fields */}
@@ -768,7 +793,7 @@ const AddEditInventoryPage = () => {
                                                                     }
                                                                     error={errors[field.field || '']}
                                                                     assetType={assetType}
-                                                                    formData={formData}
+                                                                    formData={{ ...formData, setSelectedPlace }}
                                                                 />
                                                             </div>
                                                         </div>,
@@ -789,7 +814,7 @@ const AddEditInventoryPage = () => {
                                                                         }
                                                                         error={errors[field.field || '']}
                                                                         assetType={assetType}
-                                                                        formData={formData}
+                                                                        formData={{ ...formData, setSelectedPlace }}
                                                                     />
                                                                 </div>
                                                                 <div className='w-1/2'>
@@ -805,7 +830,7 @@ const AddEditInventoryPage = () => {
                                                                         }
                                                                         error={errors[nextField.field || '']}
                                                                         assetType={assetType}
-                                                                        formData={formData}
+                                                                        formData={{ ...formData, setSelectedPlace }}
                                                                     />
                                                                 </div>
                                                             </div>,
@@ -824,7 +849,7 @@ const AddEditInventoryPage = () => {
                                                                         }
                                                                         error={errors[field.field || '']}
                                                                         assetType={assetType}
-                                                                        formData={formData}
+                                                                        formData={{ ...formData, setSelectedPlace }}
                                                                     />
                                                                 </div>
                                                                 <div className='w-1/2' />
