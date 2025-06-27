@@ -112,6 +112,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         try {
             const scheduledDate = Math.floor(new Date(formData.dueDate).getTime() / 1000)
             const currentTimestamp = getUnixDateTime()
+            const currentEnquiry = await enquiryService.getById(enquiryId || '')
+
+            if (!currentEnquiry) {
+                throw new Error('Enquiry not found')
+            }
             const taskData = {
                 enquiryId,
                 agentId,
@@ -131,11 +136,16 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 lastModified: currentTimestamp,
             }
 
+            // Prepare lead update data based on current enquiry
             const updateLeadData = {
-                state: 'open',
-                taskType: formData.task.toLowerCase(),
+                state: currentEnquiry?.state as 'open' | 'closed' | 'fresh' | 'dropped',
+                stage: currentEnquiry.stage,
+                leadStatus: currentEnquiry?.leadStatus,
+                propertyName: currentEnquiry.propertyName,
+                tag: currentEnquiry.tag,
                 lastModified: currentTimestamp,
-                scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
+                taskType: formData.task as string | null,
+                scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : (scheduledDate as number | null),
             }
 
             const updateLead = leadService.update(leadId, updateLeadData)
