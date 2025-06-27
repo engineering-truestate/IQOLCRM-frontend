@@ -160,7 +160,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
             // Get open tasks for the enquiry
             const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
-            const remainingOpenTasks = openTasks.filter((task) => task.taskId !== taskId)
+            const remainingOpenTasks = openTasks
 
             // Prepare the data for updating task, enquiry, lead, and adding activities
             const taskUpdateData = {
@@ -225,7 +225,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             if (remainingOpenTasks.length > 0) {
                 const earliestTask = remainingOpenTasks[0]
 
-                if (earliestTask.added > scheduledTimestamp) {
+                if (earliestTask.added) {
                     // If another task has an earlier date, use its data for the lead
                     leadUpdateData = {
                         leadStatus: leadStatus as any,
