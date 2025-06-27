@@ -1118,7 +1118,7 @@ const PropertiesPage = () => {
                 ),
             },
             {
-                key: 'cpCode',
+                key: 'cpId',
                 header: 'Agent',
                 render: (value) => (
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>{value || 'N/A'}</span>

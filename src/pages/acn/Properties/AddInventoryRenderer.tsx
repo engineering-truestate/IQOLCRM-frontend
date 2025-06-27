@@ -27,7 +27,6 @@ export interface PropertyData {
     id?: string
     propertyId?: string
     cpId?: string
-    cpCode?: string
     assetType: string
     dateOfInventoryAdded?: number
     dateOfStatusLastChecked?: number

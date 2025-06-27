@@ -20,7 +20,7 @@ interface Note {
 interface ILead {
     leadId: string
     name: string
-    phonenumber: string
+    phoneNumber: string
     emailAddress: string
     source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct'
     leadStatus: 'interested' | 'not interested' | 'not contact yet'
@@ -106,7 +106,7 @@ class LeadSearchService {
                 page,
                 hitsPerPage,
                 facets: ['leadStatus', 'contactStatus', 'source', 'kamName', 'verified', 'blackListed'],
-                attributesToHighlight: ['name', 'phonenumber', 'emailAddress'],
+                attributesToHighlight: ['name', 'phoneNumber', 'emailAddress'],
                 highlightPreTag: '<mark>',
                 highlightPostTag: '</mark>',
             }
@@ -126,7 +126,7 @@ class LeadSearchService {
             const mappedHits: ILead[] = (response.hits as AlgoliaLeadHit[]).map((hit) => ({
                 leadId: hit.leadId,
                 name: hit.name,
-                phonenumber: hit.phonenumber,
+                phoneNumber: hit.phoneNumber,
                 emailAddress: hit.emailAddress,
                 source: hit.source,
                 leadStatus: hit.leadStatus,
@@ -207,7 +207,7 @@ class LeadSearchService {
             return {
                 leadId: hit.leadId,
                 name: hit.name,
-                phonenumber: hit.phonenumber,
+                phoneNumber: hit.phoneNumber,
                 emailAddress: hit.emailAddress,
                 source: hit.source,
                 leadStatus: hit.leadStatus,

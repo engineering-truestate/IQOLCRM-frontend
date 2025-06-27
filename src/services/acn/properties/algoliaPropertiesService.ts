@@ -353,7 +353,7 @@ export const getSearchSuggestions = async (query: string): Promise<string[]> => 
                     indexName: RESALE_INDEX_NAME,
                     query,
                     hitsPerPage: 5,
-                    attributesToRetrieve: ['propertyId', 'nameOfTheProperty', 'micromarket'],
+                    attributesToRetrieve: ['propertyId', 'propertyName', 'micromarket'],
                     analytics: false,
                 },
             ],
@@ -364,7 +364,7 @@ export const getSearchSuggestions = async (query: string): Promise<string[]> => 
 
         result.hits.forEach((hit: any) => {
             if (hit.propertyId) suggestions.add(hit.propertyId)
-            if (hit.nameOfTheProperty) suggestions.add(hit.nameOfTheProperty)
+            if (hit.propertyName) suggestions.add(hit.propertyName)
             if (hit.micromarket) suggestions.add(hit.micromarket)
         })
 

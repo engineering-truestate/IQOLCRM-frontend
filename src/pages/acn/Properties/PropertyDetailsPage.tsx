@@ -20,7 +20,7 @@ import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import { toast } from 'react-toastify'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import { formatUnixDateTime } from '../../../components/helper/formatDate'
-import { formatCost } from '../../../components/helper/formatCost'
+import { formatExactCostToLacsOrCrs } from '../../../components/helper/formatCost'
 
 // Icons
 import shareIcon from '/icons/acn/share-1.svg'
@@ -446,7 +446,7 @@ const PropertyDetailsPage = () => {
                                     </div>
                                     <div className='text-right'>
                                         <div className='text-lg font-bold text-gray-900 mb-2'>
-                                            {formatCost(property.totalAskPrice)}
+                                            {formatExactCostToLacsOrCrs(property.totalAskPrice)}
                                         </div>
                                     </div>
                                 </div>
@@ -554,7 +554,9 @@ const PropertyDetailsPage = () => {
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Total Ask Price</span>
-                                        <span className='font-medium'>{formatCurrency(property.totalAskPrice)}</span>
+                                        <span className='font-medium'>
+                                            {formatExactCostToLacsOrCrs(property.totalAskPrice)}
+                                        </span>
                                     </div>
                                     <div className='flex justify-between py-2 border-b border-gray-100'>
                                         <span className='text-gray-600'>Ask Price Per Sqft</span>
@@ -727,7 +729,7 @@ const PropertyDetailsPage = () => {
                                                                         changeType.slice(1)}
                                                                 </h4>
                                                                 <span className='text-xs text-gray-500'>
-                                                                    {formatDate(priceEntry.timestamp * 1000)}
+                                                                    {formatUnixDateTime(priceEntry.timestamp)}
                                                                 </span>
                                                             </div>
                                                             <div className='text-sm text-gray-600 mb-3'>
@@ -750,7 +752,7 @@ const PropertyDetailsPage = () => {
                                                                                         : 'text-gray-600'
                                                                                 }
                                                                             >
-                                                                                {formatCurrency(
+                                                                                {formatExactCostToLacsOrCrs(
                                                                                     priceEntry.oldTotalAskPrice,
                                                                                 )}
                                                                             </span>
@@ -758,7 +760,7 @@ const PropertyDetailsPage = () => {
                                                                             <span
                                                                                 className={`font-medium ${changeType === 'increase' ? 'text-green-600' : changeType === 'decrease' ? 'text-green-600' : 'text-gray-600'}`}
                                                                             >
-                                                                                {formatCurrency(
+                                                                                {formatExactCostToLacsOrCrs(
                                                                                     priceEntry.newTotalAskPrice,
                                                                                 )}
                                                                             </span>
