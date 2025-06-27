@@ -231,7 +231,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                         leadStatus: leadStatus as any,
                         lastModified: currentTimestamp,
                         taskType: earliestTask.taskType,
-                        scheduledDate: earliestTask.scheduledDate,
+                        scheduledDate: earliestTask.taskId === taskId ? scheduledTimestamp : earliestTask.scheduledDate,
                         ...(stage && { stage: stage }),
                     }
                 }
