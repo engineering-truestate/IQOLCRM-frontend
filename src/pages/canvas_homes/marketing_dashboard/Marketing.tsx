@@ -265,11 +265,6 @@ const Marketing = () => {
         return debounce(performSearch, 300)
     }, [performSearch])
 
-    // Effect for immediate search (filters)
-    useEffect(() => {
-        performSearch()
-    }, [selectedProperty, selectedCampaignStatus, selectedDateRange, customDateRange])
-
     // Effect for debounced search (text input)
     useEffect(() => {
         if (searchValue.trim()) {
@@ -278,11 +273,6 @@ const Marketing = () => {
             performSearch()
         }
     }, [searchValue])
-
-    // Load initial data on component mount
-    useEffect(() => {
-        performSearch()
-    }, [])
 
     // Summary card calculations
     const summaryCardCounts = useMemo(() => {
