@@ -562,12 +562,8 @@ const TypologyPage = () => {
         <Layout loading={loading}>
             <div className='p-8'>
                 <div className='text-sm text-gray-500 mb-4'>
-                    <a href='/restack/prelaunch' className='hover:text-gray-700'>
-                        Projects
-                    </a>
-                    <span className='mx-2'>/</span>
                     <a href='/restack/primary' className='hover:text-gray-700'>
-                        Configurations
+                        Primary
                     </a>
                     <span className='mx-2'>/</span>
                     <a href={id ? `/restack/primary/${id}` : '/restack/primary'} className='hover:text-gray-700'>
@@ -635,17 +631,11 @@ const TypologyPage = () => {
                         }
                         data={
                             activeTab === 'apartment'
-                                ? Array.isArray(projectDetails?.apartments)
-                                    ? projectDetails?.apartments
-                                    : []
+                                ? projectDetails?.apartments || []
                                 : activeTab === 'villa'
-                                  ? Array.isArray(projectDetails?.villas)
-                                      ? projectDetails?.villas
-                                      : []
+                                  ? projectDetails?.villas || []
                                   : activeTab === 'plot'
-                                    ? Array.isArray(projectDetails?.plots)
-                                        ? projectDetails?.plots
-                                        : []
+                                    ? projectDetails?.plots || []
                                     : []
                         }
                     />

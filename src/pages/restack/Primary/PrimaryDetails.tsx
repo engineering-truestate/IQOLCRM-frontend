@@ -15,8 +15,13 @@ import type {
     ClubhouseDetail,
 } from '../../../data_types/restack/restack-primary'
 import editic from '/icons/acn/edit.svg'
+import { fetchInventoryDetails } from '../../../store/actions/restack/primaryProperties'
 
-import { clearCurrentProperty, updatePrimaryProperty } from '../../../store/actions/restack/primaryProperties'
+import {
+    clearCurrentProperty,
+    updateInventoryDetails,
+    updatePrimaryProperty,
+} from '../../../store/actions/restack/primaryProperties'
 import type { RootState } from '../../../store/reducers'
 import { fetchPrimaryPropertyById } from '../../../store/actions/restack/primaryProperties'
 import type { AppDispatch } from '../../../store'
@@ -79,72 +84,18 @@ const reraStatuses = [
     { label: 'Not Required', value: 'Not Required' },
 ]
 
-// const developerTiers = [
-//     { label: 'A', value: 'A' },
-//     { label: 'B', value: 'B' },
-//     { label: 'C', value: 'C' },
-//     { label: 'D', value: 'D' },
-// ]
-
-// const areaUnits = [
-//     { label: 'Square Meters', value: 'sqMtr' },
-//     { label: 'Square Feet', value: 'sqft' },
-//     { label: 'Acres', value: 'acres' },
-//     { label: 'Hectares', value: 'hectares' },
-// ]
-
-// const amenitiesOptions = [
-//     { label: 'Swimming Pool', value: 'Swimming Pool' },
-//     { label: 'Gym', value: 'Gym' },
-//     { label: 'Playground', value: 'Playground' },
-//     { label: 'Clubhouse', value: 'Clubhouse' },
-//     { label: 'Security', value: 'Security' },
-//     { label: 'Parking', value: 'Parking' },
-//     { label: 'Garden', value: 'Garden' },
-//     { label: 'Elevator', value: 'Elevator' },
-//     { label: 'Power Backup', value: 'Power Backup' },
-//     { label: 'Water Supply', value: 'Water Supply' },
-//     { label: 'Waste Management', value: 'Waste Management' },
-//     { label: 'CCTV Surveillance', value: 'CCTV Surveillance' },
-//     { label: 'Fire Safety', value: 'Fire Safety' },
-//     { label: 'Kids Play Area', value: 'Kids Play Area' },
-//     { label: 'Senior Citizen Area', value: 'Senior Citizen Area' },
-//     { label: 'Jogging Track', value: 'Jogging Track' },
-// ]
-
-// Floor plan image component
-// const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
-//     const sizeClasses = size === 'small' ? 'w-10 h-10' : 'w-16 h-16'
-
-//     return (
-//         <div className={`${sizeClasses} rounded-full overflow-hidden bg-gray-200 flex items-center justify-center`}>
-//             {imageUrl ? (
-//                 <img
-//                     src={imageUrl}
-//                     alt='Floor Plan'
-//                     className='w-full h-full object-cover'
-//                     onError={(e) => {
-//                         e.currentTarget.style.display = 'none'
-//                         e.currentTarget.nextElementSibling?.classList.remove('hidden')
-//                     }}
-//                 />
-//             ) : null}
-//             <div className={`${imageUrl ? 'hidden' : ''} text-xs text-gray-500 text-center`}>No Image</div>
-//         </div>
-//     )
-// }
-
 const PrimaryDetailsPage = () => {
     const navigate = useNavigate()
     const { id } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { currentProperty, loading, error } = useSelector((state: RootState) => state.primaryProperties)
+    const [inventoryDetails, setInventoryDetails] = useState<DevelopmentDetail[] | null>(null)
 
     // Main state management
     const [projectDetails, setProjectDetails] = useState<PrimaryProperty | null>(null)
     const [originalDetails, setOriginalDetails] = useState<PrimaryProperty | null>(null)
     const [isEditing, setIsEditing] = useState(false)
-    const [editingRowId, setEditingRowId] = useState<number | null>(null)
+    const [_, setEditingRowId] = useState<number | null>(null)
     const [, setIsAddingRow] = useState(false)
 
     // States for managing sections
@@ -169,6 +120,38 @@ const PrimaryDetailsPage = () => {
         return () => {
             dispatch(clearCurrentProperty())
         }
+    }, [id, dispatch])
+
+    useEffect(() => {
+        const fetchInventory = async () => {
+            if (id) {
+                try {
+                    const action = await dispatch(fetchInventoryDetails(id as string))
+                    if ('payload' in action && Array.isArray(action.payload)) {
+                        // Filter out any invalid entries and ensure proper structure
+                        const validInventoryDetails = (action.payload as any[])
+                            .filter((item) => item && typeof item === 'object' && item.TypeOfInventory) // Better filtering
+                            .map((item) => ({
+                                slno: item.slno || '',
+                                TypeOfInventory: item.TypeOfInventory || '',
+                                NumberOfInventory: Number(item.NumberOfInventory || 0),
+                                CarpetAreaSqMtr: Number(item.CarpetAreaSqMtr || 0),
+                                BalconyVerandahSqMtr: Number(item.BalconyVerandahSqMtr || 0),
+                                OpenTerraceSqMtr: Number(item.OpenTerraceSqMtr || 0),
+                            })) as DevelopmentDetail[]
+
+                        setInventoryDetails(validInventoryDetails)
+                    } else {
+                        setInventoryDetails([])
+                    }
+                } catch (error) {
+                    console.error('Error fetching inventory details:', error)
+                    setInventoryDetails([])
+                }
+            }
+        }
+
+        fetchInventory()
     }, [id, dispatch])
 
     useEffect(() => {
@@ -206,6 +189,7 @@ const PrimaryDetailsPage = () => {
 
     const handleCancel = () => {
         setProjectDetails(originalDetails)
+        setInventoryDetails(inventoryDetails)
         setIsEditing(false)
         setEditingRowId(null)
         setIsAddingRow(false)
@@ -230,7 +214,6 @@ const PrimaryDetailsPage = () => {
                     Object.keys(projectDetails).forEach((key) => {
                         const typedKey = key as keyof PrimaryProperty
                         if (
-                            typedKey === 'developmentDetails' ||
                             typedKey === 'towerDetails' ||
                             typedKey === 'apartments' ||
                             typedKey === 'villas' ||
@@ -264,6 +247,26 @@ const PrimaryDetailsPage = () => {
                 )
 
                 setOriginalDetails(projectDetails)
+
+                // Update inventory details if changed
+                if (inventoryDetails && currentProperty) {
+                    const inventoryUpdates = inventoryDetails.map((item) => ({
+                        TypeOfInventory: item.TypeOfInventory,
+                        NumberOfInventory: String(item.NumberOfInventory),
+                        CarpetAreaSqMtr: String(item.CarpetAreaSqMtr),
+                        BalconyVerandahSqMtr: String(item.BalconyVerandahSqMtr ?? ''),
+                        OpenTerraceSqMtr: String(item.OpenTerraceSqMtr ?? ''),
+                        slno: item.slno,
+                    }))
+                    await dispatch(
+                        updateInventoryDetails({
+                            projectId: id,
+                            updates: inventoryUpdates,
+                            reraId: projectDetails?.reraId || '',
+                        }),
+                    )
+                }
+
                 setIsEditing(false)
                 setEditingRowId(null)
                 setIsAddingRow(false)
@@ -306,23 +309,17 @@ const PrimaryDetailsPage = () => {
 
     // Development details management
     const handleAddDevelopment = () => {
-        if (newDevelopment.typeOfInventory && newDevelopment.numberOfInventory) {
+        if (newDevelopment.TypeOfInventory && newDevelopment.NumberOfInventory) {
             const development: DevelopmentDetail = {
-                typeOfInventory: newDevelopment.typeOfInventory,
-                numberOfInventory: newDevelopment.numberOfInventory,
-                carpetAreaSqMtr: newDevelopment.carpetAreaSqMtr || 0,
-                balconyVerandahSqMtr: newDevelopment.balconyVerandahSqMtr || 0,
-                openTerraceSqMtr: newDevelopment.openTerraceSqMtr || 0,
+                slno: newDevelopment.slno ?? '',
+                TypeOfInventory: newDevelopment.TypeOfInventory,
+                NumberOfInventory: newDevelopment.NumberOfInventory,
+                CarpetAreaSqMtr: newDevelopment.CarpetAreaSqMtr || 0,
+                BalconyVerandahSqMtr: newDevelopment.BalconyVerandahSqMtr || 0,
+                OpenTerraceSqMtr: newDevelopment.OpenTerraceSqMtr || 0,
             }
 
-            setProjectDetails((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          developmentDetails: [...(prev.developmentDetails || []), development],
-                      }
-                    : null,
-            )
+            setInventoryDetails((prev) => (prev ? [...prev, development] : [development]))
 
             setNewDevelopment({})
             setIsAddingDevelopment(false)
@@ -330,26 +327,12 @@ const PrimaryDetailsPage = () => {
     }
 
     const handleDeleteDevelopment = (index: number) => {
-        setProjectDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      developmentDetails: (prev.developmentDetails || []).filter((_, i) => i !== index),
-                  }
-                : null,
-        )
+        setInventoryDetails((prev) => (prev ? prev.filter((_, i) => i !== index) : null))
     }
 
-    const handleEditDevelopment = (index: number, field: string, value: string) => {
-        setProjectDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      developmentDetails: (prev.developmentDetails || []).map((dev, i) =>
-                          i === index ? { ...dev, [field]: value } : dev,
-                      ),
-                  }
-                : null,
+    const handleEditDevelopment = (index: number, field: string, value: string | number) => {
+        setInventoryDetails((prev) =>
+            prev ? prev.map((dev, i) => (i === index ? { ...dev, [field]: value } : dev)) : null,
         )
     }
 
@@ -397,7 +380,7 @@ const PrimaryDetailsPage = () => {
         )
     }
 
-    const handleEditTower = (towerId: string, field: string, value: string) => {
+    const handleEditTower = (towerId: string, field: string, value: string | number) => {
         setProjectDetails((prev) =>
             prev
                 ? {
@@ -457,52 +440,6 @@ const PrimaryDetailsPage = () => {
                 : null,
         )
     }
-
-    // Amenities management
-    // const handleAddAmenityFromDropdown = () => {
-    //     if (selectedAmenity && projectDetails) {
-    //         const currentAmenities = projectDetails.amenities || []
-    //         if (!currentAmenities.includes(selectedAmenity)) {
-    //             setProjectDetails((prev) =>
-    //                 prev
-    //                     ? {
-    //                           ...prev,
-    //                           amenities: [...currentAmenities, selectedAmenity],
-    //                       }
-    //                     : null,
-    //             )
-    //         }
-    //         setSelectedAmenity('')
-    //     }
-    // }
-
-    // const handleAddCustomAmenity = () => {
-    //     if (newAmenity.trim() && projectDetails) {
-    //         const currentAmenities = projectDetails.amenities || []
-    //         if (!currentAmenities.includes(newAmenity.trim())) {
-    //             setProjectDetails((prev) =>
-    //                 prev
-    //                     ? {
-    //                           ...prev,
-    //                           amenities: [...currentAmenities, newAmenity.trim()],
-    //                       }
-    //                     : null,
-    //             )
-    //         }
-    //         setNewAmenity('')
-    //     }
-    // }
-
-    // const handleRemoveAmenity = (amenityToRemove: string) => {
-    //     setProjectDetails((prev) =>
-    //         prev
-    //             ? {
-    //                   ...prev,
-    //                   amenities: (prev.amenities || []).filter((amenity) => amenity !== amenityToRemove),
-    //               }
-    //             : null,
-    //     )
-    // }
 
     const renderField = (
         label: string,
@@ -594,19 +531,14 @@ const PrimaryDetailsPage = () => {
 
     const getDevelopmentColumns = () => [
         {
-            key: 'typeOfInventory',
+            key: 'TypeOfInventory',
             header: 'Type of Inventory',
             render: (value: any, row: any) => {
-                const index =
-                    projectDetails?.developmentDetails?.findIndex(
-                        (dev) =>
-                            dev.typeOfInventory === row.typeOfInventory &&
-                            dev.numberOfInventory === row.numberOfInventory,
-                    ) ?? -1
-                return isEditing && editingRowId === index ? (
+                const rowIndex = (inventoryDetails || []).indexOf(row)
+                return isEditing ? (
                     <StateBaseTextField
-                        value={value}
-                        onChange={(e) => handleEditDevelopment(index, 'typeOfInventory', e.target.value)}
+                        value={value || ''}
+                        onChange={(e) => handleEditDevelopment(rowIndex, 'TypeOfInventory', e.target.value)}
                         className='w-full text-sm'
                     />
                 ) : (
@@ -615,22 +547,17 @@ const PrimaryDetailsPage = () => {
             },
         },
         {
-            key: 'numberOfInventory',
+            key: 'NumberOfInventory',
             header: 'Number of Inventory',
             render: (value: any, row: any) => {
-                const index =
-                    projectDetails?.developmentDetails?.findIndex(
-                        (dev) =>
-                            dev.typeOfInventory === row.typeOfInventory &&
-                            dev.numberOfInventory === row.numberOfInventory,
-                    ) ?? -1
-                return isEditing && editingRowId === index ? (
+                const rowIndex = (inventoryDetails || []).indexOf(row)
+                return isEditing ? (
                     <NumberInput
                         label=''
                         placeholder='Enter number'
-                        value={value}
+                        value={value || 0}
                         onChange={(numValue: number | null) => {
-                            handleEditDevelopment(index, 'numberOfInventory', (numValue || 0).toString())
+                            handleEditDevelopment(rowIndex, 'NumberOfInventory', numValue || 0)
                         }}
                         numberType='integer'
                         min={0}
@@ -642,22 +569,17 @@ const PrimaryDetailsPage = () => {
             },
         },
         {
-            key: 'carpetAreaSqMtr',
+            key: 'CarpetAreaSqMtr',
             header: 'Carpet Area (Sq Mtr)',
             render: (value: any, row: any) => {
-                const index =
-                    projectDetails?.developmentDetails?.findIndex(
-                        (dev) =>
-                            dev.typeOfInventory === row.typeOfInventory &&
-                            dev.numberOfInventory === row.numberOfInventory,
-                    ) ?? -1
-                return isEditing && editingRowId === index ? (
+                const rowIndex = (inventoryDetails || []).indexOf(row)
+                return isEditing ? (
                     <NumberInput
                         label=''
                         placeholder='Enter area'
-                        value={value}
+                        value={value || 0}
                         onChange={(numValue: number | null) => {
-                            handleEditDevelopment(index, 'carpetAreaSqMtr', (numValue || 0).toString())
+                            handleEditDevelopment(rowIndex, 'CarpetAreaSqMtr', numValue || 0)
                         }}
                         numberType='decimal'
                         min={0}
@@ -669,22 +591,17 @@ const PrimaryDetailsPage = () => {
             },
         },
         {
-            key: 'balconyVerandahSqMtr',
+            key: 'BalconyVerandahSqMtr',
             header: 'Balcony/Verandah (Sq Mtr)',
             render: (value: any, row: any) => {
-                const index =
-                    projectDetails?.developmentDetails?.findIndex(
-                        (dev) =>
-                            dev.typeOfInventory === row.typeOfInventory &&
-                            dev.numberOfInventory === row.numberOfInventory,
-                    ) ?? -1
-                return isEditing && editingRowId === index ? (
+                const rowIndex = (inventoryDetails || []).indexOf(row)
+                return isEditing ? (
                     <NumberInput
                         label=''
                         placeholder='Enter area'
                         value={value || 0}
                         onChange={(numValue: number | null) => {
-                            handleEditDevelopment(index, 'balconyVerandahSqMtr', (numValue || 0).toString())
+                            handleEditDevelopment(rowIndex, 'BalconyVerandahSqMtr', numValue || 0)
                         }}
                         numberType='decimal'
                         min={0}
@@ -696,22 +613,17 @@ const PrimaryDetailsPage = () => {
             },
         },
         {
-            key: 'openTerraceSqMtr',
+            key: 'OpenTerraceSqMtr',
             header: 'Open Terrace (Sq Mtr)',
             render: (value: any, row: any) => {
-                const index =
-                    projectDetails?.developmentDetails?.findIndex(
-                        (dev) =>
-                            dev.typeOfInventory === row.typeOfInventory &&
-                            dev.numberOfInventory === row.numberOfInventory,
-                    ) ?? -1
-                return isEditing && editingRowId === index ? (
+                const rowIndex = (inventoryDetails || []).indexOf(row)
+                return isEditing ? (
                     <NumberInput
                         label=''
                         placeholder='Enter area'
                         value={value || 0}
                         onChange={(numValue: number | null) => {
-                            handleEditDevelopment(index, 'openTerraceSqMtr', (numValue || 0).toString())
+                            handleEditDevelopment(rowIndex, 'OpenTerraceSqMtr', numValue || 0)
                         }}
                         numberType='decimal'
                         min={0}
@@ -727,54 +639,18 @@ const PrimaryDetailsPage = () => {
                   {
                       key: 'actions',
                       header: 'Actions',
-                      render: (row: any) => {
-                          const index =
-                              projectDetails?.developmentDetails?.findIndex(
-                                  (dev) =>
-                                      dev.typeOfInventory === row.typeOfInventory &&
-                                      dev.numberOfInventory === row.numberOfInventory,
-                              ) ?? -1
+                      render: (_: any, row: any) => {
+                          const rowIndex = (inventoryDetails || []).indexOf(row)
                           return (
                               <div className='flex gap-2'>
-                                  {editingRowId === index ? (
-                                      <>
-                                          <Button
-                                              bgColor='bg-green-600'
-                                              textColor='text-white'
-                                              className='px-2 py-1 h-6 text-xs'
-                                              onClick={() => setEditingRowId(null)}
-                                          >
-                                              ✓
-                                          </Button>
-                                          <Button
-                                              bgColor='bg-gray-400'
-                                              textColor='text-white'
-                                              className='px-2 py-1 h-6 text-xs'
-                                              onClick={() => setEditingRowId(null)}
-                                          >
-                                              ✕
-                                          </Button>
-                                      </>
-                                  ) : (
-                                      <>
-                                          <Button
-                                              bgColor='bg-blue-600'
-                                              textColor='text-white'
-                                              className='px-2 py-1 h-6 text-xs'
-                                              onClick={() => setEditingRowId(index)}
-                                          >
-                                              Edit
-                                          </Button>
-                                          <Button
-                                              bgColor='bg-red-600'
-                                              textColor='text-white'
-                                              className='px-2 py-1 h-6 text-xs'
-                                              onClick={() => handleDeleteDevelopment(index)}
-                                          >
-                                              Delete
-                                          </Button>
-                                      </>
-                                  )}
+                                  <Button
+                                      bgColor='bg-red-600'
+                                      textColor='text-white'
+                                      className='px-2 py-1 h-6 text-xs'
+                                      onClick={() => handleDeleteDevelopment(rowIndex)}
+                                  >
+                                      Delete
+                                  </Button>
                               </div>
                           )
                       },
@@ -788,9 +664,9 @@ const PrimaryDetailsPage = () => {
             key: 'towerName',
             header: 'Tower Name',
             render: (value: any, row: any) =>
-                isEditing && editingRowId === row.id ? (
+                isEditing ? (
                     <StateBaseTextField
-                        value={value}
+                        value={value || ''}
                         onChange={(e) => handleEditTower(row.id, 'towerName', e.target.value)}
                         className='w-full text-sm'
                     />
@@ -802,9 +678,9 @@ const PrimaryDetailsPage = () => {
             key: 'typeOfTower',
             header: 'Type of Tower',
             render: (value: any, row: any) =>
-                isEditing && editingRowId === row.id ? (
+                isEditing ? (
                     <StateBaseTextField
-                        value={value}
+                        value={value || ''}
                         onChange={(e) => handleEditTower(row.id, 'typeOfTower', e.target.value)}
                         className='w-full text-sm'
                     />
@@ -816,12 +692,15 @@ const PrimaryDetailsPage = () => {
             key: 'floors',
             header: 'Floors',
             render: (value: any, row: any) =>
-                isEditing && editingRowId === row.id ? (
-                    <StateBaseTextField
-                        type='number'
-                        value={value}
-                        onChange={(e) => handleEditTower(row.id, 'floors', e.target.value)}
-                        className='w-full text-sm'
+                isEditing ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter floors'
+                        value={value || 0}
+                        onChange={(numValue: number | null) => handleEditTower(row.id, 'floors', numValue || 0)}
+                        numberType='integer'
+                        min={0}
+                        fullWidth
                     />
                 ) : (
                     <span className='text-sm font-medium'>{value}</span>
@@ -831,12 +710,15 @@ const PrimaryDetailsPage = () => {
             key: 'units',
             header: 'Units',
             render: (value: any, row: any) =>
-                isEditing && editingRowId === row.id ? (
-                    <StateBaseTextField
-                        type='number'
-                        value={value}
-                        onChange={(e) => handleEditTower(row.id, 'units', e.target.value)}
-                        className='w-full text-sm'
+                isEditing ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter units'
+                        value={value || 0}
+                        onChange={(numValue: number | null) => handleEditTower(row.id, 'units', numValue || 0)}
+                        numberType='integer'
+                        min={0}
+                        fullWidth
                     />
                 ) : (
                     <span className='text-sm font-medium'>{value}</span>
@@ -846,12 +728,15 @@ const PrimaryDetailsPage = () => {
             key: 'totalParking',
             header: 'Total Parking',
             render: (value: any, row: any) =>
-                isEditing && editingRowId === row.id ? (
-                    <StateBaseTextField
-                        type='number'
-                        value={value}
-                        onChange={(e) => handleEditTower(row.id, 'totalParking', e.target.value)}
-                        className='w-full text-sm'
+                isEditing ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter parking'
+                        value={value || 0}
+                        onChange={(numValue: number | null) => handleEditTower(row.id, 'totalParking', numValue || 0)}
+                        numberType='integer'
+                        min={0}
+                        fullWidth
                     />
                 ) : (
                     <span className='text-sm font-medium'>{value}</span>
@@ -861,12 +746,17 @@ const PrimaryDetailsPage = () => {
             key: 'towerHeightInMeters',
             header: 'Height (m)',
             render: (value: any, row: any) =>
-                isEditing && editingRowId === row.id ? (
-                    <StateBaseTextField
-                        type='number'
-                        value={value}
-                        onChange={(e) => handleEditTower(row.id, 'towerHeightInMeters', e.target.value)}
-                        className='w-full text-sm'
+                isEditing ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter height'
+                        value={value || 0}
+                        onChange={(numValue: number | null) =>
+                            handleEditTower(row.id, 'towerHeightInMeters', numValue || 0)
+                        }
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
                     />
                 ) : (
                     <span className='text-sm font-medium'>{value}</span>
@@ -903,47 +793,16 @@ const PrimaryDetailsPage = () => {
                   {
                       key: 'actions',
                       header: 'Actions',
-                      render: (row: any) => (
+                      render: (_: any, row: any) => (
                           <div className='flex gap-2'>
-                              {editingRowId === row.id ? (
-                                  <>
-                                      <Button
-                                          bgColor='bg-green-600'
-                                          textColor='text-white'
-                                          className='px-2 py-1 h-6 text-xs'
-                                          onClick={() => setEditingRowId(null)}
-                                      >
-                                          ✓
-                                      </Button>
-                                      <Button
-                                          bgColor='bg-gray-400'
-                                          textColor='text-white'
-                                          className='px-2 py-1 h-6 text-xs'
-                                          onClick={() => setEditingRowId(null)}
-                                      >
-                                          ✕
-                                      </Button>
-                                  </>
-                              ) : (
-                                  <>
-                                      <Button
-                                          bgColor='bg-blue-600'
-                                          textColor='text-white'
-                                          className='px-2 py-1 h-6 text-xs'
-                                          onClick={() => setEditingRowId(row.id)}
-                                      >
-                                          Edit
-                                      </Button>
-                                      <Button
-                                          bgColor='bg-red-600'
-                                          textColor='text-white'
-                                          className='px-2 py-1 h-6 text-xs'
-                                          onClick={() => handleDeleteTower(row.id)}
-                                      >
-                                          Delete
-                                      </Button>
-                                  </>
-                              )}
+                              <Button
+                                  bgColor='bg-red-600'
+                                  textColor='text-white'
+                                  className='px-2 py-1 h-6 text-xs'
+                                  onClick={() => handleDeleteTower(row.id)}
+                              >
+                                  Delete
+                              </Button>
                           </div>
                       ),
                   },
@@ -956,9 +815,9 @@ const PrimaryDetailsPage = () => {
             key: 'name',
             header: 'Name',
             render: (value: any, row: any) =>
-                isEditing && editingRowId === row.id ? (
+                isEditing ? (
                     <StateBaseTextField
-                        value={value}
+                        value={value || ''}
                         onChange={(e) => handleEditClubhouse(row.id, 'name', e.target.value)}
                         className='w-full text-sm'
                     />
@@ -970,7 +829,7 @@ const PrimaryDetailsPage = () => {
             key: 'sizeSqft',
             header: 'Size (Sq Ft)',
             render: (value: any, row: any) =>
-                isEditing && editingRowId === row.id ? (
+                isEditing ? (
                     <NumberInput
                         label=''
                         placeholder='Enter size'
@@ -990,9 +849,9 @@ const PrimaryDetailsPage = () => {
             key: 'floor',
             header: 'Floor',
             render: (value: any, row: any) =>
-                isEditing && editingRowId === row.id ? (
+                isEditing ? (
                     <StateBaseTextField
-                        value={value}
+                        value={value || ''}
                         onChange={(e) => handleEditClubhouse(row.id, 'floor', e.target.value)}
                         className='w-full text-sm'
                     />
@@ -1005,47 +864,16 @@ const PrimaryDetailsPage = () => {
                   {
                       key: 'actions',
                       header: 'Actions',
-                      render: (row: any) => (
+                      render: (_: any, row: any) => (
                           <div className='flex gap-2'>
-                              {editingRowId === row.id ? (
-                                  <>
-                                      <Button
-                                          bgColor='bg-green-600'
-                                          textColor='text-white'
-                                          className='px-2 py-1 h-6 text-xs'
-                                          onClick={() => setEditingRowId(null)}
-                                      >
-                                          ✓
-                                      </Button>
-                                      <Button
-                                          bgColor='bg-gray-400'
-                                          textColor='text-white'
-                                          className='px-2 py-1 h-6 text-xs'
-                                          onClick={() => setEditingRowId(null)}
-                                      >
-                                          ✕
-                                      </Button>
-                                  </>
-                              ) : (
-                                  <>
-                                      <Button
-                                          bgColor='bg-blue-600'
-                                          textColor='text-white'
-                                          className='px-2 py-1 h-6 text-xs'
-                                          onClick={() => setEditingRowId(row.id)}
-                                      >
-                                          Edit
-                                      </Button>
-                                      <Button
-                                          bgColor='bg-red-600'
-                                          textColor='text-white'
-                                          className='px-2 py-1 h-6 text-xs'
-                                          onClick={() => handleDeleteClubhouse(row.id)}
-                                      >
-                                          Delete
-                                      </Button>
-                                  </>
-                              )}
+                              <Button
+                                  bgColor='bg-red-600'
+                                  textColor='text-white'
+                                  className='px-2 py-1 h-6 text-xs'
+                                  onClick={() => handleDeleteClubhouse(row.id)}
+                              >
+                                  Delete
+                              </Button>
                           </div>
                       ),
                   },
@@ -1136,20 +964,6 @@ const PrimaryDetailsPage = () => {
         <Layout loading={false}>
             <div className='w-full overflow-hidden font-sans'>
                 <div className='pb-4 pt-[9px] bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
-                    {/* Success Message */}
-                    {/* {updateSuccess && (
-                        <div className='fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50'>
-                            {updateSuccess}
-                        </div>
-                    )}
-
-                    {/* Unsaved Changes Warning */}
-                    {/* {hasUnsavedChanges && (
-                        <div className='fixed top-4 left-4 bg-yellow-500 text-white px-4 py-2 rounded-md shadow-lg z-50'>
-                            You have unsaved changes
-                        </div>
-                    )} */}
-
                     {/* Header */}
                     <div className='mb-4'>
                         <div className='flex items-center justify-between px-6'>
@@ -1226,7 +1040,7 @@ const PrimaryDetailsPage = () => {
                         {renderField(
                             'Promoter Name',
                             projectDetails?.promoterName || '',
-                            'developerInfo.promoterName',
+                            'promoterName',
                             undefined,
                             'text',
                         )}
@@ -1241,8 +1055,8 @@ const PrimaryDetailsPage = () => {
                         {renderField('Longitude', projectDetails?.long?.toString() || '', 'long', undefined, 'number')}
                         {renderField(
                             'Pin Code',
-                            projectDetails?.pincode?.toString() || '',
-                            'pincode',
+                            projectDetails?.pinCode?.toString() || '',
+                            'pinCode',
                             undefined,
                             'number',
                         )}
@@ -1383,13 +1197,6 @@ const PrimaryDetailsPage = () => {
                             undefined,
                             'number',
                         )}
-                        {renderField(
-                            'Total Parking',
-                            projectDetails?.totalParking?.toString() || '',
-                            'totalParking',
-                            undefined,
-                            'number',
-                        )}
                     </div>
 
                     {/* Source of Water */}
@@ -1405,7 +1212,7 @@ const PrimaryDetailsPage = () => {
                     </div>
 
                     {/* Development Details */}
-                    <div className='mb-8'>
+                    <div className='mb-8 px-4'>
                         <div className='flex items-center justify-between mb-4'>
                             <h2 className='text-lg font-semibold text-black'>Development Details</h2>
                             {isEditing && (
@@ -1426,11 +1233,11 @@ const PrimaryDetailsPage = () => {
                                     <div>
                                         <label className='text-sm text-black block mb-1'>Type of Inventory</label>
                                         <StateBaseTextField
-                                            value={newDevelopment.typeOfInventory || ''}
+                                            value={newDevelopment.TypeOfInventory || ''}
                                             onChange={(e) =>
                                                 setNewDevelopment((prev) => ({
                                                     ...prev,
-                                                    typeOfInventory: e.target.value,
+                                                    TypeOfInventory: e.target.value,
                                                 }))
                                             }
                                             className='w-full text-sm'
@@ -1442,11 +1249,11 @@ const PrimaryDetailsPage = () => {
                                         <NumberInput
                                             label=''
                                             placeholder='Enter number'
-                                            value={newDevelopment.numberOfInventory || 0}
+                                            value={newDevelopment.NumberOfInventory || 0}
                                             onChange={(numValue: number | null) => {
                                                 setNewDevelopment((prev) => ({
                                                     ...prev,
-                                                    numberOfInventory: numValue || 0,
+                                                    NumberOfInventory: numValue || 0,
                                                 }))
                                             }}
                                             numberType='integer'
@@ -1459,11 +1266,11 @@ const PrimaryDetailsPage = () => {
                                         <NumberInput
                                             label=''
                                             placeholder='Enter area'
-                                            value={newDevelopment.carpetAreaSqMtr || 0}
+                                            value={newDevelopment.CarpetAreaSqMtr || 0}
                                             onChange={(numValue: number | null) => {
                                                 setNewDevelopment((prev) => ({
                                                     ...prev,
-                                                    carpetAreaSqMtr: numValue || 0,
+                                                    CarpetAreaSqMtr: numValue || 0,
                                                 }))
                                             }}
                                             numberType='decimal'
@@ -1480,11 +1287,11 @@ const PrimaryDetailsPage = () => {
                                         <NumberInput
                                             label=''
                                             placeholder='Enter area'
-                                            value={newDevelopment.balconyVerandahSqMtr || 0}
+                                            value={newDevelopment.BalconyVerandahSqMtr || 0}
                                             onChange={(numValue: number | null) => {
                                                 setNewDevelopment((prev) => ({
                                                     ...prev,
-                                                    balconyVerandahSqMtr: numValue || 0,
+                                                    BalconyVerandahSqMtr: numValue || 0,
                                                 }))
                                             }}
                                             numberType='decimal'
@@ -1497,11 +1304,11 @@ const PrimaryDetailsPage = () => {
                                         <NumberInput
                                             label=''
                                             placeholder='Enter area'
-                                            value={newDevelopment.openTerraceSqMtr || 0}
+                                            value={newDevelopment.OpenTerraceSqMtr || 0}
                                             onChange={(numValue: number | null) => {
                                                 setNewDevelopment((prev) => ({
                                                     ...prev,
-                                                    openTerraceSqMtr: numValue || 0,
+                                                    OpenTerraceSqMtr: numValue || 0,
                                                 }))
                                             }}
                                             numberType='decimal'
@@ -1536,7 +1343,7 @@ const PrimaryDetailsPage = () => {
 
                         <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
                             <FlexibleTable
-                                data={projectDetails?.developmentDetails || []}
+                                data={inventoryDetails || []}
                                 columns={getDevelopmentColumns()}
                                 hoverable={true}
                                 borders={{
@@ -1550,9 +1357,25 @@ const PrimaryDetailsPage = () => {
                             />
                         </div>
                     </div>
+                    <div className='px-4 grid grid-cols-2'>
+                        {renderField(
+                            'Floor Area Ratio (FAR)',
+                            projectDetails?.floorAreaRatio?.toString() || '',
+                            'floorAreaRatio',
+                            undefined,
+                            'number',
+                        )}
+                        {renderField(
+                            'Number of Towers',
+                            projectDetails?.totalTowers?.toString() || '',
+                            'totalTowers',
+                            undefined,
+                            'number',
+                        )}
+                    </div>
 
                     {/* Tower Details */}
-                    <div className='mb-8'>
+                    <div className='mb-8 px-4'>
                         <div className='flex items-center justify-between mb-4'>
                             <h2 className='text-lg font-semibold text-black'>Tower Details</h2>
                             {isEditing && (
@@ -1750,27 +1573,9 @@ const PrimaryDetailsPage = () => {
                         </section>
                     )}
 
-                    {/* Ground Data (replacing the existing Ground Floor section) */}
+                    {/* Ground Data */}
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
                         <h2 className='text-xl font-semibold text-gray-900'>Ground Data</h2>
-                        <div className='flex items-center gap-2'>
-                            {isEditing && (
-                                <>
-                                    <Button
-                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
-                                        onClick={handleCancel}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
-                                        onClick={handleSave}
-                                    >
-                                        Save
-                                    </Button>
-                                </>
-                            )}
-                        </div>
                     </div>
                     <div className='p-4 grid grid-cols-2 gap-x-6'>
                         {renderField(
@@ -1828,24 +1633,6 @@ const PrimaryDetailsPage = () => {
                     {/* Amenities */}
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
                         <h2 className='text-xl font-semibold text-gray-900'>Amenities</h2>
-                        <div className='flex items-center gap-2'>
-                            {isEditing && (
-                                <>
-                                    <Button
-                                        className='h-9 px-4 text-sm font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 mr-2'
-                                        onClick={handleCancel}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        className='h-9 px-4 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700'
-                                        onClick={handleSave}
-                                    >
-                                        Save
-                                    </Button>
-                                </>
-                            )}
-                        </div>
                     </div>
                     {isEditing ? (
                         <div className='flex flex-wrap gap-3 p-3 pr-4'>
@@ -1873,7 +1660,7 @@ const PrimaryDetailsPage = () => {
                     )}
 
                     {/* Clubhouse Details */}
-                    <div className='mb-8'>
+                    <div className='mb-8 px-4'>
                         <div className='flex items-center justify-between mb-4'>
                             <h2 className='text-lg font-semibold text-black'>Clubhouse Details</h2>
                             {isEditing && (

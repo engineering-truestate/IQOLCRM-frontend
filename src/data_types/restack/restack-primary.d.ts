@@ -87,7 +87,7 @@ export interface LocationDetails {
     microMarket?: string
     subMicromarket?: string
     zone?: string
-    pincode?: number
+    pinCode?: number
     northSchedule?: string
     southSchedule?: string
     eastSchedule?: string
@@ -122,11 +122,12 @@ export interface ProjectSpecifications {
 
 // Development Details
 export interface DevelopmentDetail {
-    typeOfInventory: string
-    numberOfInventory: number
-    carpetAreaSqMtr: number
-    balconyVerandahSqMtr?: number
-    openTerraceSqMtr?: number
+    TypeOfInventory: string
+    NumberOfInventory: number
+    CarpetAreaSqMtr: number
+    BalconyVerandahSqMtr?: number
+    OpenTerraceSqMtr?: number
+    slno: string
 }
 
 // Floor Plan
@@ -304,7 +305,7 @@ export interface PrimaryProperty {
     microMarket?: string
     subMicromarket?: string
     zone?: string
-    pincode?: number
+    pinCode?: number
     northSchedule?: string
     southSchedule?: string
     eastSchedule?: string
