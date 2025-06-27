@@ -132,6 +132,14 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
             const currentTimestamp = getUnixDateTime()
 
             if (taskIds && enquiryId && leadId) {
+                // First, get all open enquiries for this lead
+                const openEnquiries = await enquiryService.getByLeadId(leadId)
+
+                // Filter out the current enquiry that we're closing
+                const remainingOpenEnquiries = openEnquiries.filter(
+                    (enq) => enq.enquiryId !== enquiryId && enq.state === 'open',
+                )
+
                 const enqData = {
                     state: 'dropped' as 'open' | 'closed' | 'fresh' | 'dropped' | null,
                     stage: formData.stage,
@@ -170,25 +178,52 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                       })
                     : Promise.resolve()
 
-                const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
-                const remainingOpenTasks = openTasks.filter((task) => !taskIds.includes(task.taskId))
-
                 let updateLeadData
+                let shouldUpdateLead = false
 
-                if (remainingOpenTasks.length > 0) {
-                    const earliestTask = remainingOpenTasks.sort((a, b) => a.scheduledDate - b.scheduledDate)[0]
+                // Check if there are remaining open enquiries
+                if (remainingOpenEnquiries.length > 0) {
+                    // Find the most recently modified open enquiry
+                    const mostRecentEnquiry = remainingOpenEnquiries.sort(
+                        (a, b) => (b.lastModified || 0) - (a.lastModified || 0),
+                    )[0]
 
-                    updateLeadData = {
-                        state: 'dropped',
-                        stage: formData.stage,
-                        leadStatus: formData.leadStatus as any,
-                        completionDate: currentTimestamp,
-                        tag: formData.tag,
-                        taskType: earliestTask.taskType,
-                        scheduledDate: earliestTask.scheduledDate,
-                        lastModified: currentTimestamp,
+                    // Get open tasks for the most recent enquiry
+                    const openTasksForRecentEnquiry = await taskService.getOpenByEnquiryId(
+                        mostRecentEnquiry.enquiryId || '',
+                    )
+
+                    if (openTasksForRecentEnquiry.length > 0) {
+                        // Find the earliest scheduled task for this enquiry
+                        const earliestTask = openTasksForRecentEnquiry[0]
+
+                        updateLeadData = {
+                            state: mostRecentEnquiry.state,
+                            stage: mostRecentEnquiry.stage,
+                            leadStatus: mostRecentEnquiry.leadStatus as any,
+                            propertyName: mostRecentEnquiry.propertyName,
+                            tag: mostRecentEnquiry.tag,
+                            taskType: earliestTask.taskType,
+                            scheduledDate: earliestTask.scheduledDate,
+                            lastModified: currentTimestamp,
+                        }
+                        shouldUpdateLead = true
+                    } else {
+                        // Recent enquiry exists but no open tasks
+                        updateLeadData = {
+                            state: mostRecentEnquiry.state || 'open',
+                            stage: mostRecentEnquiry.stage,
+                            leadStatus: mostRecentEnquiry.leadStatus as any,
+                            propertyName: mostRecentEnquiry.propertyName,
+                            tag: mostRecentEnquiry.tag,
+                            taskType: null,
+                            scheduledDate: null,
+                            lastModified: currentTimestamp,
+                        }
+                        shouldUpdateLead = true
                     }
                 } else {
+                    // No remaining open enquiries - close the lead completely
                     updateLeadData = {
                         state: 'dropped',
                         stage: formData.stage,
@@ -196,8 +231,10 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                         completionDate: currentTimestamp,
                         tag: formData.tag,
                         scheduledDate: null,
+                        taskType: null,
                         lastModified: currentTimestamp,
                     }
+                    shouldUpdateLead = true
                 }
 
                 const updateTaskStatus = taskService.update(taskIds, {
@@ -206,22 +243,27 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                 })
 
                 const enquiryUpdatePromise = enquiryService.update(enquiryId, enqData)
-                const leadUpdatePromise = leadService.update(leadId, updateLeadData)
 
-                await Promise.all([
+                // Only update lead if we determined we should
+                const promises = [
                     enquiryUpdatePromise,
-                    leadUpdatePromise,
                     updateTaskStatus,
                     addLeadClosedActivity,
                     addTaskExecutionActivity,
                     addNotePromise,
-                ])
+                ]
+
+                if (shouldUpdateLead) {
+                    const leadUpdatePromise = leadService.update(leadId, updateLeadData)
+                    promises.push(leadUpdatePromise)
+                }
+
+                await Promise.all(promises)
 
                 await refreshData()
 
                 toast.success('Lead closed successfully')
                 onClose()
-                navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
 
                 setFormData({
                     reason: '',

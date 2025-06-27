@@ -126,7 +126,7 @@ class TaskService {
 
             return querySnapshot.docs
                 .map((doc) => ({ taskId: doc.id, ...doc.data() }) as Task)
-                .sort((a, b) => (a.scheduledDate ?? 0) - (b.scheduledDate ?? 0))
+                .sort((a, b) => (a.added ?? 0) - (b.added ?? 0))
         } catch (error) {
             console.error('Error fetching tasks by enquiry ID:', error)
             throw error

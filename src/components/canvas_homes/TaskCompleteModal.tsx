@@ -107,7 +107,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
 
             if (remainingOpenTasks.length > 0) {
                 // If there are remaining open tasks, find the earliest one
-                const earliestTask = remainingOpenTasks[0]
+                const earliestTask = remainingOpenTasks.sort((a, b) => a.added - b.added)[0]
 
                 leadUpdateData = {
                     state: state,

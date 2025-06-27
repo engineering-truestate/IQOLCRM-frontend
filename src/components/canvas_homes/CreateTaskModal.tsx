@@ -141,7 +141,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             if (enquiryId) {
                 const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
 
-                const earliestTask = openTasks[0]
+                const earliestTask = openTasks?.[0]
 
                 if (earliestTask && earliestTask.scheduledDate < updateLeadData.scheduledDate) {
                     updateLeadData = {

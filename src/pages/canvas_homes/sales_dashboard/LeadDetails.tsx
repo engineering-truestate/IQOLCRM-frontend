@@ -73,6 +73,7 @@ interface Enquiry {
     tag: string
     added: number
     agentId: string
+    state: string
     agentHistory: AgentHistoryItem[]
     documents: Document[]
     notes: Note[]
@@ -860,7 +861,7 @@ text-decoration-line: underline'
 
                             {/* Close Lead Button */}
                             <div className='p-4 border-t border-gray-200 flex-shrink-0'>
-                                {leadData?.state === 'dropped' ? (
+                                {currentEnquiry?.state === 'dropped' ? (
                                     <button
                                         className='w-full  bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors'
                                         onClick={() => {

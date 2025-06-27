@@ -30,6 +30,7 @@ export interface Lead {
         | 'booking dropped'
         | 'requirement collected'
         | 'closed'
+        | string
         | null
     state: 'open' | 'closed' | 'fresh' | 'dropped' | string | null
     added: number | null
