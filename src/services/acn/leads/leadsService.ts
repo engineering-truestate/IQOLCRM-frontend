@@ -4,7 +4,7 @@ import { doc, getDoc, updateDoc, deleteDoc, setDoc, getDocs, collection, where, 
 import { db } from '../../../firebase'
 import { type ILead, leadSearchService } from '../../../services/acn/leads/algoliaLeadsService'
 import type { IAgent } from '../../../data_types/acn/types'
-import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+// import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 // Helper function to get current Unix timestamp in milliseconds
 const getCurrentTimestamp = () => Date.now()
@@ -415,33 +415,33 @@ export const fetchLeadWithConnectHistory = createAsyncThunk(
 )
 
 // Add these interfaces
-interface InventoryStatus {
-    available: boolean
-    delisted: boolean
-    hold: boolean
-    sold: boolean
-}
+// interface InventoryStatus {
+//     available: boolean
+//     delisted: boolean
+//     hold: boolean
+//     sold: boolean
+// }
 
-interface PaymentHistoryItem {
-    amount: number
-    date: number
-    status: string
-}
+// interface PaymentHistoryItem {
+//     amount: number
+//     date: number
+//     status: string
+// }
 
-interface ContactHistoryItem {
-    timestamp: number
-    contactResult: string
-    medium: string
-    direction: string
-}
+// interface ContactHistoryItem {
+//     timestamp: number
+//     contactResult: string
+//     medium: string
+//     direction: string
+// }
 
-interface Note {
-    kamId: string
-    note: string
-    source: string
-    timestamp: number
-    archive: boolean
-}
+// interface Note {
+//     kamId: string
+//     note: string
+//     source: string
+//     timestamp: number
+//     archive: boolean
+// }
 
 // interface IAgent {
 //     cpId: string

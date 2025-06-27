@@ -3,7 +3,6 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import type { User } from 'firebase/auth'
 import { app, db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
-import type { Platform } from '../pages/auth/Register'
 
 interface Platforms {
     acn: {

@@ -243,6 +243,8 @@ interface AgentData {
 
 // Base QC Inventory type with required fields
 interface BaseQCInventory {
+    name: string
+    phoneNumber: string
     propertyId: string
     propertyName: string
     cpId: string

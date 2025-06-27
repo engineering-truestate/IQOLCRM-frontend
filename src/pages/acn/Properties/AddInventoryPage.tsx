@@ -340,9 +340,9 @@ const AddEditInventoryPage = () => {
         error: qcError,
     } = useSelector((state: RootState) => state.qc)
     const {
-        currentAgent,
+        // currentAgent,
         fetchLoading: agentFetchLoading,
-        fetchError: agentFetchError,
+        // fetchError: agentFetchError,
     } = useSelector((state: RootState) => state.agents)
 
     const [selectedAssetType, setSelectedAssetType] = useState<PropertyType>('apartments')
@@ -351,7 +351,7 @@ const AddEditInventoryPage = () => {
     const [successMessage, setSuccessMessage] = useState('')
     const [agentPhoneInput, setAgentPhoneInput] = useState('')
     const [selectedPlace, setSelectedPlace] = useState<Places | null>(null)
-    const [placesApiError, setPlacesApiError] = useState<string>('')
+    const [placesApiError, _] = useState<string>('')
     const loading = propertyLoading || qcLoading
     const error = propertyError || qcError
 
