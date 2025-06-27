@@ -81,7 +81,6 @@ const ASLCRenderer: React.FC<ASLCRendererProps> = ({ lead }) => {
             isMounted = false
         }
     }, [lead, enquiries])
-    console.log(aslc)
 
     return (
         <span

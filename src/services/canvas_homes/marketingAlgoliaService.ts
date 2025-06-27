@@ -1,20 +1,15 @@
-// leadAlgoliaService.ts - Complete version with calendar range filter
+// marketingAlgoliaService.ts - Fixed version with consistent timestamp handling
 
 import { algoliasearch, type SearchResponse } from 'algoliasearch'
 
 // Algolia client configuration
-const searchClient = algoliasearch('L763N3TAOO', 'b6f11b06dd4ca0d7ba4b8e4599205a5c')
-const INDEX_NAME = 'canvashomestasks'
+const searchClient = algoliasearch('6BFCE2XYSC', 'd5a143df9d4ed0681c0f3a3d459fe17a')
+const INDEX_NAME = 'canvashomescampaigns'
 
 // Types for search parameters
-export interface TaskSearchFilters {
-    propertyName?: string[]
-    agentName?: string[]
-    agentId?: string[]
-    stage?: string[]
-    tag?: string[]
-    taskType?: string[]
-    leadStatus?: string[]
+export interface CampaignSearchFilters {
+    campaignName?: string[]
+    status?: string[]
     dateRange?: string
     addedRange?: {
         startDate?: string | Date | number
@@ -22,15 +17,15 @@ export interface TaskSearchFilters {
     }
 }
 
-export interface TaskSearchParams {
+export interface CampaignSearchParams {
     query?: string
-    filters?: TaskSearchFilters
+    filters?: CampaignSearchFilters
     page?: number
     hitsPerPage?: number
     sortBy?: string
 }
 
-export interface AlgoliaTaskSearchResponse {
+export interface AlgoliaCampaignSearchResponse {
     hits: any[]
     nbHits: number
     page: number
@@ -40,96 +35,68 @@ export interface AlgoliaTaskSearchResponse {
     facets?: Record<string, Record<string, number>>
 }
 
-export interface TaskFacetValue {
+export interface CampaignFacetValue {
     value: string
     count: number
     highlighted?: string
 }
 
-// Helper function to convert date to timestamp
+// Helper function to convert date to timestamp (consistent seconds format)
 const convertToTimestamp = (date: string | Date | number): number => {
     if (typeof date === 'number') {
-        return date
+        // If it's already a number, assume it's milliseconds and convert to seconds
+        return date > 1000000000000 ? Math.floor(date / 1000) : date
     }
 
     if (typeof date === 'string') {
-        return new Date(date).getTime() / 1000
+        const dateObj = new Date(date)
+        return Math.floor(dateObj.getTime() / 1000) // Convert to seconds
     }
 
     if (date instanceof Date) {
-        return date.getTime()
+        return Math.floor(date.getTime() / 1000) // Convert to seconds
     }
 
     return 0
 }
 
-const buildTaskFilterString = (filters: TaskSearchFilters): string => {
+const buildCampaignFilterString = (filters: CampaignSearchFilters): string => {
     const filterParts: string[] = []
 
-    if (filters.propertyName && filters.propertyName.length > 0) {
-        const propertyFilters = filters.propertyName.map((property) => `propertyName:'${property}'`).join(' OR ')
-        filterParts.push(`(${propertyFilters})`)
-        console.log('Added propertyName filter:', propertyFilters)
+    if (filters.campaignName && filters.campaignName.length > 0) {
+        const campaignFilters = filters.campaignName.map((campaign) => `campaignName:"${campaign}"`).join(' OR ')
+        filterParts.push(`(${campaignFilters})`)
+        console.log('Added campaignName filter:', campaignFilters)
     }
 
-    if (filters.agentName && filters.agentName.length > 0) {
-        const agentFilters = filters.agentName.map((agent) => `agentName:'${agent}'`).join(' OR ')
-        filterParts.push(`(${agentFilters})`)
-        console.log('Added agentName filter:', agentFilters)
-    }
-
-    if (filters.agentId && filters.agentId.length > 0) {
-        const agentIdFilters = filters.agentId.map((id) => `agentId:'${id}'`).join(' OR ')
-        filterParts.push(`(${agentIdFilters})`)
-        console.log('Added agentId filter:', agentIdFilters)
-    }
-
-    if (filters.stage && filters.stage.length > 0) {
-        const stageFilters = filters.stage.map((stage) => `stage:'${stage}'`).join(' OR ')
-        filterParts.push(`(${stageFilters})`)
-        console.log('Added stage filter:', stageFilters)
-    }
-
-    if (filters.tag && filters.tag.length > 0) {
-        const tagFilters = filters.tag.map((tag) => `tag:'${tag}'`).join(' OR ')
-        filterParts.push(`(${tagFilters})`)
-        console.log('Added tag filter:', tagFilters)
-    }
-
-    if (filters.taskType && filters.taskType.length > 0) {
-        const taskFilters = filters.taskType.map((task) => `taskType:'${task}'`).join(' OR ')
-        filterParts.push(`(${taskFilters})`)
-        console.log('Added taskType filter:', taskFilters)
-    }
-
-    if (filters.leadStatus && filters.leadStatus.length > 0) {
-        const statusFilters = filters.leadStatus.map((status) => `leadStatus:'${status}'`).join(' OR ')
+    if (filters.status && filters.status.length > 0) {
+        const statusFilters = filters.status.map((status) => `status:"${status}"`).join(' OR ')
         filterParts.push(`(${statusFilters})`)
-        console.log('Added leadStatus filter:', statusFilters)
+        console.log('Added status filter:', statusFilters)
     }
 
-    // Date range filter - Fixed for millisecond timestamps and case block scoping
+    // Date range filter - consistent seconds timestamps
     if (filters.dateRange) {
-        const now = Date.now() // Use milliseconds instead of seconds
+        const now = Math.floor(Date.now() / 1000) // Convert to seconds
         let startTime = 0
 
         switch (filters.dateRange) {
             case 'today': {
                 const todayStart = new Date()
                 todayStart.setHours(0, 0, 0, 0)
-                startTime = todayStart.getTime()
+                startTime = Math.floor(todayStart.getTime() / 1000) // Convert to seconds
                 break
             }
             case '7d': {
-                startTime = now - 7 * 24 * 60 * 60 * 1000 // milliseconds
+                startTime = now - 7 * 24 * 60 * 60 // 7 days in seconds
                 break
             }
             case '30d': {
-                startTime = now - 30 * 24 * 60 * 60 * 1000 // milliseconds
+                startTime = now - 30 * 24 * 60 * 60 // 30 days in seconds
                 break
             }
             case '90d': {
-                startTime = now - 90 * 24 * 60 * 60 * 1000 // milliseconds
+                startTime = now - 90 * 24 * 60 * 60 // 90 days in seconds
                 break
             }
         }
@@ -154,7 +121,9 @@ const buildTaskFilterString = (filters: TaskSearchFilters): string => {
         if (filters.addedRange.endDate) {
             const endTimestamp = convertToTimestamp(filters.addedRange.endDate)
             if (endTimestamp > 0) {
-                rangeFilters.push(`added <= ${endTimestamp}`)
+                // Add 24 hours to end date to include the full day
+                const endOfDay = endTimestamp + 24 * 60 * 60 - 1
+                rangeFilters.push(`added <= ${endOfDay}`)
             }
         }
 
@@ -170,7 +139,7 @@ const buildTaskFilterString = (filters: TaskSearchFilters): string => {
 }
 
 // Helper function to get the correct index name for sorting
-const getTaskIndexNameForSort = (sortBy?: string): string => {
+const getCampaignIndexNameForSort = (sortBy?: string): string => {
     if (!sortBy || sortBy === 'relevance') {
         return INDEX_NAME
     }
@@ -181,22 +150,22 @@ const getTaskIndexNameForSort = (sortBy?: string): string => {
         name_asc: `${INDEX_NAME}_name_asc`,
         name_desc: `${INDEX_NAME}_name_desc`,
         updated_desc: `${INDEX_NAME}_updated_desc`,
-        scheduled_asc: `${INDEX_NAME}_scheduled_asc`,
-        scheduled_desc: `${INDEX_NAME}_scheduled_desc`,
+        cost_desc: `${INDEX_NAME}_cost_desc`,
+        cost_asc: `${INDEX_NAME}_cost_asc`,
     }
 
     return sortIndexMap[sortBy] || INDEX_NAME
 }
 
-// Main search function for Tasks
-export const searchTasks = async (params: TaskSearchParams = {}): Promise<AlgoliaTaskSearchResponse> => {
+// Main search function for Campaigns
+export const searchCampaigns = async (params: CampaignSearchParams = {}): Promise<AlgoliaCampaignSearchResponse> => {
     try {
         const { query = '', filters = {}, page = 0, hitsPerPage = 20, sortBy } = params
 
-        const indexName = getTaskIndexNameForSort(sortBy)
-        const filterString = buildTaskFilterString(filters)
+        const indexName = getCampaignIndexNameForSort(sortBy)
+        const filterString = buildCampaignFilterString(filters)
 
-        console.log('Algolia taskss search params:', {
+        console.log('Algolia campaign search params:', {
             indexName,
             query,
             page,
@@ -212,9 +181,26 @@ export const searchTasks = async (params: TaskSearchParams = {}): Promise<Algoli
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: ['propertyName', 'agentName', 'stage', 'tag', 'taskType', 'leadStatus'],
+                    facets: ['campaignName', 'status'],
                     maxValuesPerFacet: 100,
                     analytics: true,
+                    attributesToRetrieve: [
+                        'objectID',
+                        'campaignId',
+                        'campaignName',
+                        'status',
+                        'startDate',
+                        'endDate',
+                        'totalCost',
+                        'totalClicks',
+                        'totalImpressions',
+                        'totalConversions',
+                        'averageCpc',
+                        'ctr',
+                        'isPaused',
+                        'activeDuration',
+                        'added',
+                    ],
                 },
             ],
         })
@@ -231,17 +217,17 @@ export const searchTasks = async (params: TaskSearchParams = {}): Promise<Algoli
             facets: result.facets || {},
         }
     } catch (error) {
-        console.error('Algolia taskss search error:', error)
-        throw new Error(`taskss search failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('Algolia campaign search error:', error)
+        throw new Error(`Campaign search failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
 
 // Get facet values for a specific attribute
-export const getTaskFacetValues = async (
+export const getCampaignFacetValues = async (
     facetName: string,
     query?: string,
     maxFacetHits: number = 100,
-): Promise<TaskFacetValue[]> => {
+): Promise<CampaignFacetValue[]> => {
     try {
         const response = await searchClient.search({
             requests: [
@@ -265,13 +251,15 @@ export const getTaskFacetValues = async (
             }))
             .sort((a, b) => b.count - a.count)
     } catch (error) {
-        console.error('Get task facet values error:', error)
-        throw new Error(`Failed to get task facet values: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('Get campaign facet values error:', error)
+        throw new Error(
+            `Failed to get campaign facet values: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
     }
 }
 
-// Get all facets for Tasks filters initialization
-export const getAllTaskFacets = async (): Promise<Record<string, TaskFacetValue[]>> => {
+// Get all facets for Campaigns filters initialization
+export const getAllCampaignFacets = async (): Promise<Record<string, CampaignFacetValue[]>> => {
     try {
         const response = await searchClient.search({
             requests: [
@@ -279,14 +267,14 @@ export const getAllTaskFacets = async (): Promise<Record<string, TaskFacetValue[
                     indexName: INDEX_NAME,
                     query: '',
                     hitsPerPage: 0, // We only want facets, not hits
-                    facets: ['propertyName', 'agentName', 'stage', 'tag', 'taskType', 'TaskStatus'],
+                    facets: ['campaignName', 'status'],
                     maxValuesPerFacet: 100,
                 },
             ],
         })
 
         const result = response.results[0] as SearchResponse<any>
-        const facets: Record<string, TaskFacetValue[]> = {}
+        const facets: Record<string, CampaignFacetValue[]> = {}
 
         if (result.facets) {
             Object.entries(result.facets).forEach(([facetName, facetValues]) => {
@@ -301,13 +289,13 @@ export const getAllTaskFacets = async (): Promise<Record<string, TaskFacetValue[
 
         return facets
     } catch (error) {
-        console.error('Get all task facets error:', error)
-        throw new Error(`Failed to get task facets: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('Get all campaign facets error:', error)
+        throw new Error(`Failed to get campaign facets: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
 
-// Search with autocomplete suggestions for tasks
-export const getTaskSearchSuggestions = async (query: string): Promise<string[]> => {
+// Search with autocomplete suggestions for campaigns
+export const getCampaignSearchSuggestions = async (query: string): Promise<string[]> => {
     try {
         const response = await searchClient.search({
             requests: [
@@ -315,7 +303,7 @@ export const getTaskSearchSuggestions = async (query: string): Promise<string[]>
                     indexName: INDEX_NAME,
                     query,
                     hitsPerPage: 5,
-                    attributesToRetrieve: ['objectId', 'name', 'taskType', 'agentName', 'propertyName'],
+                    attributesToRetrieve: ['objectID', 'status', 'campaignName'],
                     analytics: false,
                 },
             ],
@@ -325,20 +313,19 @@ export const getTaskSearchSuggestions = async (query: string): Promise<string[]>
         const suggestions = new Set<string>()
 
         result.hits.forEach((hit: any) => {
-            if (hit.name) suggestions.add(hit.name)
-            if (hit.agentName) suggestions.add(hit.agentName)
-            if (hit.propertyName) suggestions.add(hit.propertyName)
+            if (hit.status) suggestions.add(hit.status)
+            if (hit.campaignName) suggestions.add(hit.campaignName)
         })
 
         return Array.from(suggestions).slice(0, 10)
     } catch (error) {
-        console.error('Get task search suggestions error:', error)
+        console.error('Get campaign search suggestions error:', error)
         return []
     }
 }
 
-// Get task by ID
-export const getTaskById = async (objectID: string): Promise<any | null> => {
+// Get campaign by ID
+export const getCampaignById = async (objectID: string): Promise<any | null> => {
     try {
         const response = await searchClient.getObject({
             indexName: INDEX_NAME,
@@ -347,13 +334,13 @@ export const getTaskById = async (objectID: string): Promise<any | null> => {
 
         return response
     } catch (error) {
-        console.error('Get task by ID error:', error)
+        console.error('Get campaign by ID error:', error)
         return null
     }
 }
 
-// Update task (for status changes etc.)
-export const updateTask = async (objectID: string, updates: Record<string, any>): Promise<boolean> => {
+// Update campaign (for status changes etc.)
+export const updateCampaign = async (objectID: string, updates: Record<string, any>): Promise<boolean> => {
     try {
         await searchClient.partialUpdateObject({
             indexName: INDEX_NAME,
@@ -366,13 +353,13 @@ export const updateTask = async (objectID: string, updates: Record<string, any>)
 
         return true
     } catch (error) {
-        console.error('Update task error:', error)
+        console.error('Update campaign error:', error)
         return false
     }
 }
 
-// Batch operations for getting multiple tasks
-export const getTasksByIds = async (objectIDs: string[]): Promise<any[]> => {
+// Batch operations for getting multiple campaigns
+export const getCampaignsByIds = async (objectIDs: string[]): Promise<any[]> => {
     try {
         const response = await searchClient.getObjects({
             requests: objectIDs.map((objectID) => ({
@@ -383,22 +370,23 @@ export const getTasksByIds = async (objectIDs: string[]): Promise<any[]> => {
 
         return response.results.filter((result) => result !== null)
     } catch (error) {
-        console.error('Get tasks by IDs error:', error)
-        throw new Error(`Failed to get tasks: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        console.error('Get campaigns by IDs error:', error)
+        throw new Error(`Failed to get campaigns: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
 
-// Analytics - track search events for tasks
-export const trackTaskSearchEvent = async (eventName: string, properties: Record<string, any>): Promise<void> => {
+// Analytics - track search events for campaigns
+export const trackCampaignSearchEvent = async (eventName: string, properties: Record<string, any>): Promise<void> => {
     try {
-        console.log('task search event tracked:', eventName, properties)
+        console.log('Campaign search event tracked:', eventName, properties)
+        // Add actual analytics tracking here if needed
     } catch (error) {
-        console.error('Track task search event error:', error)
+        console.error('Track campaign search event error:', error)
     }
 }
 
 // Helper function to format filters for debugging
-export const formatTaskFiltersForDisplay = (filters: TaskSearchFilters): string => {
+export const formatCampaignFiltersForDisplay = (filters: CampaignSearchFilters): string => {
     const parts: string[] = []
 
     Object.entries(filters).forEach(([key, value]) => {
@@ -408,9 +396,11 @@ export const formatTaskFiltersForDisplay = (filters: TaskSearchFilters): string 
             if ('startDate' in value || 'endDate' in value) {
                 const range = value as { startDate?: string | Date | number; endDate?: string | Date | number }
                 const start = range.startDate
-                    ? new Date(convertToTimestamp(range.startDate)).toLocaleDateString()
+                    ? new Date(convertToTimestamp(range.startDate) * 1000).toLocaleDateString()
                     : 'Start'
-                const end = range.endDate ? new Date(convertToTimestamp(range.endDate)).toLocaleDateString() : 'End'
+                const end = range.endDate
+                    ? new Date(convertToTimestamp(range.endDate) * 1000).toLocaleDateString()
+                    : 'End'
                 parts.push(`${key}: ${start} - ${end}`)
             } else if ('min' in value) {
                 const range = value as { min?: number; max?: number }
@@ -418,20 +408,39 @@ export const formatTaskFiltersForDisplay = (filters: TaskSearchFilters): string 
                     parts.push(`${key}: ${range.min || 0} - ${range.max || '∞'}`)
                 }
             }
+        } else if (typeof value === 'string') {
+            parts.push(`${key}: ${value}`)
         }
     })
 
     return parts.join(' | ')
 }
 
+// Helper function to initialize facets on app load
+export const initializeCampaignFacets = async (): Promise<Record<string, Record<string, number>>> => {
+    try {
+        const response = await searchCampaigns({
+            query: '',
+            page: 0,
+            hitsPerPage: 0, // Only get facets, no hits
+        })
+
+        return response.facets || {}
+    } catch (error) {
+        console.error('Initialize campaign facets error:', error)
+        return {}
+    }
+}
+
 export default {
-    searchTasks,
-    getTaskFacetValues,
-    getAllTaskFacets,
-    getTaskSearchSuggestions,
-    getTaskById,
-    updateTask,
-    getTasksByIds,
-    trackTaskSearchEvent,
-    formatTaskFiltersForDisplay,
+    searchCampaigns,
+    getCampaignFacetValues,
+    getAllCampaignFacets,
+    getCampaignSearchSuggestions,
+    getCampaignById,
+    updateCampaign,
+    getCampaignsByIds,
+    trackCampaignSearchEvent,
+    formatCampaignFiltersForDisplay,
+    initializeCampaignFacets,
 }
