@@ -59,7 +59,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
     useEffect(() => {
         if (isOpen) {
             // Reset form when modal opens
-            setSelectedTag(leadData?.tag || 'potential')
+            setSelectedTag(leadData?.tag || '')
             setNote('')
             setError(null)
         }

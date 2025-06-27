@@ -14,6 +14,7 @@ import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import Dropdown from '../design-elements/Dropdown'
 import { toCapitalizedWords } from '../helper/toCapitalize'
+import type { Enquiry } from '../../services/canvas_homes'
 
 interface TaskCompleteModalProps {
     isOpen: boolean
@@ -52,7 +53,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { leadData } = UseLeadDetails(leadId || '')
+    const { leadData, enquiries } = UseLeadDetails(leadId || '')
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
@@ -99,6 +100,59 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
             const currentTimestamp = getUnixDateTime()
             // Send null if tag is empty string
             const tagValue = formData.tag.trim() || null
+            // Find the latest enquiry based on 'added' timestamp
+            const latestEnquiry = enquiries.reduce(
+                (latest, current) => {
+                    if (current.added) {
+                        if (!latest || !latest.added || current.added > latest.added) {
+                            return current
+                        }
+                    }
+                    return latest
+                },
+                null as Enquiry | null,
+            )
+            let leadUpdateData
+            if (enquiryId == latestEnquiry?.enquiryId) {
+                const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
+                const remainingOpenTasks = openTasks.filter((task) => task.taskId !== taskId)
+
+                if (remainingOpenTasks.length > 0) {
+                    // If there are remaining open tasks, find the earliest one
+                    const earliestTask = remainingOpenTasks[0]
+
+                    leadUpdateData = {
+                        state: state,
+                        stage: stage,
+                        leadStatus: leadStatus,
+                        tag: tagValue,
+                        taskType: earliestTask.taskType,
+                        scheduledDate: earliestTask.scheduledDate,
+                        completionDate: currentTimestamp,
+                        lastModified: currentTimestamp,
+                    }
+                } else {
+                    // No remaining tasks
+                    leadUpdateData = {
+                        state: state,
+                        stage: stage,
+                        leadStatus: leadStatus,
+                        tag: tagValue,
+                        scheduledDate: null,
+                        completionDate: currentTimestamp,
+                        lastModified: currentTimestamp,
+                    }
+                }
+            } else {
+                // No remaining tasks
+                leadUpdateData = {
+                    state: state,
+                    stage: stage,
+                    leadStatus: leadStatus,
+                    tag: tagValue,
+                    lastModified: currentTimestamp,
+                }
+            }
 
             // Prepare the task update promise
             const taskUpdatePromise = taskService.update(taskId, {
@@ -145,24 +199,10 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 },
             })
 
-            // Prepare lead update promise
-            const leadUpdatePromise = leadService.update(leadId, {
-                state: state,
-                stage: stage,
-                leadStatus: leadStatus,
-                tag: tagValue,
-                completionDate: currentTimestamp,
-                lastModified: currentTimestamp,
-            })
+            const updateLead = leadService.update(leadId, leadUpdateData)
 
             // Wait for all promises to complete in parallel
-            await Promise.all([
-                taskUpdatePromise,
-                enquiryUpdatePromise,
-                addNotePromise,
-                activityLogPromise,
-                leadUpdatePromise,
-            ])
+            await Promise.all([taskUpdatePromise, enquiryUpdatePromise, addNotePromise, activityLogPromise, updateLead])
 
             toast.success('Task completed successfully!')
             onClose()

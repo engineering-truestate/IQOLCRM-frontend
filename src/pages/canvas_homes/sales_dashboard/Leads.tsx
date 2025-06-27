@@ -16,7 +16,7 @@ import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import superHotIcon from '/icons/canvas_homes/super-hot.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import { calculateALSC } from '../../../components/helper/calculateALSC'
+import ASLCRenderer from '../../../components/canvas_homes/ASLCRenderer'
 
 // Status card component
 const StatusCard = ({
@@ -324,28 +324,6 @@ const Leads = () => {
         option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
     }
 
-    function getAslcColor(aslcString: string): string {
-        if (!aslcString) return 'text-gray-500'
-
-        const dayMatch = aslcString.match(/(\d+)\s+days?/)
-        const hourMatch = aslcString.match(/(\d+)\s+hrs?/)
-
-        const days = dayMatch ? parseInt(dayMatch[1], 10) : 0
-        const hours = hourMatch ? parseInt(hourMatch[1], 10) : 0
-        const totalHours = days * 24 + hours
-
-        if (totalHours <= 6) {
-            return 'bg-[#EFEFEF] border border-[#8F8FA2]'
-        } else if (totalHours > 6 && totalHours <= 12) {
-            return 'bg-[#FFF1D4] border border-[#FCCE74]'
-        } else if (totalHours >= 13 && totalHours <= 24) {
-            return 'bg-[#FFDDDE] border border-[#F02532]'
-        } else if (totalHours > 24) {
-            return 'bg-[#FAC8C9] border border-[#A4151E]'
-        }
-        return 'text-gray-500'
-    }
-
     // Keep initial facet options and order, only update counts
     const generateDropdownOptions = useCallback(
         (facetKey: string, _defaultLabel: string, staticOptions?: any[]) => {
@@ -517,16 +495,7 @@ const Leads = () => {
         {
             key: 'lastModified',
             header: 'ASLC',
-            render: (_value, row) => {
-                const aslc = calculateALSC(row)
-                return (
-                    <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getAslcColor(aslc ?? '')}`}
-                    >
-                        {aslc}
-                    </span>
-                )
-            },
+            render: (_value, row) => <ASLCRenderer lead={row} />,
         },
         {
             key: 'taskType',
