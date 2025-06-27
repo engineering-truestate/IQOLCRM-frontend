@@ -710,11 +710,16 @@ text-decoration-line: underline'
                                                         <button
                                                             key={enquiry.enquiryId}
                                                             onClick={() => handleEnquirySelect(enquiry.enquiryId)}
-                                                            className={`py-1 px-1 text-[13px] font-semibold border-b-2 transition-colors duration-150 whitespace-nowrap ${
-                                                                selectedEnquiryId === enquiry.enquiryId
-                                                                    ? 'border-blue-500 text-blue-600'
-                                                                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                                                            }`}
+                                                            className={`py-1 px-1 text-[13px] font-semibold border-b-2 transition-colors duration-150 whitespace-nowrap
+                                                                 ${
+                                                                     selectedEnquiryId === enquiry.enquiryId
+                                                                         ? enquiry.state === 'dropped'
+                                                                             ? 'border-red-500 text-red-600'
+                                                                             : 'border-blue-500 text-blue-600'
+                                                                         : enquiry.state === 'dropped'
+                                                                           ? 'border-transparent text-red-500 hover:text-red-700'
+                                                                           : 'border-transparent text-gray-500 hover:text-gray-700'
+                                                                 } }`}
                                                         >
                                                             Enquiry {actualIndex}
                                                         </button>
@@ -868,7 +873,7 @@ text-decoration-line: underline'
                                             setIsReopenLeadModalOpen(true)
                                         }}
                                     >
-                                        Reopen Lead
+                                        Reopen Enquiry
                                     </button>
                                 ) : (
                                     <button
@@ -877,7 +882,7 @@ text-decoration-line: underline'
                                             setIsCloseLeadSideModalOpen(true)
                                         }}
                                     >
-                                        Close lead
+                                        Close Enquiry
                                     </button>
                                 )}
                             </div>

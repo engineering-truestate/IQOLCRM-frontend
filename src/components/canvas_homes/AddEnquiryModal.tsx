@@ -213,6 +213,8 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                 agentId: formData.agentId,
                 agentName: formData.agentName,
                 stage: null,
+                taskType: null,
+                scheduledDate: null,
                 leadStatus: null,
                 tag: null,
                 state: 'open',
