@@ -80,7 +80,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
             if (!task.firebaseTask) return 'Not Available'
 
             // If task is complete and has a completion date, show that instead
-            if (task.status === 'complete' && task.firebaseTask.completionDate) {
+            if (task.firebaseTask.completionDate) {
+                console.log(task.firebaseTask.completionDate)
                 // Use the timestamp directly as it's already in seconds
                 return formatUnixDateTime(task.firebaseTask.completionDate) || 'Completion date not available'
             }

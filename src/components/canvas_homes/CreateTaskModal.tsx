@@ -131,26 +131,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 lastModified: currentTimestamp,
             }
 
-            let updateLeadData = {
+            const updateLeadData = {
                 state: 'open',
                 taskType: formData.task.toLowerCase(),
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
-            }
-
-            if (enquiryId) {
-                const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
-
-                const earliestTask = openTasks?.[0]
-
-                if (earliestTask && earliestTask.scheduledDate < updateLeadData.scheduledDate) {
-                    updateLeadData = {
-                        state: 'open',
-                        lastModified: currentTimestamp,
-                        taskType: earliestTask?.taskType,
-                        scheduledDate: earliestTask?.scheduledDate,
-                    }
-                }
             }
 
             const updateLead = leadService.update(leadId, updateLeadData)

@@ -535,10 +535,6 @@ const Tasks = () => {
             key: 'taskType',
             header: 'Schedule Task',
             render: (value, row) => {
-                if (row?.completionDate && row?.completionDate < row?.scheduledDate) {
-                    return <div className='text-sm text-gray-500'>-</div>
-                }
-
                 const taskType = toCapitalizedWords(value || row?.taskType || '-')
                 const scheduleUnix = row?.scheduledDate
 

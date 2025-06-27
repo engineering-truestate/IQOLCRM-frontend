@@ -132,10 +132,6 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                 (enq) => enq.enquiryId !== enquiryId && enq.state == 'open',
             )
 
-            // Get open tasks for the current enquiry
-            const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
-            const remainingOpenTasks = openTasks.filter((task) => task.taskId !== taskId)
-
             // 2. Update task to complete
             const updateTask = taskService.update(taskId, {
                 status: 'complete',
@@ -187,16 +183,14 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                     (a, b) => (b.lastModified || 0) - (a.lastModified || 0),
                 )[0]
 
-                // Get open tasks for the most recent enquiry
                 const openTasksForRecentEnquiry = await taskService.getOpenByEnquiryId(
                     mostRecentEnquiry.enquiryId || '',
                 )
-
+                const remainingOpenTasks = openTasksForRecentEnquiry.filter((task) => task.taskId !== taskId)
                 let leadUpdateData
-
-                if (openTasksForRecentEnquiry.length > 0) {
+                if (remainingOpenTasks.length > 0) {
                     // Find the earliest scheduled task for this enquiry
-                    const earliestTask = openTasksForRecentEnquiry[0]
+                    const earliestTask = remainingOpenTasks[0]
 
                     leadUpdateData = {
                         state: mostRecentEnquiry.state || 'open',
@@ -226,10 +220,37 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                 leadUpdatePromise = leadService.update(leadId, leadUpdateData)
                 shouldUpdateLead = true
             } else {
-                leadUpdatePromise = leadService.update(leadId, {
-                    state: 'dropped',
-                    lastModified: currentTimestamp,
-                })
+                const openTasksForRecentEnquiry = await taskService.getOpenByEnquiryId(enquiryId || '')
+                const remainingOpenTasks = openTasksForRecentEnquiry.filter((task) => task.taskId !== taskId)
+                let leadUpdateData
+                if (remainingOpenTasks.length > 0) {
+                    // Find the earliest scheduled task for this enquiry
+                    const earliestTask = remainingOpenTasks[0]
+
+                    leadUpdateData = {
+                        state: 'dropped',
+                        stage: leadStage,
+                        leadStatus: 'requirement collected',
+                        completionDate: currentTimestamp,
+                        tag: selectedTag,
+                        scheduledDate: earliestTask.scheduledDate,
+                        taskType: earliestTask.taskType,
+                        lastModified: currentTimestamp,
+                    }
+                } else {
+                    // Recent enquiry exists but no open tasks
+                    leadUpdateData = {
+                        state: 'dropped',
+                        stage: leadStage,
+                        leadStatus: 'requirement collected',
+                        completionDate: currentTimestamp,
+                        tag: selectedTag,
+                        scheduledDate: null,
+                        taskType: null,
+                        lastModified: currentTimestamp,
+                    }
+                }
+                leadUpdatePromise = leadService.update(leadId, leadUpdateData)
                 shouldUpdateLead = true
             }
 

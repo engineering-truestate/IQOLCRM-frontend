@@ -225,7 +225,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             if (remainingOpenTasks.length > 0) {
                 const earliestTask = remainingOpenTasks[0]
 
-                if (earliestTask.scheduledDate < scheduledTimestamp) {
+                if (earliestTask.added > scheduledTimestamp) {
                     // If another task has an earlier date, use its data for the lead
                     leadUpdateData = {
                         leadStatus: leadStatus as any,

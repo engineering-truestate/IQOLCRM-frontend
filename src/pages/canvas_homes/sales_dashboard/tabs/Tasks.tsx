@@ -185,7 +185,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
 
             if (remainingOpenTasks.length > 0) {
                 // If there are remaining open tasks, find the earliest one
-                const earliestTask = remainingOpenTasks.sort((a, b) => a.added - b.added)[0]
+                const earliestTask = remainingOpenTasks.sort((a, b) => b.added - a.added)[0]
 
                 leadUpdateData = {
                     stage: 'lead registered',

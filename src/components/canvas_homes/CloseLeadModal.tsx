@@ -192,10 +192,11 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     const openTasksForRecentEnquiry = await taskService.getOpenByEnquiryId(
                         mostRecentEnquiry.enquiryId || '',
                     )
+                    const remainingOpenTasks = openTasksForRecentEnquiry.filter((task) => task.taskId !== taskIds)
 
-                    if (openTasksForRecentEnquiry.length > 0) {
+                    if (remainingOpenTasks.length > 0) {
                         // Find the earliest scheduled task for this enquiry
-                        const earliestTask = openTasksForRecentEnquiry[0]
+                        const earliestTask = remainingOpenTasks[0]
 
                         updateLeadData = {
                             state: mostRecentEnquiry.state,
@@ -223,16 +224,37 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                         shouldUpdateLead = true
                     }
                 } else {
-                    // No remaining open enquiries - close the lead completely
-                    updateLeadData = {
-                        state: 'dropped',
-                        stage: formData.stage,
-                        leadStatus: formData.leadStatus as any,
-                        completionDate: currentTimestamp,
-                        tag: formData.tag,
-                        scheduledDate: null,
-                        taskType: null,
-                        lastModified: currentTimestamp,
+                    const openTasksForRecentEnquiry = await taskService.getOpenByEnquiryId(enquiryId || '')
+                    const remainingOpenTasks = openTasksForRecentEnquiry.filter((task) => task.taskId !== taskIds)
+
+                    if (remainingOpenTasks.length > 0) {
+                        // Find the earliest scheduled task for this enquiry
+                        const earliestTask = remainingOpenTasks[0]
+
+                        updateLeadData = {
+                            state: 'dropped',
+                            stage: formData.stage,
+                            leadStatus: formData.leadStatus as any,
+                            completionDate: currentTimestamp,
+                            tag: formData.tag,
+                            scheduledDate: earliestTask.scheduledDate,
+                            taskType: earliestTask.taskType,
+                            lastModified: currentTimestamp,
+                        }
+                        shouldUpdateLead = true
+                    } else {
+                        // Recent enquiry exists but no open tasks
+                        updateLeadData = {
+                            state: 'dropped',
+                            stage: formData.stage,
+                            leadStatus: formData.leadStatus as any,
+                            completionDate: currentTimestamp,
+                            tag: formData.tag,
+                            scheduledDate: null,
+                            taskType: null,
+                            lastModified: currentTimestamp,
+                        }
+                        shouldUpdateLead = true
                     }
                     shouldUpdateLead = true
                 }

@@ -258,6 +258,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
             enquiryDate: getCurrentDateTimeString(),
         })
         setError(null)
+
         onClose()
     }
 
