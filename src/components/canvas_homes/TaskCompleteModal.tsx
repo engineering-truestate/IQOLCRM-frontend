@@ -14,7 +14,6 @@ import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import Dropdown from '../design-elements/Dropdown'
 import { toCapitalizedWords } from '../helper/toCapitalize'
-import type { Enquiry } from '../../services/canvas_homes'
 
 interface TaskCompleteModalProps {
     isOpen: boolean
@@ -53,7 +52,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const { user } = useAuth()
     const { leadId } = useParams()
-    const { leadData, enquiries } = UseLeadDetails(leadId || '')
+    const { leadData } = UseLeadDetails(leadId || '')
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
@@ -100,48 +99,25 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
             const currentTimestamp = getUnixDateTime()
             // Send null if tag is empty string
             const tagValue = formData.tag.trim() || null
-            // Find the latest enquiry based on 'added' timestamp
-            const latestEnquiry = enquiries.reduce(
-                (latest, current) => {
-                    if (current.added) {
-                        if (!latest || !latest.added || current.added > latest.added) {
-                            return current
-                        }
-                    }
-                    return latest
-                },
-                null as Enquiry | null,
-            )
+
             let leadUpdateData
-            if (enquiryId == latestEnquiry?.enquiryId) {
-                const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
-                const remainingOpenTasks = openTasks.filter((task) => task.taskId !== taskId)
 
-                if (remainingOpenTasks.length > 0) {
-                    // If there are remaining open tasks, find the earliest one
-                    const earliestTask = remainingOpenTasks[0]
+            const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
+            const remainingOpenTasks = openTasks.filter((task) => task.taskId !== taskId)
 
-                    leadUpdateData = {
-                        state: state,
-                        stage: stage,
-                        leadStatus: leadStatus,
-                        tag: tagValue,
-                        taskType: earliestTask.taskType,
-                        scheduledDate: earliestTask.scheduledDate,
-                        completionDate: currentTimestamp,
-                        lastModified: currentTimestamp,
-                    }
-                } else {
-                    // No remaining tasks
-                    leadUpdateData = {
-                        state: state,
-                        stage: stage,
-                        leadStatus: leadStatus,
-                        tag: tagValue,
-                        scheduledDate: null,
-                        completionDate: currentTimestamp,
-                        lastModified: currentTimestamp,
-                    }
+            if (remainingOpenTasks.length > 0) {
+                // If there are remaining open tasks, find the earliest one
+                const earliestTask = remainingOpenTasks[0]
+
+                leadUpdateData = {
+                    state: state,
+                    stage: stage,
+                    leadStatus: leadStatus,
+                    tag: tagValue,
+                    taskType: earliestTask.taskType,
+                    scheduledDate: earliestTask.scheduledDate,
+                    completionDate: currentTimestamp,
+                    lastModified: currentTimestamp,
                 }
             } else {
                 // No remaining tasks
@@ -150,6 +126,9 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                     stage: stage,
                     leadStatus: leadStatus,
                     tag: tagValue,
+                    taskType: null,
+                    scheduledDate: null,
+                    completionDate: currentTimestamp,
                     lastModified: currentTimestamp,
                 }
             }
@@ -178,7 +157,7 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                       agentId,
                       taskType: taskType || 'Task',
                   })
-                : Promise.resolve() // If no note, resolve immediately
+                : Promise.resolve()
 
             // Handle tags in activity log properly
             const prevTag = leadData?.tag || null
@@ -209,7 +188,6 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
             refreshData()
             dispatch(clearTaskId())
         } catch (error: any) {
-            console.error('Error completing task:', error)
             toast.error(error.message || 'Failed to complete task')
         } finally {
             setIsLoading(false)

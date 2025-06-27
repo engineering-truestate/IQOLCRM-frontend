@@ -36,7 +36,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
     refreshData,
 }) => {
     // State management
-    const [selectedTag, setSelectedTag] = useState<string>('potential')
+    const [selectedTag, setSelectedTag] = useState<string>('')
     const [note, setNote] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)

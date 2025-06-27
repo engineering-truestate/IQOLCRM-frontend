@@ -249,7 +249,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                 window.location.href = '/canvas-homes/sales'
                 handleDiscard()
                 setIsLoading(false)
-            }, 2000)
+            }, 1000)
         } catch (error) {
             setError('Failed to create lead. Please try again.')
         }

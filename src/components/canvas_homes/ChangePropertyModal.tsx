@@ -32,7 +32,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
-    const previousPropertyName = leadData?.propertyName || 'Previous Property'
+    const previousPropertyName = leadData?.propertyName
 
     const [formData, setFormData] = useState({
         reason: '',
@@ -42,7 +42,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
         propertyName: '',
         agentId: agentId,
         agentName: agentName,
-        tag: leadData?.tag || 'cold', // Initialize with leadData.tag if available
+        tag: leadData?.tag, // Initialize with leadData.tag if available
         status: 'complete',
         note: '',
         newProperty: '',
@@ -52,15 +52,14 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
     const [isLoading, setIsLoading] = useState(false)
 
-    // Update tag when leadData changes
     useEffect(() => {
-        if (leadData?.tag) {
+        if (isOpen && leadData) {
             setFormData((prev) => ({
                 ...prev,
-                tag: leadData?.tag,
+                tag: leadData.tag,
             }))
         }
-    }, [leadData])
+    }, [isOpen, leadData, leadData?.tag])
 
     useEffect(() => {
         // Reset form data when modal opens
@@ -155,7 +154,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     },
                 })
 
-                const addNote = formData.note
+                const addNote = formData.note.trim()
                     ? enquiryService.addNote(enquiryId, {
                           note: formData.note,
                           timestamp: currentTimestamp,
@@ -172,12 +171,12 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     propertyId: formData.propertyId,
                     propertyName: formData.propertyName,
                     source: 'manual',
-                    leadStatus: 'interested', // Default status
+                    leadStatus: 'interested',
                     stage: null,
                     agentHistory: [
                         {
-                            agentId: leadData?.agentId,
-                            agentName: leadData?.agentName,
+                            agentId: leadData?.agentId || null,
+                            agentName: leadData?.agentName || null,
                             timestamp: currentTimestamp,
                             lastStage: null,
                         },
@@ -190,7 +189,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                             data: {
                                 propertyAdded: formData.propertyName,
                                 leadStatus: 'interested',
-                                tag: formData.tag || 'cold',
+                                tag: formData.tag,
                             },
                         },
                     ],
@@ -203,8 +202,6 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
                 const createNewEnquiry = enquiryService.create(newEnquiry)
 
-                // Determine lead update data based on remaining tasks
-
                 // No other open tasks, set new property details
                 const leadUpdateData = {
                     stage: null,
@@ -212,6 +209,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     propertyName: formData.propertyName,
                     tag: formData.tag,
                     scheduledDate: null,
+                    taskType: null,
                     leadStatus: 'interested' as any,
                     lastModified: currentTimestamp,
                 }
@@ -404,8 +402,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                         <Dropdown
                                             options={tagOptions}
                                             onSelect={(value) => handleInputChange('tag', value)}
-                                            defaultValue={formData.tag} // Use formData.tag here
-                                            placeholder='Select Tag'
+                                            defaultValue={leadData?.tag || ''}
                                             className='w-full relative inline-block'
                                             triggerClassName={`relative w-full h-8 px-3  border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none disabled:opacity-50 ${
                                                 formData.tag ? '[&>span]:text-black' : ''

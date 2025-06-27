@@ -151,7 +151,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
             }
 
             // Get all open tasks for this enquiry
-            const remainingOpenTasks = firebaseTasks.filter((t) => t.taskId !== taskId)
+            const remainingOpenTasks = firebaseTasks.filter((t) => t.taskId !== taskId && t.status === 'open')
 
             // Prepare the task update promise
             const taskUpdatePromise = taskService.update(taskId, {
@@ -160,14 +160,11 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                 lastModified: currentUnixTime,
             })
 
-            // Determine enquiry state based on remaining tasks
-            const enquiryState = 'open'
-
             // Prepare enquiry updates if enquiryId exists
             const enquiryUpdatePromise = task.enquiryId
                 ? enquiryService.update(task.enquiryId, {
                       stage: 'lead registered',
-                      state: enquiryState,
+                      state: 'open',
                       lastModified: currentUnixTime,
                   })
                 : Promise.resolve()
@@ -196,6 +193,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                     taskType: earliestTask.taskType,
                     scheduledDate: earliestTask.scheduledDate,
                     lastModified: currentUnixTime,
+                    completionDate: currentUnixTime,
                 }
             } else {
                 // No remaining tasks
@@ -203,6 +201,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                     stage: 'lead registered',
                     state: 'open',
                     scheduledDate: null,
+                    taskType: null,
                     completionDate: currentUnixTime,
                     lastModified: currentUnixTime,
                 }
@@ -214,7 +213,6 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
             // Wait for all promises to complete in parallel
             await Promise.all([taskUpdatePromise, enquiryUpdatePromise, addActivityPromise, leadUpdatePromise])
 
-            // ✅ Fix: use selectedStatus instead of undefined status
             setTaskStates((prev) => ({
                 ...prev,
                 [taskId]: {

@@ -135,7 +135,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 state: 'open',
                 taskType: formData.task.toLowerCase(),
                 lastModified: currentTimestamp,
-                lastScheduledDate: currentTimestamp,
                 scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
             }
 

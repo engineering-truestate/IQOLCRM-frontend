@@ -217,7 +217,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                     | undefined,
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledTimestamp,
-                taskType: formData.eventName.toLowerCase(),
+                taskType: taskType,
                 ...(stage && { stage: stage }),
             }
 
