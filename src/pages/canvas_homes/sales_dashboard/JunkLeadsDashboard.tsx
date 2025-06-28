@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
-import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import DateRangePicker from '../../../components/design-elements/DateRangePicker'
 import { searchLeads, type LeadSearchFilters } from '../../../services/canvas_homes/leadAlgoliaService'
@@ -17,33 +16,6 @@ import superHotIcon from '/icons/canvas_homes/super-hot.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import ASLCRenderer from '../../../components/canvas_homes/ASLCRenderer'
-
-// Status card component
-const StatusCard = ({
-    title,
-    count,
-    isActive,
-    onClick,
-}: {
-    title: string
-    count: number
-    isActive: boolean
-    onClick: () => void
-}) => {
-    return (
-        <button
-            onClick={onClick}
-            className={`px-2 py-2.5 rounded-[12px] w-full sm:w-32 h-14 border transition-colors ${
-                isActive ? 'bg-[#E2F4FF] border-[#3279EA]' : 'border border-gray-200 bg-white hover:bg-gray-50'
-            }`}
-        >
-            <div className='flex w-full items-center gap-2'>
-                <span className='text-sm font-normal w-17.5 text-gray-700'>{title}</span>
-                <span className={`text-lg font-semibold ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>{count}</span>
-            </div>
-        </button>
-    )
-}
 
 const tagStyles: Record<
     string,
@@ -75,12 +47,12 @@ const tagStyles: Record<
     },
 }
 
-const Leads = () => {
+const JunkLeadsDashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
 
     // Initialize state from URL params
-    const [activeStatusCard, setActiveStatusCard] = useState('All')
+    const [activeStatusCard, _setActiveStatusCard] = useState('All')
     const [selectedRows, setSelectedRows] = useState<string[]>([])
     const [searchValue, setSearchValue] = useState('')
     const [selectedDateRange, setSelectedDateRange] = useState('')
@@ -104,7 +76,6 @@ const Leads = () => {
     const [selectedTask, setSelectedTask] = useState('')
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
-    // const [junkTab,setjunkTab]= useState(false)
 
     // Store initial facets to prevent filter options from changing
     const [initialFacets, setInitialFacets] = useState<Record<string, Record<string, number>>>({})
@@ -279,26 +250,6 @@ const Leads = () => {
         performSearch()
     }, [performSearch])
 
-    const statusCounts = useMemo(() => {
-        const counts = {
-            All: allLeadsData.length,
-            Fresh: 0,
-            Open: 0,
-            Closed: 0,
-            Dropped: 0,
-        }
-
-        allLeadsData.forEach((lead) => {
-            const state = lead.state?.toLowerCase() || ''
-            if (state === 'fresh') counts.Fresh++
-            else if (state === 'open') counts.Open++
-            else if (state === 'closed') counts.Closed++
-            else if (state === 'dropped') counts.Dropped++
-        })
-
-        return counts
-    }, [allLeadsData])
-
     // Modified date range handler - doesn't apply immediately
     const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
         setPendingDateRange({ startDate, endDate })
@@ -368,30 +319,9 @@ const Leads = () => {
         }
     }
 
-    // const handleJunkSelected = () => {
-    //     // Example: update local data or make API call to mark rows as junk
-    //     const updatedData = data.map((row) => (selectedRows.includes(row.id) ? { ...row, status: 'junk' } : row))
-
-    //     setData(updatedData) // if you're maintaining table state
-    //     setSelectedRows([]) // clear selection
-    // }
-
     const handleRowClick = (row: any) => {
-        navigate(`leaddetails/${row.leadId}`)
+        navigate(`/canvas-homes/sales/leaddetails/${row.leadId}`)
     }
-
-    const goToJunkLeads = () => {
-        // console.log("button clicked")
-        navigate('junkleads')
-    }
-
-    const statusCards = [
-        { title: 'All', count: statusCounts.All },
-        { title: 'Fresh', count: statusCounts.Fresh },
-        { title: 'Open', count: statusCounts.Open },
-        { title: 'Closed', count: statusCounts.Closed },
-        { title: 'Dropped', count: statusCounts.Dropped },
-    ]
 
     const columns: TableColumn[] = [
         {
@@ -687,39 +617,6 @@ const Leads = () => {
                 />
             </div>
 
-            {/* Status Cards */}
-            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
-                <div className='grid grid-cols-2 gap-2 sm:flex sm:flex-wrap md:flex-nowrap'>
-                    {statusCards.map((card) => (
-                        <StatusCard
-                            key={card.title}
-                            title={card.title}
-                            count={card.count}
-                            isActive={activeStatusCard === card.title}
-                            onClick={() => setActiveStatusCard(card.title)}
-                        />
-                    ))}
-                </div>
-                <div className='flex flex-row gap-4.5'>
-                    <Button
-                        bgColor='bg-gray-200'
-                        textColor='text-gray-700'
-                        className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-gray-300'
-                        onClick={goToJunkLeads}
-                    >
-                        <span>Junk Lead</span>
-                    </Button>
-                    <Button
-                        bgColor='bg-blue-600'
-                        textColor='text-white'
-                        className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-blue-700'
-                        onClick={() => setIsAddLeadModalOpen(true)}
-                    >
-                        <span>+ Add Lead</span>
-                    </Button>
-                </div>
-            </div>
-
             {/* Active Filters */}
             {activeFilters.length > 0 && (
                 <div className='flex flex-wrap items-center gap-2 mb-4'>
@@ -787,19 +684,8 @@ const Leads = () => {
                 />
             </div>
             <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
-            {selectedRows.length > 0 && (
-                <div className='fixed bottom-0 w-[85%] bg-white border-t border-gray-300 shadow-md p-4 flex justify-between items-center z-50'>
-                    <span className='text-sm text-gray-700'>{selectedRows.length} selected</span>
-                    <button
-                        className='bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700'
-                        // onClick={handleJunkSelected}
-                    >
-                        Junk Selected
-                    </button>
-                </div>
-            )}
         </div>
     )
 }
 
-export default Leads
+export default JunkLeadsDashboard
