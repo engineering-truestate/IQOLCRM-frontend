@@ -711,7 +711,8 @@ export const PropertiesFiltersModal: React.FC<PropertiesFiltersModalProps> = ({
 
     // Memoize micromarket options and filtered suggestions
     const micromarketOptions = useMemo(() => getFacetOptions('micromarket'), [getFacetOptions])
-
+    console.log('Data is Here')
+    console.log(getFacetOptions('micromarket'))
     const filteredSuggestions = useMemo(() => {
         if (!micromarketQuery) return []
         return micromarketOptions
@@ -922,7 +923,7 @@ export const PropertiesFiltersModal: React.FC<PropertiesFiltersModalProps> = ({
 
                                     {/* Top + Selected Micromarkets as Buttons */}
                                     <div className='mt-4'>
-                                        <h3 className='text-sm font-medium text-gray-900 mb-3'>Top Micromarkets</h3>
+                                        {/* <h3 className='text-sm font-medium text-gray-900 mb-3'>Top Micromarkets</h3> */}
                                         <div className='flex gap-2 flex-wrap'>
                                             {Array.from(
                                                 new Map(
