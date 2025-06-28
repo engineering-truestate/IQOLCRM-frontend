@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
-import { storage } from '../../../../firebase'
+import { storage, db } from '../../../../firebase'
 import { enquiryService } from '../../../../services/canvas_homes'
+import { doc, getDoc, runTransaction, increment } from 'firebase/firestore'
 
 interface DocumentItem {
     id: string
@@ -63,6 +64,42 @@ const Documents: React.FC<DocumentsProps> = ({
         e.target.value = ''
     }
 
+    // Generate a sequential document ID using a counter in Firestore
+    const generateDocumentId = async (): Promise<string> => {
+        try {
+            const counterRef = doc(db, 'canvashomesAdmin', 'lastDoc')
+
+            const newDocId = await runTransaction(db, async (transaction) => {
+                const counterDoc = await transaction.get(counterRef)
+                let currentNumber = 0
+
+                if (counterDoc.exists()) {
+                    currentNumber = counterDoc.data().count || 0
+                }
+
+                const newDocNumber = currentNumber + 1
+                const newDocId = `doc${newDocNumber}`
+
+                // Update the counter
+                transaction.set(
+                    counterRef,
+                    {
+                        count: increment(1),
+                    },
+                    { merge: true },
+                )
+
+                return newDocId
+            })
+
+            return newDocId
+        } catch (error) {
+            console.error('Error generating document ID:', error)
+            // Fallback to timestamp ID if transaction fails
+            return Date.now().toString()
+        }
+    }
+
     const handleFileUpload = async (file: File) => {
         if (!enquiryId) {
             alert('No enquiry selected. Please select an enquiry first.')
@@ -73,11 +110,13 @@ const Documents: React.FC<DocumentsProps> = ({
         setUploadProgress(0)
 
         try {
-            // Create unique filename with timestamp
-            const timestamp = Date.now()
-            const fileName = `${timestamp}_${file.name}`
+            // Generate sequential document ID
+            const docId = await generateDocumentId()
+
+            // Create filename with docId prefix
+            const fileName = `${docId}_${file.name}`
             const storagePath = `canvas_homes-enquiry-documents/${enquiryId}/${fileName}`
-            console.log('rajan the king ', enquiryId, fileName)
+
             // Create storage reference
             const storageRef = ref(storage, storagePath)
 
@@ -110,7 +149,7 @@ const Documents: React.FC<DocumentsProps> = ({
                         }
 
                         const newDoc: DocumentItem = {
-                            id: timestamp.toString(),
+                            id: docId,
                             name: file.name,
                             size: formatFileSize(file.size),
                             uploadDate: new Date().toLocaleDateString('en-US', {

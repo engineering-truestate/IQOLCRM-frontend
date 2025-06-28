@@ -11,7 +11,6 @@ import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
 import { useNavigate } from 'react-router-dom'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import { getCampaignMetrices } from './getCampaignMetrices'
 
 // Campaign data type
 type Campaign = {
@@ -351,9 +350,8 @@ const Marketing = () => {
         [initialFacets, facets],
     )
 
-    const handleRowClick = (row: any) => {
-        getCampaignMetrices(row)
-        navigate(`marketingDetails/${row.campaignId}`)
+    const handleRowClick = () => {
+        navigate('/canvas-homes/marketingdetails')
     }
 
     // Summary cards data
