@@ -9,7 +9,7 @@ import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
-import { useNavigate } from 'react-router'
+// import { useNavigate } from 'react-router'
 import Dropdown from '../design-elements/Dropdown'
 import { toCapitalizedWords } from '../helper/toCapitalize'
 
@@ -27,7 +27,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
     const { user } = useAuth()
     const { leadId } = useParams()
     const { leadData } = UseLeadDetails(leadId || '')
-    const navigate = useNavigate()
+    // const navigate = useNavigate()
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''

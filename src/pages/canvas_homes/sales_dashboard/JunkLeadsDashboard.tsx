@@ -8,7 +8,6 @@ import { searchLeads, type LeadSearchFilters } from '../../../services/canvas_ho
 import google from '/icons/canvas_homes/google.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
-import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
 import { useNavigate } from 'react-router-dom'
 import potentialIcon from '/icons/canvas_homes/potential-bulb.svg'
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
@@ -683,7 +682,6 @@ const JunkLeadsDashboard = () => {
                     maxHeight={`${activeFilters.length > 0 ? 55 : 63}vh`}
                 />
             </div>
-            <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
         </div>
     )
 }

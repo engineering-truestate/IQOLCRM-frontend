@@ -368,14 +368,6 @@ const Leads = () => {
         }
     }
 
-    // const handleJunkSelected = () => {
-    //     // Example: update local data or make API call to mark rows as junk
-    //     const updatedData = data.map((row) => (selectedRows.includes(row.id) ? { ...row, status: 'junk' } : row))
-
-    //     setData(updatedData) // if you're maintaining table state
-    //     setSelectedRows([]) // clear selection
-    // }
-
     const handleRowClick = (row: any) => {
         navigate(`leaddetails/${row.leadId}`)
     }

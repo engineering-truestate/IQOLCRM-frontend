@@ -355,7 +355,7 @@ const Tasks = () => {
         container: 'relative inline-block w-full sm:w-auto',
         trigger: (isSelected: boolean) =>
             `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
-        menu: 'absolute z-50 mt-1 w-fit min-w-[300px] bg-white border border-gray-300 rounded-md shadow-lg',
+        menu: 'absolute z-50 mt-1 w-fit min-w-[300px] max-h-80 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg',
         option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
     }
 
