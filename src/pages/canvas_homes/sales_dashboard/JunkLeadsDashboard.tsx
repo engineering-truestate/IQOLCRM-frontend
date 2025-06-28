@@ -74,7 +74,7 @@ const JunkLeadsDashboard = () => {
     const [selectedTag, setSelectedTag] = useState('')
     const [selectedTask, setSelectedTask] = useState('')
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
-    const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
+    // const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
 
     // Store initial facets to prevent filter options from changing
     const [initialFacets, setInitialFacets] = useState<Record<string, Record<string, number>>>({})
@@ -191,12 +191,7 @@ const JunkLeadsDashboard = () => {
     ])
 
     useEffect(() => {
-        let filtered = allLeadsData
-
-        if (activeStatusCard !== 'All') {
-            const stateValue = activeStatusCard.toLowerCase()
-            filtered = filtered.filter((lead) => lead.state?.toLowerCase() === stateValue)
-        }
+        const filtered = allLeadsData.filter((lead) => lead.state?.toLowerCase() === 'junk')
 
         setFilteredLeadsData(filtered)
     }, [allLeadsData, activeStatusCard, searchValue])
@@ -262,6 +257,23 @@ const JunkLeadsDashboard = () => {
         }
     }, [pendingDateRange])
 
+    const junkFacets = useMemo(() => {
+        const keys = ['propertyName', 'agentName', 'source', 'stage', 'tag', 'taskType', 'leadStatus']
+        const result: Record<string, Record<string, number>> = {}
+
+        keys.forEach((key) => {
+            result[key] = {}
+            filteredLeadsData.forEach((lead) => {
+                const value = lead[key]
+                if (value) {
+                    result[key][value] = (result[key][value] || 0) + 1
+                }
+            })
+        })
+
+        return result
+    }, [filteredLeadsData])
+
     // New function to cancel pending date range
     const cancelDateRange = useCallback(() => {
         setPendingDateRange(customDateRange)
@@ -277,28 +289,29 @@ const JunkLeadsDashboard = () => {
 
     // Keep initial facet options and order, only update counts
     const generateDropdownOptions = useCallback(
-        (facetKey: string, _defaultLabel: string, staticOptions?: any[]) => {
+        (
+            facetKey: string,
+            _defaultLabel: string,
+            staticOptions?: any[],
+            overrideFacets?: Record<string, Record<string, number>>,
+        ) => {
             if (staticOptions) return staticOptions
 
-            const initialFacetData = initialFacets[facetKey] || {}
-            const currentFacetData = facets[facetKey] || {}
+            const facetData = overrideFacets?.[facetKey] || facets[facetKey] || {}
             const options: { label: string; value: string }[] = []
 
-            // Use initial facets for options and sorting, current facets only for counts
-            Object.entries(initialFacetData)
-                .sort(([, a], [, b]) => b - a) // Keep original sort order from initial load
-                .forEach(([key]) => {
-                    // Use current count if available, otherwise 0
-                    const currentCount = currentFacetData[key] || 0
+            Object.entries(facetData)
+                .sort(([, a], [, b]) => b - a)
+                .forEach(([key, count]) => {
                     options.push({
-                        label: `${toCapitalizedWords(key)} (${currentCount})`,
+                        label: `${toCapitalizedWords(key)} (${count})`,
                         value: key,
                     })
                 })
 
             return options
         },
-        [initialFacets, facets],
+        [facets],
     )
 
     const handleRowSelect = (rowId: string, selected: boolean) => {
@@ -530,8 +543,9 @@ const JunkLeadsDashboard = () => {
                     menuClassName={dropdownClasses.menu}
                     showApplyCancel={true}
                 />
+
                 <Dropdown
-                    options={generateDropdownOptions('propertyName', 'Property')}
+                    options={generateDropdownOptions('propertyName', 'Property', undefined, junkFacets)}
                     onSelect={setSelectedProperty}
                     defaultValue={selectedProperty}
                     value={selectedProperty}
@@ -542,8 +556,9 @@ const JunkLeadsDashboard = () => {
                     menuClassName={dropdownClasses.menu}
                     optionClassName={dropdownClasses.option}
                 />
+
                 <Dropdown
-                    options={generateDropdownOptions('agentName', 'Agent')}
+                    options={generateDropdownOptions('agentName', 'Agent', undefined, junkFacets)}
                     onSelect={setSelectedAgent}
                     defaultValue={selectedAgent}
                     value={selectedAgent}
@@ -554,8 +569,9 @@ const JunkLeadsDashboard = () => {
                     menuClassName={dropdownClasses.menu}
                     optionClassName={dropdownClasses.option}
                 />
+
                 <Dropdown
-                    options={generateDropdownOptions('source', 'Source')}
+                    options={generateDropdownOptions('source', 'Source', undefined, junkFacets)}
                     onSelect={setSelectedSource}
                     defaultValue={selectedSource}
                     value={selectedSource}
@@ -566,8 +582,9 @@ const JunkLeadsDashboard = () => {
                     menuClassName={dropdownClasses.menu}
                     optionClassName={dropdownClasses.option}
                 />
+
                 <Dropdown
-                    options={generateDropdownOptions('stage', 'Lead Stage')}
+                    options={generateDropdownOptions('stage', 'Lead Stage', undefined, junkFacets)}
                     onSelect={setSelectedLeadStage}
                     defaultValue={selectedLeadStage}
                     value={selectedLeadStage}
@@ -578,8 +595,9 @@ const JunkLeadsDashboard = () => {
                     menuClassName={dropdownClasses.menu}
                     optionClassName={dropdownClasses.option}
                 />
+
                 <Dropdown
-                    options={generateDropdownOptions('tag', 'Tag')}
+                    options={generateDropdownOptions('tag', 'Tag', undefined, junkFacets)}
                     onSelect={setSelectedTag}
                     defaultValue={selectedTag}
                     value={selectedTag}
@@ -590,8 +608,9 @@ const JunkLeadsDashboard = () => {
                     menuClassName={dropdownClasses.menu}
                     optionClassName={dropdownClasses.option}
                 />
+
                 <Dropdown
-                    options={generateDropdownOptions('taskType', 'Task')}
+                    options={generateDropdownOptions('taskType', 'Task', undefined, junkFacets)}
                     onSelect={setSelectedTask}
                     defaultValue={selectedTask}
                     value={selectedTask}
@@ -602,8 +621,9 @@ const JunkLeadsDashboard = () => {
                     menuClassName={dropdownClasses.menu}
                     optionClassName={dropdownClasses.option}
                 />
+
                 <Dropdown
-                    options={generateDropdownOptions('leadStatus', 'Lead Status')}
+                    options={generateDropdownOptions('leadStatus', 'Lead Status', undefined, junkFacets)}
                     onSelect={setSelectedLeadStatus}
                     defaultValue={selectedLeadStatus}
                     value={selectedLeadStatus}

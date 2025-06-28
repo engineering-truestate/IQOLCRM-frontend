@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import Layout from '../../../layout/Layout'
 import JunkLeadsDashboard from './JunkLeadsDashboard'
+import { useNavigate } from 'react-router-dom'
 
 const JunkLeads: React.FC = () => {
     // Manage active tab state
     const [activeTab, _setActiveTab] = useState<'junkLeads'>('junkLeads')
-    // const navigate = useNavigate()
+    const navigate = useNavigate()
 
     return (
         <Layout loading={false}>
@@ -15,7 +16,14 @@ const JunkLeads: React.FC = () => {
                     <div className='mb-4'>
                         <div className='flex items-center justify-between p-3 border-b border-gray-300'>
                             <div>
-                                <h1 className='text-base font-semibold text-black'>Sales Dashboard</h1>
+                                <h1
+                                    className='text-base font-semibold text-black cursor-pointer'
+                                    onClick={() => {
+                                        navigate('/canvas-homes/sales')
+                                    }}
+                                >
+                                    Sales Dashboard
+                                </h1>
                             </div>
                         </div>
                         <div className='px-3 border-b border-gray-300'>
