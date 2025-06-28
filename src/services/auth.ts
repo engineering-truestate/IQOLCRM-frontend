@@ -51,7 +51,7 @@ export const registerHelper = async (
             const DocSnap = await getDoc(DocRef)
             const count = DocSnap.data()?.count
 
-            const newAgentId = `CANV${String(count).padStart(2, '0')}`
+            const newAgentId = `canv${String(count).padStart(2, '0')}`
 
             canvasHomes = {
                 role: platform.find((p) => p.platform === 'canvas-homes')?.role,
@@ -77,7 +77,7 @@ export const registerHelper = async (
                 role: platform.find((p) => p.platform === 'restack')?.role,
             }
         }
-        await setDoc(doc(db, 'internal-agents', uid), {
+        await setDoc(doc(db, 'internal-agents', email), {
             name: name,
             email: email,
             phoneNumber: phoneNumber,

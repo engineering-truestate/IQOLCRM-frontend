@@ -3,6 +3,7 @@ import Dropdown from '../../components/design-elements/Dropdown'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { userService } from '../../services/canvas_homes/userService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
+import { AgentService } from '../../services/canvas_homes/agentService'
 import type { Lead, User, Enquiry } from '../../services/canvas_homes/types'
 import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 import { useDispatch } from 'react-redux'
@@ -39,6 +40,38 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
     const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
     // Property options with IDs
+    const [agentOptions, setAgentOptions] = useState([
+        { label: 'Deepak Goyal', value: 'agent001|Deepak Goyal' },
+        { label: 'Rajan Yadav', value: 'agent002|Rajan Yadav' },
+        { label: 'Deepak Singh Chauhan', value: 'agent003|Deepak Singh Chauhan' },
+        { label: 'Samarth Jangir', value: 'agent004|Samarth Jangir' },
+        { label: 'Rahul Mehta', value: 'agent005|Rahul Mehta' },
+    ])
+    // Fetch agents from service when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            const fetchAgents = async () => {
+                try {
+                    const agentsMap = await AgentService.fetchSalesAgents()
+                    console.log(agentsMap)
+
+                    // Only update agent options if we got some agents from the service
+                    if (Object.keys(agentsMap).length > 0) {
+                        const options = Object.entries(agentsMap).map(([agentId, name]) => ({
+                            label: name,
+                            value: `${agentId}|${name}`,
+                        }))
+                        setAgentOptions(options)
+                    }
+                } catch (error) {
+                    console.error('Error fetching agents:', error)
+                    // Keep the default agent options on error
+                }
+            }
+
+            fetchAgents()
+        }
+    }, [isOpen])
 
     useEffect(() => {
         // Reset form data when modal opens
@@ -67,16 +100,6 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
         { label: 'Google', value: 'Google' },
         { label: 'LinkedIn', value: 'LinkedIn' },
         { label: 'Meta', value: 'META' },
-    ]
-
-    // Agent options
-    const agentOptions = [
-        // { label: 'Select Agent', value: '' },
-        { label: 'Deepak Goyal', value: 'agent001|Deepak Goyal' },
-        { label: 'Rajan Yadav', value: 'agent002|Rajan Yadav' },
-        { label: 'Deepak Singh Chauhan', value: 'agent003|Deepak Singh Chauhan' },
-        { label: 'Samarth Jangir', value: 'agent004|Samarth Jangir' },
-        { label: 'Rahul Mehta', value: 'agent005|Rahul Mehta' },
     ]
 
     const handleInputChange = (field: keyof typeof formData, value: string) => {
