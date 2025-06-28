@@ -1,76 +1,169 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from 'react'
 
-interface DropdownProps {
-  options: { label: string; value: string }[];
-  onSelect: (option: string) => void;
-  defaultValue?: string;
+interface Option {
+    label: string
+    value: string
+    color?: string
+    textColor?: string
 }
 
-const Dropdown = ({ options, onSelect, defaultValue }: DropdownProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState<string>(defaultValue || "");
-  const dropdownRef = useRef<HTMLDivElement>(null);
+interface DropdownProps {
+    options: Option[]
+    onSelect: (option: string) => void
+    value?: string
+    defaultValue?: string
+    placeholder?: string
+    className?: string
+    triggerClassName?: string
+    menuClassName?: string
+    optionClassName?: string
+    forcePlaceholderAlways?: boolean
+    disabled?: boolean // ✅ Add this line
+}
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
+const Dropdown = ({
+    options,
+    onSelect,
+    value,
+    defaultValue,
+    placeholder = 'Select an option',
+    className,
+    triggerClassName,
+    menuClassName,
+    optionClassName,
+    forcePlaceholderAlways,
+    disabled = false, // ✅ Default to false
+}: DropdownProps) => {
+    const [isOpen, setIsOpen] = useState(false)
+    const [selected, setSelected] = useState<string>(defaultValue || '')
+    const [_triggerWidth, setTriggerWidth] = useState<number>(0)
+    const dropdownRef = useRef<HTMLDivElement>(null)
+    const triggerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    useEffect(() => {
+        const measureTriggerWidth = () => {
+            if (triggerRef.current) {
+                setTriggerWidth(triggerRef.current.offsetWidth)
+            }
+        }
+
+        measureTriggerWidth()
+        window.addEventListener('resize', measureTriggerWidth)
+        return () => window.removeEventListener('resize', measureTriggerWidth)
+    }, [])
+
+    const selectedValue = value !== undefined ? value : selected
+    const selectedOption = options.find((opt) => opt.value === selectedValue)
+    const selectedLabel = forcePlaceholderAlways ? placeholder : selectedValue ? selectedOption?.label : placeholder
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (disabled) {
+            setIsOpen(false)
+        }
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setIsOpen((open) => !open)
+        }
+        if (e.key === 'Escape') {
+            setIsOpen(false)
+        }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
-  const selectedLabel =
-    options.find((opt) => opt.value === selected)?.label || "Select a platform";
+    const handleSelect = (option: Option) => {
+        if (value === undefined) {
+            setSelected(option.value) // only update internal state if uncontrolled
+        }
+        onSelect(option.value)
+        setIsOpen(false)
+    }
 
+    // Default styles (Tailwind) that can be overridden via props
+    const defaultContainerClass = 'relative w-64'
+    const defaultTriggerClass = 'border px-4 py-2 rounded cursor-pointer shadow flex items-center justify-between'
+    const defaultMenuClass = 'absolute z-10 mt-1 bg-white border rounded shadow-lg'
+    const defaultOptionClass = 'px-4 py-2 cursor-pointer hover:bg-gray-100 flex items-center'
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") setIsOpen((open) => !open);
-    if (e.key === "Escape") setIsOpen(false);
-  };
-
-  const handleSelect = (value: string) => {
-    setSelected(value);
-    onSelect(value);
-    setIsOpen(false);
-  };
-
-  return (
-    <div
-      className="relative w-64"
-      tabIndex={0}
-      ref={dropdownRef}
-      onKeyDown={handleKeyDown}
-    >
-      <div
-        className="border px-4 py-2 rounded cursor-pointer bg-white shadow"
-        onClick={() => setIsOpen((open) => !open)}
-      >
-        <span>{selectedLabel}</span>
-        <span className="float-right">&#9662;</span>
-      </div>
-      {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border rounded shadow-lg">
-          {options.map((option) => (
+    return (
+        <div
+            className={`${className || defaultContainerClass} flex flex-col relative`}
+            tabIndex={0}
+            ref={dropdownRef}
+            onKeyDown={handleKeyDown}
+        >
+            {/* Trigger */}
             <div
-              key={option.value}
-              className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
-                selected === option.value ? "bg-gray-100 font-bold" : ""
-              }`}
-              onClick={() => handleSelect(option.value)}
+                ref={triggerRef}
+                className={triggerClassName || defaultTriggerClass}
+                onClick={() => setIsOpen((open) => !open)}
+                style={
+                    selectedOption
+                        ? { backgroundColor: selectedOption.color, color: selectedOption.textColor }
+                        : undefined
+                }
+                aria-haspopup='listbox'
+                aria-expanded={isOpen}
             >
-              {option.label}
+                <span>{selectedLabel}</span>
+                <svg
+                    className={`w-4 h-4 ml-2 transition-transform duration-200 ${isOpen && !disabled ? 'rotate-180' : ''}`}
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                >
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+                </svg>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
-export default Dropdown;
+            {/* Menu */}
+            {isOpen && !disabled && (
+                <div
+                    className={`${menuClassName || defaultMenuClass} flex flex-col flex-grow min-w-fit whitespace-nowrap`}
+                    role='listbox'
+                >
+                    {options.map((option) => {
+                        const isSelected = selectedValue === option.value
+                        const style = option.color
+                            ? { backgroundColor: option.color, color: option.textColor }
+                            : undefined
+
+                        const combinedClass = `${optionClassName || defaultOptionClass} ${
+                            isSelected ? 'font-bold' : ''
+                        }`
+
+                        return (
+                            <div
+                                key={option.value}
+                                className={combinedClass}
+                                style={style}
+                                role='option'
+                                aria-selected={isSelected}
+                                onClick={() => handleSelect(option)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        handleSelect(option)
+                                    }
+                                }}
+                                tabIndex={0}
+                            >
+                                {option.label}
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default Dropdown
