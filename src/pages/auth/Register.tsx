@@ -51,6 +51,7 @@ const Register: React.FC = () => {
 
         // Only allow digits, spaces, dashes, and plus sign
         const sanitizedValue = value.replace(/[^\d\s\-+]/g, '')
+        console.log(sanitizedValue, 'sanitizedValue')
 
         setPhoneNumber(sanitizedValue)
 
@@ -136,6 +137,7 @@ const Register: React.FC = () => {
                 alert('Please select roles for all selected platforms')
                 return
             }
+            console.log(phoneNumber, 'phoneNumber')
 
             console.log(platforms)
 

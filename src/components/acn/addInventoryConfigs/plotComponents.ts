@@ -9,7 +9,13 @@ export const plotComponents = [
         ],
         colspan: 2,
     },
-
+    {
+        label: 'Property Name/Location',
+        type: 'projectName',
+        field: 'propertyName',
+        placeholder: 'Search Property Name',
+        colspan: 2,
+    },
     {
         label: 'Plot No.',
         type: 'textInput',

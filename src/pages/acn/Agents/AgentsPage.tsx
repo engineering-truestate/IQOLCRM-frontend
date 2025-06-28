@@ -552,12 +552,12 @@ const AgentsPage = () => {
             ),
         },
         {
-            key: 'noOfinventories',
+            key: 'noOfInventories',
             header: 'Inventories',
             render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
-            key: 'noOfrequirements',
+            key: 'noOfRequirements',
             header: 'Requirements',
             render: (value) => <StatusBadge status={value} type='agent' />,
         },
@@ -567,7 +567,7 @@ const AgentsPage = () => {
             render: (value) => <StatusBadge status={value} type='agent' />,
         },
         {
-            key: 'noOfleagalLeads',
+            key: 'noOfLegalLeads',
             header: 'Legal Leads',
             render: (value) => <StatusBadge status={value} type='agent' />,
         },

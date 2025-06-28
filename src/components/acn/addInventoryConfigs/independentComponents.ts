@@ -10,6 +10,13 @@ export const independentComponents = [
         colspan: 2,
     },
     {
+        label: 'Property Name/Location',
+        type: 'projectName',
+        field: 'propertyName',
+        placeholder: 'Search Property Name',
+        colspan: 2,
+    },
+    {
         label: 'Building No.',
         type: 'textInput',
         field: 'unitNo',
