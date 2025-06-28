@@ -79,6 +79,14 @@ const PreLaunchDetailsPage = () => {
     const [activeTab, setActiveTab] = useState<'apartment' | 'villa' | 'plot'>('apartment')
     const [editingRowId, setEditingRowId] = useState<string | null>(null)
     const [isAddingRow, setIsAddingRow] = useState(false)
+    const [isAddingClubhouse, setIsAddingClubhouse] = useState(false)
+
+    interface NewClubhouse {
+        name?: string
+        sizeSqft?: string
+        floor?: string
+    }
+    const [newClubhouse, setNewClubhouse] = useState<NewClubhouse>({})
 
     // Load project data based on pId
     useEffect(() => {
@@ -261,6 +269,54 @@ const PreLaunchDetailsPage = () => {
         }
 
         setProjectDetails((prev) => (prev ? { ...prev, configurations: updatedConfigurations } : null))
+    }
+
+    // Clubhouse details management
+    const handleAddClubhouse = () => {
+        if (newClubhouse.name && newClubhouse.sizeSqft) {
+            const clubhouse = {
+                id: Date.now().toString(),
+                name: newClubhouse.name,
+                sizeSqft: newClubhouse.sizeSqft.toString(),
+                floor: newClubhouse.floor || '',
+            }
+
+            setProjectDetails((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          clubhouseDetails: [...(prev.clubhouseDetails || []), clubhouse],
+                      }
+                    : null,
+            )
+
+            setNewClubhouse({})
+            setIsAddingClubhouse(false)
+        }
+    }
+
+    const handleDeleteClubhouse = (clubhouseId: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      clubhouseDetails: (prev.clubhouseDetails || []).filter((club) => club.id !== clubhouseId),
+                  }
+                : null,
+        )
+    }
+
+    const handleEditClubhouse = (clubhouseId: string, field: string, value: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      clubhouseDetails: (prev.clubhouseDetails || []).map((club) =>
+                          club.id === clubhouseId ? { ...club, [field]: value } : club,
+                      ),
+                  }
+                : null,
+        )
     }
 
     // Update maps/plans
@@ -649,6 +705,76 @@ const PreLaunchDetailsPage = () => {
         },
     ]
 
+    const getClubhouseColumns = (): TableColumn[] => {
+        const columns: TableColumn[] = [
+            {
+                key: 'name',
+                header: 'Name',
+                render: (value: any, row: any) =>
+                    isEditing ? (
+                        <StateBaseTextField
+                            value={value || ''}
+                            onChange={(e) => handleEditClubhouse(row.id, 'name', e.target.value)}
+                            className='w-full text-sm'
+                        />
+                    ) : (
+                        <span className='text-sm font-medium'>{value}</span>
+                    ),
+            },
+            {
+                key: 'sizeSqft',
+                header: 'Size (Sq Ft)',
+                render: (value: any, row: any) =>
+                    isEditing ? (
+                        <NumberInput
+                            label=''
+                            placeholder='Enter size'
+                            value={parseFloat(value || '0')}
+                            onChange={(numValue: number | null) => {
+                                handleEditClubhouse(row.id, 'sizeSqft', (numValue || 0).toString())
+                            }}
+                            numberType='decimal'
+                            min={0}
+                            fullWidth
+                        />
+                    ) : (
+                        <span className='text-sm font-medium'>{value}</span>
+                    ),
+            },
+            {
+                key: 'floor',
+                header: 'Floor',
+                render: (value: any, row: any) =>
+                    isEditing ? (
+                        <StateBaseTextField
+                            value={value || ''}
+                            onChange={(e) => handleEditClubhouse(row.id, 'floor', e.target.value)}
+                            className='w-full text-sm'
+                        />
+                    ) : (
+                        <span className='text-sm font-medium'>{value}</span>
+                    ),
+            },
+        ]
+        if (isEditing) {
+            columns.push({
+                key: 'actions',
+                header: 'Actions',
+                render: (_: any, row: any) => (
+                    <div className='flex gap-2'>
+                        <button
+                            className='text-red-600 hover:text-red-800 text-xs font-medium ml-2'
+                            onClick={() => handleDeleteClubhouse(row.id)}
+                        >
+                            Delete
+                        </button>
+                    </div>
+                ),
+            })
+        }
+        return columns
+    }
+
     if (loading || !projectDetails) {
         return (
             <Layout loading={true}>
@@ -949,6 +1075,106 @@ const PreLaunchDetailsPage = () => {
                                     className='rounded-lg'
                                 />
                             )}
+                        </div>
+                    </div>
+
+                    {/* Clubhouse Details */}
+                    <div className='mb-8 px-4'>
+                        <div className='flex items-center justify-between mb-4'>
+                            <h2 className='text-lg font-semibold text-black'>Clubhouse Details</h2>
+                            {isEditing && (
+                                <Button
+                                    bgColor='bg-blue-600'
+                                    textColor='text-white'
+                                    className='px-3 py-1 h-8 text-sm'
+                                    onClick={() => setIsAddingClubhouse(true)}
+                                >
+                                    + Add Clubhouse
+                                </Button>
+                            )}
+                        </div>
+
+                        {isAddingClubhouse && (
+                            <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4'>
+                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Name</label>
+                                        <StateBaseTextField
+                                            value={newClubhouse.name || ''}
+                                            onChange={(e) =>
+                                                setNewClubhouse((prev) => ({ ...prev, name: e.target.value }))
+                                            }
+                                            className='w-full text-sm'
+                                            placeholder='Enter clubhouse name'
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Size (Sq Ft)</label>
+                                        <NumberInput
+                                            label=''
+                                            placeholder='Enter size'
+                                            value={parseFloat(newClubhouse.sizeSqft || '0')}
+                                            onChange={(numValue: number | null) => {
+                                                setNewClubhouse((prev) => ({
+                                                    ...prev,
+                                                    sizeSqft: (numValue || 0).toString(),
+                                                }))
+                                            }}
+                                            numberType='decimal'
+                                            min={0}
+                                            fullWidth
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className='text-sm text-black block mb-1'>Floor</label>
+                                        <StateBaseTextField
+                                            value={newClubhouse.floor || ''}
+                                            onChange={(e) =>
+                                                setNewClubhouse((prev) => ({ ...prev, floor: e.target.value }))
+                                            }
+                                            className='w-full text-sm'
+                                            placeholder='Enter floor'
+                                        />
+                                    </div>
+                                </div>
+                                <div className='flex gap-2'>
+                                    <Button
+                                        bgColor='bg-green-600'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={handleAddClubhouse}
+                                    >
+                                        Add Clubhouse
+                                    </Button>
+                                    <Button
+                                        bgColor='bg-gray-400'
+                                        textColor='text-white'
+                                        className='px-3 py-1 h-8 text-sm'
+                                        onClick={() => {
+                                            setIsAddingClubhouse(false)
+                                            setNewClubhouse({})
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+                            <FlexibleTable
+                                data={projectDetails?.clubhouseDetails || []}
+                                columns={getClubhouseColumns()}
+                                hoverable={true}
+                                borders={{
+                                    table: false,
+                                    header: true,
+                                    rows: true,
+                                    cells: false,
+                                    outer: false,
+                                }}
+                                className='rounded-lg'
+                            />
                         </div>
                     </div>
 

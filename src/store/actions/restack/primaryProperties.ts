@@ -239,76 +239,21 @@ export const fetchTowerDetails = createAsyncThunk<TowerDetail[], string, { rejec
     'TowerDetails/fetchTowerDetails',
     async (projectId: string, { rejectWithValue }) => {
         try {
-            const towers: TowerDetail[] = []
-            let index = 1
+            const docRef = doc(db, 'restackPrimaryTowers', projectId)
+            const docSnapshot = await getDoc(docRef)
 
-            while (true) {
-                const docRef = doc(db, 'restackPrimaryTowers', `${projectId}_tower_${index}`)
-                const docSnapshot = await getDoc(docRef)
-                index++
-
-                if (!docSnapshot.exists()) {
-                    break
-                }
-
-                const data = docSnapshot.data()
-
-                if (!data) {
-                    return rejectWithValue('Invalid or missing tower details in document.')
-                }
-
-                interface FloorPlan {
-                    floorNo: string
-                    noOfUnits: string
-                }
-
-                interface TowerDetailsData {
-                    id?: string
-                    towerName?: string
-                    typeOfTower?: string
-                    floors?: number
-                    units?: number
-                    stilts?: number
-                    slabs?: number
-                    basements?: number
-                    totalParking?: number
-                    towerHeightInMeters?: number
-                    floorplan?: FloorPlan
-                    floorPlan?: FloorPlan[]
-                    unitDetails?: any[]
-                    uploadedAt?: { seconds?: number; nanoseconds?: number }
-                }
-
-                const towerDetails = (TowerDetail: TowerDetailsData): TowerDetail => {
-                    const uploadedAt = TowerDetail.uploadedAt?.seconds
-                        ? TowerDetail.uploadedAt.seconds * 1000 + (TowerDetail.uploadedAt.nanoseconds ?? 0) / 1_000_000
-                        : null
-
-                    return {
-                        id: TowerDetail.id || '',
-                        towerName: TowerDetail.towerName || '',
-                        typeOfTower: TowerDetail.typeOfTower || '',
-                        floors: TowerDetail.floors || 0,
-                        units: TowerDetail.units || 0,
-                        stilts: TowerDetail.stilts || 0,
-                        slabs: TowerDetail.slabs || 0,
-                        basements: TowerDetail.basements || 0,
-                        totalParking: TowerDetail.totalParking || 0,
-                        towerHeightInMeters: TowerDetail.towerHeightInMeters || 0,
-                        floorplan: TowerDetail.floorplan || { floorNo: '', noOfUnits: '' },
-                        floorPlanDetails: (TowerDetail.floorPlan || []).map((fp: any, idx: number) => ({
-                            ...fp,
-                            id: fp.id || `floorplan_${idx}`,
-                        })),
-                        unitDetails: TowerDetail.unitDetails || [],
-                        uploadedAt: uploadedAt ? new Date(uploadedAt) : new Date(),
-                    }
-                }
-
-                towers.push(towerDetails(data))
+            if (!docSnapshot.exists()) {
+                return rejectWithValue('Invalid or missing tower details in document.')
             }
 
-            return towers
+            const data = docSnapshot.data()
+
+            if (!data || !Array.isArray(data.towers)) {
+                return rejectWithValue('Invalid or missing tower details in document.')
+            }
+
+            // Optionally map/transform each tower if needed, otherwise just return as is
+            return data.towers as TowerDetail[]
         } catch (error) {
             console.error('Error fetching tower details:', error)
             return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch tower details')
@@ -350,11 +295,11 @@ export const fetchLandUseAnalysisDetails = createAsyncThunk<LanduseAnalysis, str
             const data = docSnapshot.data()
 
             // Extract only the inventory_details array
-            if (!data.LanduseAnalysis) {
+            if (!data.landuseAnalysis) {
                 return rejectWithValue('No inventory details found in this document.')
             }
 
-            return data.inventory_details as LanduseAnalysis
+            return data.landuseAnalysis as LanduseAnalysis
         } catch (error) {
             console.error('Error fetching inventory details:', error)
             return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch inventory details')
@@ -376,7 +321,7 @@ export const updateLandUseAnalysisDetails = createAsyncThunk<
         if (!docSnapshot.exists()) {
             // If the document doesn't exist, create a new document
             await setDoc(docRef, {
-                LanduseAnalysis: updates,
+                landuseAnalysis: updates,
                 projectId: projectId,
                 reraId: reraId,
                 documentId: reraId,
@@ -387,7 +332,7 @@ export const updateLandUseAnalysisDetails = createAsyncThunk<
 
         // Update the inventory_details field in the document
         await updateDoc(docRef, {
-            LanduseAnalysis: updates,
+            landuseAnalysis: updates,
         })
 
         // Return the updated inventory details

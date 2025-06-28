@@ -87,6 +87,24 @@ const reraStatuses = [
     { label: 'Rejected', value: 'Rejected' },
     { label: 'Not Required', value: 'Not Required' },
 ]
+const amenitiesOptions = [
+    { label: 'Swimming Pool', value: 'Swimming Pool' },
+    { label: 'Gym', value: 'Gym' },
+    { label: 'Playground', value: 'Playground' },
+    { label: 'Clubhouse', value: 'Clubhouse' },
+    { label: 'Security', value: 'Security' },
+    { label: 'Parking', value: 'Parking' },
+    { label: 'Garden', value: 'Garden' },
+    { label: 'Elevator', value: 'Elevator' },
+    { label: 'Power Backup', value: 'Power Backup' },
+    { label: 'Water Supply', value: 'Water Supply' },
+    { label: 'Waste Management', value: 'Waste Management' },
+    { label: 'CCTV Surveillance', value: 'CCTV Surveillance' },
+    { label: 'Fire Safety', value: 'Fire Safety' },
+    { label: 'Kids Play Area', value: 'Kids Play Area' },
+    { label: 'Senior Citizen Area', value: 'Senior Citizen Area' },
+    { label: 'Jogging Track', value: 'Jogging Track' },
+]
 
 const PrimaryDetailsPage = () => {
     const navigate = useNavigate()
@@ -117,7 +135,7 @@ const PrimaryDetailsPage = () => {
     const [newTower, setNewTower] = useState<Partial<TowerDetail>>({})
     const [newClubhouse, setNewClubhouse] = useState<Partial<ClubhouseDetail>>({})
     const [newAmenity, setNewAmenity] = useState('')
-    const [, setSelectedAmenity] = useState('')
+    const [selectedAmenity, setSelectedAmenity] = useState('')
 
     // Tower selection for floor plans and unit details
     const [selectedTowerForFloorPlan, setSelectedTowerForFloorPlan] = useState<TowerDetail | null>(null)
@@ -228,6 +246,52 @@ const PrimaryDetailsPage = () => {
             setOriginalDetails(convertedProperty)
         }
     }, [currentProperty])
+
+    // Amenities management
+    const handleAddAmenityFromDropdown = () => {
+        if (selectedAmenity && projectDetails) {
+            const currentAmenities = projectDetails.amenities || []
+            if (!currentAmenities.includes(selectedAmenity)) {
+                setProjectDetails((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              amenities: [...currentAmenities, selectedAmenity],
+                          }
+                        : null,
+                )
+            }
+            setSelectedAmenity('')
+        }
+    }
+
+    const handleAddCustomAmenity = () => {
+        if (newAmenity.trim() && projectDetails) {
+            const currentAmenities = projectDetails.amenities || []
+            if (!currentAmenities.includes(newAmenity.trim())) {
+                setProjectDetails((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              amenities: [...currentAmenities, newAmenity.trim()],
+                          }
+                        : null,
+                )
+            }
+            setNewAmenity('')
+        }
+    }
+
+    const handleRemoveAmenity = (amenityToRemove: string) => {
+        setProjectDetails((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      projectAmenities: (prev.amenities || []).filter((amenity) => amenity !== amenityToRemove),
+                  }
+                : null,
+        )
+    }
 
     const updateField = (field: string, value: string | number | null) => {
         if (projectDetails) {
@@ -398,31 +462,30 @@ const PrimaryDetailsPage = () => {
     }
 
     // Tower details management
-    const handleAddTower = () => {
-        if (newTower.towerName && newTower.typeOfTower) {
-            const tower: TowerDetail = {
-                id: Date.now().toString(),
-                towerName: newTower.towerName,
-                typeOfTower: newTower.typeOfTower,
-                floors: newTower.floors || 0,
-                units: newTower.units || 0,
-                stilts: newTower.stilts || 0,
-                slabs: newTower.slabs || 0,
-                basements: newTower.basements || 0,
-                totalParking: newTower.totalParking || 0,
-                towerHeightInMeters: newTower.towerHeightInMeters || 0,
-                floorplan: { floorNo: '', noOfUnits: '' },
-                floorPlanDetails: [],
-                unitDetails: [],
-                uploadedAt: new Date(),
-            }
+    // const handleAddTower = () => {
+    //     if (newTower.towerName && newTower.typeOfTower) {
+    //         const tower: TowerDetail = {
+    //             id: Date.now().toString(),
+    //             towerName: newTower.towerName,
+    //             typeOfTower: newTower.typeOfTower,
+    //             floors: newTower.floors || 0,
+    //             units: newTower.units || 0,
+    //             stilts: newTower.stilts || 0,
+    //             slabs: newTower.slabs || 0,
+    //             basements: newTower.basements || 0,
+    //             totalParking: newTower.totalParking || 0,
+    //             towerHeightInMeters: newTower.towerHeightInMeters || 0,
+    //             floorPlan: [],
+    //             UnitDetails: [],
+    //             uploadedAt: new Date(),
+    //         }
 
-            setTowerDetails((prev) => (prev ? [...prev, tower] : [tower]))
+    //         setTowerDetails((prev) => (prev ? [...prev, tower] : [tower]))
 
-            setNewTower({})
-            setIsAddingTower(false)
-        }
-    }
+    //         setNewTower({})
+    //         setIsAddingTower(false)
+    //     }
+    // }
 
     const handleDeleteTower = (towerId: string) => {
         setTowerDetails((prev) => (prev ? prev.filter((tower) => tower.id !== towerId) : null))
@@ -785,7 +848,7 @@ const PrimaryDetailsPage = () => {
             key: 'towerName',
             header: 'Tower Name',
             render: (value: any, row: any) =>
-                isEditing ? (
+                isEditing && !isEditing ? (
                     <StateBaseTextField
                         value={value || ''}
                         onChange={(e) => handleEditTower(row.id, 'towerName', e.target.value)}
@@ -799,7 +862,7 @@ const PrimaryDetailsPage = () => {
             key: 'typeOfTower',
             header: 'Type of Tower',
             render: (value: any, row: any) =>
-                isEditing ? (
+                isEditing && !isEditing ? (
                     <StateBaseTextField
                         value={value || ''}
                         onChange={(e) => handleEditTower(row.id, 'typeOfTower', e.target.value)}
@@ -813,7 +876,7 @@ const PrimaryDetailsPage = () => {
             key: 'floors',
             header: 'Floors',
             render: (value: any, row: any) =>
-                isEditing ? (
+                isEditing && !isEditing ? (
                     <NumberInput
                         label=''
                         placeholder='Enter floors'
@@ -831,7 +894,7 @@ const PrimaryDetailsPage = () => {
             key: 'units',
             header: 'Units',
             render: (value: any, row: any) =>
-                isEditing ? (
+                isEditing && !isEditing ? (
                     <NumberInput
                         label=''
                         placeholder='Enter units'
@@ -849,7 +912,7 @@ const PrimaryDetailsPage = () => {
             key: 'totalParking',
             header: 'Total Parking',
             render: (value: any, row: any) =>
-                isEditing ? (
+                isEditing && !isEditing ? (
                     <NumberInput
                         label=''
                         placeholder='Enter parking'
@@ -867,7 +930,7 @@ const PrimaryDetailsPage = () => {
             key: 'towerHeightInMeters',
             header: 'Height (m)',
             render: (value: any, row: any) =>
-                isEditing ? (
+                isEditing && !isEditing ? (
                     <NumberInput
                         label=''
                         placeholder='Enter height'
@@ -909,7 +972,7 @@ const PrimaryDetailsPage = () => {
                 </div>
             ),
         },
-        ...(isEditing
+        ...(isEditing && !isEditing
             ? [
                   {
                       key: 'actions',
@@ -1056,11 +1119,11 @@ const PrimaryDetailsPage = () => {
             header: 'UDS',
             render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
         },
-        {
-            key: 'parking',
-            header: 'Parking',
-            render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
-        },
+        // {
+        //     key: 'parking',
+        //     header: 'Parking',
+        //     render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
+        // },
     ]
 
     if (loading || !projectDetails) {
@@ -1135,7 +1198,7 @@ const PrimaryDetailsPage = () => {
                     <div className='px-4 pt-5 pb-3 text-[22px] font-bold font-[Inter] text-[#111518]'>
                         Project Overview
                     </div>
-                    <div className='p-4 grid grid-cols-2 gap-0'>
+                    <div className='p-4 grid grid-cols-2 gap-1'>
                         {renderField(
                             'Project Name (As per Rera)',
                             projectDetails?.projectName,
@@ -1174,7 +1237,7 @@ const PrimaryDetailsPage = () => {
 
                     {/* Project Address */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Project Address</h2>
-                    <div className='p-4 grid grid-cols-2'>
+                    <div className='p-4 grid grid-cols-2 gap-1'>
                         {renderField('Project Address', projectDetails?.address, 'address', undefined, 'text')}
                         {renderField('District', projectDetails?.district || '', 'district', undefined, 'text')}
                         {renderField('Latitude', projectDetails?.lat?.toString() || '', 'lat', undefined, 'number')}
@@ -1219,7 +1282,7 @@ const PrimaryDetailsPage = () => {
 
                     {/* Plan Details */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Plan Details</h2>
-                    <div className='p-4 grid grid-cols-2'>
+                    <div className='p-4 grid grid-cols-2 gap-1'>
                         {renderField(
                             'Approving Authority',
                             projectDetails?.approvingAuthority || '',
@@ -1253,7 +1316,7 @@ const PrimaryDetailsPage = () => {
                     {isPlotted ? (
                         <>
                             <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Land Use Analysis</h2>
-                            <div className='p-4 grid grid-cols-2'>
+                            <div className='p-4 grid grid-cols-2 gap-1'>
                                 {renderField(
                                     'Total Plots',
                                     landUseAnalysis?.totalPlots?.toString() || '',
@@ -1322,7 +1385,7 @@ const PrimaryDetailsPage = () => {
                     ) : (
                         <>
                             <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Area Details</h2>
-                            <div className='p-4 grid grid-cols-2'>
+                            <div className='p-4 grid grid-cols-2 gap-1'>
                                 {renderField(
                                     'Total Open Area (Sq Mtr)',
                                     projectDetails?.openArea?.toString() || '',
@@ -1399,7 +1462,7 @@ const PrimaryDetailsPage = () => {
 
                     {/* Source of Water */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Source of Water</h2>
-                    <div className='p-4 grid grid-cols-2'>
+                    <div className='p-4 grid grid-cols-2 gap-1'>
                         {renderField(
                             'Source',
                             convertArrayField(projectDetails?.waterSource).join(', ') || '',
@@ -1587,7 +1650,7 @@ const PrimaryDetailsPage = () => {
                                     />
                                 </div>
                             </div>
-                            <div className='px-4 grid grid-cols-2'>
+                            <div className='px-4 grid grid-cols-2 gap-1'>
                                 {renderField(
                                     'Floor Area Ratio (FAR)',
                                     projectDetails?.floorAreaRatio?.toString() || '',
@@ -1610,7 +1673,7 @@ const PrimaryDetailsPage = () => {
                                     <h2 className='text-lg font-semibold text-black'>
                                         Tower Details ({towerDetails?.length})
                                     </h2>
-                                    {isEditing && (
+                                    {/* {isEditing && (
                                         <Button
                                             bgColor='bg-blue-600'
                                             textColor='text-white'
@@ -1619,7 +1682,7 @@ const PrimaryDetailsPage = () => {
                                         >
                                             + Add Tower
                                         </Button>
-                                    )}
+                                    )} */}
                                 </div>
 
                                 {isAddingTower && (
@@ -1721,7 +1784,7 @@ const PrimaryDetailsPage = () => {
                                                 />
                                             </div>
                                         </div>
-                                        <div className='flex gap-2'>
+                                        {/* <div className='flex gap-2'>
                                             <Button
                                                 bgColor='bg-green-600'
                                                 textColor='text-white'
@@ -1741,7 +1804,7 @@ const PrimaryDetailsPage = () => {
                                             >
                                                 Cancel
                                             </Button>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 )}
 
@@ -1767,11 +1830,11 @@ const PrimaryDetailsPage = () => {
                                 <section className='space-y-4'>
                                     <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
                                         Floor Plan for {selectedTowerForFloorPlan.towerName} : (
-                                        {selectedTowerForFloorPlan.floorPlanDetails?.length}) floors
+                                        {selectedTowerForFloorPlan.floorPlan?.length}) floors
                                     </h3>
                                     <div className='overflow-x-auto px-4 py-3'>
                                         <FlexibleTable
-                                            data={convertArrayField(selectedTowerForFloorPlan.floorPlanDetails)}
+                                            data={convertArrayField(selectedTowerForFloorPlan.floorPlan)}
                                             columns={getFloorPlanColumns()}
                                             hoverable={true}
                                             borders={{
@@ -1791,11 +1854,12 @@ const PrimaryDetailsPage = () => {
                                 <section className='space-y-4'>
                                     <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
                                         Unit Details for {selectedTowerForUnitDetails.towerName} : (
-                                        {selectedTowerForUnitDetails.unitDetails?.length}) units
+                                        {selectedTowerForUnitDetails.UnitDetails?.length}) units
                                     </h3>
+
                                     <div className='overflow-x-auto px-4 py-3'>
                                         <FlexibleTable
-                                            data={convertArrayField(selectedTowerForUnitDetails.unitDetails)}
+                                            data={convertArrayField(selectedTowerForUnitDetails.UnitDetails)}
                                             columns={getUnitDetailsColumns()}
                                             hoverable={true}
                                             borders={{
@@ -1816,7 +1880,7 @@ const PrimaryDetailsPage = () => {
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
                         <h2 className='text-xl font-semibold text-gray-900'>Ground Data</h2>
                     </div>
-                    <div className='p-4 grid grid-cols-2 gap-x-6'>
+                    <div className='p-4 grid grid-cols-2 gap-x-6 '>
                         {renderField(
                             'Price (at the time of launch) (per sqft)',
                             projectDetails?.groundFloor?.findOutTheTypeOfLaunchPerYearWill || '',
@@ -1897,30 +1961,80 @@ const PrimaryDetailsPage = () => {
                     <div className='flex items-center justify-between px-4 pb-3 pt-5'>
                         <h2 className='text-xl font-semibold text-gray-900'>Amenities</h2>
                     </div>
-                    {isEditing ? (
-                        <div className='flex flex-wrap gap-3 p-3 pr-4'>
-                            <textarea
-                                value={newAmenity}
-                                onChange={(e) => {
-                                    setNewAmenity(e.target.value)
-                                }}
-                                className='w-full h-auto text-base border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                placeholder='Enter amenities separated by commas'
-                                rows={3}
-                            />
-                        </div>
-                    ) : (
-                        <div className='flex flex-wrap gap-3 p-3 pr-4'>
-                            {convertArrayField(projectDetails?.amenities).map((amenity: string, index: number) => (
-                                <div
-                                    key={index}
-                                    className='flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#e9edf1] pl-4 pr-4'
-                                >
-                                    <p className='text-[#101419] text-sm font-medium leading-normal'>{amenity}</p>
+                    {isEditing && (
+                        <div className='mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg'>
+                            <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+                                <div>
+                                    <label className='text-sm text-black block mb-2'>
+                                        Select from predefined amenities
+                                    </label>
+                                    <div className='flex gap-2'>
+                                        <div className='flex-1'>
+                                            <Dropdown
+                                                options={amenitiesOptions}
+                                                onSelect={(value) => setSelectedAmenity(value)}
+                                                defaultValue={selectedAmenity}
+                                                placeholder='Select amenity'
+                                                className='relative w-full'
+                                                triggerClassName='flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 w-full cursor-pointer'
+                                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto'
+                                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                            />
+                                        </div>
+                                        <Button
+                                            bgColor='bg-blue-600'
+                                            textColor='text-white'
+                                            className='px-3 py-2 h-10 text-sm'
+                                            onClick={handleAddAmenityFromDropdown}
+                                            disabled={!selectedAmenity}
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
                                 </div>
-                            ))}
+                                <div>
+                                    <label className='text-sm text-black block mb-2'>Add custom amenity</label>
+                                    <div className='flex gap-2'>
+                                        <div className='flex-1'>
+                                            <StateBaseTextField
+                                                value={newAmenity}
+                                                onChange={(e) => setNewAmenity(e.target.value)}
+                                                className='w-full text-sm'
+                                                placeholder='Enter custom amenity'
+                                            />
+                                        </div>
+                                        <Button
+                                            bgColor='bg-green-600'
+                                            textColor='text-white'
+                                            className='px-3 py-2 h-10 text-sm'
+                                            onClick={handleAddCustomAmenity}
+                                            disabled={!newAmenity.trim()}
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
+                    <div className='flex flex-wrap gap-3 p-3 pr-4'>
+                        {convertArrayField(projectDetails?.amenities).map((amenity: string, index: number) => (
+                            <div
+                                key={index}
+                                className='flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#e9edf1] pl-4 pr-4'
+                            >
+                                <p className='text-[#101419] text-sm font-medium leading-normal'>{amenity}</p>
+                                {isEditing && (
+                                    <button
+                                        onClick={() => handleRemoveAmenity(amenity)}
+                                        className='text-red-500 hover:text-red-700 ml-1'
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
 
                     {/* Clubhouse Details */}
                     <div className='mb-8 px-4'>

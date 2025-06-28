@@ -172,9 +172,8 @@ export interface TowerDetail {
     basements: number
     totalParking: number
     towerHeightInMeters: number
-    floorplan: FloorPlan
-    floorPlanDetails?: FloorPlanDetail[]
-    unitDetails?: UnitDetail[]
+    floorPlan?: FloorPlanDetail[]
+    UnitDetails?: UnitDetail[]
     uploadedAt: timestamp
 }
 
