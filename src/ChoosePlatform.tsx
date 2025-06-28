@@ -67,17 +67,17 @@ const ChoosePlatform = () => {
     const { loading, platform } = useAuth()
 
     if (platform) {
-        let totalAvailablePlatforms = 0
-        for (let i = 0; i < platform.length; i++) {
-            if (platform[i].role) {
-                totalAvailablePlatforms++
-            }
-        }
-        if (totalAvailablePlatforms === 1) {
-            for (let i = 0; i < platform.length; i++) {
-                if (platform[i].role) {
-                    navigate(options[i].path)
-                }
+        const platformEntries = Object.entries(platform)
+        const availablePlatforms = platformEntries.filter(([_, platformData]) => platformData?.role)
+
+        if (availablePlatforms.length === 1) {
+            const [platformKey] = availablePlatforms[0]
+            const platformOption = options.find(
+                (option) =>
+                    option.value === platformKey || (platformKey === 'canvasHomes' && option.value === 'canvas-homes'),
+            )
+            if (platformOption) {
+                navigate(platformOption.path)
             }
         }
     }

@@ -71,7 +71,7 @@ const loadGoogleMapsScript = (): Promise<void> => {
  * - Debounced search with 500ms delay
  * - Location restriction to India
  * - Auto-complete suggestions
- * - Place details fetching
+ * - Place details fetching with enhanced address components
  * - Error handling and loading states
  * - Click outside to close
  * - Clear functionality
@@ -206,17 +206,46 @@ const PlacesSearch: React.FC<PlacesSearchProps> = ({
             placesService.current.getDetails(
                 {
                     placeId,
-                    fields: ['name', 'formatted_address', 'geometry', 'url'],
+                    fields: ['name', 'formatted_address', 'geometry', 'url', 'address_components', 'place_id', 'types'],
                 },
                 (place, status) => {
                     if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
-                        resolve({
+                        // Extract additional address components for better data quality
+                        let locality = ''
+                        let postalCode = ''
+                        let administrativeArea = ''
+
+                        if (place.address_components) {
+                            place.address_components.forEach((component) => {
+                                const types = component.types
+                                if (types.includes('locality')) {
+                                    locality = component.long_name
+                                } else if (types.includes('postal_code')) {
+                                    postalCode = component.long_name
+                                } else if (types.includes('administrative_area_level_1')) {
+                                    administrativeArea = component.long_name
+                                }
+                            })
+                        }
+
+                        const placeData: Places = {
                             name: place.name || '',
                             address: place.formatted_address || '',
                             lat: place.geometry.location.lat(),
                             lng: place.geometry.location.lng(),
                             mapLocation: place.url || '',
+                        }
+
+                        console.log('📍 Enhanced place details:', {
+                            ...placeData,
+                            locality,
+                            postalCode,
+                            administrativeArea,
+                            placeId: place.place_id,
+                            types: place.types,
                         })
+
+                        resolve(placeData)
                     } else {
                         setApiError(`Failed to fetch place details: ${status}`)
                         resolve(null)

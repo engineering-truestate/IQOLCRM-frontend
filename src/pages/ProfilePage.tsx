@@ -4,7 +4,7 @@ import { logoutUser } from '../services/auth'
 import { useNavigate } from 'react-router-dom'
 
 const ProfilePage: React.FC = () => {
-    const { user, role, platform } = useAuth()
+    const { user, role } = useAuth()
     const [isLoading, setIsLoading] = React.useState(false)
     const [showConfirm, setShowConfirm] = React.useState(false)
     const navigate = useNavigate()
@@ -71,7 +71,7 @@ const ProfilePage: React.FC = () => {
                         </div>
                         <div>
                             <span className='font-semibold'>Platform:</span>{' '}
-                            {Array.isArray(platform) ? platform.join(', ') : platform || 'N/A'}
+                            {/* {Array.isArray(platform) ? platform.join(', ') : platform || 'N/A'} */}
                         </div>
                         <div>
                             <span className='font-semibold'>Providers:</span>{' '}
