@@ -13,8 +13,11 @@ import type {
     DevelopmentDetail,
     TowerDetail,
     ClubhouseDetail,
+    PlotDimension,
+    LanduseAnalysis,
 } from '../../../data_types/restack/restack-primary'
 import editic from '/icons/acn/edit.svg'
+import * as primaryPropertiesActions from '../../../store/actions/restack/primaryProperties'
 import { fetchInventoryDetails } from '../../../store/actions/restack/primaryProperties'
 
 import {
@@ -29,6 +32,7 @@ import Breadcrumb from '../../../components/acn/Breadcrumb'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 import { toast } from 'react-toastify'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import PDFUploadComponent from '../../../components/restack/PDFUploadComponent'
 
 // Utility function to safely convert amenities from Firestore format to array
 const convertAmenitiesToArray = (amenities: any): string[] => {
@@ -88,9 +92,16 @@ const PrimaryDetailsPage = () => {
     const navigate = useNavigate()
     const { id } = useParams()
     const dispatch = useDispatch<AppDispatch>()
-    const { currentProperty, loading, error } = useSelector((state: RootState) => state.primaryProperties)
-    const [inventoryDetails, setInventoryDetails] = useState<DevelopmentDetail[] | null>(null)
 
+    const { currentProperty, loading, error } = useSelector((state: RootState) => state.primaryProperties)
+
+    const [inventoryDetails, setInventoryDetails] = useState<DevelopmentDetail[] | null>(null)
+    const [towerDetails, setTowerDetails] = useState<TowerDetail[] | null>(null)
+
+    const [landUseAnalysis, setLandUseAnalysis] = useState<LanduseAnalysis>()
+    const [plotDimension, setPlotDimension] = useState<PlotDimension[] | null>(null)
+
+    const isPlotted = currentProperty?.projectType === 'Plotted Development'
     // Main state management
     const [projectDetails, setProjectDetails] = useState<PrimaryProperty | null>(null)
     const [originalDetails, setOriginalDetails] = useState<PrimaryProperty | null>(null)
@@ -150,7 +161,49 @@ const PrimaryDetailsPage = () => {
                 }
             }
         }
+        const fetchTowers = async () => {
+            if (id) {
+                const action = await dispatch(primaryPropertiesActions.fetchTowerDetails(id as string))
 
+                if (action && 'payload' in action && action.payload !== undefined && Array.isArray(action.payload)) {
+                    setTowerDetails(action.payload as TowerDetail[])
+                } else {
+                    setTowerDetails([])
+                }
+            }
+        }
+        if (isPlotted) {
+            const fetchLandUseData = async () => {
+                if (id) {
+                    const action = await dispatch(primaryPropertiesActions.fetchLandUseAnalysisDetails(id as string))
+                    if (action && 'payload' in action && action.payload !== undefined) {
+                        setLandUseAnalysis(action.payload as LanduseAnalysis)
+                    } else {
+                        setLandUseAnalysis(undefined)
+                    }
+                }
+            }
+            fetchLandUseData()
+        }
+        if (isPlotted) {
+            const fetchPlotData = async () => {
+                if (id) {
+                    const action = await dispatch(primaryPropertiesActions.fetchPlotDimensionDetails(id as string))
+                    if (
+                        action &&
+                        'payload' in action &&
+                        action.payload !== undefined &&
+                        Array.isArray(action.payload)
+                    ) {
+                        setPlotDimension(action.payload as PlotDimension[])
+                    } else {
+                        setPlotDimension([])
+                    }
+                }
+            }
+            fetchPlotData()
+        }
+        fetchTowers()
         fetchInventory()
     }, [id, dispatch])
 
@@ -162,7 +215,6 @@ const PrimaryDetailsPage = () => {
                 amenities: convertAmenitiesToArray(currentProperty.amenities),
                 waterSource: convertArrayField(currentProperty.waterSource),
                 developmentDetails: convertArrayField(currentProperty.developmentDetails),
-                towerDetails: convertArrayField(currentProperty.towerDetails),
                 apartments: convertArrayField(currentProperty.apartments),
                 villas: convertArrayField(currentProperty.villas),
                 plots: convertArrayField(currentProperty.plots),
@@ -214,7 +266,6 @@ const PrimaryDetailsPage = () => {
                     Object.keys(projectDetails).forEach((key) => {
                         const typedKey = key as keyof PrimaryProperty
                         if (
-                            typedKey === 'towerDetails' ||
                             typedKey === 'apartments' ||
                             typedKey === 'villas' ||
                             typedKey === 'plots' ||
@@ -263,6 +314,16 @@ const PrimaryDetailsPage = () => {
                             projectId: id,
                             updates: inventoryUpdates,
                             reraId: projectDetails?.reraId || '',
+                        }),
+                    )
+                }
+
+                // Update tower details if changed
+                if (towerDetails && originalDetails && !deepCompare(towerDetails, originalDetails.towerDetails)) {
+                    await dispatch(
+                        primaryPropertiesActions.updateTowerDetails({
+                            projectId: id,
+                            updates: towerDetails,
                         }),
                     )
                 }
@@ -353,16 +414,10 @@ const PrimaryDetailsPage = () => {
                 floorplan: { floorNo: '', noOfUnits: '' },
                 floorPlanDetails: [],
                 unitDetails: [],
+                uploadedAt: new Date(),
             }
 
-            setProjectDetails((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          towerDetails: [...(prev.towerDetails || []), tower],
-                      }
-                    : null,
-            )
+            setTowerDetails((prev) => (prev ? [...prev, tower] : [tower]))
 
             setNewTower({})
             setIsAddingTower(false)
@@ -370,26 +425,12 @@ const PrimaryDetailsPage = () => {
     }
 
     const handleDeleteTower = (towerId: string) => {
-        setProjectDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      towerDetails: (prev.towerDetails || []).filter((tower) => tower.id !== towerId),
-                  }
-                : null,
-        )
+        setTowerDetails((prev) => (prev ? prev.filter((tower) => tower.id !== towerId) : null))
     }
 
     const handleEditTower = (towerId: string, field: string, value: string | number) => {
-        setProjectDetails((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      towerDetails: (prev.towerDetails || []).map((tower) =>
-                          tower.id === towerId ? { ...tower, [field]: value } : tower,
-                      ),
-                  }
-                : null,
+        setTowerDetails((prev) =>
+            prev ? prev.map((tower) => (tower.id === towerId ? { ...tower, [field]: value } : tower)) : null,
         )
     }
 
@@ -438,6 +479,11 @@ const PrimaryDetailsPage = () => {
                       ),
                   }
                 : null,
+        )
+    }
+    const handleEditPlotDimension = (index: number, field: string, value: string | number) => {
+        setPlotDimension((prev) =>
+            prev ? prev.map((dev, i) => (i === index ? { ...dev, [field]: value } : dev)) : null,
         )
     }
 
@@ -528,6 +574,81 @@ const PrimaryDetailsPage = () => {
             )
         }
     }
+    const getPlotDimensionColumns = (): TableColumn[] => [
+        {
+            key: 'slno',
+            header: 'Sl No.',
+            render: (value: any, row: any) =>
+                isEditing ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter size'
+                        value={parseFloat(value || '0')}
+                        onChange={(numValue: number | null) => {
+                            handleEditPlotDimension(row.id, 'slno', (numValue || 0).toString())
+                        }}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
+        },
+        {
+            key: 'plotType',
+            header: 'Plot Type',
+            render: (value: any, row: any) =>
+                isEditing ? (
+                    <StateBaseTextField
+                        value={value || ''}
+                        onChange={(e) => handleEditPlotDimension(row.id, 'plotType', e.target.value)}
+                        className='w-full text-sm'
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
+        },
+        {
+            key: 'numberOfSites',
+            header: 'Number of Sites',
+            render: (value: any, row: any) =>
+                isEditing ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter size'
+                        value={parseFloat(value || '0')}
+                        onChange={(numValue: number | null) => {
+                            handleEditPlotDimension(row.id, 'numberOfSites', (numValue || 0).toString())
+                        }}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
+        },
+        {
+            key: 'totalArea',
+            header: 'Total Area (in Sq.Mtr)',
+            render: (value: any, row: any) =>
+                isEditing ? (
+                    <NumberInput
+                        label=''
+                        placeholder='Enter size'
+                        value={parseFloat(value || '0')}
+                        onChange={(numValue: number | null) => {
+                            handleEditPlotDimension(row.id, 'totalArea', (numValue || 0).toString())
+                        }}
+                        min={0}
+                        fullWidth
+                    />
+                ) : (
+                    <span className='text-sm font-medium'>{value}</span>
+                ),
+        },
+    ]
 
     const getDevelopmentColumns = () => [
         {
@@ -896,7 +1017,7 @@ const PrimaryDetailsPage = () => {
 
     const getUnitDetailsColumns = (): TableColumn[] => [
         {
-            key: 'slNo',
+            key: 'slno',
             header: 'Sl No',
             render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
         },
@@ -911,7 +1032,7 @@ const PrimaryDetailsPage = () => {
             render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
         },
         {
-            key: 'unitType',
+            key: 'unittypeOfTower',
             header: 'Unit Type',
             render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
         },
@@ -921,17 +1042,17 @@ const PrimaryDetailsPage = () => {
             render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
         },
         {
-            key: 'exclusiveArea',
+            key: 'exclusiveCommonArea',
             header: 'Exclusive Area',
             render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
         },
         {
-            key: 'associationArea',
+            key: 'associationCommonArea',
             header: 'Association Area',
             render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
         },
         {
-            key: 'uds',
+            key: 'undiviedShare',
             header: 'UDS',
             render: (value: any) => <span className='text-sm font-medium'>{value}</span>,
         },
@@ -958,6 +1079,11 @@ const PrimaryDetailsPage = () => {
                 <div className='text-gray-600 font-bold p-8'>No property data found.</div>
             </Layout>
         )
+    }
+
+    // Add this function to handle master plan file updates
+    const updateMapPlan = (field: string, files: any[]) => {
+        setProjectDetails((prev) => (prev ? { ...prev, [field]: files } : prev))
     }
 
     return (
@@ -1124,80 +1250,152 @@ const PrimaryDetailsPage = () => {
                         )}
                     </div>
 
-                    {/* Area Details */}
-                    <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Area Details</h2>
-                    <div className='p-4 grid grid-cols-2'>
-                        {renderField(
-                            'Total Open Area (Sq Mtr)',
-                            projectDetails?.openArea?.toString() || '',
-                            'openArea',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Total Covered Area (Sq Mtr)',
-                            projectDetails?.coveredArea?.toString() || '',
-                            'coveredArea',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Total Area Of Land (Sq Mtr)',
-                            projectDetails?.landArea?.toString() || '',
-                            'landArea',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Total Built-up Area of all the Floors (Sq Mtr)',
-                            projectDetails?.builtUpArea?.toString() || '',
-                            'builtUpArea',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Total Carpet Area of all the Floors (Sq Mtr)',
-                            projectDetails?.carpetArea?.toString() || '',
-                            'carpetArea',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Total Plinth Area (Sq Mtr)',
-                            projectDetails?.plinthArea?.toString() || '',
-                            'plinthArea',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Area Of Open Parking (Sq Mtr)',
-                            projectDetails?.openParkingArea?.toString() || '',
-                            'openParkingArea',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Area Of Covered Parking (Sq Mtr)',
-                            projectDetails?.coveredParkingArea?.toString() || '',
-                            'coveredParkingArea',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Area of Garage (Sq Mtr)',
-                            projectDetails?.garageArea?.toString() || '',
-                            'garageArea',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Total Parking',
-                            projectDetails?.totalParking?.toString() || '',
-                            'totalParking',
-                            undefined,
-                            'number',
-                        )}
-                    </div>
+                    {isPlotted ? (
+                        <>
+                            <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Land Use Analysis</h2>
+                            <div className='p-4 grid grid-cols-2'>
+                                {renderField(
+                                    'Total Plots',
+                                    landUseAnalysis?.totalPlots?.toString() || '',
+                                    'totalPlots',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Parks and Open space',
+                                    landUseAnalysis?.parkArea?.toString() || '',
+                                    'parkArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'No. of CA Sits',
+                                    landUseAnalysis?.numberofCAsites?.toString() || '',
+                                    'numberofCAsites',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Covered Area',
+                                    landUseAnalysis?.coveredArea?.toString() || '',
+                                    'coveredArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Area of Parks and Open Spaces',
+                                    landUseAnalysis?.parksNumber?.toString() || '',
+                                    'parksNumber',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Area of CA Sites',
+                                    landUseAnalysis?.areaofCAsites?.toString() || '',
+                                    'areaofCAsites',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Area of Roads',
+                                    landUseAnalysis?.roadArea?.toString() || '',
+                                    'roadArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Open Area',
+                                    landUseAnalysis?.openArea?.toString() || '',
+                                    'openArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Area Land',
+                                    landUseAnalysis?.landArea?.toString() || '',
+                                    'landArea',
+                                    undefined,
+                                    'number',
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Area Details</h2>
+                            <div className='p-4 grid grid-cols-2'>
+                                {renderField(
+                                    'Total Open Area (Sq Mtr)',
+                                    projectDetails?.openArea?.toString() || '',
+                                    'openArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Covered Area (Sq Mtr)',
+                                    projectDetails?.coveredArea?.toString() || '',
+                                    'coveredArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Area Of Land (Sq Mtr)',
+                                    projectDetails?.landArea?.toString() || '',
+                                    'landArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Built-up Area of all the Floors (Sq Mtr)',
+                                    projectDetails?.builtUpArea?.toString() || '',
+                                    'builtUpArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Carpet Area of all the Floors (Sq Mtr)',
+                                    projectDetails?.carpetArea?.toString() || '',
+                                    'carpetArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Plinth Area (Sq Mtr)',
+                                    projectDetails?.plinthArea?.toString() || '',
+                                    'plinthArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Area Of Open Parking (Sq Mtr)',
+                                    projectDetails?.openParkingArea?.toString() || '',
+                                    'openParkingArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Area Of Covered Parking (Sq Mtr)',
+                                    projectDetails?.coveredParkingArea?.toString() || '',
+                                    'coveredParkingArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Area of Garage (Sq Mtr)',
+                                    projectDetails?.garageArea?.toString() || '',
+                                    'garageArea',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Total Parking',
+                                    projectDetails?.totalParking?.toString() || '',
+                                    'totalParking',
+                                    undefined,
+                                    'number',
+                                )}
+                            </div>
+                        </>
+                    )}
 
                     {/* Source of Water */}
                     <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Source of Water</h2>
@@ -1211,366 +1409,407 @@ const PrimaryDetailsPage = () => {
                         )}
                     </div>
 
-                    {/* Development Details */}
-                    <div className='mb-8 px-4'>
-                        <div className='flex items-center justify-between mb-4'>
-                            <h2 className='text-lg font-semibold text-black'>Development Details</h2>
-                            {isEditing && (
-                                <Button
-                                    bgColor='bg-blue-600'
-                                    textColor='text-white'
-                                    className='px-3 py-1 h-8 text-sm'
-                                    onClick={() => setIsAddingDevelopment(true)}
-                                >
-                                    + Add Development
-                                </Button>
-                            )}
-                        </div>
+                    {isPlotted ? (
+                        <>
+                            <div className='px-4'>
+                                <h2 className='text-xl font-semibold text-gray-900 pb-3 pt-5'>Plot Dimension</h2>
 
-                        {isAddingDevelopment && (
-                            <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4'>
-                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Type of Inventory</label>
-                                        <StateBaseTextField
-                                            value={newDevelopment.TypeOfInventory || ''}
-                                            onChange={(e) =>
-                                                setNewDevelopment((prev) => ({
-                                                    ...prev,
-                                                    TypeOfInventory: e.target.value,
-                                                }))
-                                            }
-                                            className='w-full text-sm'
-                                            placeholder='Enter inventory type'
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Number of Inventory</label>
-                                        <NumberInput
-                                            label=''
-                                            placeholder='Enter number'
-                                            value={newDevelopment.NumberOfInventory || 0}
-                                            onChange={(numValue: number | null) => {
-                                                setNewDevelopment((prev) => ({
-                                                    ...prev,
-                                                    NumberOfInventory: numValue || 0,
-                                                }))
-                                            }}
-                                            numberType='integer'
-                                            min={0}
-                                            fullWidth
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Carpet Area (Sq Mtr)</label>
-                                        <NumberInput
-                                            label=''
-                                            placeholder='Enter area'
-                                            value={newDevelopment.CarpetAreaSqMtr || 0}
-                                            onChange={(numValue: number | null) => {
-                                                setNewDevelopment((prev) => ({
-                                                    ...prev,
-                                                    CarpetAreaSqMtr: numValue || 0,
-                                                }))
-                                            }}
-                                            numberType='decimal'
-                                            min={0}
-                                            fullWidth
-                                        />
-                                    </div>
-                                </div>
-                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>
-                                            Balcony/Verandah (Sq Mtr)
-                                        </label>
-                                        <NumberInput
-                                            label=''
-                                            placeholder='Enter area'
-                                            value={newDevelopment.BalconyVerandahSqMtr || 0}
-                                            onChange={(numValue: number | null) => {
-                                                setNewDevelopment((prev) => ({
-                                                    ...prev,
-                                                    BalconyVerandahSqMtr: numValue || 0,
-                                                }))
-                                            }}
-                                            numberType='decimal'
-                                            min={0}
-                                            fullWidth
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Open Terrace (Sq Mtr)</label>
-                                        <NumberInput
-                                            label=''
-                                            placeholder='Enter area'
-                                            value={newDevelopment.OpenTerraceSqMtr || 0}
-                                            onChange={(numValue: number | null) => {
-                                                setNewDevelopment((prev) => ({
-                                                    ...prev,
-                                                    OpenTerraceSqMtr: numValue || 0,
-                                                }))
-                                            }}
-                                            numberType='decimal'
-                                            min={0}
-                                            fullWidth
-                                        />
-                                    </div>
-                                </div>
-                                <div className='flex gap-2'>
-                                    <Button
-                                        bgColor='bg-green-600'
-                                        textColor='text-white'
-                                        className='px-3 py-1 h-8 text-sm'
-                                        onClick={handleAddDevelopment}
-                                    >
-                                        Add Development
-                                    </Button>
-                                    <Button
-                                        bgColor='bg-gray-400'
-                                        textColor='text-white'
-                                        className='px-3 py-1 h-8 text-sm'
-                                        onClick={() => {
-                                            setIsAddingDevelopment(false)
-                                            setNewDevelopment({})
+                                <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+                                    <FlexibleTable
+                                        data={plotDimension || []}
+                                        columns={getPlotDimensionColumns()}
+                                        hoverable={true}
+                                        borders={{
+                                            table: false,
+                                            header: true,
+                                            rows: true,
+                                            cells: false,
+                                            outer: false,
                                         }}
-                                    >
-                                        Cancel
-                                    </Button>
+                                        className='rounded-lg'
+                                    />
                                 </div>
                             </div>
-                        )}
-
-                        <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
-                            <FlexibleTable
-                                data={inventoryDetails || []}
-                                columns={getDevelopmentColumns()}
-                                hoverable={true}
-                                borders={{
-                                    table: false,
-                                    header: true,
-                                    rows: true,
-                                    cells: false,
-                                    outer: false,
-                                }}
-                                className='rounded-lg'
-                            />
-                        </div>
-                    </div>
-                    <div className='px-4 grid grid-cols-2'>
-                        {renderField(
-                            'Floor Area Ratio (FAR)',
-                            projectDetails?.floorAreaRatio?.toString() || '',
-                            'floorAreaRatio',
-                            undefined,
-                            'number',
-                        )}
-                        {renderField(
-                            'Number of Towers',
-                            projectDetails?.totalTowers?.toString() || '',
-                            'totalTowers',
-                            undefined,
-                            'number',
-                        )}
-                    </div>
-
-                    {/* Tower Details */}
-                    <div className='mb-8 px-4'>
-                        <div className='flex items-center justify-between mb-4'>
-                            <h2 className='text-lg font-semibold text-black'>Tower Details</h2>
-                            {isEditing && (
-                                <Button
-                                    bgColor='bg-blue-600'
-                                    textColor='text-white'
-                                    className='px-3 py-1 h-8 text-sm'
-                                    onClick={() => setIsAddingTower(true)}
-                                >
-                                    + Add Tower
-                                </Button>
-                            )}
-                        </div>
-
-                        {isAddingTower && (
-                            <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4'>
-                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Tower Name</label>
-                                        <StateBaseTextField
-                                            value={newTower.towerName || ''}
-                                            onChange={(e) =>
-                                                setNewTower((prev) => ({ ...prev, towerName: e.target.value }))
-                                            }
-                                            className='w-full text-sm'
-                                            placeholder='Enter tower name'
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Type of Tower</label>
-                                        <StateBaseTextField
-                                            value={newTower.typeOfTower || ''}
-                                            onChange={(e) =>
-                                                setNewTower((prev) => ({ ...prev, typeOfTower: e.target.value }))
-                                            }
-                                            className='w-full text-sm'
-                                            placeholder='Enter tower type'
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Floors</label>
-                                        <NumberInput
-                                            label=''
-                                            placeholder='Enter number of floors'
-                                            value={newTower.floors || 0}
-                                            onChange={(numValue: number | null) => {
-                                                setNewTower((prev) => ({
-                                                    ...prev,
-                                                    floors: numValue || 0,
-                                                }))
-                                            }}
-                                            numberType='integer'
-                                            min={0}
-                                            fullWidth
-                                        />
-                                    </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* Development Details */}
+                            <div className='mb-8 px-4'>
+                                <div className='flex items-center justify-between mb-4'>
+                                    <h2 className='text-lg font-semibold text-black'>Development Details</h2>
+                                    {isEditing && (
+                                        <Button
+                                            bgColor='bg-blue-600'
+                                            textColor='text-white'
+                                            className='px-3 py-1 h-8 text-sm'
+                                            onClick={() => setIsAddingDevelopment(true)}
+                                        >
+                                            + Add Development
+                                        </Button>
+                                    )}
                                 </div>
-                                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Units</label>
-                                        <NumberInput
-                                            label=''
-                                            placeholder='Enter number of units'
-                                            value={newTower.units || 0}
-                                            onChange={(numValue: number | null) => {
-                                                setNewTower((prev) => ({
-                                                    ...prev,
-                                                    units: numValue || 0,
-                                                }))
-                                            }}
-                                            numberType='integer'
-                                            min={0}
-                                            fullWidth
-                                        />
+
+                                {isAddingDevelopment && (
+                                    <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4'>
+                                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>
+                                                    Type of Inventory
+                                                </label>
+                                                <StateBaseTextField
+                                                    value={newDevelopment.TypeOfInventory || ''}
+                                                    onChange={(e) =>
+                                                        setNewDevelopment((prev) => ({
+                                                            ...prev,
+                                                            TypeOfInventory: e.target.value,
+                                                        }))
+                                                    }
+                                                    className='w-full text-sm'
+                                                    placeholder='Enter inventory type'
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>
+                                                    Number of Inventory
+                                                </label>
+                                                <NumberInput
+                                                    label=''
+                                                    placeholder='Enter number'
+                                                    value={newDevelopment.NumberOfInventory || 0}
+                                                    onChange={(numValue: number | null) => {
+                                                        setNewDevelopment((prev) => ({
+                                                            ...prev,
+                                                            NumberOfInventory: numValue || 0,
+                                                        }))
+                                                    }}
+                                                    numberType='integer'
+                                                    min={0}
+                                                    fullWidth
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>
+                                                    Carpet Area (Sq Mtr)
+                                                </label>
+                                                <NumberInput
+                                                    label=''
+                                                    placeholder='Enter area'
+                                                    value={newDevelopment.CarpetAreaSqMtr || 0}
+                                                    onChange={(numValue: number | null) => {
+                                                        setNewDevelopment((prev) => ({
+                                                            ...prev,
+                                                            CarpetAreaSqMtr: numValue || 0,
+                                                        }))
+                                                    }}
+                                                    numberType='decimal'
+                                                    min={0}
+                                                    fullWidth
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>
+                                                    Balcony/Verandah (Sq Mtr)
+                                                </label>
+                                                <NumberInput
+                                                    label=''
+                                                    placeholder='Enter area'
+                                                    value={newDevelopment.BalconyVerandahSqMtr || 0}
+                                                    onChange={(numValue: number | null) => {
+                                                        setNewDevelopment((prev) => ({
+                                                            ...prev,
+                                                            BalconyVerandahSqMtr: numValue || 0,
+                                                        }))
+                                                    }}
+                                                    numberType='decimal'
+                                                    min={0}
+                                                    fullWidth
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>
+                                                    Open Terrace (Sq Mtr)
+                                                </label>
+                                                <NumberInput
+                                                    label=''
+                                                    placeholder='Enter area'
+                                                    value={newDevelopment.OpenTerraceSqMtr || 0}
+                                                    onChange={(numValue: number | null) => {
+                                                        setNewDevelopment((prev) => ({
+                                                            ...prev,
+                                                            OpenTerraceSqMtr: numValue || 0,
+                                                        }))
+                                                    }}
+                                                    numberType='decimal'
+                                                    min={0}
+                                                    fullWidth
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className='flex gap-2'>
+                                            <Button
+                                                bgColor='bg-green-600'
+                                                textColor='text-white'
+                                                className='px-3 py-1 h-8 text-sm'
+                                                onClick={handleAddDevelopment}
+                                            >
+                                                Add Development
+                                            </Button>
+                                            <Button
+                                                bgColor='bg-gray-400'
+                                                textColor='text-white'
+                                                className='px-3 py-1 h-8 text-sm'
+                                                onClick={() => {
+                                                    setIsAddingDevelopment(false)
+                                                    setNewDevelopment({})
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Total Parking</label>
-                                        <NumberInput
-                                            label=''
-                                            placeholder='Enter parking count'
-                                            value={newTower.totalParking || 0}
-                                            onChange={(numValue: number | null) => {
-                                                setNewTower((prev) => ({
-                                                    ...prev,
-                                                    totalParking: numValue || 0,
-                                                }))
-                                            }}
-                                            numberType='integer'
-                                            min={0}
-                                            fullWidth
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className='text-sm text-black block mb-1'>Height (m)</label>
-                                        <NumberInput
-                                            label=''
-                                            placeholder='Enter height'
-                                            value={newTower.towerHeightInMeters || 0}
-                                            onChange={(numValue: number | null) => {
-                                                setNewTower((prev) => ({
-                                                    ...prev,
-                                                    towerHeightInMeters: numValue || 0,
-                                                }))
-                                            }}
-                                            numberType='decimal'
-                                            min={0}
-                                            fullWidth
-                                        />
-                                    </div>
-                                </div>
-                                <div className='flex gap-2'>
-                                    <Button
-                                        bgColor='bg-green-600'
-                                        textColor='text-white'
-                                        className='px-3 py-1 h-8 text-sm'
-                                        onClick={handleAddTower}
-                                    >
-                                        Add Tower
-                                    </Button>
-                                    <Button
-                                        bgColor='bg-gray-400'
-                                        textColor='text-white'
-                                        className='px-3 py-1 h-8 text-sm'
-                                        onClick={() => {
-                                            setIsAddingTower(false)
-                                            setNewTower({})
+                                )}
+
+                                <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+                                    <FlexibleTable
+                                        data={inventoryDetails || []}
+                                        columns={getDevelopmentColumns()}
+                                        hoverable={true}
+                                        borders={{
+                                            table: false,
+                                            header: true,
+                                            rows: true,
+                                            cells: false,
+                                            outer: false,
                                         }}
-                                    >
-                                        Cancel
-                                    </Button>
+                                        className='rounded-lg'
+                                    />
                                 </div>
                             </div>
-                        )}
-
-                        <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
-                            <FlexibleTable
-                                data={projectDetails?.towerDetails || []}
-                                columns={getTowerColumns()}
-                                hoverable={true}
-                                borders={{
-                                    table: false,
-                                    header: true,
-                                    rows: true,
-                                    cells: false,
-                                    outer: false,
-                                }}
-                                className='rounded-lg'
-                            />
-                        </div>
-                    </div>
-
-                    {/* Floor Plan Section (conditionally rendered) */}
-                    {selectedTowerForFloorPlan && (
-                        <section className='space-y-4'>
-                            <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
-                                Floor Plan for {selectedTowerForFloorPlan.towerName}
-                            </h3>
-                            <div className='overflow-x-auto px-4 py-3'>
-                                <FlexibleTable
-                                    data={convertArrayField(selectedTowerForFloorPlan.floorPlanDetails)}
-                                    columns={getFloorPlanColumns()}
-                                    hoverable={true}
-                                    borders={{
-                                        table: true,
-                                        header: true,
-                                        rows: true,
-                                        cells: false,
-                                        outer: true,
-                                    }}
-                                />
+                            <div className='px-4 grid grid-cols-2'>
+                                {renderField(
+                                    'Floor Area Ratio (FAR)',
+                                    projectDetails?.floorAreaRatio?.toString() || '',
+                                    'floorAreaRatio',
+                                    undefined,
+                                    'number',
+                                )}
+                                {renderField(
+                                    'Number of Towers',
+                                    projectDetails?.totalTowers?.toString() || '',
+                                    'totalTowers',
+                                    undefined,
+                                    'number',
+                                )}
                             </div>
-                        </section>
-                    )}
 
-                    {/* Unit Details Section (conditionally rendered) */}
-                    {selectedTowerForUnitDetails && (
-                        <section className='space-y-4'>
-                            <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
-                                Unit Details for {selectedTowerForUnitDetails.towerName}
-                            </h3>
-                            <div className='overflow-x-auto px-4 py-3'>
-                                <FlexibleTable
-                                    data={convertArrayField(selectedTowerForUnitDetails.unitDetails)}
-                                    columns={getUnitDetailsColumns()}
-                                    hoverable={true}
-                                    borders={{
-                                        table: true,
-                                        header: true,
-                                        rows: true,
-                                        cells: false,
-                                        outer: true,
-                                    }}
-                                />
+                            {/* Tower Details */}
+                            <div className='mb-8 px-4'>
+                                <div className='flex items-center justify-between mb-4'>
+                                    <h2 className='text-lg font-semibold text-black'>
+                                        Tower Details ({towerDetails?.length})
+                                    </h2>
+                                    {isEditing && (
+                                        <Button
+                                            bgColor='bg-blue-600'
+                                            textColor='text-white'
+                                            className='px-3 py-1 h-8 text-sm'
+                                            onClick={() => setIsAddingTower(true)}
+                                        >
+                                            + Add Tower
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {isAddingTower && (
+                                    <div className='p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4'>
+                                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>Tower Name</label>
+                                                <StateBaseTextField
+                                                    value={newTower.towerName || ''}
+                                                    onChange={(e) =>
+                                                        setNewTower((prev) => ({ ...prev, towerName: e.target.value }))
+                                                    }
+                                                    className='w-full text-sm'
+                                                    placeholder='Enter tower name'
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>Type of Tower</label>
+                                                <StateBaseTextField
+                                                    value={newTower.typeOfTower || ''}
+                                                    onChange={(e) =>
+                                                        setNewTower((prev) => ({
+                                                            ...prev,
+                                                            typeOfTower: e.target.value,
+                                                        }))
+                                                    }
+                                                    className='w-full text-sm'
+                                                    placeholder='Enter tower type'
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>Floors</label>
+                                                <NumberInput
+                                                    label=''
+                                                    placeholder='Enter number of floors'
+                                                    value={newTower.floors || 0}
+                                                    onChange={(numValue: number | null) => {
+                                                        setNewTower((prev) => ({
+                                                            ...prev,
+                                                            floors: numValue || 0,
+                                                        }))
+                                                    }}
+                                                    numberType='integer'
+                                                    min={0}
+                                                    fullWidth
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>Units</label>
+                                                <NumberInput
+                                                    label=''
+                                                    placeholder='Enter number of units'
+                                                    value={newTower.units || 0}
+                                                    onChange={(numValue: number | null) => {
+                                                        setNewTower((prev) => ({
+                                                            ...prev,
+                                                            units: numValue || 0,
+                                                        }))
+                                                    }}
+                                                    numberType='integer'
+                                                    min={0}
+                                                    fullWidth
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>Total Parking</label>
+                                                <NumberInput
+                                                    label=''
+                                                    placeholder='Enter parking count'
+                                                    value={newTower.totalParking || 0}
+                                                    onChange={(numValue: number | null) => {
+                                                        setNewTower((prev) => ({
+                                                            ...prev,
+                                                            totalParking: numValue || 0,
+                                                        }))
+                                                    }}
+                                                    numberType='integer'
+                                                    min={0}
+                                                    fullWidth
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className='text-sm text-black block mb-1'>Height (m)</label>
+                                                <NumberInput
+                                                    label=''
+                                                    placeholder='Enter height'
+                                                    value={newTower.towerHeightInMeters || 0}
+                                                    onChange={(numValue: number | null) => {
+                                                        setNewTower((prev) => ({
+                                                            ...prev,
+                                                            towerHeightInMeters: numValue || 0,
+                                                        }))
+                                                    }}
+                                                    numberType='decimal'
+                                                    min={0}
+                                                    fullWidth
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className='flex gap-2'>
+                                            <Button
+                                                bgColor='bg-green-600'
+                                                textColor='text-white'
+                                                className='px-3 py-1 h-8 text-sm'
+                                                onClick={handleAddTower}
+                                            >
+                                                Add Tower
+                                            </Button>
+                                            <Button
+                                                bgColor='bg-gray-400'
+                                                textColor='text-white'
+                                                className='px-3 py-1 h-8 text-sm'
+                                                onClick={() => {
+                                                    setIsAddingTower(false)
+                                                    setNewTower({})
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+                                    <FlexibleTable
+                                        data={towerDetails || []}
+                                        columns={getTowerColumns()}
+                                        hoverable={true}
+                                        borders={{
+                                            table: false,
+                                            header: true,
+                                            rows: true,
+                                            cells: false,
+                                            outer: false,
+                                        }}
+                                        className='rounded-lg'
+                                    />
+                                </div>
                             </div>
-                        </section>
+
+                            {/* Floor Plan Section (conditionally rendered) */}
+                            {selectedTowerForFloorPlan && (
+                                <section className='space-y-4'>
+                                    <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
+                                        Floor Plan for {selectedTowerForFloorPlan.towerName} : (
+                                        {selectedTowerForFloorPlan.floorPlanDetails?.length}) floors
+                                    </h3>
+                                    <div className='overflow-x-auto px-4 py-3'>
+                                        <FlexibleTable
+                                            data={convertArrayField(selectedTowerForFloorPlan.floorPlanDetails)}
+                                            columns={getFloorPlanColumns()}
+                                            hoverable={true}
+                                            borders={{
+                                                table: true,
+                                                header: true,
+                                                rows: true,
+                                                cells: false,
+                                                outer: true,
+                                            }}
+                                        />
+                                    </div>
+                                </section>
+                            )}
+
+                            {/* Unit Details Section (conditionally rendered) */}
+                            {selectedTowerForUnitDetails && (
+                                <section className='space-y-4'>
+                                    <h3 className='px-4 pt-4 text-lg font-bold leading-tight tracking-tight'>
+                                        Unit Details for {selectedTowerForUnitDetails.towerName} : (
+                                        {selectedTowerForUnitDetails.unitDetails?.length}) units
+                                    </h3>
+                                    <div className='overflow-x-auto px-4 py-3'>
+                                        <FlexibleTable
+                                            data={convertArrayField(selectedTowerForUnitDetails.unitDetails)}
+                                            columns={getUnitDetailsColumns()}
+                                            hoverable={true}
+                                            borders={{
+                                                table: true,
+                                                header: true,
+                                                rows: true,
+                                                cells: false,
+                                                outer: true,
+                                            }}
+                                        />
+                                    </div>
+                                </section>
+                            )}
+                        </>
                     )}
 
                     {/* Ground Data */}
@@ -1616,18 +1855,42 @@ const PrimaryDetailsPage = () => {
                                 View Typology & Units plan
                             </button>
                         </div>
-                        {renderField('Master Plan', 'View Master plan', '', undefined, 'text', () =>
-                            navigate(`/restack/primary/${id}/masterplan`),
-                        )}
-                        {renderField('Brochure', 'Download Brochure (PDF)', '', undefined, 'text', () =>
-                            navigate(`/restack/primary/${id}/brochure`),
-                        )}
-                        {renderField('CDP Map', 'CDP map (PDF)', '', undefined, 'text', () =>
-                            navigate(`/restack/primary/${id}/cdp`),
-                        )}
-                        {renderField('Cost Sheet', 'Download Cost Sheet (PDF)', '', undefined, 'text', () =>
-                            navigate(`/restack/primary/${id}/costsheet`),
-                        )}
+                        <PDFUploadComponent
+                            files={projectDetails.masterPlan || []}
+                            onFilesChange={(files) => updateMapPlan('masterPlan', files)}
+                            maxFiles={5}
+                            maxSizeMB={10}
+                            storagePath={`restack/Primary/${projectDetails.projectId}/masterPlan`}
+                            title='Master Plan'
+                            isEdit={isEditing}
+                        />
+                        <PDFUploadComponent
+                            files={projectDetails.brochureURL || []}
+                            onFilesChange={(files) => updateMapPlan('brochureURL', files)}
+                            maxFiles={5}
+                            maxSizeMB={10}
+                            storagePath={`restack/Primary/${projectDetails.projectId}/brochureURL`}
+                            title='Brochure '
+                            isEdit={isEditing}
+                        />
+                        <PDFUploadComponent
+                            files={projectDetails.cdpMapURL || []}
+                            onFilesChange={(files) => updateMapPlan('cdpMapURL', files)}
+                            maxFiles={5}
+                            maxSizeMB={10}
+                            storagePath={`restack/Primary/${projectDetails.projectId}/cdpMapURL`}
+                            title='CDP map (PDF)'
+                            isEdit={isEditing}
+                        />
+                        <PDFUploadComponent
+                            files={projectDetails.costSheetURL || []}
+                            onFilesChange={(files) => updateMapPlan('costSheetURL', files)}
+                            maxFiles={5}
+                            maxSizeMB={10}
+                            storagePath={`restack/Primary/${projectDetails.projectId}/costSheetURL`}
+                            title='cost Sheet'
+                            isEdit={isEditing}
+                        />
                     </div>
 
                     {/* Amenities */}

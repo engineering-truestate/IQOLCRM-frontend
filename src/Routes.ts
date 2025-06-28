@@ -49,6 +49,7 @@ import ChoosePlatform from './ChoosePlatform'
 import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
 import Resale from './pages/restack/resale/Resale'
 import ResalePage from './pages/restack/resale/ResalePage'
+import PrimaryImages from './pages/restack/Primary/PrimaryImages'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -319,6 +320,14 @@ export const protectedRoutes: RouteObject[] = [
             ProtectedRoute,
             null,
             React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
+        ),
+    },
+    {
+        path: '/restack/primary/:id/images',
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PrimaryImages, null)),
         ),
     },
     {

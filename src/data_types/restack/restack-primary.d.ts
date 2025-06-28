@@ -119,6 +119,25 @@ export interface ProjectSpecifications {
     floorAreaRatio?: number
     waterSource?: string[]
 }
+// Land use Analysis
+export interface LanduseAnalysis {
+    totalPlots?: number
+    coveredArea?: number
+    parksNumber?: number
+    parkArea?: number
+    numberofCAsites?: number
+    areaofCAsites?: number
+    roadArea?: number
+    openArea?: number
+    landArea?: number
+}
+// plot Dimemsion
+export interface PlotDimension {
+    plotType?: string
+    numberOfSites?: number
+    totalArea?: number
+    slno?: string
+}
 
 // Development Details
 export interface DevelopmentDetail {
@@ -156,6 +175,7 @@ export interface TowerDetail {
     floorplan: FloorPlan
     floorPlanDetails?: FloorPlanDetail[]
     unitDetails?: UnitDetail[]
+    uploadedAt: timestamp
 }
 
 // Configuration Details with IDs
@@ -208,6 +228,7 @@ export interface BankingDetails {
 export interface MediaDocuments {
     images?: string[]
     typologyAndUnitPlan?: string[]
+    masterPlan?: string[]
     cdpMapURL?: string[]
     costSheetURL?: string[]
     brochureURL?: string[]
@@ -279,7 +300,7 @@ export interface PrimaryProperty {
     // Basic Information
     projectId: string
     projectName: string
-    projectType: ProjectType
+    projectType: ProjectType | string
     projectSubType: ProjectSubType
     projectStatus: ProjectStatus
     projectDescription?: string
@@ -357,6 +378,7 @@ export interface PrimaryProperty {
     costSheetURL?: string[]
     brochureURL?: string[]
     documents?: Documents
+    masterPlan?: string[]
 
     // Clubhouse Details
     clubHouseDetails?: Array<{

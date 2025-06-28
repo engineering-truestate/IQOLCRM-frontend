@@ -29,27 +29,27 @@ const villaTypes = [
     { label: 'Plot', value: 'plot' },
 ]
 
-// Floor plan image component
-const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
-    const sizeClasses = size === 'small' ? 'w-10 h-10' : 'w-16 h-16'
+// // Floor plan image component
+// const FloorPlanImage = ({ imageUrl, size = 'small' }: { imageUrl: string; size?: 'small' | 'large' }) => {
+//     const sizeClasses = size === 'small' ? 'w-10 h-10' : 'w-16 h-16'
 
-    return (
-        <div className={`${sizeClasses} rounded-full overflow-hidden bg-gray-200 flex items-center justify-center`}>
-            {imageUrl ? (
-                <img
-                    src={imageUrl}
-                    alt='Floor Plan'
-                    className='w-full h-full object-cover'
-                    onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                        e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                    }}
-                />
-            ) : null}
-            <div className={`${imageUrl ? 'hidden' : ''} text-xs text-gray-500 text-center`}>No Image</div>
-        </div>
-    )
-}
+//     return (
+//         <div className={`${sizeClasses} rounded-full overflow-hidden bg-gray-200 flex items-center justify-center`}>
+//             {imageUrl ? (
+//                 <img
+//                     src={imageUrl}
+//                     alt='Floor Plan'
+//                     className='w-full h-full object-cover'
+//                     onError={(e) => {
+//                         e.currentTarget.style.display = 'none'
+//                         e.currentTarget.nextElementSibling?.classList.remove('hidden')
+//                     }}
+//                 />
+//             ) : null}
+//             <div className={`${imageUrl ? 'hidden' : ''} text-xs text-gray-500 text-center`}>No Image</div>
+//         </div>
+//     )
+// }
 
 const TypologyPage = () => {
     const { id } = useParams<{ id: string }>()
