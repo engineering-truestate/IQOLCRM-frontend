@@ -23,7 +23,7 @@ export class AgentService {
             snapshot.docs.forEach((doc) => {
                 const data = doc.data() as Agent
 
-                if (data?.canvasHomes?.agentId && data.name) {
+                if (data?.canvasHomes?.agentId && data?.canvasHomes?.role == 'sales' && data.name) {
                     agentMap[data?.canvasHomes.agentId] = data.name
                 }
             })

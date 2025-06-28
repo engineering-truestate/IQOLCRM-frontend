@@ -64,14 +64,6 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
         updateEoiEntries(newEntries)
     }
 
-    // Remove EOI entry
-    // const handleRemoveEoiEntry = (index: number) => {
-    //     if (eoiEntries.length > 1) {
-    //         const newEntries = eoiEntries.filter((_, i) => i !== index)
-    //         updateEoiEntries(newEntries)
-    //     }
-    // }
-
     // Update EOI entry amount
     const handleAmountChange = (index: number, value: string) => {
         const newEntries = [...eoiEntries]
@@ -245,7 +237,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                                     <div className='relative flex flex-row gap-2'>
                                         <input
                                             type='text'
-                                            placeholder='Text here'
+                                            placeholder='Enter Amount'
                                             value={entry.amount}
                                             onChange={(e) => handleAmountChange(index, e.target.value)}
                                             // onClick={(e) => e.stopPropagation()}

@@ -88,6 +88,7 @@ interface Task {
     assignedTo: string
     dueDate: number
     createdAt: number
+    completionDate: number
 }
 
 interface LeadData {
@@ -292,6 +293,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
                             leadStatus: (task as any).leadStatus ?? leadData?.leadStatus ?? '',
                             stage: (task as any).stage ?? currentEnquiry?.stage ?? '',
                             tag: (task as any).tag ?? currentEnquiry?.tag ?? '',
+                            completionDate: (task as any).completionDate ?? task.completionDate ?? 0,
                             propertyId: (task as any).propertyId ?? currentEnquiry?.propertyId ?? '',
                             // Required Task fields for type compatibility
                             scheduledDate: (task as any).scheduledDate ?? task.dueDate ?? 0,

@@ -26,7 +26,7 @@ interface TaskCardProps {
     task: Task
     index: number
     isExpanded: boolean
-    onToggleExpansion: (taskId: string) => void
+    onToggleExpansion: (taskId: string, event: React.MouseEvent) => void
     taskStatusOptions: { label: string; value: string }[]
     onStatusUpdate: (taskId: string, selectedStatus: string) => void
     updating?: boolean
@@ -56,13 +56,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
     children,
 }) => {
     const dispatch = useDispatch<AppDispatch>()
+    console.log(task?.firebaseTask)
 
     // Handle task card click to toggle expansion (if the task isn't complete)
-    const handleCardClick = () => {
+    const handleCardClick = (e: React.MouseEvent) => {
         if (task.status !== 'complete') {
             dispatch(setTaskId(task.id))
             dispatch(setEnquiryId(task.enquiryId))
-            onToggleExpansion(task.id)
+            onToggleExpansion(task.id, e)
         }
     }
 
@@ -109,7 +110,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
     return (
         <div
-            onClick={handleCardClick}
+            onClick={(e) => handleCardClick(e)}
             className={`rounded-md border border-gray-300 ${
                 task?.status === 'complete' ? 'cursor-not-allowed' : 'cursor-pointer'
             } transition-all duration-200 ]`}

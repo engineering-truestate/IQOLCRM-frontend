@@ -113,8 +113,15 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    // Toggle task expansion on click
-    const toggleTaskExpansion = (taskId: string) => {
+    const toggleTaskExpansion = (taskId: string, event: React.MouseEvent) => {
+        // Don't toggle if clicked on a form element
+        if (
+            event.target instanceof Element &&
+            ['INPUT', 'SELECT', 'BUTTON', 'TEXTAREA'].includes(event.target.tagName)
+        ) {
+            return
+        }
+
         setExpandedTasks((prev) => ({
             ...prev,
             [taskId]: !prev[taskId],
