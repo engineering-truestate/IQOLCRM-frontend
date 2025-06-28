@@ -351,23 +351,8 @@ const Marketing = () => {
     )
 
     const handleRowClick = (row: any) => {
-        console.log('Row clicked:', row)
-
-        // Construct query parameters from row data
-        const queryParams = new URLSearchParams({
-            campaignName: row.campaignName || '',
-            startDate: row.startDate || '',
-            endDate: row.endDate || 'No end date',
-            isPaused: (row.isPaused || false).toString(),
-        })
-
-        if (row.isPaused && row.lastActiveDate) {
-            console.log('Hare Krishna', row.lastActiveDate)
-            queryParams.set('lastActiveDate', row.lastActiveDate)
-        }
-
         // Navigate with campaignId in the route and other data as query params
-        navigate(`/canvas-homes/marketingdetails/${row.campaignId}?${queryParams.toString()}`)
+        navigate(`/canvas-homes/marketingdetails/${row.campaignId}`)
     }
 
     // Summary cards data

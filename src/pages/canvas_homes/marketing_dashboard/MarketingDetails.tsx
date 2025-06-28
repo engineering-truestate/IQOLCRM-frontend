@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import google from '/icons/canvas_homes/google.svg'
+import { campaignService } from '../../../services/canvas_homes/campaignService'
 
 // Types for API response
 interface GoogleAdsMetric {
@@ -22,8 +23,19 @@ interface GoogleAdsMetric {
     }
 }
 
+// Direct format from the API - matching the server's exact response format
+interface DirectMetric {
+    campaignId: string
+    date: string
+    clicks: number
+    conversions: number
+    cost: number
+    impressions: number
+}
+
 interface CampaignData {
     campaignId: string
+    campaignName: string
     startDate: string
     endDate: string
     isPaused: boolean
@@ -58,24 +70,21 @@ const MarketingDetails = () => {
     const [rawMetrics, setRawMetrics] = useState<GoogleAdsMetric[]>([])
 
     // Updated Google Ads API integration function using hosted endpoint
-    const getCampaignMetrics = async (campaign: CampaignData): Promise<GoogleAdsMetric[]> => {
+    const getCampaignMetrics = async (campaign: CampaignData): Promise<any[]> => {
         try {
             setLoading(true)
             setError(null)
 
-            // Prepare campaign data as JSON payload
+            // Prepare campaign data as JSON payload - exactly matching the server's expected format
             const payload = {
                 campaignId: campaign.campaignId,
                 startDate: campaign.startDate,
-                endDate: campaign.endDate,
+                endDate: campaign.endDate || 'No end date',
                 isPaused: campaign.isPaused,
                 ...(campaign.isPaused && campaign.lastActiveDate && { lastActiveDate: campaign.lastActiveDate }),
             }
-            console.log(payload)
 
             const apiUrl = 'https://daily-report-campaign-server.onrender.com/campaign-metrics'
-
-            console.log('Sending campaign data:', payload)
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -91,10 +100,7 @@ const MarketingDetails = () => {
 
             const data = await response.json()
 
-            const metrics = Array.isArray(data) ? data : data.metrics || data.data || []
-
-            console.log('Received metrics:', metrics)
-            return metrics
+            return data
         } catch (err) {
             console.error('Error fetching campaign metrics:', err)
             setError(err instanceof Error ? err.message : 'Failed to fetch campaign data')
@@ -105,21 +111,24 @@ const MarketingDetails = () => {
     }
 
     // Process raw metrics into display format
-    const processMetrics = (metrics: GoogleAdsMetric[]): ProcessedMetric[] => {
+    const processMetrics = (metrics: any[]): ProcessedMetric[] => {
         return metrics.map((metric, index) => {
-            const costInRupees = metric.metrics.cost_micros / 1000000 // Convert micros to rupees
-            const clicks = metric.metrics.clicks
-            const leads = metric.metrics.conversions
+            // Handle both the Google Ads Metric format and the direct format provided
+
+            // Server response format (campaignId, date, clicks, conversions, cost, impressions)
+            const costInRupees = metric.cost / 1000000 // Convert micros to rupees
+            const clicks = metric.clicks
+            const leads = metric.conversions
 
             return {
-                id: `${metric.campaign.id}-${metric.segments.date}-${index}`,
-                date: new Date(metric.segments.date).toLocaleDateString('en-US', {
+                id: `${metric.campaignId}-${metric.date}-${index}`,
+                date: new Date(metric.date).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                 }),
                 totalCost: Math.round(costInRupees),
-                totalImpression: metric.metrics.impressions,
+                totalImpression: metric.impressions,
                 totalClicks: clicks,
                 cpiCpc: clicks > 0 ? Math.round((costInRupees / clicks) * 100) / 100 : 0,
                 totalLeads: leads,
@@ -132,26 +141,33 @@ const MarketingDetails = () => {
     useEffect(() => {
         const loadCampaignData = async () => {
             try {
-                // Get campaign data from URL parameters
-                const urlParams = new URLSearchParams(window.location.search)
-
-                const campaignData: CampaignData = {
-                    campaignId: campaignId || '',
-                    startDate: urlParams.get('startDate') || '',
-                    endDate: urlParams.get('endDate') || 'No end date',
-                    isPaused: urlParams.get('isPaused') === 'true',
-                    lastActiveDate: urlParams.get('lastActiveDate') || undefined,
-                }
-
-                // Validate required parameters
-                if (!campaignData.campaignId || !campaignData.startDate) {
-                    setError('Campaign ID and start date are required in URL parameters')
+                if (!campaignId) {
+                    setError('Campaign ID is required')
                     setLoading(false)
                     return
                 }
 
-                console.log('Campaign data from URL params:', campaignData)
-                setCampaignDetails(campaignData)
+                // Fetch campaign details from Firebase using the campaignService
+                const campaign = await campaignService.getByCampaignId(campaignId)
+
+                if (!campaign) {
+                    setError(`Campaign with ID ${campaignId} not found`)
+                    setLoading(false)
+                    return
+                }
+
+                // Use the campaign data as is, without modifying its structure
+                // Just map it to the expected format for the component state
+                const campaignData: CampaignData = {
+                    campaignId: campaign.campaignId,
+                    campaignName: campaign.campaignName,
+                    startDate: campaign.startDate,
+                    endDate: campaign.endDate,
+                    isPaused: campaign.isPaused,
+                    lastActiveDate: campaign.lastActiveDate,
+                }
+
+                setCampaignDetails(campaign)
 
                 // Fetch metrics using the hosted Google Ads API
                 const metrics = await getCampaignMetrics(campaignData)
@@ -166,91 +182,13 @@ const MarketingDetails = () => {
         loadCampaignData()
     }, [campaignId])
 
-    // Fallback dummy data for development/testing
-    const fallbackData = useMemo(
-        () => [
-            {
-                id: '1',
-                date: 'May 25, 2023',
-                totalCost: 5000,
-                totalImpression: 267,
-                totalClicks: 60,
-                cpiCpc: 52567,
-                totalLeads: 5,
-                cpl: 12500,
-            },
-            {
-                id: '2',
-                date: 'May 26, 2023',
-                totalCost: 7200,
-                totalImpression: 324,
-                totalClicks: 78,
-                cpiCpc: 46154,
-                totalLeads: 8,
-                cpl: 9000,
-            },
-            {
-                id: '3',
-                date: 'May 27, 2023',
-                totalCost: 6800,
-                totalImpression: 298,
-                totalClicks: 71,
-                cpiCpc: 47887,
-                totalLeads: 7,
-                cpl: 9714,
-            },
-            {
-                id: '4',
-                date: 'May 28, 2023',
-                totalCost: 8500,
-                totalImpression: 412,
-                totalClicks: 95,
-                cpiCpc: 44737,
-                totalLeads: 12,
-                cpl: 7083,
-            },
-            {
-                id: '5',
-                date: 'May 29, 2023',
-                totalCost: 4200,
-                totalImpression: 189,
-                totalClicks: 43,
-                cpiCpc: 48837,
-                totalLeads: 4,
-                cpl: 10500,
-            },
-            {
-                id: '6',
-                date: 'May 30, 2023',
-                totalCost: 9200,
-                totalImpression: 456,
-                totalClicks: 112,
-                cpiCpc: 41071,
-                totalLeads: 15,
-                cpl: 6133,
-            },
-            {
-                id: '7',
-                date: 'May 31, 2023',
-                totalCost: 6700,
-                totalImpression: 301,
-                totalClicks: 68,
-                cpiCpc: 49265,
-                totalLeads: 6,
-                cpl: 11167,
-            },
-        ],
-        [],
-    )
-
-    // Process data based on API response or fallback
+    // Process data based on API response
     const originalData = useMemo(() => {
-        if (rawMetrics.length > 0) {
+        if (rawMetrics && rawMetrics.length > 0) {
             return processMetrics(rawMetrics)
         }
-        // Use fallback data if API data is not available
-        return fallbackData
-    }, [rawMetrics, fallbackData])
+        return [] // No fallback data, return empty array if no metrics
+    }, [rawMetrics])
 
     const getWeekNumber = (date: Date) => {
         const oneJan = new Date(date.getFullYear(), 0, 1)
@@ -266,9 +204,7 @@ const MarketingDetails = () => {
         setSelectedRows((prev) => (selected ? [...prev, rowId] : prev.filter((id) => id !== rowId)))
     }
 
-    const handleRowClick = (row: any) => {
-        console.log('Row clicked:', row)
-    }
+    const handleRowClick = (row: any) => {}
 
     // Set up table columns
     useEffect(() => {
@@ -453,20 +389,26 @@ const MarketingDetails = () => {
                             </div>
 
                             <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                                <FlexibleTable
-                                    data={tableData}
-                                    columns={columns}
-                                    borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
-                                    showCheckboxes={true}
-                                    selectedRows={selectedRows}
-                                    onRowSelect={handleRowSelect}
-                                    onRowClick={handleRowClick}
-                                    className='rounded-lg'
-                                    stickyHeader={true}
-                                    hoverable={true}
-                                    headerClassName='font-normal text-left px-1'
-                                    cellClassName='text-left px-1'
-                                />
+                                {tableData.length > 0 ? (
+                                    <FlexibleTable
+                                        data={tableData}
+                                        columns={columns}
+                                        borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
+                                        showCheckboxes={true}
+                                        selectedRows={selectedRows}
+                                        onRowSelect={handleRowSelect}
+                                        onRowClick={handleRowClick}
+                                        className='rounded-lg'
+                                        stickyHeader={true}
+                                        hoverable={true}
+                                        headerClassName='font-normal text-left px-1'
+                                        cellClassName='text-left px-1'
+                                    />
+                                ) : (
+                                    <div className='p-8 text-center text-gray-500'>
+                                        No data available for this campaign
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -504,7 +446,7 @@ const MarketingDetails = () => {
                                     ],
                                     ['Campaign ID', campaignDetails?.campaignId || 'N/A'],
                                     ['Total Cost', campaignTotals?.totalCost || 'N/A'],
-                                    ['Total Lead', campaignTotals?.totalLeads || 'N/A'],
+                                    ['Total Lead', campaignTotals?.conversions || 'N/A'],
                                     ['CPL', campaignTotals?.cpl || 'N/A'],
                                     ['Status', campaignDetails?.isPaused ? 'Paused' : 'Active'],
                                 ].map(([label, value], idx) => (
@@ -518,15 +460,7 @@ const MarketingDetails = () => {
                             {rawMetrics.length === 0 && !loading && (
                                 <div className='mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded'>
                                     <div className='text-sm text-yellow-800'>
-                                        <strong>Note:</strong> Showing sample data. Live metrics loading...
-                                    </div>
-                                </div>
-                            )}
-
-                            {rawMetrics.length > 0 && (
-                                <div className='mt-6 p-3 bg-green-50 border border-green-200 rounded'>
-                                    <div className='text-sm text-green-800'>
-                                        <strong>Live Data:</strong> Displaying real-time Google Ads metrics
+                                        <strong>Note:</strong> No metrics data available for this campaign.
                                     </div>
                                 </div>
                             )}
