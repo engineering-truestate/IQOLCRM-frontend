@@ -117,6 +117,7 @@ const PrimaryDetailsPage = () => {
     const [towerDetails, setTowerDetails] = useState<TowerDetail[] | null>(null)
 
     const [landUseAnalysis, setLandUseAnalysis] = useState<LanduseAnalysis>()
+    const [originalLandUseAnalysis, setOriginalLandUseAnalysis] = useState<LanduseAnalysis | undefined>()
     const [plotDimension, setPlotDimension] = useState<PlotDimension[] | null>(null)
 
     const isPlotted = currentProperty?.projectType === 'Plotted Development'
@@ -190,19 +191,25 @@ const PrimaryDetailsPage = () => {
                 }
             }
         }
-        if (isPlotted) {
-            const fetchLandUseData = async () => {
-                if (id) {
-                    const action = await dispatch(primaryPropertiesActions.fetchLandUseAnalysisDetails(id as string))
-                    if (action && 'payload' in action && action.payload !== undefined) {
-                        setLandUseAnalysis(action.payload as LanduseAnalysis)
-                    } else {
-                        setLandUseAnalysis(undefined)
-                    }
+
+        const fetchLandUseData = async () => {
+            if (id && isPlotted) {
+                const action = await dispatch(primaryPropertiesActions.fetchLandUseAnalysisDetails(id as string))
+                if (action && 'payload' in action && action.payload !== undefined) {
+                    const landUseData = action.payload as LanduseAnalysis
+                    setLandUseAnalysis(landUseData)
+                    setOriginalLandUseAnalysis(landUseData) // Store original data
+                } else {
+                    setLandUseAnalysis(undefined)
+                    setOriginalLandUseAnalysis(undefined)
                 }
             }
+        }
+
+        if (isPlotted) {
             fetchLandUseData()
         }
+
         if (isPlotted) {
             const fetchPlotData = async () => {
                 if (id) {
@@ -223,7 +230,7 @@ const PrimaryDetailsPage = () => {
         }
         fetchTowers()
         fetchInventory()
-    }, [id, dispatch])
+    }, [id, dispatch, isPlotted])
 
     useEffect(() => {
         if (currentProperty) {
@@ -306,6 +313,7 @@ const PrimaryDetailsPage = () => {
     const handleCancel = () => {
         setProjectDetails(originalDetails)
         setInventoryDetails(inventoryDetails)
+        setLandUseAnalysis(originalLandUseAnalysis)
         setIsEditing(false)
         setEditingRowId(null)
         setIsAddingRow(false)
@@ -390,6 +398,21 @@ const PrimaryDetailsPage = () => {
                             updates: towerDetails,
                         }),
                     )
+                }
+                if (
+                    isPlotted &&
+                    landUseAnalysis &&
+                    originalLandUseAnalysis &&
+                    !deepCompare(landUseAnalysis, originalLandUseAnalysis)
+                ) {
+                    await dispatch(
+                        primaryPropertiesActions.updateLandUseAnalysisDetails({
+                            projectId: id,
+                            updates: landUseAnalysis,
+                            reraId: projectDetails?.reraId || '',
+                        }),
+                    )
+                    setOriginalLandUseAnalysis(landUseAnalysis)
                 }
 
                 setIsEditing(false)
@@ -548,6 +571,52 @@ const PrimaryDetailsPage = () => {
         setPlotDimension((prev) =>
             prev ? prev.map((dev, i) => (i === index ? { ...dev, [field]: value } : dev)) : null,
         )
+    }
+    const updateLandUseField = (field: string, value: string | number | null) => {
+        setLandUseAnalysis((prev) => (prev ? { ...prev, [field]: value } : ({ [field]: value } as LanduseAnalysis)))
+    }
+
+    const renderLandUseField = (
+        label: string,
+        value: string | number | null,
+        fieldKey: string,
+        fieldType: 'text' | 'date' | 'number' = 'text',
+    ) => {
+        if (isEditing) {
+            if (fieldType === 'number') {
+                return (
+                    <NumberInput
+                        label={label}
+                        placeholder={`Enter ${label.toLowerCase()}`}
+                        value={value as number}
+                        onChange={(numValue: number | null) => {
+                            updateLandUseField(fieldKey, numValue ?? 0)
+                        }}
+                        numberType='decimal'
+                        min={0}
+                        fullWidth
+                    />
+                )
+            } else {
+                return (
+                    <div>
+                        <label className='text-sm text-black block mb-1'>{label}</label>
+                        <StateBaseTextField
+                            value={value?.toString() ?? ''}
+                            onChange={(e: any) => updateLandUseField(fieldKey, e.target.value)}
+                            className='w-full text-sm'
+                        />
+                    </div>
+                )
+            }
+        } else {
+            return (
+                <div className='border-b border-[#D4DBE2] gap-1 pb-2 mb-4 flex flex-col justify-between'>
+                    <label className='text-sm text-gray-600 block mb-1'>{label}</label>
+                    <div className='text-sm text-black font-medium'>{value?.toString() || '-'}</div>
+                </div>
+            )
+        }
     }
 
     const renderField = (
@@ -1317,67 +1386,58 @@ const PrimaryDetailsPage = () => {
                         <>
                             <h2 className='text-xl font-semibold text-gray-900 px-4 pb-3 pt-5'>Land Use Analysis</h2>
                             <div className='p-4 grid grid-cols-2 gap-1'>
-                                {renderField(
+                                {renderLandUseField(
                                     'Total Plots',
-                                    landUseAnalysis?.totalPlots?.toString() || '',
+                                    landUseAnalysis?.totalPlots ?? null,
                                     'totalPlots',
-                                    undefined,
                                     'number',
                                 )}
-                                {renderField(
+                                {renderLandUseField(
                                     'Total Parks and Open space',
-                                    landUseAnalysis?.parkArea?.toString() || '',
+                                    landUseAnalysis?.parkArea ?? null,
                                     'parkArea',
-                                    undefined,
                                     'number',
                                 )}
-                                {renderField(
-                                    'No. of CA Sits',
-                                    landUseAnalysis?.numberofCAsites?.toString() || '',
+                                {renderLandUseField(
+                                    'No. of CA Sites',
+                                    landUseAnalysis?.numberofCAsites ?? null,
                                     'numberofCAsites',
-                                    undefined,
                                     'number',
                                 )}
-                                {renderField(
+                                {renderLandUseField(
                                     'Total Covered Area',
-                                    landUseAnalysis?.coveredArea?.toString() || '',
+                                    landUseAnalysis?.coveredArea ?? null,
                                     'coveredArea',
-                                    undefined,
                                     'number',
                                 )}
-                                {renderField(
+                                {renderLandUseField(
                                     'Total Area of Parks and Open Spaces',
-                                    landUseAnalysis?.parksNumber?.toString() || '',
+                                    landUseAnalysis?.parksNumber ?? null,
                                     'parksNumber',
-                                    undefined,
                                     'number',
                                 )}
-                                {renderField(
+                                {renderLandUseField(
                                     'Total Area of CA Sites',
-                                    landUseAnalysis?.areaofCAsites?.toString() || '',
+                                    landUseAnalysis?.areaofCAsites ?? null,
                                     'areaofCAsites',
-                                    undefined,
                                     'number',
                                 )}
-                                {renderField(
+                                {renderLandUseField(
                                     'Total Area of Roads',
-                                    landUseAnalysis?.roadArea?.toString() || '',
+                                    landUseAnalysis?.roadArea ?? null,
                                     'roadArea',
-                                    undefined,
                                     'number',
                                 )}
-                                {renderField(
+                                {renderLandUseField(
                                     'Total Open Area',
-                                    landUseAnalysis?.openArea?.toString() || '',
+                                    landUseAnalysis?.openArea ?? null,
                                     'openArea',
-                                    undefined,
                                     'number',
                                 )}
-                                {renderField(
+                                {renderLandUseField(
                                     'Total Area Land',
-                                    landUseAnalysis?.landArea?.toString() || '',
+                                    landUseAnalysis?.landArea ?? null,
                                     'landArea',
-                                    undefined,
                                     'number',
                                 )}
                             </div>

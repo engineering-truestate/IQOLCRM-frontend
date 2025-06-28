@@ -6,7 +6,6 @@ import type { RestackRentalProperty } from '../../../data_types/restack/restack-
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Layout from '../../../layout/Layout'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 import {
     get99AcresRentalData,
     getACNRentalData,
@@ -27,7 +26,7 @@ const RentalPage = () => {
     const [properties, setProperties] = useState<RestackRentalProperty[]>([])
     const loading = false
 
-    const ITEMS_PER_PAGE = 15
+    const ITEMS_PER_PAGE = 50
 
     const [filteredProperties, setFilteredProperties] = useState<RestackRentalProperty[]>([])
     const [paginatedProperties, setPaginatedProperties] = useState<RestackRentalProperty[]>([])
@@ -54,7 +53,6 @@ const RentalPage = () => {
                 default:
                     break
             }
-
             setProperties(data)
         }
         fetchData()
@@ -86,8 +84,9 @@ const RentalPage = () => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
         const endIndex = startIndex + ITEMS_PER_PAGE
         const slicedProperties = filteredProperties.slice(startIndex, endIndex)
+        console.log(slicedProperties, 'slcied proepr')
         setPaginatedProperties(slicedProperties)
-    }, [currentPage, filteredProperties])
+    }, [currentPage, properties, filteredProperties])
 
     const totalPages = Math.ceil(filteredProperties.length / ITEMS_PER_PAGE)
 
@@ -98,7 +97,7 @@ const RentalPage = () => {
 
     const columns: TableColumn[] = [
         {
-            key: 'propertyName',
+            key: 'name',
             header: 'Project Name',
             render: (value: string, _: RestackRentalProperty) => (
                 <span className='whitespace-nowrap text-sm font-medium text-gray-900'>{value}</span>
@@ -110,20 +109,19 @@ const RentalPage = () => {
             render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
         },
         {
-            key: 'propertyType',
+            key: 'name',
             header: 'Asset Type',
             render: (value: string) => <span className='whitespace-nowrap text-sm text-gray-800'>{value}</span>,
         },
         {
-            key: 'postedOn',
+            key: 'createdAt',
             header: 'Inventory Date',
-            render: (value: number) => (
-                // <span className='whitespace-nowrap text-sm text-gray-600'>{value}</span>
-                <span className='whitespace-nowrap text-sm text-gray-600'>{formatUnixDate(value)}</span>
+            render: (value: any) => (
+                <span className='whitespace-nowrap text-sm text-gray-600'>{new Date(value).toLocaleString()}</span>
             ),
         },
         {
-            key: 'listingStatus',
+            key: 'availableFrom',
             header: 'Status',
             render: (value: string) => (
                 <span className='whitespace-nowrap text-sm text-gray-800'>{(value || 'available').toUpperCase()}</span>

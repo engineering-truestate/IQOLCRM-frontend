@@ -297,7 +297,7 @@ const RentalDetailsPage = () => {
                                     <span className='mx-2'>/</span>
                                     <span className='text-black font-medium'>{propertyDetails.propertyId}</span>
                                 </div>
-                                <h1 className='text-xl font-semibold text-black'>{propertyDetails.configuration}</h1>
+                                <h1 className='text-xl font-semibold text-black'>{propertyDetails.name}</h1>
                             </div>
                             <div className='flex gap-2'>
                                 <div className='px-3 py-1 border border-blue-600 text-black rounded-full text-sm font-medium'>
@@ -338,9 +338,7 @@ const RentalDetailsPage = () => {
 
                         {/* Price Banner */}
                         <div className='text-right mb-6'>
-                            <div className='text-2xl font-bold text-black'>
-                                ₹ {propertyDetails.price.toFixed(2)} Cr.
-                            </div>
+                            <div className='text-2xl font-bold text-black'>₹ {propertyDetails.price.toFixed(2)}</div>
                         </div>
 
                         {/* Project Description */}
@@ -391,9 +389,15 @@ const RentalDetailsPage = () => {
                             </div>
 
                             <div>
-                                {renderField('Built-up', propertyDetails.builtup, 'builtup', undefined, 'number')}
+                                {renderField(
+                                    'Built-up',
+                                    propertyDetails.builtUpArea,
+                                    'builtUpArea',
+                                    undefined,
+                                    'number',
+                                )}
                             </div>
-                            <div>{renderField('Price (Cr.)', propertyDetails.price, 'price', undefined, 'number')}</div>
+                            <div>{renderField('Price', propertyDetails.price, 'price', undefined, 'number')}</div>
 
                             <div>
                                 {renderField(
@@ -404,13 +408,16 @@ const RentalDetailsPage = () => {
                                     'text',
                                 )}
                             </div>
+                            <div>
+                                {renderField('Location', propertyDetails.location, 'location', undefined, 'text')}
+                            </div>
                             <div>{renderField('Address', propertyDetails.address, 'address', undefined, 'text')}</div>
 
                             <div>
                                 {renderField(
                                     'Furnish Status',
-                                    propertyDetails.furnishStatus,
-                                    'furnishStatus',
+                                    propertyDetails.furnishing,
+                                    'furnishing',
                                     furnishingOptions,
                                     'text',
                                 )}
@@ -426,7 +433,7 @@ const RentalDetailsPage = () => {
                             </div>
 
                             <div>
-                                {renderField('Posted on', propertyDetails.postedOn, 'postedOn', undefined, 'date')}
+                                {renderField('Posted on', propertyDetails.createdAt, 'createdAt', undefined, 'date')}
                             </div>
                             <div>
                                 {renderField('Posted by', propertyDetails.postedBy, 'postedBy', undefined, 'text')}
@@ -450,15 +457,13 @@ const RentalDetailsPage = () => {
                         <div>
                             {isEditing ? (
                                 <textarea
-                                    value={propertyDetails.aboutProject || ''}
-                                    onChange={(e) => updateField('description', e.target.value)}
+                                    value={propertyDetails.about || ''}
+                                    onChange={(e) => updateField('about', e.target.value)}
                                     className='w-full text-sm border border-gray-300 rounded-md p-3 h-32 resize-none'
-                                    placeholder='Enter property description'
+                                    placeholder='Enter about property'
                                 />
                             ) : (
-                                <p className='text-sm text-gray-700 leading-relaxed'>
-                                    {propertyDetails.aboutProject || ''}
-                                </p>
+                                <p className='text-sm text-gray-700 leading-relaxed'>{propertyDetails.about || ''}</p>
                             )}
                         </div>
                     </div>

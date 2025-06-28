@@ -362,7 +362,7 @@ export const fetchPlotDimensionDetails = createAsyncThunk<PlotDimension[], strin
                 return rejectWithValue('No inventory details found in this document.')
             }
 
-            return data.PlotDimension as PlotDimension[]
+            return data.plotDimension as PlotDimension[]
         } catch (error) {
             console.error('Error fetching inventory details:', error)
             return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch inventory details')
