@@ -1,14 +1,12 @@
-const { GoogleAdsApi } = require('google-ads-api')
-const fs = require('fs')
-require('dotenv').config()
+import GoogleAdsApi from 'google-ads-api'
 
 const client = new GoogleAdsApi({
-    client_id: process.env.OAUTH_CLIENT_ID,
-    client_secret: process.env.OAUTH_SECRET,
-    developer_token: process.env.DEVELOPER_TOKEN,
+    client_id: import.meta.env.OAUTH_CLIENT_ID,
+    client_secret: import.meta.env.OAUTH_SECRET,
+    developer_token: import.meta.env.DEVELOPER_TOKEN,
 })
 
-async function getCampaignMetrics(campaign) {
+export async function getCampaignMetrices(campaign) {
     try {
         const customer = client.Customer({
             customer_id: 5256988497,
@@ -64,5 +62,3 @@ async function getCampaignMetrics(campaign) {
         console.error('Request failed:', error)
     }
 }
-
-export default getCampaignMetrics

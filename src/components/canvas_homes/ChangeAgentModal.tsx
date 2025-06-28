@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { taskService } from '../../services/canvas_homes/taskService'
+import { AgentService } from '../../services/canvas_homes/agentService'
 import Dropdown from '../design-elements/Dropdown'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { toast } from 'react-toastify'
@@ -33,16 +34,39 @@ const ChangeAgentModal: React.FC<ChangeAgentModalProps> = ({
     const [error, setError] = useState<string | null>(null)
     const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
     const { user } = useAuth()
-
-    // Agent options with IDs
-    const agentOptions = [
-        // { label: 'Select agent name', value: '' },
+    const [agentOptions, setAgentOptions] = useState([
         { label: 'Deepak Goyal', value: 'agent001|Deepak Goyal' },
         { label: 'Rajan Yadav', value: 'agent002|Rajan Yadav' },
         { label: 'Deepak Singh Chauhan', value: 'agent003|Deepak Singh Chauhan' },
         { label: 'Samarth Jangir', value: 'agent004|Samarth Jangir' },
         { label: 'Rahul Mehta', value: 'agent005|Rahul Mehta' },
-    ]
+    ])
+
+    // Fetch agents from service when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            const fetchAgents = async () => {
+                try {
+                    const agentsMap = await AgentService.fetchSalesAgents()
+                    console.log(agentsMap)
+
+                    // Only update agent options if we got some agents from the service
+                    if (Object.keys(agentsMap).length > 0) {
+                        const options = Object.entries(agentsMap).map(([agentId, name]) => ({
+                            label: name,
+                            value: `${agentId}|${name}`,
+                        }))
+                        setAgentOptions(options)
+                    }
+                } catch (error) {
+                    console.error('Error fetching agents:', error)
+                    // Keep the default agent options on error
+                }
+            }
+
+            fetchAgents()
+        }
+    }, [isOpen])
 
     // Fetch current agent when modal opens
     useEffect(() => {

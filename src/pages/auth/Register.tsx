@@ -88,6 +88,7 @@ const Register: React.FC = () => {
                 { label: 'Kam Moderator', value: 'kamModerator' },
                 { label: 'Kam', value: 'kam' },
                 { label: 'Data Team', value: 'dataTeam' },
+                { label: 'Marketing', value: 'marketing' },
             ]
         }
         if (platforms.some((p) => p.platform === 'canvas-homes')) {

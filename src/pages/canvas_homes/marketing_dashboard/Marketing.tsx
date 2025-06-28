@@ -350,8 +350,9 @@ const Marketing = () => {
         [initialFacets, facets],
     )
 
-    const handleRowClick = () => {
-        navigate('/canvas-homes/marketingdetails')
+    const handleRowClick = (row: any) => {
+        // Navigate with campaignId in the route and other data as query params
+        navigate(`/canvas-homes/marketingdetails/${row.campaignId}`)
     }
 
     // Summary cards data
