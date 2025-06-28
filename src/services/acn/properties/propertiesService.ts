@@ -46,7 +46,7 @@ const removeUndefinedFields = (obj: any): any => {
 const setDefaultValues = (propertyData: Partial<IInventory>): Partial<IInventory> => {
     return {
         ...propertyData,
-        nameOfTheProperty: propertyData.nameOfTheProperty || '',
+        propertyName: propertyData.propertyName || '',
         area: propertyData.area || '',
         micromarket: propertyData.micromarket || '',
         mapLocation: propertyData.mapLocation || '',

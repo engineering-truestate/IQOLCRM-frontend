@@ -93,7 +93,7 @@ export default function AgentDetailsDropdown({
         Address: agentDetails?.workAddress || '',
         mail: agentDetails?.emailAddress || '',
         firm: agentDetails?.firmName || '',
-        preferredArea: '',
+        areaOfOperation: '',
         kam: agentDetails?.kamName || '',
         inWhatsappCommunity:
             agentDetails && typeof (agentDetails as IAgent).inWhatsappCommunity === 'boolean'
@@ -104,15 +104,12 @@ export default function AgentDetailsDropdown({
     })
 
     // Placeholder dropdown options
-    const preferredAreaOptions = [
+    const areaOfOperationOptions = [
         'North Bangalore',
         'South Bangalore',
         'East Bangalore',
         'West Bangalore',
-        'North-East Bangalore',
-        'North-West Bangalore',
-        'South-East Bangalore',
-        'South-West Bangalore',
+        'Pan Bangalore',
     ]
     // KAM options from Algolia facet
     const [kamOptions, setKamOptions] = useState<{ value: string; label: string }[]>([])
@@ -151,7 +148,7 @@ export default function AgentDetailsDropdown({
             Address: agentDetails?.workAddress || '',
             mail: agentDetails?.emailAddress || '',
             firm: agentDetails?.firmName || '',
-            preferredArea: '',
+            areaOfOperation: '',
             kam: agentDetails?.kamName || '',
             inWhatsappCommunity:
                 agentDetails && typeof (agentDetails as any).inWhatsappCommunity === 'boolean'
@@ -170,7 +167,7 @@ export default function AgentDetailsDropdown({
             workAddress: editableUserDetails.Address,
             emailAddress: editableUserDetails.mail,
             firmName: editableUserDetails.firm,
-            preferredArea: editableUserDetails.preferredArea,
+            areaOfOperation: editableUserDetails.areaOfOperation,
             kamName: editableUserDetails.kam,
             inWhatsappCommunity: editableUserDetails.inWhatsappCommunity === 'true',
             onBroadcast: editableUserDetails.inWhatsappBroadcast,
@@ -232,7 +229,7 @@ export default function AgentDetailsDropdown({
         Address: agentDetails?.workAddress ? String(agentDetails.workAddress) : '',
         mail: agentDetails?.emailAddress ? String(agentDetails.emailAddress) : '',
         firm: agentDetails?.firmName ? String(agentDetails.firmName) : '',
-        preferredArea: (agentDetails as any)?.preferredArea ? String((agentDetails as any).preferredArea) : '',
+        areaOfOperation: (agentDetails as any)?.areaOfOperation ? String((agentDetails as any).areaOfOperation) : '',
         kam: agentDetails?.kamName ? String(agentDetails.kamName) : '',
         inWhatsappCommunity: (agentDetails as any)?.inWhatsappCommunity
             ? String((agentDetails as any).inWhatsappCommunity)
@@ -246,15 +243,15 @@ export default function AgentDetailsDropdown({
     }
 
     const resaleDetailsFields = {
-        inventory: agentDetails.noOfinventories,
-        Requirement: agentDetails.noOfrequirements,
+        inventory: agentDetails.noOfInventories,
+        Requirement: agentDetails.noOfRequirements,
         EnquiriesDid: agentDetails.noOfEnquiries,
         EnquiriesReceived: '',
     }
 
     const rentalDetailsFields = {
-        inventory: agentDetails.noOfinventories,
-        Requirement: agentDetails.noOfrequirements,
+        inventory: agentDetails.noOfInventories,
+        Requirement: agentDetails.noOfRequirements,
         EnquiriesDid: agentDetails.noOfEnquiries,
         EnquiriesReceived: '',
     }
@@ -436,18 +433,18 @@ export default function AgentDetailsDropdown({
                                             />
                                         </div>
                                     </div>
-                                    {/* preferredArea dropdown */}
+                                    {/* areaOfOperation dropdown */}
                                     <div className='flex justify-between items-center py-1.5'>
-                                        <span className='text-xs text-gray-600'>Preferred Area</span>
+                                        <span className='text-xs text-gray-600'>Area of Operation</span>
                                         <div className='w-fit'>
                                             <Dropdown
-                                                options={preferredAreaOptions.map((area) => ({
+                                                options={areaOfOperationOptions.map((area) => ({
                                                     value: area,
                                                     label: area,
                                                 }))}
-                                                value={String(editableUserDetails.preferredArea)}
-                                                onSelect={(value) => handleUserDetailChange('preferredArea', value)}
-                                                placeholder='Preferred Area'
+                                                value={String(editableUserDetails.areaOfOperation)}
+                                                onSelect={(value) => handleUserDetailChange('areaOfOperation', value)}
+                                                placeholder='Area of Operation'
                                                 triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                                                 menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
                                                 optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'

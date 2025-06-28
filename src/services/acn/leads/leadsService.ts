@@ -3,6 +3,8 @@ import { createAsyncThunk } from '@reduxjs/toolkit'
 import { doc, getDoc, updateDoc, deleteDoc, setDoc, getDocs, collection, where, query } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import { type ILead, leadSearchService } from '../../../services/acn/leads/algoliaLeadsService'
+import type { IAgent } from '../../../data_types/acn/types'
+// import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 
 // Helper function to get current Unix timestamp in milliseconds
 const getCurrentTimestamp = () => Date.now()
@@ -413,84 +415,84 @@ export const fetchLeadWithConnectHistory = createAsyncThunk(
 )
 
 // Add these interfaces
-interface InventoryStatus {
-    available: boolean
-    delisted: boolean
-    hold: boolean
-    sold: boolean
-}
+// interface InventoryStatus {
+//     available: boolean
+//     delisted: boolean
+//     hold: boolean
+//     sold: boolean
+// }
 
-interface PaymentHistoryItem {
-    amount: number
-    date: number
-    status: string
-}
+// interface PaymentHistoryItem {
+//     amount: number
+//     date: number
+//     status: string
+// }
 
-interface ContactHistoryItem {
-    timestamp: number
-    contactResult: string
-    medium: string
-    direction: string
-}
+// interface ContactHistoryItem {
+//     timestamp: number
+//     contactResult: string
+//     medium: string
+//     direction: string
+// }
 
-interface Note {
-    kamId: string
-    note: string
-    source: string
-    timestamp: number
-    archive: boolean
-}
+// interface Note {
+//     kamId: string
+//     note: string
+//     source: string
+//     timestamp: number
+//     archive: boolean
+// }
 
-interface IAgent {
-    cpId: string
-    name: string
-    phoneNumber: string
-    emailAddress: string
-    workAddress: string
-    reraId: string
-    firmName: string
-    firmSize: number
-    areaOfOperation: ('north bangalore' | 'south bangalore' | 'east bangalore' | 'west bangalore' | 'pan bangalore')[]
-    businessCategory: ('resale' | 'rental' | 'primary')[]
-    preferedMicromarket: string
-    userType: 'basic' | 'trial' | 'premium'
-    activity: 'active' | 'nudge' | 'no activity'
-    agentStatus: 'interested' | 'not interested' | 'not contact yet'
-    verified: boolean
-    verficationDate: number
-    blackListed: boolean
-    trialUsed: boolean
-    trialStartedAt: number
-    noOfinventories: number
-    inventoryStatus: InventoryStatus
-    noOfEnquiries: number
-    noOfrequirements: number
-    noOfleagalLeads: number
-    lastEnquiry: number
-    payStatus: 'will pay' | 'paid' | 'will not' | 'paid by team'
-    planExpiry: number
-    nextRenewal: number
-    paymentHistory: PaymentHistoryItem[]
-    monthlyCredits: number
-    boosterCredits: number
-    inboundEnqCredits: number
-    inboundReqCredits: number
-    contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
-    contactHistory: ContactHistoryItem[]
-    lastTried: number
-    kamName: string
-    kamId: string
-    notes: Note[]
-    appInstalled: boolean
-    communityJoined: boolean
-    onBroadcast: boolean
-    onboardingComplete: boolean
-    source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct' | 'meta'
-    lastSeen: number
-    added: number
-    lastModified: number
-    extraDetails: string
-}
+// interface IAgent {
+//     cpId: string
+//     name: string
+//     phoneNumber: string
+//     emailAddress: string
+//     workAddress: string
+//     reraId: string
+//     firmName: string
+//     firmSize: number
+//     areaOfOperation: ('north bangalore' | 'south bangalore' | 'east bangalore' | 'west bangalore' | 'pan bangalore')[]
+//     businessCategory: ('resale' | 'rental' | 'primary')[]
+//     preferedMicromarket: string
+//     userType: 'basic' | 'trial' | 'premium'
+//     activity: 'active' | 'nudge' | 'no activity'
+//     agentStatus: 'interested' | 'not interested' | 'not contact yet'
+//     verified: boolean
+//     verficationDate: number
+//     blackListed: boolean
+//     trialUsed: boolean
+//     trialStartedAt: number
+//     noOfInventories: number
+//     inventoryStatus: InventoryStatus
+//     noOfEnquiries: number
+//     noOfRequirements: number
+//     noOfLegalLeads: number
+//     lastEnquiry: number
+//     payStatus: 'will pay' | 'paid' | 'will not' | 'paid by team'
+//     planExpiry: number
+//     nextRenewal: number
+//     paymentHistory: PaymentHistoryItem[]
+//     monthlyCredits: number
+//     boosterCredits: number
+//     inboundEnqCredits: number
+//     inboundReqCredits: number
+//     contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
+//     contactHistory: ContactHistoryItem[]
+//     lastTried: number
+//     kamName: string
+//     kamId: string
+//     notes: Note[]
+//     appInstalled: boolean
+//     communityJoined: boolean
+//     onBroadcast: boolean
+//     onboardingComplete?: boolean
+//     source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct' | 'meta'
+//     lastSeen: number
+//     added: number
+//     lastModified: number
+//     extraDetails: string
+// }
 
 interface AgentVerificationData {
     name: string
@@ -560,6 +562,11 @@ export const verifyLeadAndCreateAgent = createAsyncThunk(
             const timestamp = Math.floor(Date.now() / 1000)
 
             const agentData: IAgent = {
+                planId: '',
+                inventories: [],
+                requirements: [],
+                enquiries: [],
+                legalLeads: [],
                 cpId: newCpId,
                 name: verificationData.name,
                 phoneNumber: verificationData.phoneNumber,
@@ -579,7 +586,7 @@ export const verifyLeadAndCreateAgent = createAsyncThunk(
                 blackListed: false,
                 trialUsed: false,
                 trialStartedAt: 0,
-                noOfinventories: 0,
+                noOfInventories: 0,
                 inventoryStatus: {
                     available: false,
                     delisted: false,
@@ -587,28 +594,28 @@ export const verifyLeadAndCreateAgent = createAsyncThunk(
                     sold: false,
                 },
                 noOfEnquiries: 0,
-                noOfrequirements: 0,
-                noOfleagalLeads: 0,
+                noOfRequirements: 0,
+                noOfLegalLeads: 0,
                 lastEnquiry: 0,
                 payStatus: 'will not',
                 planExpiry: 0,
                 nextRenewal: 0,
                 paymentHistory: [],
-                monthlyCredits: 0,
+                monthlyCredits: 5,
                 boosterCredits: 0,
-                inboundEnqCredits: 0,
-
-                inboundReqCredits: 0,
+                inboundEnqCredits: 5,
+                inboundReqCredits: 5,
                 contactStatus: leadData.contactStatus || 'not contact',
                 contactHistory: leadData.connectHistory || [],
                 lastTried: leadData.lastTried || 0,
+                lastConnected: 0,
                 kamName: verificationData.kamName,
                 kamId: verificationData.kamId,
                 notes: leadData.notes || [],
                 appInstalled: false,
                 communityJoined: leadData.communityJoined || false,
                 onBroadcast: leadData.onBroadcast || false,
-                onboardingComplete: false,
+                inWhatsappCommunity: false,
                 source: leadData.source || 'direct',
                 lastSeen: 0,
                 added: leadData.added || timestamp,
@@ -654,7 +661,7 @@ interface BulkLeadData {
 interface ProcessedLeadData {
     leadId: string
     name: string
-    phonenumber: string
+    phoneNumber: string
     emailAddress: string
     source: string
     kamId: string
@@ -747,14 +754,14 @@ export const validateCSVData = createAsyncThunk(
                             // Check in acnLeads collection
                             const leadsQuery = query(
                                 collection(db, 'acnLeads'),
-                                where('phonenumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
+                                where('phoneNumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
                             )
                             const leadsSnapshot = await getDocs(leadsQuery)
 
                             // Check in acnAgents collection
                             const agentsQuery = query(
                                 collection(db, 'acnAgents'),
-                                where('phonenumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
+                                where('phoneNumber', 'in', [originalPhone, phoneWithPrefix, phoneToCheck]),
                             )
                             const agentsSnapshot = await getDocs(agentsQuery)
 
@@ -919,39 +926,39 @@ export const addBulkLeads = createAsyncThunk(
                 // Check for duplicate phone numbers
                 try {
                     // Check in acnLeads collection with original format
-                    const leadsQuery = query(collection(db, 'acnLeads'), where('phonenumber', '==', leadData.Number))
+                    const leadsQuery = query(collection(db, 'acnLeads'), where('phoneNumber', '==', leadData.Number))
                     const leadsSnapshot = await getDocs(leadsQuery)
 
                     // Check with +91 prefix
                     const phoneWithPrefix = `+91${phoneToCheck}`
                     const leadsQueryWithPrefix = query(
                         collection(db, 'acnLeads'),
-                        where('phonenumber', '==', phoneWithPrefix),
+                        where('phoneNumber', '==', phoneWithPrefix),
                     )
                     const leadsSnapshotWithPrefix = await getDocs(leadsQueryWithPrefix)
 
                     // Check without prefix (just 10 digits)
                     const leadsQueryWithoutPrefix = query(
                         collection(db, 'acnLeads'),
-                        where('phonenumber', '==', phoneToCheck),
+                        where('phoneNumber', '==', phoneToCheck),
                     )
                     const leadsSnapshotWithoutPrefix = await getDocs(leadsQueryWithoutPrefix)
 
                     // Check in acnAgents collection with original format
-                    const agentsQuery = query(collection(db, 'acnAgents'), where('phonenumber', '==', leadData.Number))
+                    const agentsQuery = query(collection(db, 'acnAgents'), where('phoneNumber', '==', leadData.Number))
                     const agentsSnapshot = await getDocs(agentsQuery)
 
                     // Check agents with +91 prefix
                     const agentsQueryWithPrefix = query(
                         collection(db, 'acnAgents'),
-                        where('phonenumber', '==', phoneWithPrefix),
+                        where('phoneNumber', '==', phoneWithPrefix),
                     )
                     const agentsSnapshotWithPrefix = await getDocs(agentsQueryWithPrefix)
 
                     // Check agents without prefix
                     const agentsQueryWithoutPrefix = query(
                         collection(db, 'acnAgents'),
-                        where('phonenumber', '==', phoneToCheck),
+                        where('phoneNumber', '==', phoneToCheck),
                     )
                     const agentsSnapshotWithoutPrefix = await getDocs(agentsQueryWithoutPrefix)
 
@@ -1006,7 +1013,7 @@ export const addBulkLeads = createAsyncThunk(
                 const newLead: ProcessedLeadData = {
                     leadId,
                     name: leadData.Name,
-                    phonenumber: leadData.Number,
+                    phoneNumber: leadData.Number,
                     emailAddress: leadData.Email,
                     source: leadData['Lead Source'],
                     kamId,
@@ -1105,6 +1112,25 @@ export const addManualLead = createAsyncThunk(
                 })
             }
 
+            // Check if phone exists in acnPipeline for KAM details
+            let kamId = ''
+            let kamName = ''
+
+            try {
+                const pipelineDocRef = doc(db, 'acnPipeline', phone)
+                const pipelineDoc = await getDoc(pipelineDocRef)
+
+                if (pipelineDoc.exists()) {
+                    const pipelineData = pipelineDoc.data()
+                    kamId = pipelineData.kamId || ''
+                    kamName = pipelineData.kamName || ''
+                } else {
+                    throw new Error(`Pipeline doc not found for: ${kamId} ${kamName}`)
+                }
+            } catch (error) {
+                console.log('Pipeline doc not found for:', phone)
+            }
+
             let formattedPhoneNumber = phone
             if (formattedPhoneNumber && !formattedPhoneNumber.startsWith('+91')) {
                 // Remove any existing country code or leading zeros
@@ -1115,7 +1141,7 @@ export const addManualLead = createAsyncThunk(
             const newLead: ProcessedLeadData = {
                 leadId,
                 name: manualData.name,
-                phonenumber: formattedPhoneNumber,
+                phoneNumber: formattedPhoneNumber,
                 emailAddress: manualData.email,
                 source: manualData.leadSource,
                 kamId: manualData.kamId,
@@ -1171,21 +1197,21 @@ export const validateLeadData = createAsyncThunk(
             const phoneToCheck = phone.replace(/^\+91/, '')
 
             // Check in acnLeads collection
-            const leadsQuery = query(collection(db, 'acnLeads'), where('phonenumber', '==', phone))
+            const leadsQuery = query(collection(db, 'acnLeads'), where('phoneNumber', '==', phone))
             const leadsSnapshot = await getDocs(leadsQuery)
 
             // Also check without +91 prefix
-            const leadsQueryWithoutPrefix = query(collection(db, 'acnLeads'), where('phonenumber', '==', phoneToCheck))
+            const leadsQueryWithoutPrefix = query(collection(db, 'acnLeads'), where('phoneNumber', '==', phoneToCheck))
             const leadsSnapshotWithoutPrefix = await getDocs(leadsQueryWithoutPrefix)
 
             // Check in acnAgents collection
-            const agentsQuery = query(collection(db, 'acnAgents'), where('phonenumber', '==', phone))
+            const agentsQuery = query(collection(db, 'acnAgents'), where('phoneNumber', '==', phone))
             const agentsSnapshot = await getDocs(agentsQuery)
 
             // Also check agents without +91 prefix
             const agentsQueryWithoutPrefix = query(
                 collection(db, 'acnAgents'),
-                where('phonenumber', '==', phoneToCheck),
+                where('phoneNumber', '==', phoneToCheck),
             )
             const agentsSnapshotWithoutPrefix = await getDocs(agentsQueryWithoutPrefix)
 

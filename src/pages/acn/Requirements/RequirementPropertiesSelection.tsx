@@ -759,7 +759,7 @@ const PropertiesSelectionPage = () => {
             ),
         },
         {
-            key: 'cpCode',
+            key: 'cpId',
             header: 'Agent Name',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value || '-'}</span>,
         },

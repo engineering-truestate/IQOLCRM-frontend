@@ -10,8 +10,23 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import type { Platform } from '../pages/auth/Register'
 
-export const registerHelper = async (uid: string, platform: Platform[]) => {
+export const registerHelper = async (
+    uid: string,
+    platform: Platform[],
+    phoneNumber: string,
+    email: string,
+    name: string,
+) => {
     try {
+        if (phoneNumber === '' || phoneNumber === undefined || phoneNumber === null) {
+            throw new Error('Phone number is required')
+        }
+        if (email === '' || email === undefined || email === null) {
+            throw new Error('Email is required')
+        }
+        if (name === '' || name === undefined || name === null) {
+            throw new Error('Name is required')
+        }
         let acn = {}
         let canvasHomes = {}
         let vault = {}
@@ -48,6 +63,9 @@ export const registerHelper = async (uid: string, platform: Platform[]) => {
             }
         }
         await setDoc(doc(db, 'internal-agents', uid), {
+            name: name,
+            email: email,
+            phoneNumber: phoneNumber,
             uid: uid,
             acn: acn,
             canvasHomes: canvasHomes,
@@ -79,6 +97,7 @@ export const registerUser = async (
     picture: File | null,
     role: string,
     platform: Platform[],
+    phoneNumber: string,
 ) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
@@ -126,7 +145,7 @@ export const registerUser = async (
             console.warn('User created but role assignment failed')
         }
         console.log(platform)
-        await registerHelper(user.uid, platform)
+        await registerHelper(user.uid, platform, phoneNumber, email, name)
 
         return user
     } catch (error: any) {

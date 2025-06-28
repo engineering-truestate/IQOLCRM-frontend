@@ -15,7 +15,7 @@ import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../c
 import Dropdown from '../../../components/design-elements/Dropdown'
 import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
-import { type IRequirement } from '../../../store/reducers/acn/requirementsTypes'
+import type { IRequirement } from '../../../data_types/acn/types'
 import { fetchPropertiesByIds } from '../../../services/acn/properties/propertiesService'
 import { clearProperties } from '../../../store/reducers/acn/propertiesReducers'
 import editic from '/icons/acn/edit.svg'
@@ -126,12 +126,12 @@ const RequirementDetailsPage = () => {
         }
     }
 
-    const formatSizeForInput = (size: { from: number; to: number }) => {
-        return {
-            from: size.from.toString(),
-            to: size.to.toString(),
-        }
-    }
+    // const formatSizeForInput = (size: { from: number; to: number }) => {
+    //     return {
+    //         from: size.from.toString(),
+    //         to: size.to.toString(),
+    //     }
+    // }
 
     // Load requirement data based on ID from URL
     useEffect(() => {
@@ -160,9 +160,6 @@ const RequirementDetailsPage = () => {
                 // Initialize range states
                 if (requirement.budget) {
                     setBudgetRange(formatBudgetForInput(requirement.budget))
-                }
-                if (requirement.size) {
-                    setSizeRange(formatSizeForInput(requirement.size))
                 }
 
                 // Check if market value is set
@@ -305,9 +302,6 @@ const RequirementDetailsPage = () => {
         if (originalRequirement?.budget) {
             setBudgetRange(formatBudgetForInput(originalRequirement.budget))
         }
-        if (originalRequirement?.size) {
-            setSizeRange(formatSizeForInput(originalRequirement.size))
-        }
 
         // Reset market price state
         setIsMarketPrice(
@@ -327,7 +321,11 @@ const RequirementDetailsPage = () => {
 
             // Compare each field
             const fieldsToCheck: (keyof IRequirement)[] = [
-                'location',
+                'agentName',
+                'agentPhoneNumber',
+                'kamId',
+                'kamName',
+                'kamPhoneNumber',
                 'assetType',
                 'configuration',
                 'micromarket',
@@ -378,11 +376,7 @@ const RequirementDetailsPage = () => {
                     to: parseFloat(sizeRange.to),
                 }
 
-                if (
-                    !originalRequirement.size ||
-                    newSize.from !== originalRequirement.size.from ||
-                    newSize.to !== originalRequirement.size.to
-                ) {
+                if (!originalRequirement.area) {
                     changes.size = newSize
                 }
             }
@@ -493,9 +487,9 @@ const RequirementDetailsPage = () => {
     }
 
     // Helper function to format size range
-    const formatSizeRange = (size: { from: number; to: number }) => {
-        return `${size.from} - ${size.to} sqft`
-    }
+    // const formatSizeRange = (size: { from: number; to: number }) => {
+    //     return `${size.from} - ${size.to} sqft`
+    // }
 
     // Render budget range field
     const renderBudgetRange = () => {
@@ -585,9 +579,7 @@ const RequirementDetailsPage = () => {
             return (
                 <div>
                     <label className='text-sm text-gray-500 block mb-1'>Size Range</label>
-                    <div className='text-sm font-semibold'>
-                        {localRequirement?.size ? formatSizeRange(localRequirement.size) : 'N/A'}
-                    </div>
+                    <div className='text-sm font-semibold'>{localRequirement?.area}</div>
                 </div>
             )
         }
@@ -975,16 +967,17 @@ const RequirementDetailsPage = () => {
                             <div className='bg-gray-50 rounded-lg p-4'>
                                 <div className='flex items-center gap-3 mb-2'>
                                     <div className='w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-sm font-semibold'>
-                                        {localRequirement?.name
-                                            ? localRequirement.name.substring(0, 2).toUpperCase()
+                                        {localRequirement?.agentName
+                                            ? localRequirement.agentName.substring(0, 2).toUpperCase()
                                             : 'AG'}
                                     </div>
                                     <div>
                                         <div className='text-sm font-semibold'>
-                                            {localRequirement?.name || 'Agent Name'}
+                                            {localRequirement?.agentName || 'Agent Name'}
                                         </div>
                                         <div className='text-xs text-gray-500'>
-                                            {localRequirement?.cpId} | {localRequirement?.agentPhone || 'Contact Info'}
+                                            {localRequirement?.cpId} |{' '}
+                                            {localRequirement?.agentPhoneNumber || 'Contact Info'}
                                         </div>
                                     </div>
                                 </div>

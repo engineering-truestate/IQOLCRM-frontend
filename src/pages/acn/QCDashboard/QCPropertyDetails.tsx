@@ -96,14 +96,14 @@ const QCPropertyDetailsPage = () => {
     const { user: currentUser, platform, loading: authLoading } = useAuth()
 
     // Safe access with optional chaining
-    const acnRole = platform?.[0]?.role
+    const acnRole = platform?.acn?.role
 
     // Create agentData from auth information
     const agentData: AgentData | null = useMemo(() => {
-        if (!currentUser || !platform?.[0]) return null
+        if (!currentUser || !platform?.acn) return null
 
         return {
-            role: platform[0].role,
+            role: platform.acn.role,
             email: currentUser.email || '',
             phone: currentUser.phoneNumber || '',
             name: currentUser.displayName || currentUser.email || '',
@@ -1128,11 +1128,11 @@ const QCPropertyDetailsPage = () => {
                         <div className='space-y-6'>
                             <div className='flex items-center gap-3 px-6'>
                                 <div className='w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
-                                    {getInitials(qcProperty.kamName)}
+                                    {getInitials(qcProperty.name)}
                                 </div>
                                 <div>
-                                    <div className='font-medium text-gray-900'>{safeDisplay(qcProperty.kamName)}</div>
-                                    <div className='text-sm text-gray-600'>{safeDisplay(qcProperty.cpId)}</div>
+                                    <div className='font-medium text-gray-900'>{safeDisplay(qcProperty.name)}</div>
+                                    <div className='text-sm text-gray-600'>{safeDisplay(qcProperty.phoneNumber)}</div>
                                 </div>
                             </div>
 

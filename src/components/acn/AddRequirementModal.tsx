@@ -11,6 +11,7 @@ import {
 import { clearFilteredBuilderNames } from '../../store/reducers/acn/constantReducer'
 import { type AppDispatch, type RootState } from '../../store'
 import { toast } from 'react-toastify'
+import useAuth from '../../hooks/useAuth'
 
 interface AddRequirementModalProps {
     isOpen: boolean
@@ -41,6 +42,11 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
     const [budgetFrom, setBudgetFrom] = useState('')
     const [budgetTo, setBudgetTo] = useState('')
     const [asMarketPrice, setAsMarketPrice] = useState(false)
+    // user details
+    const { platform, user } = useAuth()
+    const kamId = platform?.acn?.kamId || 'INT003'
+    const kamName = user?.displayName || ''
+    const kamPhoneNumber = user?.phoneNumber || ''
 
     // Micromarket fields
     const [micromarket, setMicromarket] = useState('')
@@ -166,6 +172,9 @@ export const AddRequirementModal: React.FC<AddRequirementModalProps> = ({ isOpen
                 micromarket,
                 builderName,
                 cpId: agentId || cpId,
+                kamId: kamId,
+                kamName: kamName,
+                kamPhoneNumber: kamPhoneNumber,
             }
 
             await dispatch(createRequirement(requirementData)).unwrap()

@@ -49,7 +49,7 @@ const AgentDetailsPage = () => {
     const [selectedInternalStatus, setSelectedInternalStatus] = useState('')
 
     // Enquiry type switcher
-    const [enquiryType, setEnquiryType] = useState<'Enquired' | 'Received'>('Enquired')
+    const [enquiryType, setEnquiryType] = useState<'Enquired' | 'Received'>('Received')
 
     // Get data from Redux store
     const { resale, rental, loading, error } = useSelector((state: RootState) => state.agents)
@@ -512,7 +512,7 @@ const AgentDetailsPage = () => {
                         ),
                     },
                     {
-                        key: 'cpCode',
+                        key: 'cpId',
                         header: 'Agent',
                         render: (_) => (
                             <span className='whitespace-nowrap text-sm font-normal w-auto'>
@@ -713,15 +713,15 @@ const AgentDetailsPage = () => {
                             ),
                         },
                         {
-                            key: 'buyerName',
-                            header: 'Buyer Name',
+                            key: 'sellerName',
+                            header: 'Seller Name',
                             render: (value: any) => (
                                 <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
                             ),
                         },
                         {
-                            key: 'buyerNumber',
-                            header: 'Buyer Number',
+                            key: 'sellerNumber',
+                            header: 'Seller Number',
                             render: (value: any) => (
                                 <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
                                     {value}
@@ -776,15 +776,15 @@ const AgentDetailsPage = () => {
                             ),
                         },
                         {
-                            key: 'sellerName',
-                            header: 'Seller Name',
+                            key: 'buyerName',
+                            header: 'Buyer Name',
                             render: (value: any) => (
                                 <span className='whitespace-nowrap text-sm font-semibold w-auto'>{value}</span>
                             ),
                         },
                         {
-                            key: 'sellerNumber',
-                            header: 'Seller Number',
+                            key: 'buyerNumber',
+                            header: 'Buyer Number',
                             render: (value: any) => (
                                 <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>
                                     {value}

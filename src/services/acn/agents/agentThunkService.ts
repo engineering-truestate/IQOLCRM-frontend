@@ -1,5 +1,17 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { collection, query, where, getDocs, doc, updateDoc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    doc,
+    updateDoc,
+    getDoc,
+    setDoc,
+    onSnapshot,
+    increment,
+    arrayUnion,
+} from 'firebase/firestore'
 import { db } from '../../../firebase'
 import type { IInventory, IRequirement, IAgent } from '../../../data_types/acn/types'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
@@ -311,7 +323,7 @@ export const fetchAgentDetails = createAsyncThunk(
                     id: doc.id,
                     propertyId: data.propertyId || doc.id,
                     cpId: data.cpId || agentId,
-                    propertyName: data.propertyName || data.nameOfTheProperty || '',
+                    propertyName: data.propertyName || data.propertyName || '',
                     _geoloc: data._geoloc || { lat: 0, lng: 0 },
                     area: data.area || '',
                     micromarket: data.micromarket || '',
@@ -330,7 +342,7 @@ export const fetchAgentDetails = createAsyncThunk(
                     askPricePerSqft: data.askPricePerSqft || 0,
                     status: data.status || '',
                     currentStatus: data.currentStatus || '',
-                    builder_name: data.builder_name || null,
+                    builderName: data.builderName || null,
                     handoverDate: data.handoverDate || null,
                     buildingKhata: data.buildingKhata || null,
                     landKhata: data.landKhata || null,
@@ -361,15 +373,17 @@ export const fetchAgentDetails = createAsyncThunk(
                     requirementId: data.requirementId || doc.id,
                     agentNumber: data.agentNumber || '',
                     agentName: data.agentName || '',
+                    agentPhoneNumber: data.agentPhoneNumber || '',
                     cpId: data.cpId || agentId,
                     location: data.location || '',
+                    area: data.area || '',
                     assetType: propertyType.toLowerCase(),
                     configuration: data.configuration || '1 bhk',
                     _geoloc: data._geoloc || { lat: 0, lng: 0 },
                     micromarket: data.micromarket || '',
                     budget: data.budget || { from: 0, to: 0 },
                     note: data.note || [],
-                    size: data.size || { from: 0, to: 0 },
+                    notes: data.notes || [],
                     bedrooms: data.bedrooms || '',
                     bathrooms: data.bathrooms || '',
                     parking: data.parking || '',
@@ -381,6 +395,9 @@ export const fetchAgentDetails = createAsyncThunk(
                     added: data.added || Date.now(),
                     lastModified: data.lastModified || Date.now(),
                     matchingProperties: data.matchingProperties || [],
+                    kamId: data.kamId || '',
+                    kamName: data.kamName || '',
+                    kamPhoneNumber: data.kamPhoneNumber || '',
                 } as IRequirement
             })
 
@@ -414,7 +431,7 @@ export const fetchAgentDetails = createAsyncThunk(
             // Fetch QC data from Firebase
             const qcCollectionName = propertyType === 'Resale' ? 'acnQCInventories' : 'acnRentalQCInventories'
             const qcRef = collection(db, qcCollectionName)
-            const qcQuery = query(qcRef, where('cpId', '==', agentId))
+            const qcQuery = query(qcRef, where('cpId', '==', agentId), where('stage', '!=', 'live'))
             const qcSnapshot = await getDocs(qcQuery)
             const qc = qcSnapshot.docs.map((doc) => ({
                 id: doc.id,
@@ -764,7 +781,7 @@ export const addAgentWithVerification = createAsyncThunk(
                 blackListed: false,
                 trialUsed: false,
                 trialStartedAt: 0,
-                noOfinventories: 0,
+                noOfInventories: 0,
                 inventoryStatus: {
                     available: false,
                     delisted: false,
@@ -772,8 +789,8 @@ export const addAgentWithVerification = createAsyncThunk(
                     sold: false,
                 },
                 noOfEnquiries: 0,
-                noOfrequirements: 0,
-                noOfleagalLeads: 0,
+                noOfRequirements: 0,
+                noOfLegalLeads: 0,
                 lastEnquiry: 0,
                 payStatus: 'will not',
                 planExpiry: 0,
@@ -792,7 +809,6 @@ export const addAgentWithVerification = createAsyncThunk(
                 appInstalled: false,
                 communityJoined: false,
                 onBroadcast: false,
-                onboardingComplete: false,
                 source: 'direct',
                 lastSeen: 0,
                 added: timestamp,
@@ -867,6 +883,31 @@ export const updateAgentCreditsThunk = createAsyncThunk(
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Failed to update agent credits',
+            }
+        }
+    },
+)
+
+export const updateAgentInventoryCountThunk = createAsyncThunk(
+    'agents/updateAgentInventoryCountThunk',
+    async ({ cpId, propertyId }: { cpId: string; propertyId: string }) => {
+        console.log(cpId, 'cpId')
+        try {
+            const agentRef = doc(db, 'acnAgents', cpId)
+            const agentSnapshot = await getDoc(agentRef)
+            if (agentSnapshot.exists()) {
+                await updateDoc(agentRef, {
+                    myInventories: arrayUnion(propertyId),
+                    noOfInventories: increment(1),
+                    lastModified: Date.now(),
+                })
+                console.log('agent inventory count updated')
+            }
+        } catch (error) {
+            console.error('Error updating agent inventory count:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to update agent inventory count',
             }
         }
     },

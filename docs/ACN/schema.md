@@ -78,15 +78,15 @@ Stores detailed profiles of registered channel partners, including business acti
 | blackListed                       | boolean     | –                                                                               | false                        |
 | trialUsed                         | boolean     | –                                                                               | true                         |
 | trialStartedAt                    | number (TS) | –                                                                               | 1717750000000                |
-| noOfinventories                   | number      | –                                                                               | 45                           |
+| noOfInventories                   | number      | –                                                                               | 45                           |
 | inventoryStatus                   | object      | Object with boolean properties                                                  | –                            |
 | ├─ inventoryStatus.available      | boolean     | –                                                                               | true                         |
 | ├─ inventoryStatus.delisted       | boolean     | –                                                                               | false                        |
 | ├─ inventoryStatus.hold           | boolean     | –                                                                               | true                         |
 | └─ inventoryStatus.sold           | boolean     | –                                                                               | false                        |
 | noOfEnquiries                     | number      | –                                                                               | 120                          |
-| noOfrequirements                  | number      | –                                                                               | 35                           |
-| noOfleagalLeads                   | number      | –                                                                               | 8                            |
+| noOfRequirements                  | number      | –                                                                               | 35                           |
+| noOfLegalLead                     | number      | –                                                                               | 8                            |
 | lastConnected                     | number (TS) | –                                                                               | 1717905000000                |
 | lastEnquiry                       | number (TS) | –                                                                               | 1717916400000                |
 | payStatus                         | string      | will pay, paid, will not, paid by team                                          | "paid"                       |

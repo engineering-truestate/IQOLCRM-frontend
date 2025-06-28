@@ -208,7 +208,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                 const headerMap: Record<string, string> = {
                     number: 'Number',
                     phone: 'Number',
-                    phonenumber: 'Number',
+                    phoneNumber: 'Number',
                     name: 'Name',
                     email: 'Email',
                     'lead source': 'Lead Source',
