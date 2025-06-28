@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useLocation } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import google from '/icons/canvas_homes/google.svg'
@@ -47,8 +47,26 @@ interface ProcessedMetric {
     cpl: number
 }
 
+// Define expected URL parameters
+interface CampaignParams {
+    campaignId: string
+    campaignName?: string
+    startDate?: string
+    endDate?: string
+    isPaused?: string // Will be "true" or "false" as a string
+    lastActiveDate?: string
+    property?: string
+    medium?: string
+}
+
 const MarketingDetails = () => {
-    const { campaignId } = useParams<{ campaignId: string }>()
+    // Get campaign details from URL parameters
+    const params = useParams<CampaignParams>()
+    const location = useLocation()
+
+    // Parse query parameters for additional details not in path params
+    const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search])
+
     const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
     const [selectedRows, setSelectedRows] = useState<string[]>([])
     const [tableData, setTableData] = useState<ProcessedMetric[]>([])
@@ -57,41 +75,6 @@ const MarketingDetails = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [rawMetrics, setRawMetrics] = useState<GoogleAdsMetric[]>([])
-
-    // Google Ads API integration function
-    const getCampaignMetrics = async (campaign: CampaignData): Promise<GoogleAdsMetric[]> => {
-        try {
-            setLoading(true)
-            setError(null)
-
-            const response = await fetch('/api/google-ads/campaign-metrics', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    campaignId: campaign.campaignId,
-                    startDate: campaign.startDate,
-                    endDate: campaign.endDate,
-                    isPaused: campaign.isPaused,
-                    lastActiveDate: campaign.lastActiveDate,
-                }),
-            })
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch campaign metrics: ${response.statusText}`)
-            }
-
-            const data = await response.json()
-            return data.metrics || []
-        } catch (err) {
-            console.error('Error fetching campaign metrics:', err)
-            setError(err instanceof Error ? err.message : 'Failed to fetch campaign data')
-            return []
-        } finally {
-            setLoading(false)
-        }
-    }
 
     // Process raw metrics into display format
     const processMetrics = (metrics: GoogleAdsMetric[]): ProcessedMetric[] => {
@@ -117,28 +100,45 @@ const MarketingDetails = () => {
         })
     }
 
-    // Load campaign details and metrics
+    // Extract campaign details from URL parameters
     useEffect(() => {
         const loadCampaignData = async () => {
-            if (!campaignId) {
-                setError('Campaign ID is required')
-                setLoading(false)
-                return
-            }
-
             try {
-                // First, fetch campaign details (you'll need to implement this endpoint)
-                const detailsResponse = await fetch(`/api/campaigns/${campaignId}`)
-                if (!detailsResponse.ok) {
-                    throw new Error('Failed to fetch campaign details')
+                if (!params.campaignId) {
+                    setError('Campaign ID is required')
+                    setLoading(false)
+                    return
                 }
 
-                const campaignData: CampaignData = await detailsResponse.json()
+                // Extract campaign details from URL parameters and query parameters
+                const campaignData: CampaignData = {
+                    // Required parameters
+                    campaignId: params.campaignId,
+
+                    campaignName: params.campaignName || queryParams.get('campaignName') || 'Unnamed Campaign',
+                    startDate: params.startDate || queryParams.get('startDate') || '2023-01-01',
+                    endDate: params.endDate || queryParams.get('endDate') || 'No end date',
+                    isPaused: params.isPaused === 'true' || queryParams.get('isPaused') === 'true',
+
+                    // Additional optional parameters
+                    lastActiveDate: params.lastActiveDate || queryParams.get('lastActiveDate') || '',
+                    property: params.property || queryParams.get('property') || 'Default Property',
+                    medium: params.medium || queryParams.get('medium') || 'Search',
+                }
+
                 setCampaignDetails(campaignData)
 
-                // Then fetch metrics using the Google Ads API
-                const metrics = await getCampaignMetrics(campaignData)
-                setRawMetrics(metrics)
+                // Then fetch metrics using the client-side getCampaignMetrics function
+                try {
+                    const metrics = await getCampaignMetrics(campaignData)
+                    setRawMetrics(metrics)
+                } catch (metricsError) {
+                    console.error('Error fetching campaign metrics:', metricsError)
+                    // Fall back to empty metrics, will use fallback data
+                    setRawMetrics([])
+                }
+
+                setLoading(false)
             } catch (err) {
                 console.error('Error loading campaign data:', err)
                 setError(err instanceof Error ? err.message : 'Failed to load campaign data')
@@ -147,7 +147,7 @@ const MarketingDetails = () => {
         }
 
         loadCampaignData()
-    }, [campaignId])
+    }, [params, queryParams])
 
     // Fallback dummy data for development/testing
     const fallbackData = useMemo(
