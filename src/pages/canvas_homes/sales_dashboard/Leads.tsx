@@ -17,6 +17,11 @@ import superHotIcon from '/icons/canvas_homes/super-hot.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import ASLCRenderer from '../../../components/canvas_homes/ASLCRenderer'
+import { toast } from 'react-toastify'
+import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import useAuth from '../../../hooks/useAuth'
+import { enquiryService } from '../../../services/canvas_homes'
+import { leadService } from '../../../services/canvas_homes'
 
 // Status card component
 const StatusCard = ({
@@ -104,6 +109,7 @@ const Leads = () => {
     const [selectedTask, setSelectedTask] = useState('')
     const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
+    // const [junkTab,setjunkTab]= useState(false)
 
     // Store initial facets to prevent filter options from changing
     const [initialFacets, setInitialFacets] = useState<Record<string, Record<string, number>>>({})
@@ -220,7 +226,7 @@ const Leads = () => {
     ])
 
     useEffect(() => {
-        let filtered = allLeadsData
+        let filtered = allLeadsData.filter((lead) => lead.state?.toLowerCase() !== 'junk')
 
         if (activeStatusCard !== 'All') {
             const stateValue = activeStatusCard.toLowerCase()
@@ -320,8 +326,8 @@ const Leads = () => {
         container: 'relative inline-block w-full sm:w-auto',
         trigger: (isSelected: boolean) =>
             `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
-        menu: 'absolute z-50 mt-1 w-fit min-w-[300px] bg-white border border-gray-300 rounded-md shadow-lg',
-        option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
+        menu: 'absolute z-50 mt-1 w-fit min-w-[300px] max-h-80 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg',
+        option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md ',
     }
 
     // Keep initial facet options and order, only update counts
@@ -369,6 +375,69 @@ const Leads = () => {
 
     const handleRowClick = (row: any) => {
         navigate(`leaddetails/${row.leadId}`)
+    }
+
+    const goToJunkLeads = () => {
+        // console.log("button clicked")
+        navigate('junkleads')
+    }
+
+    const { user } = useAuth()
+
+    const handleJunkSelected = async () => {
+        if (!selectedRows.length) return
+
+        const timestamp = getUnixDateTime()
+
+        try {
+            const junkPromises = selectedRows.map(async (leadId) => {
+                console.log('Processing lead:', leadId)
+
+                // Fetch enquiries for the lead
+                const enquiries = await enquiryService.getByLeadId(leadId)
+                if (!enquiries.length) {
+                    console.warn(`No enquiries found for lead ${leadId}`)
+                    return
+                }
+
+                // Pick one enquiry to update (e.g., most recent)
+                const enquiry = enquiries.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0))[0]
+
+                // Update the lead
+                const updateLead = leadService.update(leadId, {
+                    state: 'junk',
+                    lastModified: timestamp,
+                })
+
+                // Update the enquiry
+                const updateEnquiry = enquiryService.update(enquiry.enquiryId ?? '', {
+                    state: 'junk',
+                    lastModified: timestamp,
+                })
+
+                console.log(user)
+
+                // Add activity
+                const addActivity = enquiryService.addActivity(enquiry.enquiryId ?? '', {
+                    activityType: 'status update',
+                    timestamp,
+                    agentName: user?.displayName || '',
+                    data: {
+                        newStatus: 'junk',
+                    },
+                })
+
+                await Promise.all([updateLead, updateEnquiry, addActivity])
+            })
+
+            await Promise.all(junkPromises)
+
+            toast.success('Selected leads marked as junk')
+            setSelectedRows([])
+        } catch (error) {
+            console.error('Error junking leads:', error)
+            toast.error('Failed to junk selected leads')
+        }
     }
 
     const statusCards = [
@@ -541,238 +610,252 @@ const Leads = () => {
     ]
 
     return (
-        <div className='p-3 pb-0 h-full'>
-            {/* Search and Filters */}
-            <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-5'>
-                <StateBaseTextField
-                    leftIcon={
-                        <svg
-                            className='w-4 h-4 text-gray-400'
-                            fill='none'
-                            stroke='currentColor'
-                            viewBox='0 0 16 16'
-                            width='16'
-                            height='16'
-                            xmlns='http://www.w3.org/2000/svg'
-                        >
-                            <path
-                                d='M7.66668 13.9999C11.1645 13.9999 14 11.1644 14 7.66659C14 4.16878 11.1645 1.33325 7.66668 1.33325C4.16887 1.33325 1.33334 4.16878 1.33334 7.66659C1.33334 11.1644 4.16887 13.9999 7.66668 13.9999Z'
-                                stroke='#3A3A47'
-                                strokeWidth='1.5'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                            />
-                            <path
-                                d='M14.6667 14.6666L13.3333 13.3333'
-                                stroke='#3A3A47'
-                                strokeWidth='1.5'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                            />
-                        </svg>
-                    }
-                    placeholder='Search name and number'
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    className='h-7 w-full sm:w-68 bg-gray-300 focus-within:border-black'
-                />
-
-                <DateRangePicker
-                    onDateRangeChange={handleDateRangeChange}
-                    onApply={applyDateRange}
-                    onCancel={cancelDateRange}
-                    placeholder='Date Range'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedDateRange)}
-                    menuClassName={dropdownClasses.menu}
-                    showApplyCancel={true}
-                />
-                <Dropdown
-                    options={generateDropdownOptions('propertyName', 'Property')}
-                    onSelect={setSelectedProperty}
-                    defaultValue={selectedProperty}
-                    value={selectedProperty}
-                    forcePlaceholderAlways
-                    placeholder='Property'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedProperty)}
-                    menuClassName={dropdownClasses.menu}
-                    optionClassName={dropdownClasses.option}
-                />
-                <Dropdown
-                    options={generateDropdownOptions('agentName', 'Agent')}
-                    onSelect={setSelectedAgent}
-                    defaultValue={selectedAgent}
-                    value={selectedAgent}
-                    forcePlaceholderAlways
-                    placeholder='Agent'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedAgent)}
-                    menuClassName={dropdownClasses.menu}
-                    optionClassName={dropdownClasses.option}
-                />
-                <Dropdown
-                    options={generateDropdownOptions('source', 'Source')}
-                    onSelect={setSelectedSource}
-                    defaultValue={selectedSource}
-                    value={selectedSource}
-                    forcePlaceholderAlways
-                    placeholder='Source'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedSource)}
-                    menuClassName={dropdownClasses.menu}
-                    optionClassName={dropdownClasses.option}
-                />
-                <Dropdown
-                    options={generateDropdownOptions('stage', 'Lead Stage')}
-                    onSelect={setSelectedLeadStage}
-                    defaultValue={selectedLeadStage}
-                    value={selectedLeadStage}
-                    forcePlaceholderAlways
-                    placeholder='Lead Stage'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedLeadStage)}
-                    menuClassName={dropdownClasses.menu}
-                    optionClassName={dropdownClasses.option}
-                />
-                <Dropdown
-                    options={generateDropdownOptions('tag', 'Tag')}
-                    onSelect={setSelectedTag}
-                    defaultValue={selectedTag}
-                    value={selectedTag}
-                    forcePlaceholderAlways
-                    placeholder='Tag'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedTag)}
-                    menuClassName={dropdownClasses.menu}
-                    optionClassName={dropdownClasses.option}
-                />
-                <Dropdown
-                    options={generateDropdownOptions('taskType', 'Task')}
-                    onSelect={setSelectedTask}
-                    defaultValue={selectedTask}
-                    value={selectedTask}
-                    forcePlaceholderAlways
-                    placeholder='Task'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedTask)}
-                    menuClassName={dropdownClasses.menu}
-                    optionClassName={dropdownClasses.option}
-                />
-                <Dropdown
-                    options={generateDropdownOptions('leadStatus', 'Lead Status')}
-                    onSelect={setSelectedLeadStatus}
-                    defaultValue={selectedLeadStatus}
-                    value={selectedLeadStatus}
-                    forcePlaceholderAlways
-                    placeholder='Lead Status'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedLeadStatus)}
-                    menuClassName={dropdownClasses.menu}
-                    optionClassName={dropdownClasses.option}
-                />
-            </div>
-
-            {/* Status Cards */}
-            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
-                <div className='grid grid-cols-2 gap-2 sm:flex sm:flex-wrap md:flex-nowrap'>
-                    {statusCards.map((card) => (
-                        <StatusCard
-                            key={card.title}
-                            title={card.title}
-                            count={card.count}
-                            isActive={activeStatusCard === card.title}
-                            onClick={() => setActiveStatusCard(card.title)}
-                        />
-                    ))}
-                </div>
-                <div className='flex flex-row gap-4.5'>
-                    <Button
-                        bgColor='bg-gray-200'
-                        textColor='text-gray-700'
-                        className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-gray-300'
-                    >
-                        <span>Junk Lead</span>
-                    </Button>
-                    <Button
-                        bgColor='bg-blue-600'
-                        textColor='text-white'
-                        className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-blue-700'
-                        onClick={() => setIsAddLeadModalOpen(true)}
-                    >
-                        <span>+ Add Lead</span>
-                    </Button>
-                </div>
-            </div>
-
-            {/* Active Filters */}
-            {activeFilters.length > 0 && (
-                <div className='flex flex-wrap items-center gap-2 mb-4'>
-                    {activeFilters.map((filter, index) =>
-                        filter ? (
-                            <div
-                                key={index}
-                                className='flex items-center bg-gray-100 text-xs font-medium text-gray-700 px-3 py-1.5 rounded-md'
+        <>
+            <div className='p-3 pb-0 h-full'>
+                {/* Search and Filters */}
+                <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-5'>
+                    <StateBaseTextField
+                        leftIcon={
+                            <svg
+                                className='w-4 h-4 text-gray-400'
+                                fill='none'
+                                stroke='currentColor'
+                                viewBox='0 0 16 16'
+                                width='16'
+                                height='16'
+                                xmlns='http://www.w3.org/2000/svg'
                             >
-                                {filter.label}
-                                <button
-                                    onClick={filter.onClear}
-                                    className='ml-2 text-gray-500 hover:text-red-500 focus:outline-none'
-                                    aria-label={`Clear ${filter.label}`}
-                                >
-                                    ✕
-                                </button>
-                            </div>
-                        ) : null,
-                    )}
+                                <path
+                                    d='M7.66668 13.9999C11.1645 13.9999 14 11.1644 14 7.66659C14 4.16878 11.1645 1.33325 7.66668 1.33325C4.16887 1.33325 1.33334 4.16878 1.33334 7.66659C1.33334 11.1644 4.16887 13.9999 7.66668 13.9999Z'
+                                    stroke='#3A3A47'
+                                    strokeWidth='1.5'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                />
+                                <path
+                                    d='M14.6667 14.6666L13.3333 13.3333'
+                                    stroke='#3A3A47'
+                                    strokeWidth='1.5'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                />
+                            </svg>
+                        }
+                        placeholder='Search name and number'
+                        value={searchValue}
+                        onChange={(e) => setSearchValue(e.target.value)}
+                        className='h-7 w-full sm:w-68 bg-gray-300 focus-within:border-black'
+                    />
 
-                    {/* Clear All Button */}
+                    <DateRangePicker
+                        onDateRangeChange={handleDateRangeChange}
+                        onApply={applyDateRange}
+                        onCancel={cancelDateRange}
+                        placeholder='Date Range'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedDateRange)}
+                        menuClassName={dropdownClasses.menu}
+                        showApplyCancel={true}
+                    />
+                    <Dropdown
+                        options={generateDropdownOptions('propertyName', 'Property')}
+                        onSelect={setSelectedProperty}
+                        defaultValue={selectedProperty}
+                        value={selectedProperty}
+                        forcePlaceholderAlways
+                        placeholder='Property'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedProperty)}
+                        menuClassName={dropdownClasses.menu}
+                        optionClassName={dropdownClasses.option}
+                    />
+                    <Dropdown
+                        options={generateDropdownOptions('agentName', 'Agent')}
+                        onSelect={setSelectedAgent}
+                        defaultValue={selectedAgent}
+                        value={selectedAgent}
+                        forcePlaceholderAlways
+                        placeholder='Agent'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedAgent)}
+                        menuClassName={dropdownClasses.menu}
+                        optionClassName={dropdownClasses.option}
+                    />
+                    <Dropdown
+                        options={generateDropdownOptions('source', 'Source')}
+                        onSelect={setSelectedSource}
+                        defaultValue={selectedSource}
+                        value={selectedSource}
+                        forcePlaceholderAlways
+                        placeholder='Source'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedSource)}
+                        menuClassName={dropdownClasses.menu}
+                        optionClassName={dropdownClasses.option}
+                    />
+                    <Dropdown
+                        options={generateDropdownOptions('stage', 'Lead Stage')}
+                        onSelect={setSelectedLeadStage}
+                        defaultValue={selectedLeadStage}
+                        value={selectedLeadStage}
+                        forcePlaceholderAlways
+                        placeholder='Lead Stage'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedLeadStage)}
+                        menuClassName={dropdownClasses.menu}
+                        optionClassName={dropdownClasses.option}
+                    />
+                    <Dropdown
+                        options={generateDropdownOptions('tag', 'Tag')}
+                        onSelect={setSelectedTag}
+                        defaultValue={selectedTag}
+                        value={selectedTag}
+                        forcePlaceholderAlways
+                        placeholder='Tag'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedTag)}
+                        menuClassName={dropdownClasses.menu}
+                        optionClassName={dropdownClasses.option}
+                    />
+                    <Dropdown
+                        options={generateDropdownOptions('taskType', 'Task')}
+                        onSelect={setSelectedTask}
+                        defaultValue={selectedTask}
+                        value={selectedTask}
+                        forcePlaceholderAlways
+                        placeholder='Task'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedTask)}
+                        menuClassName={dropdownClasses.menu}
+                        optionClassName={dropdownClasses.option}
+                    />
+                    <Dropdown
+                        options={generateDropdownOptions('leadStatus', 'Lead Status')}
+                        onSelect={setSelectedLeadStatus}
+                        defaultValue={selectedLeadStatus}
+                        value={selectedLeadStatus}
+                        forcePlaceholderAlways
+                        placeholder='Lead Status'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedLeadStatus)}
+                        menuClassName={dropdownClasses.menu}
+                        optionClassName={dropdownClasses.option}
+                    />
+                </div>
+
+                {/* Status Cards */}
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
+                    <div className='grid grid-cols-2 gap-2 sm:flex sm:flex-wrap md:flex-nowrap'>
+                        {statusCards.map((card) => (
+                            <StatusCard
+                                key={card.title}
+                                title={card.title}
+                                count={card.count}
+                                isActive={activeStatusCard === card.title}
+                                onClick={() => setActiveStatusCard(card.title)}
+                            />
+                        ))}
+                    </div>
+                    <div className='flex flex-row gap-4.5'>
+                        <Button
+                            bgColor='bg-gray-200'
+                            textColor='text-gray-700'
+                            className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-gray-300'
+                            onClick={goToJunkLeads}
+                        >
+                            <span>Junk Lead</span>
+                        </Button>
+                        <Button
+                            bgColor='bg-blue-600'
+                            textColor='text-white'
+                            className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-blue-700'
+                            onClick={() => setIsAddLeadModalOpen(true)}
+                        >
+                            <span>+ Add Lead</span>
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Active Filters */}
+                {activeFilters.length > 0 && (
+                    <div className='flex flex-wrap items-center gap-2 mb-4'>
+                        {activeFilters.map((filter, index) =>
+                            filter ? (
+                                <div
+                                    key={index}
+                                    className='flex items-center bg-gray-100 text-xs font-medium text-gray-700 px-3 py-1.5 rounded-md'
+                                >
+                                    {filter.label}
+                                    <button
+                                        onClick={filter.onClear}
+                                        className='ml-2 text-gray-500 hover:text-red-500 focus:outline-none'
+                                        aria-label={`Clear ${filter.label}`}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            ) : null,
+                        )}
+
+                        {/* Clear All Button */}
+                        <button
+                            onClick={() => {
+                                setSelectedDateRange('')
+                                setCustomDateRange({ startDate: null, endDate: null })
+                                setPendingDateRange({ startDate: null, endDate: null })
+                                setSelectedProperty('')
+                                setSelectedAgent('')
+                                setSelectedSource('')
+                                setSelectedLeadStage('')
+                                setSelectedTag('')
+                                setSelectedTask('')
+                                setSelectedLeadStatus('')
+                            }}
+                            className='ml-4 text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-1.5 px-4 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer'
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                )}
+
+                {/* Table */}
+                <div
+                    className='bg-white rounded-lg shadow-sm overflow-hidden'
+                    style={{
+                        height: `${activeFilters.length > 0 ? 57 : 63}vh`, // You can adjust these values
+                    }}
+                >
+                    <FlexibleTable
+                        showCheckboxes={true}
+                        data={filteredLeadsData}
+                        columns={columns}
+                        borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
+                        selectedRows={selectedRows}
+                        headerClassName='font-normal text-left px-1'
+                        cellClassName='text-left px-1'
+                        onRowSelect={handleRowSelect}
+                        onRowClick={handleRowClick}
+                        onSelectAll={handleSelectAllRows}
+                        className='rounded-lg overflow-x-hidden'
+                        stickyHeader={true}
+                        hoverable={true}
+                        maxHeight={`${activeFilters.length > 0 ? 55 : 63}vh`}
+                    />
+                </div>
+                <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
+            </div>
+            {selectedRows.length > 0 && (
+                <div className='fixed bottom-0 w-[86%] bg-white border-t border-gray-300 shadow-md p-4 flex justify-between items-center z-50'>
+                    <span className='text-sm text-gray-700'>{selectedRows.length} selected</span>
                     <button
-                        onClick={() => {
-                            setSelectedDateRange('')
-                            setCustomDateRange({ startDate: null, endDate: null })
-                            setPendingDateRange({ startDate: null, endDate: null })
-                            setSelectedProperty('')
-                            setSelectedAgent('')
-                            setSelectedSource('')
-                            setSelectedLeadStage('')
-                            setSelectedTag('')
-                            setSelectedTask('')
-                            setSelectedLeadStatus('')
-                        }}
-                        className='ml-4 text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-1.5 px-4 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer'
+                        className='bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700'
+                        onClick={handleJunkSelected}
                     >
-                        Clear All
+                        Junk Selected
                     </button>
                 </div>
             )}
-
-            {/* Table */}
-            <div
-                className='bg-white rounded-lg shadow-sm overflow-hidden'
-                style={{
-                    height: `${activeFilters.length > 0 ? 57 : 63}vh`, // You can adjust these values
-                }}
-            >
-                <FlexibleTable
-                    showCheckboxes={true}
-                    data={filteredLeadsData}
-                    columns={columns}
-                    borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
-                    selectedRows={selectedRows}
-                    headerClassName='font-normal text-left px-1'
-                    cellClassName='text-left px-1'
-                    onRowSelect={handleRowSelect}
-                    onRowClick={handleRowClick}
-                    onSelectAll={handleSelectAllRows}
-                    className='rounded-lg overflow-x-hidden'
-                    stickyHeader={true}
-                    hoverable={true}
-                    maxHeight={`${activeFilters.length > 0 ? 55 : 63}vh`}
-                />
-            </div>
-            <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
-        </div>
+        </>
     )
 }
 

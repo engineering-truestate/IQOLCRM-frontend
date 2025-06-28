@@ -263,7 +263,7 @@ const Marketing = () => {
     // Debounced search for text input - stable reference
     const debouncedSearch = useMemo(() => {
         return debounce(performSearch, 300)
-    }, [performSearch])
+    }, [performSearch, debounce])
 
     // Effect for debounced search (text input)
     useEffect(() => {
@@ -272,7 +272,7 @@ const Marketing = () => {
         } else {
             performSearch()
         }
-    }, [searchValue])
+    }, [searchValue, debouncedSearch, performSearch])
 
     // Summary card calculations
     const summaryCardCounts = useMemo(() => {
@@ -320,7 +320,7 @@ const Marketing = () => {
         container: 'relative inline-block w-full sm:w-auto',
         trigger: (isSelected: boolean) =>
             `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
-        menu: 'absolute z-50 mt-1 w-fit min-w-[200px] bg-white border border-gray-300 rounded-md shadow-lg',
+        menu: 'absolute z-50 mt-1 w-fit min-w-[200px] max-h-80 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg',
         option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
     }
 
@@ -430,7 +430,7 @@ const Marketing = () => {
         {
             key: 'source',
             header: 'Source',
-            render: (value) => (
+            render: (_value) => (
                 <div className='flex justify-start'>
                     <div className='inline-flex items-center min-w-max rounded-[20px] gap-[6px] h-8 px-2 whitespace-nowrap border border-gray-300 w-fit'>
                         <img src={google} alt='Google' className='w-4 h-4 object-contain' />
@@ -442,7 +442,7 @@ const Marketing = () => {
         {
             key: 'medium',
             header: 'Medium',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>Search</span>,
+            render: (_value) => <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>Search</span>,
         },
         {
             key: 'startDate',
