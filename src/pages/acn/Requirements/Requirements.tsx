@@ -380,12 +380,12 @@ const RequirementsPage = () => {
             ),
         },
         {
-            key: 'name',
+            key: 'agentName',
             header: 'Agent Name',
             render: (value) => <span className='whitespace-nowrap text-sm font-normal w-auto'>{value}</span>,
         },
         {
-            key: 'agentPhone',
+            key: 'agentPhoneNumber',
             header: 'Agent Number',
             render: (value) => (
                 <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>

@@ -243,15 +243,15 @@ export default function AgentDetailsDropdown({
     }
 
     const resaleDetailsFields = {
-        inventory: agentDetails.noOfinventories,
-        Requirement: agentDetails.noOfrequirements,
+        inventory: agentDetails.noOfInventories,
+        Requirement: agentDetails.noOfRequirements,
         EnquiriesDid: agentDetails.noOfEnquiries,
         EnquiriesReceived: '',
     }
 
     const rentalDetailsFields = {
-        inventory: agentDetails.noOfinventories,
-        Requirement: agentDetails.noOfrequirements,
+        inventory: agentDetails.noOfInventories,
+        Requirement: agentDetails.noOfRequirements,
         EnquiriesDid: agentDetails.noOfEnquiries,
         EnquiriesReceived: '',
     }

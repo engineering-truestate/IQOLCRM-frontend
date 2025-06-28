@@ -28,7 +28,7 @@ export interface IInventory {
     askPricePerSqft: number
     status: string
     currentStatus: string
-    builder_name: string | null
+    builderName: string | null
     handoverDate: number | null // Unix timestamp in milliseconds
     buildingKhata: string | null
     landKhata: string | null

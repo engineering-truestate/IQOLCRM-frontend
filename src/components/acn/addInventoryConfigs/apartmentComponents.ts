@@ -10,10 +10,10 @@ export const appartmentComponents = [
         colspan: 2,
     },
     {
-        label: 'Project Name/Location',
+        label: 'Property Name/Location',
         type: 'projectName',
-        field: 'projectName',
-        placeholder: 'Search Project Name',
+        field: 'propertyName',
+        placeholder: 'Search Property Name',
         colspan: 2,
     },
     {

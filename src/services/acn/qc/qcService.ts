@@ -12,6 +12,7 @@ import type {
     QCNote,
 } from '../../../data_types/acn/types'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
+import { updateAgentInventoryCountThunk } from '../agents/agentThunkService'
 
 // Helper function to get current timestamp
 const getCurrentTimestamp = (): number => {
@@ -595,6 +596,9 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
 
                     const propertyData = convertQCInventoryToProperty(property)
                     await dispatch(addProperty(propertyData))
+                    await dispatch(
+                        updateAgentInventoryCountThunk({ cpId: property.cpId, propertyId: property.propertyId }),
+                    )
 
                     console.log('✅ Property creation dispatched successfully for QC inventory:', property.propertyId)
                 } catch (propertyError: any) {

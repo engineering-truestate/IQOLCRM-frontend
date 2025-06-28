@@ -102,7 +102,7 @@ export interface IInventory {
     askPricePerSqft: number
     status: string
     currentStatus: string
-    builder_name: string | null
+    builderName: string | null
     handoverDate: number | null
     buildingKhata: string | null
     landKhata: string | null
@@ -243,6 +243,8 @@ interface AgentData {
 
 // Base QC Inventory type with required fields
 interface BaseQCInventory {
+    name: string
+    phoneNumber: string
     propertyId: string
     propertyName: string
     cpId: string
@@ -332,11 +334,11 @@ interface BaseQCInventory {
     id?: string
     cpId?: string
     propertyName?: string
-    builder_name?: string | null
+    builderName?: string | null
     objectID?: string
     enquiries?: number
     lastCheck?: number
-    propertyName?: string
+    // propertyName?: string
 
     // Plot-specific fields
     oddSized?: boolean
@@ -533,17 +535,18 @@ interface SizeRange {
 
 export interface IRequirement {
     requirementId: string
-    agentNumber: string
+    agentPhoneNumber: string
     agentName: string
     cpId: string
-    location: string
     assetType: 'villa' | 'apartment' | 'plot' | 'commercial' | 'warehouse' | 'office'
-    configuration: '1 bhk' | '2 bhk' | '3 bhk' | '4 bhk' | '5+ bhk'
-    _geoloc: GeoLocation
+    configuration: '1 bhk' | '2 bhk' | '3 bhk' | '4 bhk' | '5+ bhk' | null
     micromarket: string
     budget: BudgetRange
-    note: string[]
-    size: SizeRange
+    notes: INote[]
+    area: number
+    kamId: string
+    kamName: string
+    kamPhoneNumber: string
     bedrooms: string
     bathrooms: string
     parking: string
@@ -611,11 +614,11 @@ export interface IAgent {
     blackListed: boolean
     trialUsed: boolean
     trialStartedAt: number
-    noOfinventories: number
+    noOfInventories: number
     inventoryStatus: InventoryStatus
     noOfEnquiries: number
-    noOfrequirements: number
-    noOfleagalLeads: number
+    noOfRequirements: number
+    noOfLegalLeads: number
     lastEnquiry: number
     payStatus: 'will pay' | 'paid' | 'will not' | 'paid by team'
     planExpiry: number
@@ -634,7 +637,7 @@ export interface IAgent {
     appInstalled: boolean
     communityJoined: boolean
     onBroadcast: boolean
-    onboardingComplete: boolean
+    onboardingComplete?: boolean
     source: 'whatsApp' | 'instagram' | 'facebook' | 'referral' | 'direct'
     lastSeen: number
     added: number

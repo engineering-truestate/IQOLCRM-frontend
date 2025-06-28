@@ -97,6 +97,8 @@ const QCDashboardPage = () => {
     // Enhanced data transformation with proper nested structure handling
     const transformAlgoliaData = (hits: any[]): IQCInventory[] => {
         return hits.map((hit, index) => ({
+            name: hit.cpId || hit.agent_name || 'N/A',
+            phoneNumber: hit.cpPhone || hit.phone || '',
             propertyId: hit.propertyId || hit.objectID || `QC${index.toString().padStart(4, '0')}`,
             propertyName: hit.propertyName || hit.project_name || 'N/A',
             unitNo: hit.unitNo || 'N/A',
