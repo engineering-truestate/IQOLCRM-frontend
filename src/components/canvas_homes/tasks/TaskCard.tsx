@@ -41,7 +41,7 @@ const formatValue = (value: any): string => {
     // Capitalize first letter of each word
     return String(value)
         .split(' ')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ')
 }
 

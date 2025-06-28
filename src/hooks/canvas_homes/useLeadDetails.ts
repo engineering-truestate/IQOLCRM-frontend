@@ -75,7 +75,22 @@ export const UseLeadDetails = (leadId: string) => {
             setEnquiries(enquiriesData)
 
             if (enquiriesData.length > 0 && !selectedEnquiryId) {
-                setSelectedEnquiryId(enquiriesData[0].enquiryId)
+                // Find the enquiry with the latest lastModified
+                const latestEnquiry = enquiriesData.reduce(
+                    (latest, current) => {
+                        if (current.lastModified) {
+                            if (!latest || !latest.lastModified || current.lastModified > latest.lastModified) {
+                                return current
+                            }
+                        }
+                        return latest
+                    },
+                    null as Enquiry | null,
+                )
+
+                if (latestEnquiry?.enquiryId) {
+                    setSelectedEnquiryId(latestEnquiry.enquiryId)
+                }
             }
         } catch (error: any) {
             console.error('Error in loadEnquiriesData:', error)

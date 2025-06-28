@@ -47,8 +47,8 @@ const ASLCRenderer: React.FC<ASLCRendererProps> = ({ lead }) => {
             // Find the latest enquiry based on 'added' timestamp
             const latestEnquiry = enquiries.reduce(
                 (latest, current) => {
-                    if (current.added) {
-                        if (!latest || !latest.added || current.added > latest.added) {
+                    if (current.lastModified) {
+                        if (!latest || !latest.lastModified || current?.lastModified > latest?.lastModified) {
                             return current
                         }
                     }

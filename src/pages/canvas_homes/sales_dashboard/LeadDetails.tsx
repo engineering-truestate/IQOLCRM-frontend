@@ -285,6 +285,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
                             assignedTo: task.assignedTo,
                             dueDate: task.dueDate,
                             createdAt: task.createdAt,
+                            eventName: (task as any).eventName ?? '',
                             // Add all required fields with defaults or from context
                             name: (task as any).name ?? leadData?.name ?? '',
                             leadAddDate: (task as any).leadAddDate ?? leadData?.added ?? 0,
@@ -295,6 +296,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
                             tag: (task as any).tag ?? currentEnquiry?.tag ?? '',
                             completionDate: (task as any).completionDate ?? task.completionDate ?? 0,
                             propertyId: (task as any).propertyId ?? currentEnquiry?.propertyId ?? '',
+                            eoiEntries: (task as any).eoiEntries ?? [],
                             // Required Task fields for type compatibility
                             scheduledDate: (task as any).scheduledDate ?? task.dueDate ?? 0,
                             added: (task as any).added ?? task.createdAt ?? 0,
