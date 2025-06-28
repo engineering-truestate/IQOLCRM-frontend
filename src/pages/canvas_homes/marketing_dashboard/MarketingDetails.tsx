@@ -24,7 +24,6 @@ interface GoogleAdsMetric {
 
 interface CampaignData {
     campaignId: string
-    campaignName: string
     startDate: string
     endDate: string
     isPaused: boolean
@@ -58,32 +57,44 @@ const MarketingDetails = () => {
     const [error, setError] = useState<string | null>(null)
     const [rawMetrics, setRawMetrics] = useState<GoogleAdsMetric[]>([])
 
-    // Google Ads API integration function
+    // Updated Google Ads API integration function using hosted endpoint
     const getCampaignMetrics = async (campaign: CampaignData): Promise<GoogleAdsMetric[]> => {
         try {
             setLoading(true)
             setError(null)
 
-            const response = await fetch('/api/google-ads/campaign-metrics', {
+            // Prepare campaign data as JSON payload
+            const payload = {
+                campaignId: campaign.campaignId,
+                startDate: campaign.startDate,
+                endDate: campaign.endDate,
+                isPaused: campaign.isPaused,
+                ...(campaign.isPaused && campaign.lastActiveDate && { lastActiveDate: campaign.lastActiveDate }),
+            }
+            console.log(payload)
+
+            const apiUrl = 'https://daily-report-campaign-server.onrender.com/campaign-metrics'
+
+            console.log('Sending campaign data:', payload)
+
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    campaignId: campaign.campaignId,
-                    startDate: campaign.startDate,
-                    endDate: campaign.endDate,
-                    isPaused: campaign.isPaused,
-                    lastActiveDate: campaign.lastActiveDate,
-                }),
+                body: JSON.stringify(payload),
             })
 
             if (!response.ok) {
-                throw new Error(`Failed to fetch campaign metrics: ${response.statusText}`)
+                throw new Error(`Failed to fetch campaign metrics: ${response.status} ${response.statusText}`)
             }
 
             const data = await response.json()
-            return data.metrics || []
+
+            const metrics = Array.isArray(data) ? data : data.metrics || data.data || []
+
+            console.log('Received metrics:', metrics)
+            return metrics
         } catch (err) {
             console.error('Error fetching campaign metrics:', err)
             setError(err instanceof Error ? err.message : 'Failed to fetch campaign data')
@@ -120,23 +131,29 @@ const MarketingDetails = () => {
     // Load campaign details and metrics
     useEffect(() => {
         const loadCampaignData = async () => {
-            if (!campaignId) {
-                setError('Campaign ID is required')
-                setLoading(false)
-                return
-            }
-
             try {
-                // First, fetch campaign details (you'll need to implement this endpoint)
-                const detailsResponse = await fetch(`/api/campaigns/${campaignId}`)
-                if (!detailsResponse.ok) {
-                    throw new Error('Failed to fetch campaign details')
+                // Get campaign data from URL parameters
+                const urlParams = new URLSearchParams(window.location.search)
+
+                const campaignData: CampaignData = {
+                    campaignId: campaignId || '',
+                    startDate: urlParams.get('startDate') || '',
+                    endDate: urlParams.get('endDate') || 'No end date',
+                    isPaused: urlParams.get('isPaused') === 'true',
+                    lastActiveDate: urlParams.get('lastActiveDate') || undefined,
                 }
 
-                const campaignData: CampaignData = await detailsResponse.json()
+                // Validate required parameters
+                if (!campaignData.campaignId || !campaignData.startDate) {
+                    setError('Campaign ID and start date are required in URL parameters')
+                    setLoading(false)
+                    return
+                }
+
+                console.log('Campaign data from URL params:', campaignData)
                 setCampaignDetails(campaignData)
 
-                // Then fetch metrics using the Google Ads API
+                // Fetch metrics using the hosted Google Ads API
                 const metrics = await getCampaignMetrics(campaignData)
                 setRawMetrics(metrics)
             } catch (err) {
@@ -501,8 +518,15 @@ const MarketingDetails = () => {
                             {rawMetrics.length === 0 && !loading && (
                                 <div className='mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded'>
                                     <div className='text-sm text-yellow-800'>
-                                        <strong>Note:</strong> Showing sample data. API integration required for live
-                                        metrics.
+                                        <strong>Note:</strong> Showing sample data. Live metrics loading...
+                                    </div>
+                                </div>
+                            )}
+
+                            {rawMetrics.length > 0 && (
+                                <div className='mt-6 p-3 bg-green-50 border border-green-200 rounded'>
+                                    <div className='text-sm text-green-800'>
+                                        <strong>Live Data:</strong> Displaying real-time Google Ads metrics
                                     </div>
                                 </div>
                             )}

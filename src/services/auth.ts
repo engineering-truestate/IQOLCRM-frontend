@@ -7,7 +7,7 @@ import {
 } from 'firebase/auth'
 import { auth, db, storage } from '../firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore'
 import type { Platform } from '../pages/auth/Register'
 
 export const registerHelper = async (
@@ -41,11 +41,26 @@ export const registerHelper = async (
                 kamId: newIntId,
                 role: platform.find((p) => p.platform === 'acn')?.role,
             }
+            await updateDoc(DocRef, {
+                count: increment(1),
+            })
         }
         if (platform.some((p) => p.platform === 'canvas-homes')) {
+            const DocRef = doc(db, 'canvashomesAdmin', 'lastAgent')
+
+            const DocSnap = await getDoc(DocRef)
+            const count = DocSnap.data()?.count
+
+            const newAgentId = `CANV${String(count).padStart(2, '0')}`
+
             canvasHomes = {
                 role: platform.find((p) => p.platform === 'canvas-homes')?.role,
+                agentId: newAgentId,
             }
+
+            await updateDoc(DocRef, {
+                count: increment(1),
+            })
         }
         if (platform.some((p) => p.platform === 'vault')) {
             vault = {
