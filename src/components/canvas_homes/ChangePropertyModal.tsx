@@ -32,10 +32,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
-    const previousPropertyName = leadData?.propertyName || 'Previous Property'
-
-    // const currentTimestamp = getUnixDateTime()
-    // const enquiryDateTimestamp = currentTimestamp
+    const previousPropertyName = leadData?.propertyName
 
     const [formData, setFormData] = useState({
         reason: '',
@@ -45,7 +42,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
         propertyName: '',
         agentId: agentId,
         agentName: agentName,
-        tag: '',
+        tag: leadData?.tag, // Initialize with leadData.tag if available
         status: 'complete',
         note: '',
         newProperty: '',
@@ -56,12 +53,20 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     const [isLoading, setIsLoading] = useState(false)
 
     useEffect(() => {
+        if (isOpen && leadData) {
+            setFormData((prev) => ({
+                ...prev,
+                tag: leadData.tag,
+            }))
+        }
+    }, [isOpen, leadData, leadData?.tag])
+
+    useEffect(() => {
         // Reset form data when modal opens
         const loadProperty = async () => {
             if (!properties || properties.length === 0) {
                 await dispatch(fetchPreLaunchProperties())
             }
-            console.log('Properties loaded:', properties)
             return properties.map((property) => ({
                 label: property.projectName,
                 value: `${property.projectId}|${property.projectName}`,
@@ -82,12 +87,9 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     }, [properties])
 
     const reasonOptions = [
-        // { value: '', label: 'Select reason' },
         { value: 'not interested in current property', label: 'Not Interested in Current Property' },
         { value: 'other', label: 'Other' },
     ]
-
-    // const taskStatusOptions = [{ value: 'Complete', label: 'Complete' }]
 
     const tagOptions = [
         { value: 'cold', label: 'Cold' },
@@ -135,7 +137,6 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                 // Update existing enquiry and add activity in parallel
                 const enquiryUpdate = enquiryService.update(enquiryId, {
                     leadStatus: 'property changed',
-                    stage: null,
                     state: 'open',
                     lastModified: currentTimestamp,
                 })
@@ -153,12 +154,12 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     },
                 })
 
-                const addNote = formData.note
+                const addNote = formData.note.trim()
                     ? enquiryService.addNote(enquiryId, {
                           note: formData.note,
                           timestamp: currentTimestamp,
-                          agentName: formData.agentName,
-                          agentId: formData.agentId,
+                          agentName: agentName,
+                          agentId: agentId,
                           taskType: taskType,
                       })
                     : Promise.resolve()
@@ -169,13 +170,13 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     agentId: agentId,
                     propertyId: formData.propertyId,
                     propertyName: formData.propertyName,
-                    source: 'Manual',
-                    leadStatus: 'interested', // Default status
+                    source: 'manual',
+                    leadStatus: 'interested',
                     stage: null,
                     agentHistory: [
                         {
-                            agentId: agentId,
-                            agentName: agentName,
+                            agentId: leadData?.agentId || null,
+                            agentName: leadData?.agentName || null,
                             timestamp: currentTimestamp,
                             lastStage: null,
                         },
@@ -188,7 +189,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                             data: {
                                 propertyAdded: formData.propertyName,
                                 leadStatus: 'interested',
-                                tag: formData.tag || 'cold',
+                                tag: formData.tag,
                             },
                         },
                     ],
@@ -201,31 +202,19 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
 
                 const createNewEnquiry = enquiryService.create(newEnquiry)
 
-                // Prepare lead update data
-                const leadData = {
+                // No other open tasks, set new property details
+                const leadUpdateData = {
                     stage: null,
                     state: 'open',
                     propertyName: formData.propertyName,
-                    propertyId: formData.propertyId,
                     tag: formData.tag,
-                    leadStatus: 'interested' as
-                        | 'closed'
-                        | 'interested'
-                        | 'follow up'
-                        | 'not interested'
-                        | 'not connected'
-                        | 'visit unsuccessful'
-                        | 'visit dropped'
-                        | 'eoi dropped'
-                        | 'booking dropped'
-                        | 'requirement collected'
-                        | null
-                        | undefined,
-                    completionDate: currentTimestamp,
+                    scheduledDate: null,
+                    taskType: null,
+                    leadStatus: 'interested' as any,
                     lastModified: currentTimestamp,
                 }
 
-                const leadUpdate = leadService.update(leadId, leadData)
+                const leadUpdate = leadService.update(leadId, leadUpdateData)
 
                 // Update task status in parallel
                 const taskUpdate = taskService.update(taskIds, {
@@ -253,7 +242,6 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             setIsLoading(false)
         }
     }
-
     const handleDiscard = () => {
         setFormData((prev) => ({
             ...prev,
@@ -261,7 +249,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
             newProperty: '',
             propertyId: '',
             propertyName: '',
-            tag: 'cold',
+            tag: leadData?.tag || 'cold', // Reset to leadData.tag if available
             note: '',
         }))
         onClose()
@@ -414,8 +402,7 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                         <Dropdown
                                             options={tagOptions}
                                             onSelect={(value) => handleInputChange('tag', value)}
-                                            // defaultValue={formData.tag}
-                                            placeholder='Select Tag'
+                                            defaultValue={leadData?.tag || ''}
                                             className='w-full relative inline-block'
                                             triggerClassName={`relative w-full h-8 px-3  border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none disabled:opacity-50 ${
                                                 formData.tag ? '[&>span]:text-black' : ''

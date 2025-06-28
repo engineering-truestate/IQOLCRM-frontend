@@ -1,27 +1,39 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
+import DateRangePicker from '../../../components/design-elements/DateRangePicker'
+import { searchCampaigns, type CampaignSearchFilters } from '../../../services/canvas_homes/marketingAlgoliaService'
 import google from '/icons/canvas_homes/google.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
 import { useNavigate } from 'react-router-dom'
+import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 
 // Campaign data type
 type Campaign = {
-    id: string
-    property: string
-    campaignName: string
     campaignId: string
+    campaignName: string
+    property?: string
     source: string
-    medium: string
+    medium?: string
     startDate: string
     endDate: string
-    noOfDays: number
-    totalCost: number
-    totalLeads: number
-    cpl: number
+    activeDuration?: string
+    totalCost: string
+    totalClicks: number
+    totalImpressions: number
+    totalConversions: string
+    ctr: string
+    averageCpc: string
+    status: string
+    isPaused: boolean
+    lastActiveDate?: string
+    costPerDay: string
+    dailyAvgCost: string
+    totalConversionsValue: string
 }
 
 // Summary card data type
@@ -35,347 +47,22 @@ type SummaryCard = {
     color?: string
 }
 
-// Dummy campaign data
-const generateCampaignData = (): Campaign[] => {
-    return [
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
+const DurationTag = ({ value, isPaused }: { value: string; isPaused: boolean }) => {
+    const baseClasses = 'px-3 py-1 rounded-full font-medium text-sm border-1'
 
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '1',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-        {
-            id: '2',
-            property: 'Sattva Hamlet',
-            campaignName: 'Sattva Hamlet NRT',
-            campaignId: 'ID: C1006',
-            source: 'Google',
-            medium: 'Search',
-            startDate: 'May 25, 2023',
-            endDate: 'May 28, 2023',
-            noOfDays: 4,
-            totalCost: 40000,
-            totalLeads: 35,
-            cpl: 1142,
-        },
-    ]
+    const statusClasses = isPaused ? 'border-[#F02532]  bg-[#FFDEDE]' : 'border-[#40A42B]  bg-[#E9FFE4]'
+
+    // Extract leading number (e.g., from "7 days", "12 hours", etc.)
+    const extractedNumber = value.match(/\d+/)?.[0] || '0'
+    const paddedValue = extractedNumber.padStart(2, '0')
+
+    const label = isPaused ? 'Paused' : 'Active'
+
+    return (
+        <span className={`${baseClasses} ${statusClasses}`}>
+            {label} ({paddedValue})
+        </span>
+    )
 }
 
 // Summary Card Component
@@ -391,11 +78,11 @@ const SummaryCard = ({
     const getIcon = () => {
         switch (card.title) {
             case 'Google':
-                return <img src={google} alt='Google' className='w-4 h-4 object-contain' />
+                return <img src={google} alt='Google' className='w-4.5 h-4.5 object-contain' />
             case 'LinkedIn':
-                return <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />
+                return <img src={linkedin} alt='LinkedIn' className='w-4.5 h-4.5 object-contain' />
             case 'Meta':
-                return <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />
+                return <img src={meta} alt='Meta' className='w-4.5 h-4.5 object-contain' />
             default:
                 return null
         }
@@ -411,316 +98,589 @@ const SummaryCard = ({
             <div className='flex items-center justify-between mb-1'>
                 <div className='flex items-center gap-2'>
                     {getIcon()}
-                    <p className='font-semibold text-[13px] text-gray-900'>{card.title}</p>
+                    <p className='font-semibold text-[14px] text-gray-900'>{card.title}</p>
                 </div>
             </div>
 
             <div className='inline-grid grid-cols-2 gap-x-6 gap-y-2.5'>
                 <div className='w-fit'>
                     <p className='text-[13px] text-gray-500 whitespace-nowrap'>Total Campaigns</p>
-                    <p className='text-[13px] font-semibold text-gray-900'>{card.totalCampaigns}</p>
+                    <p className='text-[14px] font-semibold text-gray-900'>{card.totalCampaigns}</p>
                 </div>
 
                 <div className='w-fit'>
                     <p className='text-[13px] text-gray-500 whitespace-nowrap'>Total Cost</p>
-                    <p className='text-[13px] font-semibold text-gray-900'>{card.totalCost}</p>
+                    <p className='text-[14px] font-semibold text-gray-900'>{card.totalCost}</p>
                 </div>
 
                 <div className='w-fit'>
                     <p className='text-[13px] text-gray-500 whitespace-nowrap'>Total Leads</p>
-                    <p className='text-[13px] font-semibold text-gray-900'>{card.totalLeads}</p>
+                    <p className='text-[14px] font-semibold text-gray-900'>{card.totalLeads}</p>
                 </div>
 
                 <div className='w-fit'>
                     <p className='text-[13px] text-gray-500 whitespace-nowrap'>Cost per Lead</p>
-                    <p className='text-[13px] font-semibold text-gray-900'>{card.costPerLead}</p>
+                    <p className='text-[14px] font-semibold text-gray-900'>{card.costPerLead}</p>
                 </div>
             </div>
         </div>
     )
 }
 
-const MarketingDashboard = () => {
-    const [searchValue, setSearchValue] = useState('')
-    const [selectedDateRange, setSelectedDateRange] = useState('')
-    const [selectedSummaryCard, setselectedSummaryCard] = useState('all')
-    const [selectedProperty, setSelectedProperty] = useState('')
-    const [selectedMedium, setSelectedMedium] = useState('')
-    const [selectedCampaignStatus, setSelectedCampaignStatus] = useState('')
-    const [campaignData] = useState<Campaign[]>(() => generateCampaignData())
+const Marketing = () => {
+    const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
 
-    const handleRowClick = () => {
-        navigate('/canvas-homes/marketingdetails')
+    // Initialize state from URL params
+    const [selectedSummaryCard, setSelectedSummaryCard] = useState(() => searchParams.get('source') || 'All')
+    const [searchValue, setSearchValue] = useState(() => searchParams.get('search') || '')
+    const [selectedDateRange, setSelectedDateRange] = useState(() => searchParams.get('dateRange') || '')
+
+    // Separate state for date range picker (not applied until user confirms)
+    const [pendingDateRange, setPendingDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
+        startDate: null,
+        endDate: null,
+    })
+
+    const [customDateRange, setCustomDateRange] = useState<{ startDate: string | null; endDate: string | null }>(
+        () => ({
+            startDate: searchParams.get('startDate'),
+            endDate: searchParams.get('endDate'),
+        }),
+    )
+
+    const [selectedProperty, setSelectedProperty] = useState(() => searchParams.get('property') || '')
+    const [selectedCampaignStatus, setSelectedCampaignStatus] = useState(() => searchParams.get('status') || '')
+
+    // Store initial facets to prevent filter options from changing
+    const [initialFacets, setInitialFacets] = useState<Record<string, Record<string, number>>>({})
+    const [allCampaignsData, setAllCampaignsData] = useState<Campaign[]>([])
+    const [filteredCampaignsData, setFilteredCampaignsData] = useState<Campaign[]>([])
+    const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
+    const [isLoading, setIsLoading] = useState(false)
+
+    // Update URL when filters change
+    const updateURL = useCallback(
+        (newFilters: Record<string, string | null>) => {
+            const newSearchParams = new URLSearchParams(searchParams)
+
+            Object.entries(newFilters).forEach(([key, value]) => {
+                if (value) {
+                    newSearchParams.set(key, value)
+                } else {
+                    newSearchParams.delete(key)
+                }
+            })
+
+            setSearchParams(newSearchParams)
+        },
+        [searchParams, setSearchParams],
+    )
+
+    // Update URL when individual filters change
+    useEffect(() => {
+        updateURL({
+            source: selectedSummaryCard !== 'All' ? selectedSummaryCard : null,
+            search: searchValue || null,
+            dateRange: selectedDateRange || null,
+            startDate: customDateRange.startDate,
+            endDate: customDateRange.endDate,
+            property: selectedProperty || null,
+            status: selectedCampaignStatus || null,
+        })
+    }, [
+        selectedSummaryCard,
+        searchValue,
+        selectedDateRange,
+        customDateRange,
+        selectedProperty,
+        selectedCampaignStatus,
+        updateURL,
+    ])
+
+    const activeFilters = [
+        selectedDateRange && { label: selectedDateRange, onClear: () => setSelectedDateRange('') },
+        customDateRange.startDate &&
+            customDateRange.endDate && {
+                label: `${customDateRange.startDate} to ${customDateRange.endDate}`,
+                onClear: () => setCustomDateRange({ startDate: null, endDate: null }),
+            },
+        selectedProperty && { label: toCapitalizedWords(selectedProperty), onClear: () => setSelectedProperty('') },
+        selectedCampaignStatus && {
+            label: toCapitalizedWords(selectedCampaignStatus),
+            onClear: () => setSelectedCampaignStatus(''),
+        },
+    ].filter(Boolean)
+
+    const debounce = useCallback(<T extends (...args: any[]) => any>(func: T, delay: number) => {
+        let timeoutId: NodeJS.Timeout
+        return (...args: Parameters<T>) => {
+            clearTimeout(timeoutId)
+            timeoutId = setTimeout(() => func(...args), delay)
+        }
+    }, [])
+
+    const createFilters = useMemo((): CampaignSearchFilters => {
+        const filters: CampaignSearchFilters = {
+            campaignName: selectedProperty ? [selectedProperty] : undefined,
+            status: selectedCampaignStatus ? [selectedCampaignStatus] : undefined,
+            dateRange: selectedDateRange || undefined,
+        }
+
+        if (customDateRange.startDate || customDateRange.endDate) {
+            filters.addedRange = {
+                startDate: customDateRange.startDate || undefined,
+                endDate: customDateRange.endDate || undefined,
+            }
+        }
+
+        return filters
+    }, [selectedProperty, selectedCampaignStatus, selectedDateRange, customDateRange])
+
+    // Filter campaigns based on summary card selection
+    useEffect(() => {
+        let filtered = allCampaignsData
+
+        if (selectedSummaryCard !== 'All') {
+            const stateValue = selectedSummaryCard.toLowerCase()
+            // console.log(stateValue)
+            // filtered = filtered.filter((market) => market.source?.toLowerCase() === stateValue)
+            // doesnt work rn as only source is google
+            // db has no source field
+            filtered = allCampaignsData
+            console.log(filtered)
+            if (stateValue === 'meta' || stateValue === 'linkedin') {
+                filtered = []
+            }
+        }
+
+        setFilteredCampaignsData(filtered)
+    }, [allCampaignsData, selectedSummaryCard])
+
+    // Main search function - stable reference
+    const performSearch = useCallback(async () => {
+        if (isLoading) return
+
+        setIsLoading(true)
+        try {
+            const result = await searchCampaigns({
+                query: searchValue,
+                filters: createFilters,
+                page: 0,
+                hitsPerPage: 1000,
+            })
+
+            setAllCampaignsData(result.hits)
+            setFacets(result.facets || {})
+
+            // Store initial facets on first load only
+            setInitialFacets((prev) => (Object.keys(prev).length === 0 && result.facets ? result.facets : prev))
+        } catch (error) {
+            console.error('Search error:', error)
+            setAllCampaignsData([])
+            setFilteredCampaignsData([])
+        } finally {
+            setIsLoading(false)
+        }
+    }, [searchValue, createFilters, isLoading])
+
+    // Debounced search for text input - stable reference
+    const debouncedSearch = useMemo(() => debounce(performSearch, 300), [performSearch, debounce])
+
+    // Effect for debounced search (text input)
+    useEffect(() => {
+        debouncedSearch()
+    }, [searchValue, debouncedSearch])
+
+    useEffect(() => {
+        performSearch()
+    }, [performSearch])
+
+    // Summary card calculations
+    const summaryCardCounts = useMemo(() => {
+        const counts = {
+            All: { campaigns: allCampaignsData.length, cost: 0, leads: 0 },
+            Google: { campaigns: allCampaignsData.length, cost: 0, leads: 0 }, // All campaigns are Google
+            LinkedIn: { campaigns: 0, cost: 0, leads: 0 },
+            Meta: { campaigns: 0, cost: 0, leads: 0 },
+        }
+
+        allCampaignsData.forEach((campaign) => {
+            const cost = parseFloat(campaign.totalCost.replace(/[^0-9.-]+/g, '')) || 0
+            const conversions = parseFloat(campaign.totalConversions) || 0
+
+            counts.All.cost += cost
+            counts.All.leads += conversions
+
+            // Since all campaigns are Google source
+            counts.Google.cost += cost
+            counts.Google.leads += conversions
+        })
+
+        return counts
+    }, [allCampaignsData])
+
+    // Modified date range handler - doesn't apply immediately
+    const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
+        setPendingDateRange({ startDate, endDate })
+    }, [])
+
+    // New function to apply pending date range
+    const applyDateRange = useCallback(() => {
+        setCustomDateRange(pendingDateRange)
+        if (pendingDateRange.startDate || pendingDateRange.endDate) {
+            setSelectedDateRange('')
+        }
+    }, [pendingDateRange])
+
+    // New function to cancel pending date range
+    const cancelDateRange = useCallback(() => {
+        setPendingDateRange(customDateRange)
+    }, [customDateRange])
+
+    const dropdownClasses = {
+        container: 'relative inline-block w-full sm:w-auto',
+        trigger: (isSelected: boolean) =>
+            `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
+        menu: 'absolute z-50 mt-1 w-fit min-w-[200px] max-h-80 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg',
+        option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
+    }
+
+    // Keep initial facet options and order, only update counts
+    const generateDropdownOptions = useCallback(
+        (facetKey: string, _defaultLabel: string, staticOptions?: any[]) => {
+            if (staticOptions) return staticOptions
+
+            const initialFacetData = initialFacets[facetKey] || {}
+            const currentFacetData = facets[facetKey] || {}
+            const options: { label: string; value: string }[] = []
+
+            // Use initial facets for options and sorting, current facets only for counts
+            Object.entries(initialFacetData)
+                .sort(([, a], [, b]) => (b as number) - (a as number)) // Keep original sort order from initial load
+                .forEach(([key]) => {
+                    // Use current count if available, otherwise 0
+                    const currentCount = currentFacetData[key] || 0
+                    options.push({
+                        label: `${toCapitalizedWords(key)} (${currentCount})`,
+                        value: key,
+                    })
+                })
+
+            return options
+        },
+        [initialFacets, facets],
+    )
+
+    const handleRowClick = (row: any) => {
+        // Navigate with campaignId in the route and other data as query params
+        navigate(`/canvas-homes/marketingdetails/${row.campaignId}`)
     }
 
     // Summary cards data
     const summaryCards: SummaryCard[] = [
         {
             title: 'All',
-            totalCampaigns: 23,
-            totalCost: '230K',
-            totalLeads: 400,
-            costPerLead: '1.8k',
+            totalCampaigns: summaryCardCounts.All.campaigns,
+            totalCost: `${(summaryCardCounts.All.cost / 1000).toFixed(0)}K`,
+            totalLeads: summaryCardCounts.All.leads,
+            costPerLead:
+                summaryCardCounts.All.leads > 0
+                    ? `${(summaryCardCounts.All.cost / summaryCardCounts.All.leads / 1000).toFixed(1)}k`
+                    : '0',
         },
         {
             title: 'Google',
-            totalCampaigns: 23,
-            totalCost: '230K',
-            totalLeads: 400,
-            costPerLead: '1.8k',
+            totalCampaigns: summaryCardCounts.Google.campaigns,
+            totalCost: `${(summaryCardCounts.Google.cost / 1000).toFixed(0)}K`,
+            totalLeads: summaryCardCounts.Google.leads,
+            costPerLead:
+                summaryCardCounts.Google.leads > 0
+                    ? `${(summaryCardCounts.Google.cost / summaryCardCounts.Google.leads / 1000).toFixed(1)}k`
+                    : '0',
         },
         {
             title: 'LinkedIn',
-            totalCampaigns: 23,
-            totalCost: '230K',
-            totalLeads: 400,
-            costPerLead: '1.8k',
+            totalCampaigns: summaryCardCounts.LinkedIn.campaigns,
+            totalCost: `${(summaryCardCounts.LinkedIn.cost / 1000).toFixed(0)}K`,
+            totalLeads: summaryCardCounts.LinkedIn.leads,
+            costPerLead:
+                summaryCardCounts.LinkedIn.leads > 0
+                    ? `${(summaryCardCounts.LinkedIn.cost / summaryCardCounts.LinkedIn.leads / 1000).toFixed(1)}k`
+                    : '0',
         },
         {
             title: 'Meta',
-            totalCampaigns: 23,
-            totalCost: '230K',
-            totalLeads: 400,
-            costPerLead: '1.8k',
+            totalCampaigns: summaryCardCounts.Meta.campaigns,
+            totalCost: `${(summaryCardCounts.Meta.cost / 1000).toFixed(0)}K`,
+            totalLeads: summaryCardCounts.Meta.leads,
+            costPerLead:
+                summaryCardCounts.Meta.leads > 0
+                    ? `${(summaryCardCounts.Meta.cost / summaryCardCounts.Meta.leads / 1000).toFixed(1)}k`
+                    : '0',
         },
-    ]
-
-    // Dropdown options
-    const dateRangeOptions = [
-        { label: 'Last 7 days', value: '7d' },
-        { label: 'Last 30 days', value: '30d' },
-        { label: 'Last 90 days', value: '90d' },
-        { label: 'Custom Range', value: 'custom' },
-    ]
-
-    const propertyOptions = [
-        { label: 'All Properties', value: '' },
-        { label: 'Sattva Hamlet', value: 'sattva_hamlet' },
-        { label: 'Green Valley', value: 'green_valley' },
-        { label: 'Urban Heights', value: 'urban_heights' },
-    ]
-
-    const mediumOptions = [
-        { label: 'All Medium', value: '' },
-        { label: 'Search', value: 'search' },
-        { label: 'Display', value: 'display' },
-        { label: 'Social', value: 'social' },
-    ]
-
-    const campaignStatusOptions = [
-        { label: 'All Status', value: '' },
-        { label: 'Active', value: 'active' },
-        { label: 'Paused', value: 'paused' },
-        { label: 'Completed', value: 'completed' },
     ]
 
     // Table columns configuration
     const columns: TableColumn[] = [
         {
-            key: 'property',
+            key: 'campaignName',
             header: 'Property',
-            render: (value) => <span className='whitespace-nowrap text-sm text-left font-normal'>{value}</span>,
+            render: (value) => (
+                <div
+                    className='max-w-[130px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value}
+                >
+                    {value}
+                </div>
+            ),
         },
         {
             key: 'campaignName',
             header: 'Campaign Name',
             render: (value, row) => (
-                <div className='whitespace-nowrap'>
-                    <div className='text-sm font-normal text-gray-900'>{value}</div>
-                    <div className='text-xs text-gray-500' font-normal>
-                        {row.campaignId}
+                <div className='whitespace-nowrap '>
+                    <div
+                        className='max-w-[130px] overflow-hidden whitespace-nowrap truncate text-sm font-medium text-gray-900'
+                        title={value}
+                    >
+                        {value}
                     </div>
+                    <div className='text-xs text-gray-500 font-normal'>ID:{row.campaignId}</div>
                 </div>
             ),
         },
         {
             key: 'source',
             header: 'Source',
-            render: (value) => (
-                <div className='flex items-center rounded-[20px] gap-[3px] h-8 w-18 px-1.5 whitespace-nowrap border border-gray-300 '>
-                    {value === 'Google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
-                    <span className='text-sm font-norma'>{value}</span>
+            render: (_value) => (
+                <div className='flex justify-start'>
+                    <div className='inline-flex items-center min-w-max rounded-[20px] gap-[6px] h-8 px-2 whitespace-nowrap border border-gray-300 w-fit'>
+                        <img src={google} alt='Google' className='w-4 h-4 object-contain' />
+                        <span className='text-sm font-normal'>Google</span>
+                    </div>
                 </div>
             ),
         },
         {
             key: 'medium',
             header: 'Medium',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (_value) => <span className='whitespace-nowrap text-sm font-normal'>Search</span>,
         },
         {
             key: 'startDate',
             header: 'Start Date',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm  font-normal'>{value}</span>,
         },
         {
             key: 'endDate',
             header: 'End Date',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>{value}</span>,
+            render: (value) => {
+                let dateMatch = value?.split('on ')[1] || value
+                if (dateMatch === 'No end date') {
+                    dateMatch = '-'
+                }
+                return <span className='whitespace-nowrap text-sm font-normal'>{dateMatch}</span>
+            },
         },
         {
-            key: 'noOfDays',
-            header: 'No of days',
-            render: (value) => <span className='whitespace-nowrap text-sm text-center font-normal'>{value}</span>,
+            key: 'activeDuration',
+            header: 'Status (Days)',
+            render: (value, row) => {
+                return (
+                    <span className='whitespace-nowrap text-sm font-normal'>
+                        <DurationTag value={value} isPaused={row.isPaused} />
+                    </span>
+                )
+            },
         },
         {
             key: 'totalCost',
             header: 'Total Cost',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value.toLocaleString()}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>₹{value}</span>,
         },
         {
-            key: 'totalLeads',
+            key: 'totalConversions',
             header: 'Total Leads',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value || '0'}</span>,
         },
         {
             key: 'cpl',
             header: 'CPL',
-            render: (value) => <span className='whitespace-nowrap text-sm font-normal'>{value.toLocaleString()}</span>,
+            render: (_, row) => {
+                const cost = parseFloat(row.totalCost) || 0
+                const leads = parseInt(row.totalConversions) || 0
+
+                if (!leads) {
+                    return <span className='text-sm text-gray-500'>—</span> // or "N/A"
+                }
+
+                const cpl = cost / leads
+                const formattedCPL = cpl.toFixed(2) // round to 2 decimal places
+
+                return <span className='whitespace-nowrap text-sm font-medium'>₹{formattedCPL}</span>
+            },
         },
     ]
 
     return (
-        <Layout loading={false}>
+        <Layout loading={isLoading}>
             <div className='w-full overflow-hidden '>
                 <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
                     <div className='mb-6'>
-                        <div className='flex items-center justify-between pb-4 border-b-1 border-gray-400 mb-[13px]'>
-                            <h1 className='text-xl font-semibold text-black'>Marketing Dashboard</h1>
-                            <div className='flex items-center'>
-                                <svg
-                                    className='w-5 h-5 text-gray-400'
-                                    fill='none'
-                                    stroke='currentColor'
-                                    viewBox='0 0 24 24'
-                                >
-                                    <path
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                        strokeWidth={2}
-                                        d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
-                                    />
-                                </svg>
+                        <div className='mb-4'>
+                            <div className='flex items-center justify-between p-3 border-b border-gray-300'>
+                                <div>
+                                    <h1 className='text-base font-semibold text-black'>Marketing Dashboard</h1>
+                                </div>
                             </div>
                         </div>
 
                         {/* Filters */}
-                        <div className='flex items-center gap-4 mb-5.5'>
-                            <div className='w-68'>
-                                <StateBaseTextField
-                                    leftIcon={
-                                        <svg
-                                            className='w-4 h-4 text-gray-400'
-                                            fill='none'
-                                            stroke='currentColor'
-                                            viewBox='0 0 16 16'
-                                            width='16'
-                                            height='16'
-                                            xmlns='http://www.w3.org/2000/svg'
-                                        >
-                                            <path
-                                                d='M7.66668 13.9999C11.1645 13.9999 14 11.1644 14 7.66659C14 4.16878 11.1645 1.33325 7.66668 1.33325C4.16887 1.33325 1.33334 4.16878 1.33334 7.66659C1.33334 11.1644 4.16887 13.9999 7.66668 13.9999Z'
-                                                stroke='#3A3A47'
-                                                stroke-width='1.5'
-                                                stroke-linecap='round'
-                                                stroke-linejoin='round'
-                                            />
-                                            <path
-                                                d='M14.6667 14.6666L13.3333 13.3333'
-                                                stroke='#3A3A47'
-                                                stroke-width='1.5'
-                                                stroke-linecap='round'
-                                                stroke-linejoin='round'
-                                            />
-                                        </svg>
-                                    }
-                                    placeholder='Search campaign'
-                                    value={searchValue}
-                                    onChange={(e) => setSearchValue(e.target.value)}
-                                    className='h-7'
-                                />
-                            </div>
+                        <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-5'>
+                            <StateBaseTextField
+                                leftIcon={
+                                    <svg
+                                        className='w-4 h-4 text-gray-400'
+                                        fill='none'
+                                        stroke='currentColor'
+                                        viewBox='0 0 16 16'
+                                        width='16'
+                                        height='16'
+                                        xmlns='http://www.w3.org/2000/svg'
+                                    >
+                                        <path
+                                            d='M7.66668 13.9999C11.1645 13.9999 14 11.1644 14 7.66659C14 4.16878 11.1645 1.33325 7.66668 1.33325C4.16887 1.33325 1.33334 4.16878 1.33334 7.66659C1.33334 11.1644 4.16887 13.9999 7.66668 13.9999Z'
+                                            stroke='#3A3A47'
+                                            strokeWidth='1.5'
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                        />
+                                        <path
+                                            d='M14.6667 14.6666L13.3333 13.3333'
+                                            stroke='#3A3A47'
+                                            strokeWidth='1.5'
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                        />
+                                    </svg>
+                                }
+                                placeholder='Search campaign'
+                                value={searchValue}
+                                onChange={(e) => setSearchValue(e.target.value)}
+                                className='h-7 w-full sm:w-68 bg-gray-300 focus-within:border-black'
+                            />
 
-                            <Dropdown
-                                options={dateRangeOptions}
-                                onSelect={setSelectedDateRange}
-                                defaultValue={selectedDateRange}
+                            <DateRangePicker
+                                onDateRangeChange={handleDateRangeChange}
+                                onApply={applyDateRange}
+                                onCancel={cancelDateRange}
                                 placeholder='Date Range'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-2 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                className={dropdownClasses.container}
+                                triggerClassName={dropdownClasses.trigger(!!selectedDateRange)}
+                                menuClassName={dropdownClasses.menu}
+                                showApplyCancel={true}
                             />
 
                             <Dropdown
-                                options={propertyOptions}
+                                options={generateDropdownOptions('campaignName', 'Campaign')}
                                 onSelect={setSelectedProperty}
                                 defaultValue={selectedProperty}
-                                placeholder='Property'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-2 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm  text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                value={selectedProperty}
+                                forcePlaceholderAlways
+                                placeholder='Campaign'
+                                className={dropdownClasses.container}
+                                triggerClassName={dropdownClasses.trigger(!!selectedProperty)}
+                                menuClassName={dropdownClasses.menu}
+                                optionClassName={dropdownClasses.option}
                             />
 
                             <Dropdown
-                                options={mediumOptions}
-                                onSelect={setSelectedMedium}
-                                defaultValue={selectedMedium}
-                                placeholder='Medium'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-2 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 w-fit text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
-                            />
-
-                            <Dropdown
-                                options={campaignStatusOptions}
+                                options={generateDropdownOptions('status', 'Status')}
                                 onSelect={setSelectedCampaignStatus}
                                 defaultValue={selectedCampaignStatus}
+                                value={selectedCampaignStatus}
+                                forcePlaceholderAlways
                                 placeholder='Campaign Status'
-                                className='relative inline-block'
-                                triggerClassName='flex items-center justify-between px-2 py-1 border-gray-300 rounded-md bg-gray-100 text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[80px] cursor-pointer'
-                                menuClassName='absolute z-50 mt-1 w-fit bg-white border border-gray-300 rounded-md shadow-lg'
-                                optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
+                                className={dropdownClasses.container}
+                                triggerClassName={dropdownClasses.trigger(!!selectedCampaignStatus)}
+                                menuClassName={dropdownClasses.menu}
+                                optionClassName={dropdownClasses.option}
                             />
                         </div>
 
                         {/* Summary Cards */}
-                        <div className='flex flex-row gap-4.5 mb-5.25'>
-                            {summaryCards.map((card, index) => (
-                                <SummaryCard
-                                    key={index}
-                                    card={card}
-                                    onClick={() => setselectedSummaryCard(card.title)}
-                                    isSelected={selectedSummaryCard === card.title}
-                                />
-                            ))}
+                        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5.25'>
+                            <div className='flex flex-row gap-4.5'>
+                                {summaryCards.map((card, index) => (
+                                    <SummaryCard
+                                        key={index}
+                                        card={card}
+                                        onClick={() => setSelectedSummaryCard(card.title)}
+                                        isSelected={selectedSummaryCard === card.title}
+                                    />
+                                ))}
+                            </div>
                         </div>
+
+                        {/* Active Filters */}
+                        {activeFilters.length > 0 && (
+                            <div className='flex flex-wrap items-center gap-2 mb-4'>
+                                {activeFilters.map((filter, index) =>
+                                    filter ? (
+                                        <div
+                                            key={index}
+                                            className='flex items-center bg-gray-100 text-xs font-medium text-gray-700 px-3 py-1.5 rounded-md'
+                                        >
+                                            {filter.label}
+                                            <button
+                                                onClick={filter.onClear}
+                                                className='ml-2 text-gray-500 hover:text-red-500 focus:outline-none'
+                                                aria-label={`Clear ${filter.label}`}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ) : null,
+                                )}
+
+                                {/* Clear All Button */}
+                                <button
+                                    onClick={() => {
+                                        setSelectedDateRange('')
+                                        setCustomDateRange({ startDate: null, endDate: null })
+                                        setPendingDateRange({ startDate: null, endDate: null })
+                                        setSelectedProperty('')
+                                        setSelectedCampaignStatus('')
+                                    }}
+                                    className='ml-4 text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-1.5 px-4 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer'
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Campaign Table */}
-                    <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                        <div className='h-[58vh] overflow-y-auto'>
-                            <FlexibleTable
-                                data={campaignData}
-                                columns={columns}
-                                borders={{
-                                    table: false,
-                                    header: true,
-                                    rows: true,
-                                    cells: false,
-                                    outer: true,
-                                }}
-                                showCheckboxes={true}
-                                className='rounded-lg'
-                                stickyHeader={true}
-                                maxHeight='58vh'
-                                onRowClick={handleRowClick}
-                            />
-                        </div>
+                    <div
+                        className='bg-white rounded-lg shadow-sm overflow-hidden'
+                        style={{
+                            height: `${activeFilters.length > 0 ? 45 : 57}vh`, // You can adjust these values
+                        }}
+                    >
+                        <FlexibleTable
+                            showCheckboxes={true}
+                            data={filteredCampaignsData}
+                            columns={columns}
+                            borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
+                            headerClassName='font-normal text-left px-4'
+                            cellClassName='text-left px-4'
+                            onRowClick={handleRowClick}
+                            className='rounded-lg overflow-x-hidden'
+                            stickyHeader={true}
+                            hoverable={true}
+                            maxHeight={`${activeFilters.length > 0 ? 45 : 57}vh`}
+                        />
                     </div>
                 </div>
             </div>
@@ -728,4 +688,4 @@ const MarketingDashboard = () => {
     )
 }
 
-export default MarketingDashboard
+export default Marketing

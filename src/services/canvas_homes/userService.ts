@@ -3,12 +3,12 @@ import {
     doc,
     getDocs,
     getDoc,
-    setDoc,
     updateDoc,
-    limit,
     query,
     orderBy,
     deleteDoc,
+    runTransaction,
+    increment,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { User } from './types'
@@ -44,25 +44,35 @@ class UserService {
 
     async create(userData: Omit<User, 'userId' | 'added' | 'lastModified'>): Promise<string> {
         try {
-            const q = query(collection(db, this.collectionName), orderBy('userId', 'desc'), limit(1))
-            const snapshot = await getDocs(q)
+            const counterRef = doc(db, 'canvashomesAdmin', 'lastUser')
 
-            let nextUserId = 'user01'
-            if (!snapshot.empty) {
-                const lastUserId = snapshot.docs[0].data().userId
-                const newNumber = parseInt(lastUserId.replace('user', '')) + 1
-                nextUserId = `user${newNumber.toString().padStart(2, '0')}`
-            }
+            const nextUserId = await runTransaction(db, async (transaction) => {
+                const counterDoc = await transaction.get(counterRef)
+                let currentCount = 0
 
-            const timestamp = getUnixDateTime()
-            const newUser = {
-                ...userData,
-                userId: nextUserId,
-                added: timestamp,
-                lastModified: timestamp,
-            }
+                if (counterDoc.exists()) {
+                    currentCount = counterDoc.data().count || 0
+                }
 
-            await setDoc(doc(db, this.collectionName, nextUserId), newUser)
+                const newCount = currentCount + 1
+                const newUserId = `user${newCount.toString().padStart(2, '0')}`
+
+                const timestamp = getUnixDateTime()
+                const newUser = {
+                    ...userData,
+                    userId: newUserId,
+                    added: timestamp,
+                    lastModified: timestamp,
+                }
+
+                transaction.set(doc(db, this.collectionName, newUserId), newUser)
+                transaction.update(counterRef, {
+                    count: increment(1),
+                })
+
+                return newUserId
+            })
+
             return nextUserId
         } catch (error) {
             console.error('Error creating user:', error)

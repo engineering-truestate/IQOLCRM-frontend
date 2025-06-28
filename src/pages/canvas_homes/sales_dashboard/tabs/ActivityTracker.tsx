@@ -113,6 +113,10 @@ const ActivityTracker: React.FC<ActivityTrackerProps> = ({ enquiryId }) => {
                 return <LeadStateCard key={key} activity={safeActivity} />
             case 'lead added':
                 return <LeadAddedCard key={key} activity={safeActivity} />
+            case 'lead reopen':
+                return <LeadStateCard key={key} activity={safeActivity} />
+            case 'task rescheduled':
+                return <LeadStateCard key={key} activity={safeActivity} />
             default:
                 return (
                     <div key={key} className='bg-gray-50 rounded-md border p-3'>

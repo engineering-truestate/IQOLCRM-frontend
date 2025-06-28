@@ -9,7 +9,7 @@ import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
-import { useNavigate } from 'react-router'
+// import { useNavigate } from 'react-router'
 import Dropdown from '../design-elements/Dropdown'
 import { toCapitalizedWords } from '../helper/toCapitalize'
 
@@ -27,7 +27,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
     const { user } = useAuth()
     const { leadId } = useParams()
     const { leadData } = UseLeadDetails(leadId || '')
-    const navigate = useNavigate()
+    // const navigate = useNavigate()
 
     const agentId = user?.uid || ''
     const agentName = user?.displayName || ''
@@ -36,7 +36,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
         reason: '',
-        tag: 'cold',
+        tag: leadData?.tag || '',
         note: '',
         status: 'Complete',
         state: 'dropped',
@@ -62,7 +62,7 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     break
                 case 'not connected':
                     leadStatus = 'not connected'
-                    stage = 'lead registered'
+                    stage = leadData?.stage || ''
                     break
                 case 'visited':
                     leadStatus = 'visit unsuccessful'
@@ -70,15 +70,15 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     break
                 case 'not visited':
                     leadStatus = 'visit dropped'
-                    stage = 'initial contacted'
+                    stage = leadData?.stage || ''
                     break
                 case 'eoi not collected':
                     leadStatus = 'eoi dropped'
-                    stage = 'site visited'
+                    stage = leadData?.stage || ''
                     break
                 case 'booking unsuccessful':
                     leadStatus = 'booking dropped'
-                    stage = 'eoi collected'
+                    stage = leadData?.stage || ''
                     break
                 default:
                     leadStatus = 'not connected'
@@ -88,11 +88,11 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                 ...prev,
                 leadStatus,
                 stage,
+                tag: leadData?.tag || prev.tag, // Ensure tag is set from leadData
                 timestamp: getUnixDateTime(),
             }))
         }
-    }, [isOpen, taskState, taskIds, agentId, agentName])
-
+    }, [isOpen, taskState, taskIds, agentId, agentName, leadData])
     const reasonOptions = [
         // { value: '', label: 'Select reason' },
         { value: 'incorrect contact details', label: 'Incorrect Contact Details' },
@@ -132,9 +132,14 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
             const currentTimestamp = getUnixDateTime()
 
             if (taskIds && enquiryId && leadId) {
-                // Prepare all promises for parallel execution
+                // First, get all open enquiries for this lead
+                const openEnquiries = await enquiryService.getByLeadId(leadId)
 
-                // Prepare enquiry update data
+                // Filter out the current enquiry that we're closing
+                const remainingOpenEnquiries = openEnquiries.filter(
+                    (enq) => enq.enquiryId !== enquiryId && enq.state === 'open',
+                )
+
                 const enqData = {
                     state: 'dropped' as 'open' | 'closed' | 'fresh' | 'dropped' | null,
                     stage: formData.stage,
@@ -143,7 +148,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     lastModified: currentTimestamp,
                 }
 
-                // Add Lead Closed activity to enquiry
                 const addLeadClosedActivity = enquiryService.addActivity(enquiryId, {
                     activityType: 'lead closed',
                     timestamp: currentTimestamp,
@@ -151,7 +155,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     data: { reason: formData.reason },
                 })
 
-                // Add Task Execution activity to enquiry
                 const addTaskExecutionActivity = enquiryService.addActivity(enquiryId, {
                     activityType: 'task execution',
                     timestamp: currentTimestamp,
@@ -165,7 +168,6 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     },
                 })
 
-                // Add note to enquiry if provided
                 const addNotePromise = formData.note
                     ? enquiryService.addNote(enquiryId, {
                           note: formData.note,
@@ -174,63 +176,122 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                           agentId: agentId,
                           taskType: taskType,
                       })
-                    : Promise.resolve() // Resolve immediately if no note
+                    : Promise.resolve()
 
-                // Update lead using service
-                const updateLeadData = {
-                    state: 'dropped',
-                    stage: formData.stage,
-                    leadStatus: formData.leadStatus as
-                        | 'not connected'
-                        | 'closed'
-                        | 'interested'
-                        | 'follow up'
-                        | 'not interested'
-                        | 'visit unsuccessful'
-                        | 'visit dropped'
-                        | 'eoi dropped'
-                        | 'booking dropped'
-                        | 'requirement collected'
-                        | null
-                        | undefined,
-                    completionDate: currentTimestamp,
-                    tag: formData.tag,
-                    lastModified: currentTimestamp,
+                let updateLeadData
+                let shouldUpdateLead = false
+
+                // Check if there are remaining open enquiries
+                if (remainingOpenEnquiries.length > 0) {
+                    // Find the most recently modified open enquiry
+                    const mostRecentEnquiry = remainingOpenEnquiries.sort(
+                        (a, b) => (b.lastModified || 0) - (a.lastModified || 0),
+                    )[0]
+
+                    // Get open tasks for the most recent enquiry
+                    const openTasksForRecentEnquiry = await taskService.getOpenByEnquiryId(
+                        mostRecentEnquiry.enquiryId || '',
+                    )
+                    const remainingOpenTasks = openTasksForRecentEnquiry.filter((task) => task.taskId !== taskIds)
+
+                    if (remainingOpenTasks.length > 0) {
+                        // Find the earliest scheduled task for this enquiry
+                        const earliestTask = remainingOpenTasks[0]
+
+                        updateLeadData = {
+                            state: mostRecentEnquiry.state,
+                            stage: mostRecentEnquiry.stage,
+                            leadStatus: mostRecentEnquiry.leadStatus as any,
+                            propertyName: mostRecentEnquiry.propertyName,
+                            tag: mostRecentEnquiry.tag,
+                            taskType: earliestTask.taskType,
+                            scheduledDate: earliestTask.scheduledDate,
+                            lastModified: currentTimestamp,
+                        }
+                        shouldUpdateLead = true
+                    } else {
+                        // Recent enquiry exists but no open tasks
+                        updateLeadData = {
+                            state: mostRecentEnquiry.state || 'open',
+                            stage: mostRecentEnquiry.stage,
+                            leadStatus: mostRecentEnquiry.leadStatus as any,
+                            propertyName: mostRecentEnquiry.propertyName,
+                            tag: mostRecentEnquiry.tag,
+                            taskType: null,
+                            scheduledDate: null,
+                            lastModified: currentTimestamp,
+                        }
+                        shouldUpdateLead = true
+                    }
+                } else {
+                    const openTasksForRecentEnquiry = await taskService.getOpenByEnquiryId(enquiryId || '')
+                    const remainingOpenTasks = openTasksForRecentEnquiry.filter((task) => task.taskId !== taskIds)
+
+                    if (remainingOpenTasks.length > 0) {
+                        // Find the earliest scheduled task for this enquiry
+                        const earliestTask = remainingOpenTasks[0]
+
+                        updateLeadData = {
+                            state: 'dropped',
+                            stage: formData.stage,
+                            leadStatus: formData.leadStatus as any,
+                            completionDate: currentTimestamp,
+                            tag: formData.tag,
+                            scheduledDate: earliestTask.scheduledDate,
+                            taskType: earliestTask.taskType,
+                            lastModified: currentTimestamp,
+                        }
+                        shouldUpdateLead = true
+                    } else {
+                        // Recent enquiry exists but no open tasks
+                        updateLeadData = {
+                            state: 'dropped',
+                            stage: formData.stage,
+                            leadStatus: formData.leadStatus as any,
+                            completionDate: currentTimestamp,
+                            tag: formData.tag,
+                            scheduledDate: null,
+                            taskType: null,
+                            lastModified: currentTimestamp,
+                        }
+                        shouldUpdateLead = true
+                    }
+                    shouldUpdateLead = true
                 }
 
-                // Update task status using service
                 const updateTaskStatus = taskService.update(taskIds, {
                     status: 'complete',
                     completionDate: currentTimestamp,
                 })
 
-                // Update enquiry and lead concurrently using Promise.all
                 const enquiryUpdatePromise = enquiryService.update(enquiryId, enqData)
-                const leadUpdatePromise = leadService.update(leadId, updateLeadData)
 
-                // Wait for all promises to complete
-                await Promise.all([
+                // Only update lead if we determined we should
+                const promises = [
                     enquiryUpdatePromise,
-                    leadUpdatePromise,
                     updateTaskStatus,
                     addLeadClosedActivity,
                     addTaskExecutionActivity,
                     addNotePromise,
-                ])
+                ]
 
-                // Refresh data after all operations complete
+                if (shouldUpdateLead) {
+                    const leadUpdatePromise = leadService.update(leadId, updateLeadData)
+                    promises.push(leadUpdatePromise)
+                }
+
+                await Promise.all(promises)
+
                 await refreshData()
 
                 toast.success('Lead closed successfully')
                 onClose()
-                navigate(`/canvas-homes/sales/leaddetails/${leadId}`)
 
-                // Reset form
                 setFormData({
                     reason: '',
                     status: 'Complete',
                     leadStatus: 'not connected',
-                    tag: 'cold',
+                    tag: leadData?.tag || '',
                     state: 'dropped',
                     note: '',
                     stage: '',

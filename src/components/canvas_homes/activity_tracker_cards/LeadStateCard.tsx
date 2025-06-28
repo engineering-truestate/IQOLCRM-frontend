@@ -41,7 +41,7 @@ const LeadStateCard = ({ activity }: LeadStateCardProps) => {
     const { reason = '' } = data || {}
 
     return (
-        <div className='bg-white border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm'>
+        <div className='bg-white border border-gray-300 rounded-lg py-2 px-4 w-full max-w-210 mx-auto text-sm ml-4'>
             {/* Header - Activity Type, Time and Agent */}
             <div className='flex justify-between items-start'>
                 <div className='font-semibold text-gray-800'>
@@ -54,7 +54,7 @@ const LeadStateCard = ({ activity }: LeadStateCardProps) => {
             </div>
 
             {/* Details section */}
-            <div className='mt-3 space-y-2 pt-3 border-t border-gray-200'>
+            <div className='mt-1 space-y-2 pt-1.5 pb-1.5 border-t border-gray-200'>
                 {/* Reason */}
                 {reason && (
                     <div className='flex'>

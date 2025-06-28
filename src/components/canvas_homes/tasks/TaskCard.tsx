@@ -26,7 +26,7 @@ interface TaskCardProps {
     task: Task
     index: number
     isExpanded: boolean
-    onToggleExpansion: (taskId: string) => void
+    onToggleExpansion: (taskId: string, event: React.MouseEvent) => void
     taskStatusOptions: { label: string; value: string }[]
     onStatusUpdate: (taskId: string, selectedStatus: string) => void
     updating?: boolean
@@ -41,7 +41,7 @@ const formatValue = (value: any): string => {
     // Capitalize first letter of each word
     return String(value)
         .split(' ')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ')
 }
 
@@ -56,13 +56,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
     children,
 }) => {
     const dispatch = useDispatch<AppDispatch>()
+    console.log(task?.firebaseTask)
 
     // Handle task card click to toggle expansion (if the task isn't complete)
-    const handleCardClick = () => {
+    const handleCardClick = (e: React.MouseEvent) => {
         if (task.status !== 'complete') {
             dispatch(setTaskId(task.id))
             dispatch(setEnquiryId(task.enquiryId))
-            onToggleExpansion(task.id)
+            onToggleExpansion(task.id, e)
         }
     }
 
@@ -80,7 +81,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
             if (!task.firebaseTask) return 'Not Available'
 
             // If task is complete and has a completion date, show that instead
-            if (task.status === 'complete' && task.firebaseTask.completionDate) {
+            if (task.firebaseTask.completionDate) {
+                console.log(task.firebaseTask.completionDate)
                 // Use the timestamp directly as it's already in seconds
                 return formatUnixDateTime(task.firebaseTask.completionDate) || 'Completion date not available'
             }
@@ -108,7 +110,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
     return (
         <div
-            onClick={handleCardClick}
+            onClick={(e) => handleCardClick(e)}
             className={`rounded-md border border-gray-300 ${
                 task?.status === 'complete' ? 'cursor-not-allowed' : 'cursor-pointer'
             } transition-all duration-200 ]`}
@@ -153,7 +155,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 {/* Scheduled Info */}
                 <div>
                     <div className='font-medium text-sm text-gray-900 mb-1'>
-                        {task.firebaseTask?.completionDate ? 'Completion Date' : formatValue(task.scheduledInfo)}
+                        {task.status === 'complete' ? 'Completion Date' : formatValue(task.scheduledInfo)}
                     </div>
                     <div className='text-xs text-gray-500'>{getFormattedDate()}</div>
                 </div>

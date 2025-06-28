@@ -92,12 +92,12 @@ const NewEnquiryCard = ({ activity }: { activity: Activity }) => {
     }
 
     return (
-        <div className='bg-white border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm'>
+        <div className='bg-white border border-gray-300 rounded-lg p-4 w-full max-w-210 mx-auto text-sm ml-4'>
             {/* Header - Activity Type, Time and Agent */}
             <div className='flex justify-between items-start'>
                 <div className='font-semibold text-gray-800'>
-                    {capitalizeWords(activityType)}{' '}
-                    <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(Number(timestamp))}</span>
+                    {capitalizeWords(activityType)}
+                    <span className='text-gray-500 font-normal text-[13px]'> | {formatTime(Number(timestamp))}</span>
                 </div>
                 <div className='text-gray-500 text-sm'>
                     Agent: <span className='text-gray-700'>{capitalizeWords(agentName)}</span>
@@ -105,20 +105,17 @@ const NewEnquiryCard = ({ activity }: { activity: Activity }) => {
             </div>
 
             {/* Property Details */}
-            <div className='mt-4 space-y-2'>
-                {/* Property Added/Changed */}
+            <div className='mt-3 space-y-2 text-[13px] border-t border-gray-200 '>
+                {/* Property Added */}
                 {propertyAdded && (
-                    <div className='flex'>
-                        <div className='w-1/7 text-gray-500 text-[13px]'>Property added</div>
-                        <div className='flex items-center'>
-                            <span className='text-gray-700 text-[13px]'>{capitalizeWords(propertyAdded)}</span>
-
+                    <div className='flex items-start mt-3'>
+                        <div className='w-32 text-gray-500'>Property added</div>
+                        <div className='flex items-center text-gray-700'>
+                            <span>{capitalizeWords(propertyAdded)}</span>
                             {hasPropertyChange && (
                                 <>
                                     <img src={arrowRightIcon} alt='→' className='mx-2 w-4 h-4' />
-                                    <span className='text-gray-700 text-[13px]'>
-                                        {capitalizeWords(propertyChanged)}
-                                    </span>
+                                    <span>{capitalizeWords(propertyChanged)}</span>
                                 </>
                             )}
                         </div>
@@ -127,17 +124,17 @@ const NewEnquiryCard = ({ activity }: { activity: Activity }) => {
 
                 {/* Lead Status */}
                 {leadStatus && (
-                    <div className='flex'>
-                        <div className='w-1/10 text-gray-500 text-[13px]'>Lead status</div>
-                        <div className=' text-gray-700 text-[13px]'>{capitalizeWords(leadStatus)}</div>
+                    <div className='flex items-start'>
+                        <div className='w-32 text-gray-500'>Lead status</div>
+                        <div className='text-gray-700'>{capitalizeWords(leadStatus)}</div>
                     </div>
                 )}
 
-                {/* Tag (optional) */}
-                {tag && (
-                    <div className='flex'>
-                        <div className='w-1/10 text-gray-500 text-[13px]'>Tag</div>
-                        <div className=''>
+                {/* Tag */}
+                {tag && tag.trim() !== '' && (
+                    <div className='flex items-start'>
+                        <div className='w-32 text-gray-500'>Tag</div>
+                        <div>
                             <span
                                 className={`inline-flex items-center px-2 py-1 rounded-sm text-xs ${getTagColorClass(tag)}`}
                             >
@@ -147,6 +144,12 @@ const NewEnquiryCard = ({ activity }: { activity: Activity }) => {
                                 <span className='text-[13px]'>{capitalizeWords(tag)}</span>
                             </span>
                         </div>
+                    </div>
+                )}
+                {agentName && (
+                    <div className='flex items-start'>
+                        <div className='w-32 text-gray-500'>Agent</div>
+                        <div className='text-gray-700'>{capitalizeWords(agentName)}</div>
                     </div>
                 )}
             </div>

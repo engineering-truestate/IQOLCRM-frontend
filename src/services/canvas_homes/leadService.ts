@@ -1,15 +1,4 @@
-import {
-    collection,
-    doc,
-    getDocs,
-    getDoc,
-    setDoc,
-    updateDoc,
-    deleteDoc,
-    query,
-    orderBy,
-    limit,
-} from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, runTransaction, increment } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { Lead } from './types'
 import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
@@ -39,26 +28,34 @@ class LeadService {
      */
     async create(leadData: Omit<Lead, 'leadId' | 'added' | 'lastModified'>): Promise<string> {
         try {
-            const q = query(collection(db, this.collectionName), orderBy('leadId', 'desc'), limit(1))
-            const snapshot = await getDocs(q)
+            const counterRef = doc(db, 'canvashomesAdmin', 'lastLead')
 
-            let nextLeadId = 'lead01'
+            const nextLeadId = await runTransaction(db, async (transaction) => {
+                const counterDoc = await transaction.get(counterRef)
+                let currentNumber = 0
 
-            if (!snapshot.empty) {
-                const lastLeadId = snapshot.docs[0].data().leadId
-                const newNumber = parseInt(lastLeadId.replace('lead', '')) + 1
-                nextLeadId = `lead${newNumber.toString().padStart(2, '0')}`
-            }
+                if (counterDoc.exists()) {
+                    currentNumber = counterDoc.data().count || 0
+                }
 
-            const timestamp = getUnixDateTime()
-            const newLead = {
-                ...leadData,
-                leadId: nextLeadId,
-                added: timestamp,
-                lastModified: timestamp,
-            }
+                const newNumber = currentNumber + 1
+                const newLeadId = `lead${newNumber.toString().padStart(2, '0')}`
 
-            await setDoc(doc(db, this.collectionName, nextLeadId), newLead)
+                const timestamp = getUnixDateTime()
+                const newLead = {
+                    ...leadData,
+                    leadId: newLeadId,
+                    added: timestamp,
+                    lastModified: timestamp,
+                }
+
+                transaction.set(doc(db, this.collectionName, newLeadId), newLead)
+                transaction.update(counterRef, {
+                    count: increment(1),
+                })
+
+                return newLeadId
+            })
 
             return nextLeadId
         } catch (error) {

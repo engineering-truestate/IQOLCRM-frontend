@@ -2,81 +2,59 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import Dropdown from '../../../components/design-elements/Dropdown'
-// import Button from '../../../components/design-elements/Button'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import DateRangePicker from '../../../components/design-elements/DateRangePicker'
-import { searchTasks, type TaskSearchFilters } from '../../../services/canvas_homes/taskAlgoliaService'
+import { searchLeads, type LeadSearchFilters } from '../../../services/canvas_homes/leadAlgoliaService'
+import google from '/icons/canvas_homes/google.svg'
+import linkedin from '/icons/canvas_homes/linkedin.svg'
+import meta from '/icons/canvas_homes/meta.svg'
+import { useNavigate } from 'react-router-dom'
 import potentialIcon from '/icons/canvas_homes/potential-bulb.svg'
 import hotIcon from '/icons/canvas_homes/hoticon.svg'
 import superHotIcon from '/icons/canvas_homes/super-hot.svg'
 import coldIcon from '/icons/canvas_homes/coldicon.svg'
-import { useNavigate } from 'react-router-dom'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
+import ASLCRenderer from '../../../components/canvas_homes/ASLCRenderer'
 
-// Task data type
-type SalesTask = {
-    taskId: string
-    enquiryId: string
-    agentId: string
-    agentName: string
-    name: string
-    leadAddDate: number
-    propertyName: string
-    taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking' | string
-    eventName?: string
-    status: 'open' | 'complete'
-    stage: string
-    leadStatus: string
-    tag: string
-    scheduledDate: number
-    added: number
-    eoiEntries?: any
-    completionDate?: number
-    lastModified: number
+const tagStyles: Record<
+    string,
+    {
+        icon: string
+        bg: string
+        text: string
+    }
+> = {
+    potential: {
+        icon: potentialIcon,
+        bg: 'bg-[#DCFCE7]',
+        text: 'text-[#15803D]',
+    },
+    hot: {
+        icon: hotIcon,
+        bg: 'bg-[#FFEDD5]',
+        text: 'text-[#9A3412]',
+    },
+    superhot: {
+        icon: superHotIcon,
+        bg: 'bg-[#FECACA]',
+        text: 'text-[#991B1B]',
+    },
+    cold: {
+        icon: coldIcon,
+        bg: 'bg-[#DBEAFE]',
+        text: 'text-[#1D4ED8]',
+    },
 }
 
-// Status card component
-const StatusCard = ({
-    title,
-    count,
-    isActive,
-    onClick,
-}: {
-    title: string
-    count: number
-    isActive: boolean
-    onClick: () => void
-}) => {
-    return (
-        <button
-            onClick={onClick}
-            className={`px-2 py-2.5 rounded-[12px] w-32 h-14 border transition-colors ${
-                isActive ? 'bg-[#E2F4FF] border-[#3279EA]' : 'border border-gray-200 bg-white hover:bg-gray-50'
-            }`}
-        >
-            <div className='flex w-full items-center gap-2'>
-                <span className='text-sm font-normal w-17.5 text-gray-700'>{title}</span>
-                <span className={`text-lg font-semibold ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>{count}</span>
-            </div>
-        </button>
-    )
-}
-
-const Tasks = () => {
+const JunkLeadsDashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
 
     // Initialize state from URL params
-    const [activeStatusCard, setActiveStatusCard] = useState('All')
+    const [activeStatusCard, _setActiveStatusCard] = useState('All')
     const [selectedRows, setSelectedRows] = useState<string[]>([])
     const [searchValue, setSearchValue] = useState('')
     const [selectedDateRange, setSelectedDateRange] = useState('')
-    const [selectedProperty, setSelectedProperty] = useState('')
-    const [selectedLeadStage, setSelectedLeadStage] = useState('')
-    const [selectedTask, setSelectedTask] = useState('')
-    const [selectedTag, setSelectedTag] = useState('')
-    const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
-    const [selectedAgent, setSelectedAgent] = useState('')
 
     // Separate state for date range picker (not applied until user confirms)
     const [pendingDateRange, setPendingDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
@@ -88,6 +66,21 @@ const Tasks = () => {
         startDate: null,
         endDate: null,
     })
+
+    const [selectedProperty, setSelectedProperty] = useState('')
+    const [selectedAgent, setSelectedAgent] = useState('')
+    const [selectedSource, setSelectedSource] = useState('')
+    const [selectedLeadStage, setSelectedLeadStage] = useState('')
+    const [selectedTag, setSelectedTag] = useState('')
+    const [selectedTask, setSelectedTask] = useState('')
+    const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
+    // const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
+
+    // Store initial facets to prevent filter options from changing
+    const [initialFacets, setInitialFacets] = useState<Record<string, Record<string, number>>>({})
+    const [allLeadsData, setAllLeadsData] = useState<any[]>([])
+    const [filteredLeadsData, setFilteredLeadsData] = useState<any[]>([])
+    const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
 
     // Update URL when filters change
     const updateURL = useCallback(
@@ -117,6 +110,7 @@ const Tasks = () => {
             endDate: customDateRange.endDate,
             property: selectedProperty || null,
             agent: selectedAgent || null,
+            source: selectedSource || null,
             leadStage: selectedLeadStage || null,
             tag: selectedTag || null,
             task: selectedTask || null,
@@ -129,6 +123,7 @@ const Tasks = () => {
         customDateRange,
         selectedProperty,
         selectedAgent,
+        selectedSource,
         selectedLeadStage,
         selectedTag,
         selectedTask,
@@ -136,7 +131,6 @@ const Tasks = () => {
         updateURL,
     ])
 
-    // Active filters array
     const activeFilters = [
         selectedDateRange && { label: selectedDateRange, onClear: () => setSelectedDateRange('') },
         customDateRange.startDate &&
@@ -146,6 +140,7 @@ const Tasks = () => {
             },
         selectedProperty && { label: toCapitalizedWords(selectedProperty), onClear: () => setSelectedProperty('') },
         selectedAgent && { label: toCapitalizedWords(selectedAgent), onClear: () => setSelectedAgent('') },
+        selectedSource && { label: toCapitalizedWords(selectedSource), onClear: () => setSelectedSource('') },
         selectedLeadStage && { label: toCapitalizedWords(selectedLeadStage), onClear: () => setSelectedLeadStage('') },
         selectedTag && { label: toCapitalizedWords(selectedTag), onClear: () => setSelectedTag('') },
         selectedTask && { label: toCapitalizedWords(selectedTask), onClear: () => setSelectedTask('') },
@@ -155,13 +150,6 @@ const Tasks = () => {
         },
     ].filter(Boolean)
 
-    // Task data state
-    const [allTasksData, setAllTasksData] = useState<SalesTask[]>([])
-    const [filteredTasksData, setFilteredTasksData] = useState<SalesTask[]>([])
-    const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
-    const [initialFacets, setInitialFacets] = useState<Record<string, Record<string, number>>>({})
-    const [loading, setLoading] = useState(false)
-
     const debounce = useCallback(<T extends (...args: any[]) => any>(func: T, delay: number) => {
         let timeoutId: NodeJS.Timeout
         return (...args: Parameters<T>) => {
@@ -170,11 +158,11 @@ const Tasks = () => {
         }
     }, [])
 
-    // Create filters object for tasks
-    const createTaskFilters = useCallback((): TaskSearchFilters => {
-        const filters: TaskSearchFilters = {
+    const createFilters = useCallback((): LeadSearchFilters => {
+        const filters: LeadSearchFilters = {
             propertyName: selectedProperty ? [selectedProperty] : undefined,
             agentName: selectedAgent ? [selectedAgent] : undefined,
+            source: selectedSource ? [selectedSource] : undefined,
             stage: selectedLeadStage ? [selectedLeadStage] : undefined,
             tag: selectedTag ? [selectedTag] : undefined,
             taskType: selectedTask ? [selectedTask] : undefined,
@@ -193,6 +181,7 @@ const Tasks = () => {
     }, [
         selectedProperty,
         selectedAgent,
+        selectedSource,
         selectedLeadStage,
         selectedTag,
         selectedTask,
@@ -201,28 +190,23 @@ const Tasks = () => {
         customDateRange,
     ])
 
-    // Task search function
+    useEffect(() => {
+        const filtered = allLeadsData.filter((lead) => lead.state?.toLowerCase() === 'junk')
+
+        setFilteredLeadsData(filtered)
+    }, [allLeadsData, activeStatusCard, searchValue])
+
     const performSearch = useCallback(async () => {
         try {
-            setLoading(true)
-            const filters = createTaskFilters()
-            console.log('Searching with filters:', filters)
-
-            const result = await searchTasks({
+            const filters = createFilters()
+            const result = await searchLeads({
                 query: searchValue,
                 filters,
                 page: 0,
                 hitsPerPage: 1000,
             })
 
-            console.log('Search result:', result)
-
-            const transformedData = result.hits.map((task: any) => ({
-                ...task,
-                dueDays: calculateDueDays(task.scheduledDate),
-            }))
-
-            setAllTasksData(transformedData)
+            setAllLeadsData(result.hits)
             setFacets(result.facets || {})
 
             // Store initial facets on first load to maintain consistent filter options
@@ -230,60 +214,19 @@ const Tasks = () => {
                 setInitialFacets(result.facets || {})
             }
         } catch (error) {
-            console.error('Search error:', error)
-            setAllTasksData([])
-            setFilteredTasksData([])
-        } finally {
-            setLoading(false)
+            setAllLeadsData([])
+            setFilteredLeadsData([])
         }
-    }, [searchValue, createTaskFilters, initialFacets])
+    }, [searchValue, createFilters, initialFacets])
 
-    const calculateDueDays = (scheduledDate: number | string | undefined): number => {
-        if (!scheduledDate) return 0
-
-        const ts = typeof scheduledDate === 'string' ? parseInt(scheduledDate) : scheduledDate
-        const scheduleDate = new Date(String(ts).length === 10 ? ts * 1000 : ts)
-        const today = new Date()
-        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-
-        const diffTime = scheduleDate.getTime() - todayStart.getTime()
-        return Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    }
-
-    // Filter tasks based on status card selection
-    useEffect(() => {
-        if (activeStatusCard === 'All') {
-            const sorted = [...allTasksData].sort((a, b) => b.added - a.added)
-            setFilteredTasksData(sorted)
-        } else if (activeStatusCard === 'Upcoming') {
-            const upcomingTasks = allTasksData
-                .filter((task) => {
-                    const dueDays = calculateDueDays(task.scheduledDate)
-                    return dueDays >= 0 && !task?.completionDate
-                })
-                .sort((a, b) => a.scheduledDate - b.scheduledDate)
-            setFilteredTasksData(upcomingTasks)
-        } else if (activeStatusCard === 'Missed') {
-            const missedTasks = allTasksData
-                .filter((task) => {
-                    const dueDays = calculateDueDays(task.scheduledDate)
-
-                    return dueDays < 0 && !task?.completionDate
-                })
-                .sort((a, b) => b.scheduledDate - a.scheduledDate)
-            setFilteredTasksData(missedTasks)
-        }
-    }, [allTasksData, activeStatusCard])
-
-    // Debounced search for tasks
     const debouncedSearch = useMemo(() => debounce(performSearch, 300), [performSearch, debounce])
 
-    // Search on filter changes (immediate)
     useEffect(() => {
         performSearch()
     }, [
         selectedProperty,
         selectedAgent,
+        selectedSource,
         selectedLeadStage,
         selectedTag,
         selectedTask,
@@ -293,37 +236,84 @@ const Tasks = () => {
         performSearch,
     ])
 
-    // Search on text input change (debounced)
     useEffect(() => {
         debouncedSearch()
     }, [searchValue, debouncedSearch])
 
-    // Initial search
     useEffect(() => {
         performSearch()
     }, [performSearch])
 
-    // Calculate the status counts manually
-    const statusCounts = useMemo(() => {
-        const counts = {
-            All: allTasksData.length,
-            Upcoming: 0,
-            Missed: 0,
-        }
+    // Modified date range handler - doesn't apply immediately
+    const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
+        setPendingDateRange({ startDate, endDate })
+    }, [])
 
-        allTasksData.forEach((task) => {
-            const dueDays = calculateDueDays(task.scheduledDate)
-            if (dueDays < 0 && !task?.completionDate) {
-                counts.Missed++
-            } else if (!task?.completionDate) {
-                counts.Upcoming++
-            }
+    // New function to apply pending date range
+    const applyDateRange = useCallback(() => {
+        setCustomDateRange(pendingDateRange)
+        if (pendingDateRange.startDate || pendingDateRange.endDate) {
+            setSelectedDateRange('')
+        }
+    }, [pendingDateRange])
+
+    const junkFacets = useMemo(() => {
+        const keys = ['propertyName', 'agentName', 'source', 'stage', 'tag', 'taskType', 'leadStatus']
+        const result: Record<string, Record<string, number>> = {}
+
+        keys.forEach((key) => {
+            result[key] = {}
+            filteredLeadsData.forEach((lead) => {
+                const value = lead[key]
+                if (value) {
+                    result[key][value] = (result[key][value] || 0) + 1
+                }
+            })
         })
 
-        return counts
-    }, [allTasksData])
+        return result
+    }, [filteredLeadsData])
 
-    // Handle row selection
+    // New function to cancel pending date range
+    const cancelDateRange = useCallback(() => {
+        setPendingDateRange(customDateRange)
+    }, [customDateRange])
+
+    const dropdownClasses = {
+        container: 'relative inline-block w-full sm:w-auto',
+        trigger: (isSelected: boolean) =>
+            `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
+        menu: 'absolute z-50 mt-1 w-fit min-w-[300px] max-h-80 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg',
+        option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md ',
+    }
+
+    // Keep initial facet options and order, only update counts
+    const generateDropdownOptions = useCallback(
+        (
+            facetKey: string,
+            _defaultLabel: string,
+            staticOptions?: any[],
+            overrideFacets?: Record<string, Record<string, number>>,
+        ) => {
+            if (staticOptions) return staticOptions
+
+            const facetData = overrideFacets?.[facetKey] || facets[facetKey] || {}
+            const options: { label: string; value: string }[] = []
+
+            Object.entries(facetData)
+                .sort(([, a], [, b]) => b - a)
+                .forEach(([key, count]) => {
+                    options.push({
+                        label: `${toCapitalizedWords(key)} (${count})`,
+                        value: key,
+                    })
+                })
+
+            return options
+        },
+        [facets],
+    )
+
     const handleRowSelect = (rowId: string, selected: boolean) => {
         if (selected) {
             setSelectedRows([...selectedRows, rowId])
@@ -332,115 +322,19 @@ const Tasks = () => {
         }
     }
 
-    // Modified date range handler - doesn't apply immediately
-    const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null) => {
-        setPendingDateRange({ startDate, endDate })
-    }, [])
-
-    // Apply pending date range
-    const applyDateRange = useCallback(() => {
-        setCustomDateRange(pendingDateRange)
-        if (pendingDateRange.startDate || pendingDateRange.endDate) {
-            setSelectedDateRange('')
+    const handleSelectAllRows = (selected: boolean) => {
+        if (selected) {
+            const allLeadIds = allLeadsData.map((lead) => lead.leadId)
+            setSelectedRows(allLeadIds)
+        } else {
+            setSelectedRows([])
         }
-    }, [pendingDateRange])
-
-    // Cancel pending date range
-    const cancelDateRange = useCallback(() => {
-        setPendingDateRange(customDateRange)
-    }, [customDateRange])
-
-    // Define reusable dropdown CSS classes (same as Leads component)
-    const dropdownClasses = {
-        container: 'relative inline-block w-full sm:w-auto',
-        trigger: (isSelected: boolean) =>
-            `flex items-center justify-between p-2 h-7 border rounded-sm bg-gray-100 text-sm text-gray-700 hover:bg-gray-50 focus:outline-none min-w-[100px] w-full sm:w-auto cursor-pointer ${isSelected ? 'border-black' : 'border-gray-300'}`,
-        menu: 'absolute z-50 mt-1 w-fit min-w-[300px] max-h-80 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg',
-        option: 'px-3 py-2 text-sm w-full text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md',
     }
 
-    // Handle row click
     const handleRowClick = (row: any) => {
-        console.log('Row clicked:', row)
-        if (row.leadId || row.id) {
-            navigate(`/canvas-homes/sales/leaddetails/${row.leadId || row.id}`)
-        }
+        navigate(`/canvas-homes/sales/leaddetails/${row.leadId}`)
     }
 
-    const tagStyles: Record<
-        string,
-        {
-            icon: string
-            bg: string
-            text: string
-        }
-    > = {
-        potential: {
-            icon: potentialIcon,
-            bg: 'bg-[#DCFCE7]',
-            text: 'text-[#15803D]',
-        },
-        hot: {
-            icon: hotIcon,
-            bg: 'bg-[#FFEDD5]',
-            text: 'text-[#9A3412]',
-        },
-        superhot: {
-            icon: superHotIcon,
-            bg: 'bg-[#FECACA]',
-            text: 'text-[#991B1B]',
-        },
-        cold: {
-            icon: coldIcon,
-            bg: 'bg-[#DBEAFE]',
-            text: 'text-[#1D4ED8]',
-        },
-    }
-
-    // Status cards data with dynamic counts
-    const statusCards = [
-        { title: 'All', count: statusCounts.All },
-        { title: 'Upcoming', count: statusCounts.Upcoming },
-        { title: 'Missed', count: statusCounts.Missed },
-    ]
-
-    // Keep initial facet options and order, only update counts
-    const generateDropdownOptions = useCallback(
-        (facetKey: string, _defaultLabel: string) => {
-            const initialFacetData = initialFacets[facetKey] || {}
-            const currentFacetData = facets[facetKey] || {}
-            const options: { label: string; value: string }[] = []
-
-            // Use initial facets for options and sorting, current facets only for counts
-            Object.entries(initialFacetData)
-                .sort(([, a], [, b]) => b - a) // Keep original sort order from initial load
-                .forEach(([key, _initialCount]) => {
-                    // Use current count if available, otherwise 0
-                    const currentCount = currentFacetData[key] || 0
-                    options.push({
-                        label: `${toCapitalizedWords(key)} (${currentCount})`,
-                        value: key,
-                    })
-                })
-
-            return options
-        },
-        [initialFacets, facets],
-    )
-
-    // Helper function to get task status badge color
-    const getTaskStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'complete':
-                return 'bg-[#E1F6DF] font-medium'
-            case 'open':
-                return 'bg-[#DADAE2] font-medium'
-            default:
-                return 'bg-gray-100 text-gray-700'
-        }
-    }
-
-    // Table columns
     const columns: TableColumn[] = [
         {
             key: 'name',
@@ -454,7 +348,7 @@ const Tasks = () => {
                         {toCapitalizedWords(value || row.name || '-')}
                     </div>
                     <div className='text-xs text-gray-500 font-normal'>
-                        {`Created ${new Date(row.added * 1000).toLocaleDateString()}`}
+                        {row.addedDate || `Added ${new Date(row.added * 1000).toLocaleDateString()}`}
                     </div>
                 </div>
             ),
@@ -472,14 +366,49 @@ const Tasks = () => {
             ),
         },
         {
+            key: 'source',
+            header: 'Source',
+            render: (value) => (
+                <div className='flex justify-start'>
+                    <div className='inline-flex items-center min-w-max rounded-[20px] gap-[6px] h-8 px-2 whitespace-nowrap border border-gray-300 w-fit'>
+                        {value === 'google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
+                        {value === 'linkedin' && (
+                            <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />
+                        )}
+                        {value === 'meta' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
+                        {!['Google', 'LinkedIn', 'META'].includes(value) && (
+                            <span className='text-sm font-norma'>{toCapitalizedWords(value || '-')}</span>
+                        )}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            key: 'phoneNumber',
+            header: 'Contact',
+            render: (value, row) => <span className='text-sm font-normal'>{value || row.contact || '-'}</span>,
+        },
+        {
             key: 'agentName',
             header: 'Agent',
             render: (value, row) => (
                 <div
-                    className='max-w-[80px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    className='max-w-[60px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
                     {toCapitalizedWords(value || row.agent || '-')}
+                </div>
+            ),
+        },
+        {
+            key: 'stage',
+            header: 'Lead Stage',
+            render: (value, row) => (
+                <div
+                    className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    title={value || row.property || '-'} // optional: full text on hover
+                >
+                    {toCapitalizedWords(value || row.leadStage || '-')}
                 </div>
             ),
         },
@@ -497,21 +426,9 @@ const Tasks = () => {
             ),
         },
         {
-            key: 'stage',
-            header: 'Lead Stage',
-            render: (value, row) => (
-                <div
-                    className='max-w-[100px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
-                    title={value || row.property || '-'} // optional: full text on hover
-                >
-                    {toCapitalizedWords(value || row.leadStage || '-')}
-                </div>
-            ),
-        },
-        {
             key: 'tag',
             header: 'Tag',
-            width: 'fit',
+            width: 'git',
             render: (value: string) => {
                 const key = value?.toLowerCase().replace(/\s+/g, '')
                 const style = tagStyles[key]
@@ -532,9 +449,18 @@ const Tasks = () => {
             },
         },
         {
+            key: 'lastModified',
+            header: 'ASLC',
+            render: (_value, row) => <ASLCRenderer lead={row} />,
+        },
+        {
             key: 'taskType',
             header: 'Schedule Task',
             render: (value, row) => {
+                if (!row.scheduledDate) {
+                    return <div className='text-sm text-gray-500'>-</div>
+                }
+
                 const taskType = toCapitalizedWords(value || row?.taskType || '-')
                 const scheduleUnix = row?.scheduledDate
 
@@ -555,8 +481,8 @@ const Tasks = () => {
                     : ''
 
                 return (
-                    <div className='flex flex-col'>
-                        <div className='text-sm font-medium text-gray-900'>{taskType}</div>
+                    <div className='flex flex-col -mx-4 w-fit'>
+                        <div className='text-sm font-medium text-gray-900 '>{taskType}</div>
                         {(formattedDate || formattedTime) && (
                             <div className='text-xs text-gray-500'>
                                 {formattedDate}
@@ -568,65 +494,10 @@ const Tasks = () => {
                 )
             },
         },
-        {
-            key: 'dueDays',
-            header: activeStatusCard === 'Missed' ? 'Delayed Days' : 'Due Days',
-            render: (value) => {
-                const absValue = Math.abs(value)
-                const displayValue = absValue < 10 ? `0${absValue}` : `${absValue}`
-
-                return (
-                    <span className={`text-sm max-w-[97px] font-medium ${value < 0 ? 'text-red-500' : 'text-black'}`}>
-                        {value === 0 ? '00' : displayValue}
-                    </span>
-                )
-            },
-        },
-        {
-            key: 'status',
-            header: 'Task Status',
-            render: (value) => (
-                <div
-                    className={`p-2 rounded-sm h-7 w-22.5 text-xs text-center font-medium ${getTaskStatusColor(value)}`}
-                >
-                    {toCapitalizedWords(value) || '-'}
-                </div>
-            ),
-        },
-        {
-            key: 'completionDate',
-            header: 'Completion Date',
-            render: (value, row) => {
-                const rawDate = value || row.completionDate
-
-                if (!rawDate || rawDate === '-') {
-                    return <span className='text-[14px] text-gray-900'>-</span>
-                }
-
-                const formattedDate = new Date(rawDate * 1000).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                })
-
-                const formattedTime = new Date(rawDate * 1000).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true,
-                })
-
-                return (
-                    <div className='flex flex-col text-[13px] text-gray-900 leading-none whitespace-nowrap gap-[2px]'>
-                        <span>{formattedDate}</span>
-                        <span>{formattedTime}</span>
-                    </div>
-                )
-            },
-        },
     ]
 
     return (
-        <div className='w-full p-3 pb-0'>
+        <div className='p-3 pb-0 h-full'>
             {/* Search and Filters */}
             <div className='flex flex-wrap items-center gap-2 sm:gap-4 mb-5'>
                 <StateBaseTextField
@@ -659,7 +530,7 @@ const Tasks = () => {
                     placeholder='Search name and number'
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className='h-7 w-full sm:w-68 bg-gray-300 '
+                    className='h-7 w-full sm:w-68 bg-gray-300 focus-within:border-black'
                 />
 
                 <DateRangePicker
@@ -674,7 +545,7 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('propertyName', 'Property')}
+                    options={generateDropdownOptions('propertyName', 'Property', undefined, junkFacets)}
                     onSelect={setSelectedProperty}
                     defaultValue={selectedProperty}
                     value={selectedProperty}
@@ -687,7 +558,33 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('stage', 'Lead Stage')}
+                    options={generateDropdownOptions('agentName', 'Agent', undefined, junkFacets)}
+                    onSelect={setSelectedAgent}
+                    defaultValue={selectedAgent}
+                    value={selectedAgent}
+                    forcePlaceholderAlways
+                    placeholder='Agent'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedAgent)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
+                />
+
+                <Dropdown
+                    options={generateDropdownOptions('source', 'Source', undefined, junkFacets)}
+                    onSelect={setSelectedSource}
+                    defaultValue={selectedSource}
+                    value={selectedSource}
+                    forcePlaceholderAlways
+                    placeholder='Source'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedSource)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
+                />
+
+                <Dropdown
+                    options={generateDropdownOptions('stage', 'Lead Stage', undefined, junkFacets)}
                     onSelect={setSelectedLeadStage}
                     defaultValue={selectedLeadStage}
                     value={selectedLeadStage}
@@ -700,20 +597,7 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('taskType', 'Task')}
-                    onSelect={setSelectedTask}
-                    defaultValue={selectedTask}
-                    value={selectedTask}
-                    forcePlaceholderAlways
-                    placeholder='Task'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedTask)}
-                    menuClassName={dropdownClasses.menu}
-                    optionClassName={dropdownClasses.option}
-                />
-
-                <Dropdown
-                    options={generateDropdownOptions('tag', 'Tag')}
+                    options={generateDropdownOptions('tag', 'Tag', undefined, junkFacets)}
                     onSelect={setSelectedTag}
                     defaultValue={selectedTag}
                     value={selectedTag}
@@ -726,7 +610,20 @@ const Tasks = () => {
                 />
 
                 <Dropdown
-                    options={generateDropdownOptions('leadStatus', 'Lead Status')}
+                    options={generateDropdownOptions('taskType', 'Task', undefined, junkFacets)}
+                    onSelect={setSelectedTask}
+                    defaultValue={selectedTask}
+                    value={selectedTask}
+                    forcePlaceholderAlways
+                    placeholder='Task'
+                    className={dropdownClasses.container}
+                    triggerClassName={dropdownClasses.trigger(!!selectedTask)}
+                    menuClassName={dropdownClasses.menu}
+                    optionClassName={dropdownClasses.option}
+                />
+
+                <Dropdown
+                    options={generateDropdownOptions('leadStatus', 'Lead Status', undefined, junkFacets)}
                     onSelect={setSelectedLeadStatus}
                     defaultValue={selectedLeadStatus}
                     value={selectedLeadStatus}
@@ -737,34 +634,6 @@ const Tasks = () => {
                     menuClassName={dropdownClasses.menu}
                     optionClassName={dropdownClasses.option}
                 />
-
-                <Dropdown
-                    options={generateDropdownOptions('agentName', 'Agent')}
-                    onSelect={setSelectedAgent}
-                    defaultValue={selectedAgent}
-                    value={selectedAgent}
-                    forcePlaceholderAlways
-                    placeholder='Agent'
-                    className={dropdownClasses.container}
-                    triggerClassName={dropdownClasses.trigger(!!selectedAgent)}
-                    menuClassName={dropdownClasses.menu}
-                    optionClassName={dropdownClasses.option}
-                />
-            </div>
-
-            {/* Status Cards */}
-            <div className='flex items-center justify-between mb-4'>
-                <div className='flex gap-2'>
-                    {statusCards.map((card) => (
-                        <StatusCard
-                            key={card.title}
-                            title={card.title}
-                            count={card.count}
-                            isActive={activeStatusCard === card.title}
-                            onClick={() => setActiveStatusCard(card.title)}
-                        />
-                    ))}
-                </div>
             </div>
 
             {/* Active Filters */}
@@ -796,6 +665,7 @@ const Tasks = () => {
                             setPendingDateRange({ startDate: null, endDate: null })
                             setSelectedProperty('')
                             setSelectedAgent('')
+                            setSelectedSource('')
                             setSelectedLeadStage('')
                             setSelectedTag('')
                             setSelectedTask('')
@@ -810,35 +680,30 @@ const Tasks = () => {
 
             {/* Table */}
             <div
-                className='bg-white rounded-lg shadow-sm overflow-hidden'
+                className='bg-white rounded-lg shadow overflow-hidden'
                 style={{
-                    height: `${activeFilters.length > 0 ? 57 : 63}vh`, // You can adjust these values
+                    height: `${activeFilters.length > 0 ? 69 : 75}vh`, // You can adjust these values
                 }}
             >
-                {loading ? (
-                    <div className='flex items-center justify-center h-full'>
-                        <div className='text-gray-500'>Loading...</div>
-                    </div>
-                ) : (
-                    <FlexibleTable
-                        data={filteredTasksData}
-                        columns={columns}
-                        borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
-                        selectedRows={selectedRows}
-                        headerClassName='font-normal text-left px-1'
-                        cellClassName='text-left px-1'
-                        onRowSelect={handleRowSelect}
-                        className='rounded-lg overflow-x-hidden'
-                        stickyHeader={true}
-                        hoverable={true}
-                        maxHeight={`${activeFilters.length > 0 ? 55 : 63}vh`}
-                        showCheckboxes={true}
-                        onRowClick={handleRowClick}
-                    />
-                )}
+                <FlexibleTable
+                    showCheckboxes={true}
+                    data={filteredLeadsData}
+                    columns={columns}
+                    borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
+                    selectedRows={selectedRows}
+                    headerClassName='font-normal text-left px-1'
+                    cellClassName='text-left px-1'
+                    onRowSelect={handleRowSelect}
+                    onRowClick={handleRowClick}
+                    onSelectAll={handleSelectAllRows}
+                    className='rounded-lg overflow-x-hidden'
+                    stickyHeader={true}
+                    hoverable={true}
+                    maxHeight={`${activeFilters.length > 0 ? 55 : 63}vh`}
+                />
             </div>
         </div>
     )
 }
 
-export default Tasks
+export default JunkLeadsDashboard

@@ -64,14 +64,6 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
         updateEoiEntries(newEntries)
     }
 
-    // Remove EOI entry
-    // const handleRemoveEoiEntry = (index: number) => {
-    //     if (eoiEntries.length > 1) {
-    //         const newEntries = eoiEntries.filter((_, i) => i !== index)
-    //         updateEoiEntries(newEntries)
-    //     }
-    // }
-
     // Update EOI entry amount
     const handleAmountChange = (index: number, value: string) => {
         const newEntries = [...eoiEntries]
@@ -126,7 +118,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
 
     const handleEOICollectedClick = (e: React.MouseEvent) => {
         e.stopPropagation()
-        setShowForm(true)
+        setShowForm(!showForm)
     }
 
     const notVisitedOptions = [
@@ -164,6 +156,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
     ]
 
     const handleSelectMode = (value: string) => {
+        setShowForm(false)
         const option = notVisitedOptions.find((opt) => opt.value === value)
         if (option && option.modal) {
             option.modal()
@@ -183,7 +176,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                 <div className='flex gap-3 mb-4' onClick={(e) => e.stopPropagation()}>
                     <button
                         className='flex items-center h-8 w-33.5 justify-between p-2 border border-gray-300 rounded-sm bg-[#40A42B] text-sm text-white min-w-[100px] cursor-pointer'
-                        disabled={updating || showForm}
+                        disabled={updating}
                         onClick={handleEOICollectedClick}
                     >
                         EOI Collected
@@ -195,7 +188,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                         onSelect={handleSelectMode}
                         triggerClassName='flex items-center h-8 w-33.5 w-fit justify-between p-2 border border-gray-300 rounded-sm bg-[#F02532] text-sm text-white min-w-[100px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                         placeholder='EOI Not Collected'
-                        disabled={updating || showForm}
+                        disabled={updating}
                     />
                 </div>
             )}
@@ -244,7 +237,7 @@ const CollectEOITask: React.FC<CollectEOITaskProps> = ({
                                     <div className='relative flex flex-row gap-2'>
                                         <input
                                             type='text'
-                                            placeholder='Text here'
+                                            placeholder='Enter Amount'
                                             value={entry.amount}
                                             onChange={(e) => handleAmountChange(index, e.target.value)}
                                             // onClick={(e) => e.stopPropagation()}

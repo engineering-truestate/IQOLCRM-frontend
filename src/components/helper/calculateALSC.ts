@@ -1,34 +1,60 @@
-import type { Lead } from '../../services/canvas_homes'
+import type { Lead, Task } from '../../services/canvas_homes/types'
 import { getUnixDateTime } from './getUnixDateTime'
 
-export function calculateALSC(data: Lead): string | null {
-    if (!data.added) return null
+export async function calculateALSC(data: Lead, tasks: Task[]): Promise<string | null> {
+    // Return null if no added timestamp is available
+    if (!data.added) {
+        return null
+    }
 
     try {
-        const currentTime = getUnixDateTime()
-        let timeDifferenceSeconds: number
-
-        if (!data.scheduledDate) {
-            // Case 1: No scheduled date → use current time - added
-            timeDifferenceSeconds = currentTime - data.added
-        } else if (data.completionDate && data.completionDate > data.scheduledDate) {
-            // Case 2a: scheduled exists AND completion > scheduled
-            timeDifferenceSeconds = data.completionDate - currentTime
-        } else {
-            // Case 2b: scheduled exists AND no completion or completion <= scheduled
-            timeDifferenceSeconds = data.scheduledDate - currentTime
+        // Ensure the lead has an ID
+        if (!data.leadId) {
+            return null
         }
 
-        // Prevent negative result
-        if (timeDifferenceSeconds < 0) return '0 hrs'
+        // Filter open tasks with scheduled dates
+        const openTasksWithSchedule = tasks.filter((task) => task.status === 'open' && task.scheduledDate)
+        let endTime: number
 
-        const secondsInDay = 60 * 60 * 24
-        const secondsInHour = 60 * 60
+        if (openTasksWithSchedule.length > 0) {
+            // Find the earliest task (smallest scheduled date)
+            const earliestTask = openTasksWithSchedule.reduce((earliest, current) => {
+                return current.scheduledDate < earliest.scheduledDate ? current : earliest
+            })
 
-        const days = Math.floor(timeDifferenceSeconds / secondsInDay)
-        const hours = Math.floor(timeDifferenceSeconds / secondsInHour)
+            // Compare and choose the smaller date between earliestTask.scheduledDate and lastModified
+            if (data.lastModified && earliestTask.scheduledDate < data.lastModified) {
+                endTime = data.lastModified
+            } else {
+                endTime = earliestTask.scheduledDate
+            }
+        } else {
+            if (data.lastModified) {
+                // Fallback to lead's last modified date if no latest enquiry or its lastModified is missing
+                endTime = data.lastModified
+            } else {
+                return null // No valid end time found
+            }
+        }
 
-        return days >= 1 ? `${days} days` : `${hours} hrs`
+        const currentTime = getUnixDateTime() // Current time in Unix timestamp (seconds)
+
+        // Calculate the difference in seconds
+        const timeDifferenceSeconds = currentTime - endTime
+
+        // Return "0 Hours" if the end time is in the future
+        if (timeDifferenceSeconds < 0) {
+            return '0 hrs'
+        }
+
+        // Calculate the number of days and remaining hours
+        const days = Math.floor(timeDifferenceSeconds / (60 * 60 * 24))
+        const remainingHours = Math.floor((timeDifferenceSeconds % (60 * 60 * 24)) / (60 * 60))
+
+        if (days === 0) return `${remainingHours} hrs`
+
+        return `${days} days : ${remainingHours} hrs`
     } catch (error) {
         console.error('Error calculating ALSC:', error)
         return null
