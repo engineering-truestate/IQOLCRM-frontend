@@ -47,6 +47,24 @@ type SummaryCard = {
     color?: string
 }
 
+const DurationTag = ({ value, isPaused }: { value: string; isPaused: boolean }) => {
+    const baseClasses = 'px-3 py-1 rounded-full font-medium text-sm border-1'
+
+    const statusClasses = isPaused ? 'border-[#F02532]  bg-[#FFDEDE]' : 'border-[#40A42B]  bg-[#E9FFE4]'
+
+    // Extract leading number (e.g., from "7 days", "12 hours", etc.)
+    const extractedNumber = value.match(/\d+/)?.[0] || '0'
+    const paddedValue = extractedNumber.padStart(2, '0')
+
+    const label = isPaused ? 'Paused' : 'Active'
+
+    return (
+        <span className={`${baseClasses} ${statusClasses}`}>
+            {label} ({paddedValue})
+        </span>
+    )
+}
+
 // Summary Card Component
 const SummaryCard = ({
     card,
@@ -60,11 +78,11 @@ const SummaryCard = ({
     const getIcon = () => {
         switch (card.title) {
             case 'Google':
-                return <img src={google} alt='Google' className='w-4 h-4 object-contain' />
+                return <img src={google} alt='Google' className='w-4.5 h-4.5 object-contain' />
             case 'LinkedIn':
-                return <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />
+                return <img src={linkedin} alt='LinkedIn' className='w-4.5 h-4.5 object-contain' />
             case 'Meta':
-                return <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />
+                return <img src={meta} alt='Meta' className='w-4.5 h-4.5 object-contain' />
             default:
                 return null
         }
@@ -80,29 +98,29 @@ const SummaryCard = ({
             <div className='flex items-center justify-between mb-1'>
                 <div className='flex items-center gap-2'>
                     {getIcon()}
-                    <p className='font-semibold text-[13px] text-gray-900'>{card.title}</p>
+                    <p className='font-semibold text-[14px] text-gray-900'>{card.title}</p>
                 </div>
             </div>
 
             <div className='inline-grid grid-cols-2 gap-x-6 gap-y-2.5'>
                 <div className='w-fit'>
                     <p className='text-[13px] text-gray-500 whitespace-nowrap'>Total Campaigns</p>
-                    <p className='text-[13px] font-semibold text-gray-900'>{card.totalCampaigns}</p>
+                    <p className='text-[14px] font-semibold text-gray-900'>{card.totalCampaigns}</p>
                 </div>
 
                 <div className='w-fit'>
                     <p className='text-[13px] text-gray-500 whitespace-nowrap'>Total Cost</p>
-                    <p className='text-[13px] font-semibold text-gray-900'>{card.totalCost}</p>
+                    <p className='text-[14px] font-semibold text-gray-900'>{card.totalCost}</p>
                 </div>
 
                 <div className='w-fit'>
                     <p className='text-[13px] text-gray-500 whitespace-nowrap'>Total Leads</p>
-                    <p className='text-[13px] font-semibold text-gray-900'>{card.totalLeads}</p>
+                    <p className='text-[14px] font-semibold text-gray-900'>{card.totalLeads}</p>
                 </div>
 
                 <div className='w-fit'>
                     <p className='text-[13px] text-gray-500 whitespace-nowrap'>Cost per Lead</p>
-                    <p className='text-[13px] font-semibold text-gray-900'>{card.costPerLead}</p>
+                    <p className='text-[14px] font-semibold text-gray-900'>{card.costPerLead}</p>
                 </div>
             </div>
         </div>
@@ -224,10 +242,16 @@ const Marketing = () => {
         let filtered = allCampaignsData
 
         if (selectedSummaryCard !== 'All') {
-            // Since all campaigns are from Google source, we'll filter by campaign name or other criteria
-            // For now, we'll show all campaigns for any source selection
-            // You can modify this logic based on your actual data structure
+            const stateValue = selectedSummaryCard.toLowerCase()
+            // console.log(stateValue)
+            // filtered = filtered.filter((market) => market.source?.toLowerCase() === stateValue)
+            // doesnt work rn as only source is google
+            // db has no source field
             filtered = allCampaignsData
+            console.log(filtered)
+            if (stateValue === 'meta' || stateValue === 'linkedin') {
+                filtered = []
+            }
         }
 
         setFilteredCampaignsData(filtered)
@@ -261,18 +285,16 @@ const Marketing = () => {
     }, [searchValue, createFilters, isLoading])
 
     // Debounced search for text input - stable reference
-    const debouncedSearch = useMemo(() => {
-        return debounce(performSearch, 300)
-    }, [performSearch, debounce])
+    const debouncedSearch = useMemo(() => debounce(performSearch, 300), [performSearch, debounce])
 
     // Effect for debounced search (text input)
     useEffect(() => {
-        if (searchValue.trim()) {
-            debouncedSearch()
-        } else {
-            performSearch()
-        }
-    }, [searchValue, debouncedSearch, performSearch])
+        debouncedSearch()
+    }, [searchValue, debouncedSearch])
+
+    useEffect(() => {
+        performSearch()
+    }, [performSearch])
 
     // Summary card calculations
     const summaryCardCounts = useMemo(() => {
@@ -406,7 +428,7 @@ const Marketing = () => {
             header: 'Property',
             render: (value) => (
                 <div
-                    className='max-w-[150px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                    className='max-w-[130px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value}
                 >
                     {value}
@@ -417,9 +439,9 @@ const Marketing = () => {
             key: 'campaignName',
             header: 'Campaign Name',
             render: (value, row) => (
-                <div className='whitespace-nowrap'>
+                <div className='whitespace-nowrap '>
                     <div
-                        className='max-w-[150px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
+                        className='max-w-[130px] overflow-hidden whitespace-nowrap truncate text-sm font-medium text-gray-900'
                         title={value}
                     >
                         {value}
@@ -443,30 +465,35 @@ const Marketing = () => {
         {
             key: 'medium',
             header: 'Medium',
-            render: (_value) => <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>Search</span>,
+            render: (_value) => <span className='whitespace-nowrap text-sm font-normal'>Search</span>,
         },
         {
             key: 'startDate',
             header: 'Start Date',
-            render: (value) => <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>{value}</span>,
+            render: (value) => <span className='whitespace-nowrap text-sm  font-normal'>{value}</span>,
         },
         {
             key: 'endDate',
             header: 'End Date',
             render: (value) => {
-                const dateMatch = value?.split('on ')[1] || value // fallback if format is unexpected
-                return <span className='whitespace-nowrap text-sm text-gray-600 font-normal'>{dateMatch}</span>
+                let dateMatch = value?.split('on ')[1] || value
+                if (dateMatch === 'No end date') {
+                    dateMatch = '-'
+                }
+                return <span className='whitespace-nowrap text-sm font-normal'>{dateMatch}</span>
             },
         },
-
         {
             key: 'activeDuration',
-            header: 'No. of days',
-            render: (value) => {
-                return <span className='whitespace-nowrap text-sm font-normal'>{value}</span>
+            header: 'Status (Days)',
+            render: (value, row) => {
+                return (
+                    <span className='whitespace-nowrap text-sm font-normal'>
+                        <DurationTag value={value} isPaused={row.isPaused} />
+                    </span>
+                )
             },
         },
-
         {
             key: 'totalCost',
             header: 'Total Cost',
@@ -491,7 +518,7 @@ const Marketing = () => {
                 const cpl = cost / leads
                 const formattedCPL = cpl.toFixed(2) // round to 2 decimal places
 
-                return <span className='whitespace-nowrap text-sm font-normal'>₹{formattedCPL}</span>
+                return <span className='whitespace-nowrap text-sm font-medium'>₹{formattedCPL}</span>
             },
         },
     ]
@@ -502,22 +529,11 @@ const Marketing = () => {
                 <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
                     <div className='mb-6'>
-                        <div className='flex items-center justify-between pb-4 border-b-1 border-gray-400 mb-[13px]'>
-                            <h1 className='text-xl font-semibold text-black'>Marketing Dashboard</h1>
-                            <div className='flex items-center'>
-                                <svg
-                                    className='w-5 h-5 text-gray-400'
-                                    fill='none'
-                                    stroke='currentColor'
-                                    viewBox='0 0 24 24'
-                                >
-                                    <path
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                        strokeWidth={2}
-                                        d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
-                                    />
-                                </svg>
+                        <div className='mb-4'>
+                            <div className='flex items-center justify-between p-3 border-b border-gray-300'>
+                                <div>
+                                    <h1 className='text-base font-semibold text-black'>Marketing Dashboard</h1>
+                                </div>
                             </div>
                         </div>
 
@@ -657,8 +673,8 @@ const Marketing = () => {
                             data={filteredCampaignsData}
                             columns={columns}
                             borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
-                            headerClassName='font-normal text-left px-1'
-                            cellClassName='text-left px-1'
+                            headerClassName='font-normal text-left px-4'
+                            cellClassName='text-left px-4'
                             onRowClick={handleRowClick}
                             className='rounded-lg overflow-x-hidden'
                             stickyHeader={true}

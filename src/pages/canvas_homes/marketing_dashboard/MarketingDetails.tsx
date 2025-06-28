@@ -4,6 +4,7 @@ import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
 import google from '/icons/canvas_homes/google.svg'
 import { campaignService } from '../../../services/canvas_homes/campaignService'
+import { useNavigate } from 'react-router-dom'
 
 // Types for API response
 interface GoogleAdsMetric {
@@ -23,15 +24,15 @@ interface GoogleAdsMetric {
     }
 }
 
-// Direct format from the API - matching the server's exact response format
-interface DirectMetric {
-    campaignId: string
-    date: string
-    clicks: number
-    conversions: number
-    cost: number
-    impressions: number
-}
+// // Direct format from the API - matching the server's exact response format
+// interface DirectMetric {
+//     campaignId: string
+//     date: string
+//     clicks: number
+//     conversions: number
+//     cost: number
+//     impressions: number
+// }
 
 interface CampaignData {
     campaignId: string
@@ -60,7 +61,7 @@ interface ProcessedMetric {
 
 const MarketingDetails = () => {
     const { campaignId } = useParams<{ campaignId: string }>()
-    const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
+    const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily')
     const [selectedRows, setSelectedRows] = useState<string[]>([])
     const [tableData, setTableData] = useState<ProcessedMetric[]>([])
     const [columns, setColumns] = useState<TableColumn[]>([])
@@ -68,6 +69,13 @@ const MarketingDetails = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [rawMetrics, setRawMetrics] = useState<GoogleAdsMetric[]>([])
+
+    const formatDate = (d: Date) =>
+        d.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+        })
 
     // Updated Google Ads API integration function using hosted endpoint
     const getCampaignMetrics = async (campaign: CampaignData): Promise<any[]> => {
@@ -204,7 +212,7 @@ const MarketingDetails = () => {
         setSelectedRows((prev) => (selected ? [...prev, rowId] : prev.filter((id) => id !== rowId)))
     }
 
-    const handleRowClick = (row: any) => {}
+    // const handleRowClick = (row: any) => {}
 
     // Set up table columns
     useEffect(() => {
@@ -223,8 +231,27 @@ const MarketingDetails = () => {
             {
                 key: 'date',
                 header: getDateLabel(),
-                render: (v) => <span className='text-sm'>{v}</span>,
+                render: (_, row) => {
+                    const isMonthly = activeTab === 'monthly'
+
+                    return (
+                        <div className='text-sm text-gray-700'>
+                            {isMonthly ? (
+                                new Date(row.startDate || row.date).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                })
+                            ) : (
+                                <div>
+                                    <div>{row.date}</div>
+                                    {row.dateRange && <div className='text-gray-500 text-xs'>{row.dateRange}</div>}
+                                </div>
+                            )}
+                        </div>
+                    )
+                },
             },
+
             {
                 key: 'totalCost',
                 header: 'Total Cost',
@@ -242,7 +269,7 @@ const MarketingDetails = () => {
             },
             {
                 key: 'cpiCpc',
-                header: 'CPI/CPC',
+                header: 'CPC',
                 render: (v) => <span className='text-sm'>₹{v.toLocaleString()}</span>,
             },
             {
@@ -253,7 +280,7 @@ const MarketingDetails = () => {
             {
                 key: 'cpl',
                 header: 'CPL',
-                render: (v) => <span className='text-sm'>₹{v.toLocaleString()}</span>,
+                render: (v) => <span className='text-sm font-semibold'>₹{v.toLocaleString()}</span>,
             },
         ])
     }, [activeTab])
@@ -281,28 +308,56 @@ const MarketingDetails = () => {
         const groupData = () => {
             if (activeTab === 'daily') return originalData
 
-            const grouped: Record<string, ProcessedMetric[]> = {}
+            const grouped: Record<string, { items: ProcessedMetric[]; start: Date; end: Date }> = {}
 
             originalData.forEach((item) => {
                 const d = new Date(item.date)
                 let key = ''
+                // const label = ''
+                let start: Date
+                let end: Date
+
                 if (activeTab === 'weekly') {
-                    key = `Week ${getWeekNumber(d)} - ${d.getFullYear()}`
+                    const weekNumber = getWeekNumber(d)
+                    const year = d.getFullYear()
+
+                    // Start on Monday
+                    start = new Date(d)
+                    const day = start.getDay()
+                    const diff = start.getDate() - day + (day === 0 ? -6 : 1) // adjust when Sunday (0)
+                    start.setDate(diff)
+
+                    // End = start + 6 days
+                    end = new Date(start)
+                    end.setDate(start.getDate() + 6)
+
+                    key = `Week ${weekNumber} - ${year}`
+
+                    if (!grouped[key]) {
+                        grouped[key] = { items: [], start, end }
+                    }
+
+                    grouped[key].items.push(item)
                 } else {
                     key = getMonthYear(d)
+                    start = end = d
+
+                    if (!grouped[key]) grouped[key] = { items: [], start, end }
+                    grouped[key].items.push(item)
                 }
-                if (!grouped[key]) grouped[key] = []
-                grouped[key].push(item)
             })
 
             return Object.entries(grouped).map(([label, group]) => ({
                 date: label,
-                ...aggregate(group),
+                dateRange: `${formatDate(group.start)} – ${formatDate(group.end)}`,
+                ...aggregate(group.items),
             }))
         }
 
         setTableData(groupData())
     }, [activeTab, originalData])
+
+    const navigate = useNavigate()
 
     // Calculate totals for campaign details
     const campaignTotals = useMemo(() => {
@@ -345,28 +400,19 @@ const MarketingDetails = () => {
     return (
         <Layout loading={false}>
             <div className='w-full overflow-hidden'>
-                <div className='py-2 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
-                    <div className='flex items-center justify-between px-6 border-b-1 border-gray-400 pb-4'>
-                        <h2 className='text-base font-medium text-gray-400'>
-                            Marketing Dashboard /{' '}
-                            <span className='font-semibold text-gray-600'>
-                                {campaignDetails?.campaignName || 'Campaign Details'}
-                            </span>
-                        </h2>
-                        <div className='flex items-center'>
-                            <svg
-                                className='w-5 h-5 text-gray-400'
-                                fill='none'
-                                stroke='currentColor'
-                                viewBox='0 0 24 24'
-                            >
-                                <path
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    strokeWidth={2}
-                                    d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
-                                />
-                            </svg>
+                <div className='py-3 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
+                    <div className='flex items-center justify-between px-6 border-b-1 border-gray-400 pb-3'>
+                        <div>
+                            <div className='flex items-center gap-2 text-sm text-gray-600'>
+                                <button
+                                    className='font-medium hover:text-gray-800 cursor-pointer'
+                                    onClick={() => navigate('/canvas-homes/marketing')}
+                                >
+                                    <span>Marketing Dashboard</span>
+                                </button>
+                                <span>/</span>
+                                <span className='text-gray-900 font-medium'>{campaignDetails?.campaignName}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -397,12 +443,12 @@ const MarketingDetails = () => {
                                         showCheckboxes={true}
                                         selectedRows={selectedRows}
                                         onRowSelect={handleRowSelect}
-                                        onRowClick={handleRowClick}
+                                        // onRowClick={handleRowClick}
                                         className='rounded-lg'
                                         stickyHeader={true}
                                         hoverable={true}
-                                        headerClassName='font-normal text-left px-1'
-                                        cellClassName='text-left px-1'
+                                        headerClassName='font-normal text-left px-6'
+                                        cellClassName='text-left px-6'
                                     />
                                 ) : (
                                     <div className='p-8 text-center text-gray-500'>
@@ -415,10 +461,10 @@ const MarketingDetails = () => {
                         {/* Right: Campaign Details */}
                         <div className='w-[25%] border-l border-gray-200 px-4 py-6'>
                             <div className='flex items-center justify-between mb-4'>
-                                <h3 className='text-md font-semibold text-gray-500'>Campaign Details</h3>
+                                <h3 className='text-md font-semibold text-gray-700'>Campaign Details</h3>
                             </div>
 
-                            <div className='space-y-4 text-sm text-gray-700'>
+                            <div className='space-y-4 text-sm text-[#24252E]'>
                                 {[
                                     ['Property Name', campaignDetails?.property || 'N/A'],
                                     ['Campaign Name', campaignDetails?.campaignName || 'N/A'],
@@ -446,13 +492,13 @@ const MarketingDetails = () => {
                                     ],
                                     ['Campaign ID', campaignDetails?.campaignId || 'N/A'],
                                     ['Total Cost', campaignTotals?.totalCost || 'N/A'],
-                                    ['Total Lead', campaignTotals?.conversions || 'N/A'],
+                                    ['Total Lead', campaignTotals?.totalLeads || 'N/A'],
                                     ['CPL', campaignTotals?.cpl || 'N/A'],
                                     ['Status', campaignDetails?.isPaused ? 'Paused' : 'Active'],
                                 ].map(([label, value], idx) => (
                                     <div key={idx} className='flex gap-3.5 justify-between'>
-                                        <strong className='w-[40%] text-gray-600'>{label}</strong>
-                                        <div className='w-[60%] text-left'>{value}</div>
+                                        <strong className='w-[40%] text-[#515162] font-normal'>{label}</strong>
+                                        <div className='w-[60%] text-left font-normal'>{value}</div>
                                     </div>
                                 ))}
                             </div>
