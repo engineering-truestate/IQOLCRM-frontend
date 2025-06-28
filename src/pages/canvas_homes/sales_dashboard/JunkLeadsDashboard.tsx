@@ -680,9 +680,9 @@ const JunkLeadsDashboard = () => {
 
             {/* Table */}
             <div
-                className='bg-white rounded-lg shadow-sm overflow-hidden'
+                className='bg-white rounded-lg shadow overflow-hidden'
                 style={{
-                    height: `${activeFilters.length > 0 ? 57 : 63}vh`, // You can adjust these values
+                    height: `${activeFilters.length > 0 ? 69 : 75}vh`, // You can adjust these values
                 }}
             >
                 <FlexibleTable
