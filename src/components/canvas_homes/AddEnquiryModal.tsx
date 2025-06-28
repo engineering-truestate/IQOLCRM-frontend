@@ -195,6 +195,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                             propertyAdded: formData.propertyName,
                             leadStatus: null,
                             tag: null,
+                            agentName: formData.agentName,
                         },
                     },
                 ],

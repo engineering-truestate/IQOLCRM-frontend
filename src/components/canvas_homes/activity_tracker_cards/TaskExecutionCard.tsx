@@ -101,21 +101,24 @@ const TaskExecutionCard = ({ activity }: TaskExecutionCardProps) => {
     }
 
     const renderTag = () => {
-        if (tags.length === 1) return renderSingleTag(tags[0])
-        if (tags.length === 2) {
+        const validTags = tags.filter((tag) => tag && tag.trim() !== '') // removes null, '', '  '
+
+        if (validTags.length === 1) return renderSingleTag(validTags[0])
+        if (validTags.length === 2) {
             return (
                 <div className='flex items-center gap-2'>
-                    {renderSingleTag(tags[0])}
+                    {renderSingleTag(validTags[0])}
                     <img src={arrow} alt='arrow' className='w-3 h-3 text-gray-600' />
-                    {renderSingleTag(tags[1])}
+                    {renderSingleTag(validTags[1])}
                 </div>
             )
         }
+
         return <p className='text-gray-800 text-[13px]'>-</p>
     }
 
     return (
-        <div className='bg-white border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-3xl ml-4 text-sm'>
+        <div className='bg-white border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-210 ml-4 text-sm'>
             <div className='flex flex-row justify-between '>
                 <div>
                     <div className='flex justify-between items-start'>

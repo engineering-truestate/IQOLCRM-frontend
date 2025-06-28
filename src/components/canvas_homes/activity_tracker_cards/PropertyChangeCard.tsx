@@ -55,7 +55,7 @@ const PropertyChangeCard = ({ activity }: PropertyChangeCardProps) => {
     } = data || {}
 
     return (
-        <div className='bg-white border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-3xl ml-4 text-sm'>
+        <div className='bg-white border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-210 ml-4 text-sm'>
             <div className='flex flex-row justify-between '>
                 <div>
                     <div className='flex justify-between items-start'>
@@ -75,24 +75,23 @@ const PropertyChangeCard = ({ activity }: PropertyChangeCardProps) => {
                 </div>
             </div>
 
-            <div className='mt-3 space-y-2 pt-3 border-t border-gray-200'>
+            <div className='mt-3 pt-3 border-t border-gray-200 space-y-2 text-sm'>
                 {leadStatus && (
-                    <div className='flex flex-row gap-2'>
-                        <p className='text-gray-500 mb-0.5 w-1/7 text-[13px]'>Lead status</p>
-                        <p className='text-gray-800 text-sm'>{capitalizeWords(leadStatus)}</p>
+                    <div className='flex'>
+                        <div className='w-36 text-gray-500 text-[13px]'>Lead status</div>
+                        <div className='text-gray-800'>{capitalizeWords(leadStatus)}</div>
                     </div>
                 )}
 
                 {propertyAdded && (
                     <div className='flex'>
-                        <div className='w-1/7 text-gray-500 text-[13px]'>Property added</div>
-                        <div className='flex items-center'>
-                            <span className='text-gray-800 sm'>{capitalizeWords(propertyAdded)}</span>
-
+                        <div className='w-36 text-gray-500 text-[13px]'>Property added</div>
+                        <div className='flex items-center gap-2 text-gray-800'>
+                            <span>{capitalizeWords(propertyAdded)}</span>
                             {propertyChanged && (
                                 <>
-                                    <img src={arrow} alt='→' className='mx-2 w-4 h-4' />
-                                    <span className='text-gray-800 text-sm'>{capitalizeWords(propertyChanged)}</span>
+                                    <img src={arrow} alt='→' className='w-4 h-4' />
+                                    <span>{capitalizeWords(propertyChanged)}</span>
                                 </>
                             )}
                         </div>
@@ -101,15 +100,15 @@ const PropertyChangeCard = ({ activity }: PropertyChangeCardProps) => {
 
                 {reason && (
                     <div className='flex'>
-                        <div className='w-1/10 text-gray-500 text-[13px]'>Reason</div>
-                        <div className=' text-gray-800 text-[13px]'>{capitalizeWords(reason)}</div>
+                        <div className='w-36 text-gray-500 text-[13px]'>Reason</div>
+                        <div className='text-gray-800'>{capitalizeWords(reason)}</div>
                     </div>
                 )}
 
                 {note && (
                     <div className='flex'>
-                        <div className='w-1/10 text-gray-500 text-[13px]'>Note</div>
-                        <div className=' text-gray-800 text-[13px]'>{capitalizeWords(note)}</div>
+                        <div className='w-36 text-gray-500 text-[13px]'>Note</div>
+                        <div className='text-gray-800'>{capitalizeWords(note)}</div>
                     </div>
                 )}
             </div>

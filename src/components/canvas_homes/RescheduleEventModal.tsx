@@ -177,7 +177,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             }
 
             const taskExecutionActivity = {
-                activityType: 'task execution',
+                activityType: 'task rescheduled',
                 timestamp: currentTimestamp,
                 agentName: agentName,
                 data: {
