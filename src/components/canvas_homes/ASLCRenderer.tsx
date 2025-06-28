@@ -69,7 +69,7 @@ const ASLCRenderer: React.FC<ASLCRendererProps> = ({ lead }) => {
             }
 
             // Pass the lead, the determined tasks (from latest enquiry), and all enquiries to calculateALSC
-            const result = await calculateALSC(lead, tasksToPass, enquiries)
+            const result = await calculateALSC(lead, tasksToPass)
             if (isMounted) {
                 setAslc(result)
             }

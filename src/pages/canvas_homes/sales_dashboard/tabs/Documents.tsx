@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
 import { storage, db } from '../../../../firebase'
 import { enquiryService } from '../../../../services/canvas_homes'
-import { doc, getDoc, runTransaction, increment } from 'firebase/firestore'
+import { doc, runTransaction, increment } from 'firebase/firestore'
 
 interface DocumentItem {
     id: string

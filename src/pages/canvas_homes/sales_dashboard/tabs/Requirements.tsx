@@ -7,7 +7,7 @@ import { useSelector /*, useDispatch */ } from 'react-redux'
 // import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 import Dropdown from '../../../../components/design-elements/Dropdown'
 import { toCapitalizedWords } from '../../../../components/helper/toCapitalize'
-import { doc, getDoc, runTransaction, increment } from 'firebase/firestore'
+import { doc, runTransaction, increment } from 'firebase/firestore'
 import { db } from '../../../../firebase'
 
 // Types
