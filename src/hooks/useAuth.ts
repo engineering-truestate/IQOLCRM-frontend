@@ -45,8 +45,10 @@ const useAuth = (): AuthState => {
             if (user) {
                 const idTokenResult = await user.getIdTokenResult() // Get the ID token result
                 const role = idTokenResult.claims.role as string | undefined // Extract the role from claims
-                const DocRef = doc(db, 'internal-agents', user.uid)
+                const DocRef = doc(db, 'internal-agents', user.email!) // Use user.email as document ID
+
                 const DocSnap = await getDoc(DocRef)
+                console.log('user here', user.email)
                 const platform = {
                     acn: DocSnap.data()?.acn,
                     canvasHomes: DocSnap.data()?.canvasHomes,

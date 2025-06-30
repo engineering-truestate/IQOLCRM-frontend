@@ -60,9 +60,9 @@ interface NoteData {
 
 export const upgradeUserPlan = createAsyncThunk(
     'agents/upgradeUserPlan',
-    async ({ cpId }: { cpId: string }, { rejectWithValue }) => {
+    async ({ cpId, planType }: { cpId: string; planType: 'trial' | 'premium' }, { rejectWithValue }) => {
         try {
-            console.log('🔄 Upgrading user plan for:', cpId)
+            console.log('🔄 Upgrading user plan for:', cpId, 'to:', planType)
 
             const agentRef = doc(db, 'acnAgents', cpId)
             const agentSnapshot = await getDoc(agentRef)
@@ -74,20 +74,40 @@ export const upgradeUserPlan = createAsyncThunk(
             const now = getUnixDateTime() // current unix timestamp in seconds
             const currentData = agentSnapshot.data()
 
-            const updates = {
-                nextRenewal: now + 2592000, // +30 days
-                planExpiry: now + 31536000, // +1 year
-                userType: 'premium',
-                monthlyCredits: 100,
+            let updates: any = {
                 lastModified: now,
+            }
+
+            if (planType === 'trial') {
+                updates = {
+                    ...updates,
+                    nextRenewal: now + 2592000, // +30 days
+                    planExpiry: now + 2592000, // +30 days for trial
+                    userType: 'trial',
+                    monthlyCredits: 100,
+                    trialStartedAt: now,
+                    trialUsed: true,
+                    onboardingComplete: true,
+                }
+            } else if (planType === 'premium') {
+                updates = {
+                    ...updates,
+                    nextRenewal: now + 2592000, // +30 days
+                    planExpiry: now + 31536000, // +1 year
+                    userType: 'premium',
+                    monthlyCredits: 100,
+                    trialUsed: true,
+                    onboardingComplete: true,
+                }
             }
 
             await updateDoc(agentRef, updates)
 
-            console.log('✅ User plan upgraded successfully')
+            console.log('✅ User plan upgraded successfully to:', planType)
 
             return {
                 cpId,
+                planType,
                 updates,
                 updatedAgent: {
                     ...currentData,

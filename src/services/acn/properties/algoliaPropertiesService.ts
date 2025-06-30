@@ -193,6 +193,8 @@ const getClientAndIndex = (propertyType: 'Resale' | 'Rental' = 'Resale', sortBy?
     const sortIndexMap: Record<string, string> = {
         price_asc: `${baseIndex}_price_asc`,
         price_desc: `${baseIndex}_price_desc`,
+        properties_id_asc: `${baseIndex}_id_asc`,
+        properties_id_desc: `${baseIndex}_id_desc`,
         date_desc: `${baseIndex}`,
     }
 
