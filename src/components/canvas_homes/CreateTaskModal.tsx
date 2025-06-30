@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
+import { useEffect } from 'react'
 import Dropdown from '../../components/design-elements/Dropdown'
 import { leadService } from '../../services/canvas_homes'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 import { toast } from 'react-toastify'
+import useAuth from '../../hooks/useAuth'
 // import { useNavigate } from 'react-router-dom'
 
 interface CreateTaskModalProps {
@@ -50,8 +52,16 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         dueDate: getCurrentDateTime(),
     })
 
+    useEffect(() => {
+        setFormData({
+            task: '',
+            dueDate: getCurrentDateTime(),
+        })
+    }, [isOpen])
+
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const { user } = useAuth()
 
     const taskOptions = [
         // { label: 'Please select', value: '' },
@@ -99,7 +109,13 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         setIsLoading(true)
 
         try {
-            const scheduledDate = new Date(formData.dueDate)
+            const scheduledDate = Math.floor(new Date(formData.dueDate).getTime() / 1000)
+            const currentTimestamp = getUnixDateTime()
+            const currentEnquiry = await enquiryService.getById(enquiryId || '')
+
+            if (!currentEnquiry) {
+                throw new Error('Enquiry not found')
+            }
             const taskData = {
                 enquiryId,
                 agentId,
@@ -113,35 +129,40 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 stage: stage,
                 leadStatus: leadStatus,
                 tag: tag,
-                scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
-                added: getUnixDateTime(),
+                scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
+                added: currentTimestamp,
                 completionDate: null,
-                lastModified: getUnixDateTime(),
+                lastModified: currentTimestamp,
             }
 
-            // Create promises for each async operation
-            const updateLead = leadService.update(leadId, {
-                state: 'open',
-                taskType: formData.task.toLowerCase(),
-                lastModified: getUnixDateTime(),
-                scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
-            })
+            // Prepare lead update data based on current enquiry
+            const updateLeadData = {
+                state: currentEnquiry?.state as 'open' | 'closed' | 'fresh' | 'dropped',
+                stage: currentEnquiry.stage,
+                leadStatus: currentEnquiry?.leadStatus,
+                propertyName: currentEnquiry.propertyName,
+                tag: currentEnquiry.tag,
+                lastModified: currentTimestamp,
+                taskType: formData.task as string | null,
+                scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : (scheduledDate as number | null),
+            }
+
+            const updateLead = leadService.update(leadId, updateLeadData)
 
             const addActivityPromise = enquiryId
                 ? enquiryService.addActivity(enquiryId, {
                       activityType: 'task created',
-                      timestamp: getUnixDateTime(),
-                      agentName: agentName || null,
+                      timestamp: currentTimestamp,
+                      agentName: user?.displayName || null,
                       data: {
                           taskType: formData.task.toLowerCase(),
-                          scheduledDate: Math.floor(scheduledDate.getTime() / 1000),
+                          scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
                       },
                   })
                 : null
 
             const createTaskPromise = onTaskCreated ? onTaskCreated(taskData) : null
 
-            // Wait for all promises to resolve concurrently
             await Promise.all([updateLead, addActivityPromise, createTaskPromise])
 
             toast.success('Task Created Successfully')
@@ -149,8 +170,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             refreshData()
         } catch (error) {
             console.error('Error creating task:', error)
-            setError('Failed to create task. Please try again.')
-            toast.error('Failed to Create Task')
+            toast.error('Failed to create task')
         } finally {
             setIsLoading(false)
         }

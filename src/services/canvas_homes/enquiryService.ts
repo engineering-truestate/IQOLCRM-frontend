@@ -3,13 +3,13 @@ import {
     doc,
     getDocs,
     getDoc,
-    setDoc,
     updateDoc,
     query,
     where,
     orderBy,
     onSnapshot,
-    limit,
+    runTransaction,
+    increment,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { Enquiry, NoteItem, ActivityHistoryItem } from './types'
@@ -54,28 +54,38 @@ class EnquiryService {
 
     async create(enquiryData: Omit<Enquiry, 'enquiryId' | 'added' | 'lastModified'>): Promise<string> {
         try {
-            const q = query(collection(db, this.collectionName), orderBy('enquiryId', 'desc'), limit(1))
-            const snapshot = await getDocs(q)
+            const counterRef = doc(db, 'canvashomesAdmin', 'lastEnquiry')
 
-            let nextEnquiryId = 'enq01'
-            if (!snapshot.empty) {
-                const lastEnquiryId = snapshot.docs[0].data().enquiryId
-                const newNumber = parseInt(lastEnquiryId.replace('enq', '')) + 1
-                nextEnquiryId = `enq${newNumber.toString().padStart(2, '0')}`
-            }
+            const nextEnquiryId = await runTransaction(db, async (transaction) => {
+                const counterDoc = await transaction.get(counterRef)
+                let currentNumber = 0
 
-            const timestamp = getUnixDateTime()
-            const newEnquiry: Enquiry = {
-                ...enquiryData,
-                enquiryId: nextEnquiryId,
-                notes: enquiryData.notes || [],
-                activityHistory: enquiryData.activityHistory || [],
-                agentHistory: enquiryData.agentHistory || [],
-                added: timestamp,
-                lastModified: timestamp,
-            }
+                if (counterDoc.exists()) {
+                    currentNumber = counterDoc.data().count || 0
+                }
 
-            await setDoc(doc(db, this.collectionName, nextEnquiryId), newEnquiry)
+                const newNumber = currentNumber + 1
+                const newEnquiryId = `enq${newNumber.toString().padStart(2, '0')}`
+
+                const timestamp = getUnixDateTime()
+                const newEnquiry: Enquiry = {
+                    ...enquiryData,
+                    enquiryId: newEnquiryId,
+                    notes: enquiryData.notes || [],
+                    activityHistory: enquiryData.activityHistory || [],
+                    agentHistory: enquiryData.agentHistory || [],
+                    added: timestamp,
+                    lastModified: timestamp,
+                }
+
+                transaction.set(doc(db, this.collectionName, newEnquiryId), newEnquiry)
+                transaction.update(counterRef, {
+                    count: increment(1),
+                })
+
+                return newEnquiryId
+            })
+
             return nextEnquiryId
         } catch (error) {
             console.error('Error creating enquiry:', error)

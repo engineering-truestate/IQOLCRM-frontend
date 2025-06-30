@@ -133,6 +133,7 @@ const PreLaunchPage = () => {
                 reraStatus: '',
                 environmentalClearance: '',
                 buildingPermission: '',
+                clubhouseDetails: [],
                 configurations: {
                     apartments: [],
                     villas: [],

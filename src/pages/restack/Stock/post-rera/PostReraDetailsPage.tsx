@@ -1083,19 +1083,19 @@ const PostReraDetailsPage = () => {
                                     <label className='text-sm text-gray-600 block mb-1'>Master Plan</label>
                                     {isEditing ? (
                                         <StateBaseTextField
-                                            value={projectDetails?.CDPMapURL}
-                                            onChange={(e) => updateField('CDPMapURL', e.target.value)}
+                                            value={projectDetails?.masterPlanURL}
+                                            onChange={(e) => updateField('masterPlanURL', e.target.value)}
                                             className='w-full text-sm'
                                             placeholder='Enter Master Plan URL'
                                         />
                                     ) : (
                                         <a
-                                            href={projectDetails?.CDPMapURL}
+                                            href={projectDetails?.masterPlanURL}
                                             target='_blank'
                                             rel='noopener noreferrer'
                                             className='text-sm text-blue-600 hover:text-blue-800 underline'
                                         >
-                                            CDP Map (PDF)
+                                            Master Plan
                                         </a>
                                     )}
                                 </div>

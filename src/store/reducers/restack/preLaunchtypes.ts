@@ -73,8 +73,15 @@ export interface Property {
     amenities: string[]
     documents: PropertyDocuments
     areaUnit: string
+    clubhouseDetails: ClubhouseDetail[]
     lastUpdated: number
     createdAt: number
+}
+export interface ClubhouseDetail {
+    id: string
+    name: string
+    sizeSqft: string
+    floor: string
 }
 
 export interface PropertyState {

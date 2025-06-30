@@ -55,39 +55,43 @@ const PropertyChangeCard = ({ activity }: PropertyChangeCardProps) => {
     } = data || {}
 
     return (
-        <div className='bg-white border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm'>
-            <div className='flex justify-between items-start'>
-                <div className='font-semibold text-gray-800'>
-                    {capitalizeWords('Task Execution')}{' '}
-                    <span className='text-gray-500 font-normal text-[13px]'>| {formatTime(Number(timestamp))}</span>
+        <div className='bg-white border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-210 ml-4 text-sm'>
+            <div className='flex flex-row justify-between '>
+                <div>
+                    <div className='flex justify-between items-start'>
+                        <div className='font-semibold text-gray-800'>
+                            {'Task Execution'}{' '}
+                            <span className='text-gray-500 font-normal text-[13px]'>
+                                | {formatTime(Number(timestamp))}
+                            </span>
+                        </div>
+                    </div>
+                    <div className='mt-1 text-gray-500 text-sm font-medium'>
+                        {activityType && `${capitalizeWords(activityType)}`}{' '}
+                    </div>
                 </div>
-                <div className='text-gray-500 text-sm'>
+                <div className='text-gray-500 text-sm flex items-center gap-1'>
                     Agent: <span className='text-gray-700'>{capitalizeWords(agentName)}</span>
                 </div>
             </div>
 
-            {activityType && <div className='mt-1 text-gray-800 font-medium'>{capitalizeWords(activityType)}</div>}
-
-            <div className='mt-3 space-y-2 pt-3 border-t border-gray-200'>
+            <div className='mt-3 pt-3 border-t border-gray-200 space-y-2 text-sm'>
                 {leadStatus && (
                     <div className='flex'>
-                        <div className='w-1/10 text-gray-500 text-[13px]'>Lead status</div>
-                        <div className='text-gray-800 text-[13px]'>{capitalizeWords(leadStatus)}</div>
+                        <div className='w-36 text-gray-500 text-[13px]'>Lead status</div>
+                        <div className='text-gray-800'>{capitalizeWords(leadStatus)}</div>
                     </div>
                 )}
 
                 {propertyAdded && (
                     <div className='flex'>
-                        <div className='w-1/7 text-gray-500 text-[13px]'>Property added</div>
-                        <div className='flex items-center'>
-                            <span className='text-gray-700 text-[13px]'>{capitalizeWords(propertyAdded)}</span>
-
+                        <div className='w-36 text-gray-500 text-[13px]'>Property added</div>
+                        <div className='flex items-center gap-2 text-gray-800'>
+                            <span>{capitalizeWords(propertyAdded)}</span>
                             {propertyChanged && (
                                 <>
-                                    <img src={arrow} alt='→' className='mx-2 w-4 h-4' />
-                                    <span className='text-gray-700 text-[13px]'>
-                                        {capitalizeWords(propertyChanged)}
-                                    </span>
+                                    <img src={arrow} alt='→' className='w-4 h-4' />
+                                    <span>{capitalizeWords(propertyChanged)}</span>
                                 </>
                             )}
                         </div>
@@ -96,15 +100,15 @@ const PropertyChangeCard = ({ activity }: PropertyChangeCardProps) => {
 
                 {reason && (
                     <div className='flex'>
-                        <div className='w-1/10 text-gray-500 text-[13px]'>Reason</div>
-                        <div className=' text-gray-800 text-[13px]'>{capitalizeWords(reason)}</div>
+                        <div className='w-36 text-gray-500 text-[13px]'>Reason</div>
+                        <div className='text-gray-800'>{capitalizeWords(reason)}</div>
                     </div>
                 )}
 
                 {note && (
                     <div className='flex'>
-                        <div className='w-1/10 text-gray-500 text-[13px]'>Note</div>
-                        <div className=' text-gray-800 text-[13px]'>{capitalizeWords(note)}</div>
+                        <div className='w-36 text-gray-500 text-[13px]'>Note</div>
+                        <div className='text-gray-800'>{capitalizeWords(note)}</div>
                     </div>
                 )}
             </div>

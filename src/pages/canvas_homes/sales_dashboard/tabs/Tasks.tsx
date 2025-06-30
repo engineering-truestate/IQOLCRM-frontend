@@ -113,8 +113,15 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    // Toggle task expansion on click
-    const toggleTaskExpansion = (taskId: string) => {
+    const toggleTaskExpansion = (taskId: string, event: React.MouseEvent) => {
+        // Don't toggle if clicked on a form element
+        if (
+            event.target instanceof Element &&
+            ['INPUT', 'SELECT', 'BUTTON', 'TEXTAREA'].includes(event.target.tagName)
+        ) {
+            return
+        }
+
         setExpandedTasks((prev) => ({
             ...prev,
             [taskId]: !prev[taskId],
@@ -144,6 +151,15 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
         try {
             const currentUnixTime = getUnixDateTime()
 
+            // Get the current task
+            const task = firebaseTasks.find((t) => t.taskId === taskId)
+            if (!task || !task.enquiryId) {
+                throw new Error('Task or enquiry ID not found')
+            }
+
+            // Get all open tasks for this enquiry
+            const remainingOpenTasks = firebaseTasks.filter((t) => t.taskId !== taskId && t.status === 'open')
+
             // Prepare the task update promise
             const taskUpdatePromise = taskService.update(taskId, {
                 status: 'complete',
@@ -152,42 +168,58 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
             })
 
             // Prepare enquiry updates if enquiryId exists
-            const enquiryUpdatePromise = new Promise<void>((resolve, reject) => {
-                const task = firebaseTasks.find((t) => t.taskId === taskId)
-                if (task?.enquiryId) {
-                    Promise.all([
-                        enquiryService.update(task.enquiryId, {
-                            stage: 'lead registered',
-                            state: 'open',
-                        }),
-                        enquiryService.addActivity(task.enquiryId, {
-                            activityType: 'task execution',
-                            agentName: user?.displayName || 'Unknown Agent',
-                            timestamp: currentUnixTime,
-                            data: {},
-                        }),
-                    ])
-                        .then(() => resolve())
-                        .catch((error) => reject(error))
-                } else {
-                    resolve() // No enquiryId, resolve immediately
-                }
-            })
-
-            // Prepare lead update promise if leadId exists
-            const leadUpdatePromise = leadId
-                ? leadService.update(leadId, {
+            const enquiryUpdatePromise = task.enquiryId
+                ? enquiryService.update(task.enquiryId, {
                       stage: 'lead registered',
                       state: 'open',
-                      completionDate: currentUnixTime,
                       lastModified: currentUnixTime,
                   })
-                : Promise.resolve() // If no leadId, resolve immediately
+                : Promise.resolve()
+
+            const addActivityPromise = task.enquiryId
+                ? enquiryService.addActivity(task.enquiryId, {
+                      activityType: 'task execution',
+                      agentName: user?.displayName || null,
+                      timestamp: currentUnixTime,
+                      data: {
+                          taskType: 'lead registration',
+                      },
+                  })
+                : Promise.resolve()
+
+            // Prepare lead update data based on remaining tasks
+            let leadUpdateData
+
+            if (remainingOpenTasks.length > 0) {
+                // If there are remaining open tasks, find the earliest one
+                const earliestTask = remainingOpenTasks.sort((a, b) => b.added - a.added)[0]
+
+                leadUpdateData = {
+                    stage: 'lead registered',
+                    state: 'open',
+                    taskType: earliestTask.taskType,
+                    scheduledDate: earliestTask.scheduledDate,
+                    lastModified: currentUnixTime,
+                    completionDate: currentUnixTime,
+                }
+            } else {
+                // No remaining tasks
+                leadUpdateData = {
+                    stage: 'lead registered',
+                    state: 'open',
+                    scheduledDate: null,
+                    taskType: null,
+                    completionDate: currentUnixTime,
+                    lastModified: currentUnixTime,
+                }
+            }
+
+            // Prepare lead update promise if leadId exists
+            const leadUpdatePromise = leadId ? leadService.update(leadId, leadUpdateData) : Promise.resolve()
 
             // Wait for all promises to complete in parallel
-            await Promise.all([taskUpdatePromise, enquiryUpdatePromise, leadUpdatePromise])
+            await Promise.all([taskUpdatePromise, enquiryUpdatePromise, addActivityPromise, leadUpdatePromise])
 
-            // ✅ Fix: use selectedStatus instead of undefined status
             setTaskStates((prev) => ({
                 ...prev,
                 [taskId]: {

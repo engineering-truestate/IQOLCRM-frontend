@@ -43,10 +43,10 @@ const Notes: React.FC<NotesProps> = ({ notes = [], loading }) => {
 
     // Group notes by task type
     const groupNotesByTaskType = (firebaseNotes: NoteItem[]) => {
-        console.log('Firebase Notes:', firebaseNotes.length)
+        // console.log('Firebase Notes:', firebaseNotes.length)
         const convertedNotes = convertFirebaseNotes(firebaseNotes)
 
-        console.log('Hare Krishna', convertedNotes.length)
+        // console.log('Hare Krishna', convertedNotes.length)
 
         const sections = [
             { id: 'lead-registration', title: 'Lead Registration', taskTypes: ['lead registration'] },

@@ -73,6 +73,7 @@ interface Enquiry {
     tag: string
     added: number
     agentId: string
+    state: string
     agentHistory: AgentHistoryItem[]
     documents: Document[]
     notes: Note[]
@@ -87,6 +88,7 @@ interface Task {
     assignedTo: string
     dueDate: number
     createdAt: number
+    completionDate: number
 }
 
 interface LeadData {
@@ -283,6 +285,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
                             assignedTo: task.assignedTo,
                             dueDate: task.dueDate,
                             createdAt: task.createdAt,
+                            eventName: (task as any).eventName ?? '',
                             // Add all required fields with defaults or from context
                             name: (task as any).name ?? leadData?.name ?? '',
                             leadAddDate: (task as any).leadAddDate ?? leadData?.added ?? 0,
@@ -291,7 +294,9 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
                             leadStatus: (task as any).leadStatus ?? leadData?.leadStatus ?? '',
                             stage: (task as any).stage ?? currentEnquiry?.stage ?? '',
                             tag: (task as any).tag ?? currentEnquiry?.tag ?? '',
+                            completionDate: (task as any).completionDate ?? task.completionDate ?? 0,
                             propertyId: (task as any).propertyId ?? currentEnquiry?.propertyId ?? '',
+                            eoiEntries: (task as any).eoiEntries ?? [],
                             // Required Task fields for type compatibility
                             scheduledDate: (task as any).scheduledDate ?? task.dueDate ?? 0,
                             added: (task as any).added ?? task.createdAt ?? 0,
@@ -709,11 +714,16 @@ text-decoration-line: underline'
                                                         <button
                                                             key={enquiry.enquiryId}
                                                             onClick={() => handleEnquirySelect(enquiry.enquiryId)}
-                                                            className={`py-1 px-1 text-[13px] font-semibold border-b-2 transition-colors duration-150 whitespace-nowrap ${
-                                                                selectedEnquiryId === enquiry.enquiryId
-                                                                    ? 'border-blue-500 text-blue-600'
-                                                                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                                                            }`}
+                                                            className={`py-1 px-1 text-[13px] font-semibold border-b-2 transition-colors duration-150 whitespace-nowrap
+                                                                 ${
+                                                                     selectedEnquiryId === enquiry.enquiryId
+                                                                         ? enquiry.state === 'dropped'
+                                                                             ? 'border-red-500 text-red-600'
+                                                                             : 'border-blue-500 text-blue-600'
+                                                                         : enquiry.state === 'dropped'
+                                                                           ? 'border-transparent text-red-500 hover:text-red-700'
+                                                                           : 'border-transparent text-gray-500 hover:text-gray-700'
+                                                                 } }`}
                                                         >
                                                             Enquiry {actualIndex}
                                                         </button>
@@ -860,14 +870,14 @@ text-decoration-line: underline'
 
                             {/* Close Lead Button */}
                             <div className='p-4 border-t border-gray-200 flex-shrink-0'>
-                                {leadData?.state === 'dropped' ? (
+                                {currentEnquiry?.state === 'dropped' ? (
                                     <button
                                         className='w-full  bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors'
                                         onClick={() => {
                                             setIsReopenLeadModalOpen(true)
                                         }}
                                     >
-                                        Reopen Lead
+                                        Reopen Enquiry
                                     </button>
                                 ) : (
                                     <button
@@ -876,7 +886,7 @@ text-decoration-line: underline'
                                             setIsCloseLeadSideModalOpen(true)
                                         }}
                                     >
-                                        Close lead
+                                        Close Enquiry
                                     </button>
                                 )}
                             </div>
