@@ -30,6 +30,7 @@ import {
 } from '../../store/reducers/acn/leadsReducers'
 import type { AppDispatch } from '../../store'
 import { toast } from 'react-toastify'
+import useAuth from '../../hooks/useAuth'
 
 interface BulkLeadData {
     Number: string
@@ -48,7 +49,14 @@ interface AddLeadModalProps {
 const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
     const dispatch = useDispatch<AppDispatch>()
 
-    const [activeTab, setActiveTab] = useState<'bulk' | 'manual'>('bulk')
+    const { platform } = useAuth()
+    const acnRole = platform?.acn?.role
+
+    // Check if user can access bulk upload (marketing or kamModerator)
+    const canAccessBulkUpload = acnRole === 'marketing' || acnRole === 'kamModerator'
+
+    const [activeTab, setActiveTab] = useState<'bulk' | 'manual'>(canAccessBulkUpload ? 'bulk' : 'manual')
+
     const [dragActive, setDragActive] = useState(false)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [parsedCSVData, setParsedCSVData] = useState<BulkLeadData[]>([])
@@ -436,7 +444,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
     const handleModalClose = () => {
         resetFileStates()
         setSelectedFile(null)
-        setActiveTab('bulk')
+        setActiveTab(canAccessBulkUpload ? 'bulk' : 'manual')
         setDragActive(false)
 
         // Reset manual form
@@ -503,16 +511,18 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
 
                         {/* Tabs */}
                         <div className='flex border-b border-gray-200 px-6'>
-                            <button
-                                onClick={() => setActiveTab('bulk')}
-                                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
-                                    activeTab === 'bulk'
-                                        ? 'border-gray-900 text-gray-900'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                }`}
-                            >
-                                Bulk Upload
-                            </button>
+                            {canAccessBulkUpload && (
+                                <button
+                                    onClick={() => setActiveTab('bulk')}
+                                    className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                                        activeTab === 'bulk'
+                                            ? 'border-gray-900 text-gray-900'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    Bulk Upload
+                                </button>
+                            )}
                             <button
                                 onClick={() => setActiveTab('manual')}
                                 className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${

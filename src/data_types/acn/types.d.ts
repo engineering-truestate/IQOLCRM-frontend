@@ -59,13 +59,30 @@ interface HighlightResult {
 
 // ==================== ENQUIRY TYPES ====================
 
+interface IReview {
+    review: string
+    stars: number
+    timestamp: number
+}
+
 export interface IEnquiry {
     enquiryId: string
+    // property details
     propertyId: string
-    cpId: string
+    propertyName: string
+    // buyer agent details
+    buyerCpId: string
+    buyerName: string
+    buyerNumber: string
+    // seller agent details
+    sellerCpId: string
+    sellerName: string
+    sellerNumber: string
+    // enquiry details
     status: 'site visit done' | 'pending' | 'not interested' | 'interested'
     added: number
     lastModified: number
+    reviews: IReview[]
 }
 
 type EnquiryState = {
@@ -116,6 +133,8 @@ export interface IInventory {
     ageOfInventory: number
     ageOfStatus: number
     extraDetails: string
+    agentName?: string
+    agentPhoneNumber?: string
 }
 
 type InventoryState = {
@@ -243,8 +262,8 @@ interface AgentData {
 
 // Base QC Inventory type with required fields
 interface BaseQCInventory {
-    name: string
-    phoneNumber: string
+    agentName?: string
+    agentPhoneNumber?: string
     propertyId: string
     propertyName: string
     cpId: string
@@ -597,7 +616,7 @@ export interface IAgent {
     lastConnected: number
     lastTried: number
     contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
-    contactHistory: ContactHistoryItem[]
+    connectHistory: ContactHistoryItem[]
     notes: Note[]
     appInstalled: boolean
     communityJoined: boolean
@@ -629,7 +648,6 @@ export interface IAgent {
     inboundEnqCredits: number
     inboundReqCredits: number
     contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
-    contactHistory: ContactHistoryItem[]
     lastTried: number
     kamName: string
     kamId: string

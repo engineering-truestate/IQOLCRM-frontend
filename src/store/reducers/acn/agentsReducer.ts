@@ -134,7 +134,7 @@ const agentsSlice = createSlice({
             })
             .addCase(fetchAgentWithConnectHistory.fulfilled, (state, action) => {
                 state.connectHistoryLoading = false
-                state.currentAgentConnectHistory = action.payload.contactHistory
+                state.currentAgentConnectHistory = action.payload.connectHistory
             })
             .addCase(fetchAgentWithConnectHistory.rejected, (state, action) => {
                 state.connectHistoryLoading = false

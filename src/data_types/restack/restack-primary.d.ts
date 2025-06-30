@@ -87,7 +87,7 @@ export interface LocationDetails {
     microMarket?: string
     subMicromarket?: string
     zone?: string
-    pincode?: number
+    pinCode?: number
     northSchedule?: string
     southSchedule?: string
     eastSchedule?: string
@@ -119,14 +119,34 @@ export interface ProjectSpecifications {
     floorAreaRatio?: number
     waterSource?: string[]
 }
+// Land use Analysis
+export interface LanduseAnalysis {
+    totalPlots?: number
+    coveredArea?: number
+    parksNumber?: number
+    parkArea?: number
+    numberofCAsites?: number
+    areaofCAsites?: number
+    roadArea?: number
+    openArea?: number
+    landArea?: number
+}
+// plot Dimemsion
+export interface PlotDimension {
+    plotType?: string
+    numberOfSites?: number
+    totalArea?: number
+    slno?: string
+}
 
 // Development Details
 export interface DevelopmentDetail {
-    typeOfInventory: string
-    numberOfInventory: number
-    carpetAreaSqMtr: number
-    balconyVerandahSqMtr?: number
-    openTerraceSqMtr?: number
+    TypeOfInventory: string
+    NumberOfInventory: number
+    CarpetAreaSqMtr: number
+    BalconyVerandahSqMtr?: number
+    OpenTerraceSqMtr?: number
+    slno: string
 }
 
 // Floor Plan
@@ -152,16 +172,16 @@ export interface TowerDetail {
     basements: number
     totalParking: number
     towerHeightInMeters: number
-    floorplan: FloorPlan
-    floorPlanDetails?: FloorPlanDetail[]
-    unitDetails?: UnitDetail[]
+    floorPlan?: FloorPlanDetail[]
+    UnitDetails?: UnitDetail[]
+    uploadedAt: timestamp
 }
 
 // Configuration Details with IDs
 export interface ApartmentConfig {
     id: string
     aptType: 'Simplex' | 'Duplex' | 'Triplex' | 'Penthouse'
-    typology: 'Studio' | '1 BHK' | '2 BHK' | '3 BHK' | '4 BHK' | '5+ BHK'
+    typology: string
     superBuiltUpArea: number
     carpetArea: number
     currentPricePerSqft: number
@@ -172,7 +192,7 @@ export interface ApartmentConfig {
 export interface VillaConfig {
     id: string
     villaType: 'UDS' | 'Plot' | 'Independent Villa'
-    typology: '2 BHK' | '3 BHK' | '4 BHK' | '5+ BHK'
+    typology: string
     plotSize: number
     builtUpArea: number
     uds: string
@@ -182,11 +202,12 @@ export interface VillaConfig {
     currentPricePerSqft: number
     totalPrice: number
     carpetArea: number
+    floorPlan?: string
 }
 
 export interface PlotConfig {
     id: string
-    plotType: 'ODD PLOT' | '9.14x15.24'
+    plotType: string
     plotArea: number
     currentPricePerSqft: number
     totalPrice: number
@@ -206,6 +227,7 @@ export interface BankingDetails {
 export interface MediaDocuments {
     images?: string[]
     typologyAndUnitPlan?: string[]
+    masterPlan?: string[]
     cdpMapURL?: string[]
     costSheetURL?: string[]
     brochureURL?: string[]
@@ -277,7 +299,7 @@ export interface PrimaryProperty {
     // Basic Information
     projectId: string
     projectName: string
-    projectType: ProjectType
+    projectType: ProjectType | string
     projectSubType: ProjectSubType
     projectStatus: ProjectStatus
     projectDescription?: string
@@ -303,7 +325,7 @@ export interface PrimaryProperty {
     microMarket?: string
     subMicromarket?: string
     zone?: string
-    pincode?: number
+    pinCode?: number
     northSchedule?: string
     southSchedule?: string
     eastSchedule?: string
@@ -355,6 +377,7 @@ export interface PrimaryProperty {
     costSheetURL?: string[]
     brochureURL?: string[]
     documents?: Documents
+    masterPlan?: string[]
 
     // Clubhouse Details
     clubHouseDetails?: Array<{

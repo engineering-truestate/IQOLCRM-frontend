@@ -232,11 +232,7 @@ const PropertyDetailsPage = () => {
             return property.photo
         }
         // Fallback sample images
-        return [
-            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-            'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
-            'https://images.unsplash.com/photo-1560448204-61dc36dc98c8?w=800&h=600&fit=crop',
-        ]
+        return []
     }
 
     // Determine property type based on propertyId
@@ -456,76 +452,115 @@ const PropertyDetailsPage = () => {
                                 <div className='relative mb-0'>
                                     {/* Main Images Display */}
                                     <div className='relative rounded-lg overflow-hidden bg-gray-200'>
-                                        <div className='flex gap-2 h-40'>
-                                            {propertyImages
-                                                .slice(currentImageIndex, currentImageIndex + 3)
-                                                .map((image, index) => (
-                                                    <div
-                                                        key={currentImageIndex + index}
-                                                        className='flex-1 relative rounded-lg overflow-hidden bg-gray-200'
-                                                    >
-                                                        <img
-                                                            src={image || '/placeholder.svg'}
-                                                            alt={`Property ${currentImageIndex + index + 1}`}
-                                                            className='w-full h-full object-cover'
-                                                            onError={(e) => {
-                                                                const target = e.target as HTMLImageElement
-                                                                target.src =
-                                                                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
-                                                            }}
-                                                        />
-                                                    </div>
-                                                ))}
-                                        </div>
-
-                                        {/* Navigation Arrows */}
-                                        {propertyImages.length > 3 && (
+                                        {propertyImages && propertyImages.length > 0 ? (
                                             <>
-                                                <button
-                                                    onClick={() =>
-                                                        setCurrentImageIndex(Math.max(0, currentImageIndex - 3))
-                                                    }
-                                                    disabled={currentImageIndex === 0}
-                                                    className='absolute left-4 top-2/5 transform  bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-30'
-                                                >
-                                                    <svg
-                                                        className='w-5 h-5'
-                                                        fill='none'
-                                                        stroke='currentColor'
-                                                        viewBox='0 0 24 24'
-                                                    >
-                                                        <path
-                                                            strokeLinecap='round'
-                                                            strokeLinejoin='round'
-                                                            strokeWidth={2}
-                                                            d='M15 19l-7-7 7-7'
-                                                        />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        setCurrentImageIndex(
-                                                            Math.min(propertyImages.length - 3, currentImageIndex + 3),
-                                                        )
-                                                    }
-                                                    disabled={currentImageIndex >= propertyImages.length - 3}
-                                                    className='absolute right-4 top-2/5 transform bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-30'
-                                                >
-                                                    <svg
-                                                        className='w-5 h-5'
-                                                        fill='none'
-                                                        stroke='currentColor'
-                                                        viewBox='0 0 24 24'
-                                                    >
-                                                        <path
-                                                            strokeLinecap='round'
-                                                            strokeLinejoin='round'
-                                                            strokeWidth={2}
-                                                            d='M9 5l7 7-7 7'
-                                                        />
-                                                    </svg>
-                                                </button>
+                                                <div className='flex gap-2 h-40'>
+                                                    {propertyImages
+                                                        .slice(currentImageIndex, currentImageIndex + 3)
+                                                        .map((image, index) => (
+                                                            <div
+                                                                key={currentImageIndex + index}
+                                                                className='flex-1 relative rounded-lg overflow-hidden bg-gray-200'
+                                                            >
+                                                                <img
+                                                                    src={image || '/placeholder.svg'}
+                                                                    alt={`Property ${currentImageIndex + index + 1}`}
+                                                                    className='w-full h-full object-cover'
+                                                                    onError={(e) => {
+                                                                        const target = e.target as HTMLImageElement
+                                                                        target.src =
+                                                                            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                </div>
+
+                                                {/* Navigation Arrows */}
+                                                {propertyImages.length > 3 && (
+                                                    <>
+                                                        <button
+                                                            onClick={() =>
+                                                                setCurrentImageIndex(Math.max(0, currentImageIndex - 3))
+                                                            }
+                                                            disabled={currentImageIndex === 0}
+                                                            className='absolute left-4 top-2/5 transform bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-30'
+                                                        >
+                                                            <svg
+                                                                className='w-5 h-5'
+                                                                fill='none'
+                                                                stroke='currentColor'
+                                                                viewBox='0 0 24 24'
+                                                            >
+                                                                <path
+                                                                    strokeLinecap='round'
+                                                                    strokeLinejoin='round'
+                                                                    strokeWidth={2}
+                                                                    d='M15 19l-7-7 7-7'
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            onClick={() =>
+                                                                setCurrentImageIndex(
+                                                                    Math.min(
+                                                                        propertyImages.length - 3,
+                                                                        currentImageIndex + 3,
+                                                                    ),
+                                                                )
+                                                            }
+                                                            disabled={currentImageIndex >= propertyImages.length - 3}
+                                                            className='absolute right-4 top-2/5 transform bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-opacity disabled:opacity-30'
+                                                        >
+                                                            <svg
+                                                                className='w-5 h-5'
+                                                                fill='none'
+                                                                stroke='currentColor'
+                                                                viewBox='0 0 24 24'
+                                                            >
+                                                                <path
+                                                                    strokeLinecap='round'
+                                                                    strokeLinejoin='round'
+                                                                    strokeWidth={2}
+                                                                    d='M9 5l7 7-7 7'
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                    </>
+                                                )}
                                             </>
+                                        ) : (
+                                            /* Default No Images State */
+                                            <div className='h-40 flex flex-col items-center justify-center text-gray-500 bg-gradient-to-br from-gray-100 to-gray-200'>
+                                                <div className='text-center'>
+                                                    {/* Camera Icon */}
+                                                    <svg
+                                                        className='w-12 h-12 mx-auto mb-3 text-gray-400'
+                                                        fill='none'
+                                                        stroke='currentColor'
+                                                        viewBox='0 0 24 24'
+                                                    >
+                                                        <path
+                                                            strokeLinecap='round'
+                                                            strokeLinejoin='round'
+                                                            strokeWidth={1.5}
+                                                            d='M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z'
+                                                        />
+                                                        <path
+                                                            strokeLinecap='round'
+                                                            strokeLinejoin='round'
+                                                            strokeWidth={1.5}
+                                                            d='M15 13a3 3 0 11-6 0 3 3 0 016 0z'
+                                                        />
+                                                    </svg>
+                                                    <p className='text-sm font-medium text-gray-600 mb-1'>
+                                                        No Images Available
+                                                    </p>
+                                                    <p className='text-xs text-gray-500'>
+                                                        Property photos will appear here
+                                                    </p>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -833,11 +868,11 @@ const PropertyDetailsPage = () => {
                         <div className='space-y-4'>
                             <div className='flex items-center gap-3 px-6'>
                                 <div className='w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium'>
-                                    {property.kamName?.substring(0, 2).toUpperCase() || 'AG'}
+                                    {property.agentName?.substring(0, 2).toUpperCase() || 'AG'}
                                 </div>
                                 <div>
-                                    <div className='font-medium text-gray-900'>{property.kamName || 'NA'}</div>
-                                    <div className='text-sm text-gray-600'>{property.kamId || 'NA'}</div>
+                                    <div className='font-medium text-gray-900'>{property.agentName || 'NA'}</div>
+                                    <div className='text-sm text-gray-600'>{property.cpId || 'NA'}</div>
                                 </div>
                             </div>
                             {/* Update Inventory Status */}

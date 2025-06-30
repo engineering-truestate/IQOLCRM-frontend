@@ -9,6 +9,8 @@ export interface IInventory {
     id: string
     propertyId: string
     cpId: string
+    agentName?: string
+    agentPhoneNumber?: string
     // propertyName: string
     _geoloc: { lat: number; lng: number }
     area: string

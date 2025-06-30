@@ -34,7 +34,7 @@ export class PreLaunchService {
             if (!adminDoc.exists()) {
                 const initialData = {
                     count: 0,
-                    label: 'PLP',
+                    label: 'PL',
                     prefix: 'A',
                 }
                 transaction.set(adminDocRef, initialData)
@@ -61,7 +61,7 @@ export class PreLaunchService {
 
     static async fetchProperties(): Promise<Property[]> {
         try {
-            const colRef = collection(db, 'restack_pre_launch_properties')
+            const colRef = collection(db, 'restackPreLaunchProperties')
             const q = query(colRef, orderBy('createdAt', 'desc'))
 
             // Apply filters if provided
@@ -99,7 +99,7 @@ export class PreLaunchService {
                 constraints.push(startAfter(lastDocument))
             }
 
-            const q = query(collection(db, 'restack_pre_launch_properties'), ...constraints)
+            const q = query(collection(db, 'restackPreLaunchProperties'), ...constraints)
             const snapshot = await getDocs(q)
 
             const properties = snapshot.docs.map((doc) => {
@@ -133,7 +133,7 @@ export class PreLaunchService {
         propertyData: Omit<Property, 'projectId' | 'createdAt' | 'lastUpdated'>,
     ): Promise<Property> {
         try {
-            const colRef = collection(db, 'restack_pre_launch_properties')
+            const colRef = collection(db, 'restackPreLaunchProperties')
 
             // Generate unique project ID
             const projectId = await this.generateUniquePropertyId()
@@ -170,7 +170,7 @@ export class PreLaunchService {
      */
     static async updateProperty(projectId: string, updates: Partial<Property>): Promise<Property> {
         try {
-            const docRef = doc(db, 'restack_pre_launch_properties', projectId)
+            const docRef = doc(db, 'restackPreLaunchProperties', projectId)
 
             // Add lastUpdated timestamp
             const updatesWithTimestamp = {
@@ -199,7 +199,7 @@ export class PreLaunchService {
      */
     static async deleteProperty(projectId: string): Promise<void> {
         try {
-            const docRef = doc(db, 'restack_pre_launch_properties', projectId)
+            const docRef = doc(db, 'restackPreLaunchProperties', projectId)
             await deleteDoc(docRef)
         } catch (error) {
             console.error('Error deleting pre-launch property:', error)
@@ -212,7 +212,7 @@ export class PreLaunchService {
      */
     static async getPropertyById(projectId: string): Promise<Property> {
         try {
-            const docRef = doc(db, 'restack_pre_launch_properties', projectId)
+            const docRef = doc(db, 'restackPreLaunchProperties', projectId)
             const docSnap = await getDoc(docRef)
 
             if (!docSnap.exists()) {
@@ -232,7 +232,7 @@ export class PreLaunchService {
     }
     static async getPropertyByName(projectName: string): Promise<Property | undefined> {
         try {
-            const colRef = collection(db, 'restack_pre_launch_properties')
+            const colRef = collection(db, 'restackPreLaunchProperties')
             const q = query(colRef, where('projectName', '==', projectName))
             const snapshot = await getDocs(q)
 
@@ -261,7 +261,7 @@ export class PreLaunchService {
     }
     static async getAllPropertyName(): Promise<{ projectId: string; propertyName: string }[]> {
         try {
-            const colRef = collection(db, 'restack_pre_launch_properties')
+            const colRef = collection(db, 'restackPreLaunchProperties')
 
             // Modify query to fetch all properties and order by creation date
             const q = query(colRef, orderBy('createdAt', 'desc'))

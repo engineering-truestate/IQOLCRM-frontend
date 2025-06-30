@@ -114,7 +114,13 @@ const PostReraPage = () => {
                     {/* Header */}
                     <div className='mb-2'>
                         <div className='flex items-center justify-between mb-4'>
-                            <h1 className='text-xl font-semibold text-gray-900'>Stock ({properties.length})</h1>
+                            <h1 className='text-xl font-semibold text-gray-900'>
+                                {filters?.stockType
+                                    ? filters.stockType.charAt(0).toUpperCase() +
+                                      filters.stockType.slice(1).replace('-', ' ')
+                                    : 'Stock'}{' '}
+                                ({properties.length})
+                            </h1>
                             <div className='flex items-center gap-4'>
                                 <Dropdown
                                     defaultValue=''
