@@ -2,14 +2,18 @@
 
 import React from 'react'
 import { useNavigate } from 'react-router'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch } from '../../../store'
 import { setSelectedAgent } from '../../../store/slices/agentDetailsSlice'
-import { updateAgentStatusThunk, updateAgentPayStatusThunk } from '../../../services/acn/agents/agentThunkService'
+import {
+    updateAgentStatusThunk,
+    updateAgentPayStatusThunk,
+    updateAgentKAM,
+} from '../../../services/acn/agents/agentThunkService'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Layout from '../../../layout/Layout'
-import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
+import { FlexibleTable, type TableColumn, type DropdownOption } from '../../../components/design-elements/FlexibleTable'
 import StateBaseTextField from '../../../components/design-elements/StateBaseTextField'
 import StatusBadge from '../../../components/design-elements/StatusBadge'
 import CustomPagination from '../../../components/design-elements/CustomPagination'
@@ -23,6 +27,7 @@ import resetic from '/icons/acn/rotate-left.svg'
 import MetricsCards from '../../../components/design-elements/MetricCards'
 import algoliaAgentsService from '../../../services/acn/agents/algoliaAgentsService'
 import type { AgentSearchFilters } from '../../../services/acn/agents/algoliaAgentsService'
+import { getTodayAgentFacets, getAllAgentFacets } from '../../../services/acn/agents/algoliaAgentsService'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
 import { formatRelativeTime } from '../../../components/helper/formatDate'
@@ -34,21 +39,23 @@ import { agentSortOptions } from '../../../services/acn/agents/algoliaAgentsServ
 import Button from '../../../components/design-elements/Button'
 import filter from '/icons/acn/filter.svg'
 import { AgentsFiltersModal } from '../../../components/acn/AgentsFiltersModal'
+import useAuth from '../../../hooks/useAuth'
+import { prefetchKamNameMappings } from '../../../services/acn/qc/qcService'
 
 // Status dropdown options with colors
 const agentStatusOptions = [
-    { label: 'Interested', value: 'Interested', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Not Interested', value: 'Not Interested', color: '#D3D4DD', textColor: '#000000' },
-    { label: 'Not Contacted Yet', value: 'Not contact yet', color: '#FEECED', textColor: '#000000' },
+    { label: 'Interested', value: 'interested', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Not Interested', value: 'not interested', color: '#D3D4DD', textColor: '#000000' },
+    { label: 'Not Contacted Yet', value: 'not contact yet', color: '#FEECED', textColor: '#000000' },
 ]
 
 const payStatusOptions = [
-    { label: 'Paid', value: 'Paid', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Paid By Team', value: 'Paid via Team', color: '#E1F6DF', textColor: '#000000' },
-    { label: 'Will Pay', value: 'Will Pay', color: '#FEECED', textColor: '#000000' },
-    { label: 'Will Not', value: 'Will Not Pay', color: '#FEECED', textColor: '#000000' },
-    { label: 'Will Pay Via Team', value: 'Will Pay via Team', color: '#FEECED', textColor: '#000000' },
-    { label: 'Maybe', value: 'Maybe', color: '#FADA7A', textColor: '#000000' },
+    { label: 'Paid', value: 'paid', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Paid By Team', value: 'paid via team', color: '#E1F6DF', textColor: '#000000' },
+    { label: 'Will Pay', value: 'will pay', color: '#FEECED', textColor: '#000000' },
+    { label: 'Will Not', value: 'will not pay', color: '#FEECED', textColor: '#000000' },
+    { label: 'Will Pay Via Team', value: 'will pay via team', color: '#FEECED', textColor: '#000000' },
+    { label: 'Maybe', value: 'maybe', color: '#FADA7A', textColor: '#000000' },
 ]
 
 // Lead Source component with outlined design and SVG icons
@@ -270,6 +277,8 @@ const AgentsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
     const navigate = useNavigate()
     const [searchValue, setSearchValue] = useState('')
+
+    const { kamNameMappings } = useSelector((state: any) => state.qc)
     const {
         selectedKam,
         setSelectedKam,
@@ -285,6 +294,15 @@ const AgentsPage = () => {
         setSelectedInventoryStatuses,
         resetAllFilters,
     } = useAgentFilters()
+    const [initialKamOptions, setInitialKamOptions] = useState<{ label: string; value: string }[]>([])
+    const [initialPlanOptions, setInitialPlanOptions] = useState<{ label: string; value: string }[]>([])
+    const [initialStatusOptions, setInitialStatusOptions] = useState<{ label: string; value: string }[]>([])
+    const [initialLocationOptions, setInitialLocationOptions] = useState<{ label: string; value: string }[]>([])
+    const [initialAppInstalledOptions, setInitialAppInstalledOptions] = useState<{ label: string; value: string }[]>([])
+    const [initialInventoryStatusOptions, setInitialInventoryStatusOptions] = useState<
+        { label: string; value: string }[]
+    >([])
+
     const [isAgentsFiltersModalOpen, setIsAgentsFiltersModalOpen] = useState(false)
     const [modalFilters, setModalFilters] = useState<AgentSearchFilters>({})
     const [currentPage, setCurrentPage] = useState(1)
@@ -297,6 +315,63 @@ const AgentsPage = () => {
     const [totalAgents, setTotalAgents] = useState(0)
     const [loading, setLoading] = useState(false)
     const [facets, setFacets] = useState<Record<string, any>>({})
+    interface TodayFacetsType {
+        agentStatus?: Record<string, number>
+        contactStatus?: Record<string, number>
+        noOfEnquiries?: Record<string, number>
+        [key: string]: any
+    }
+
+    const { platform } = useAuth()
+    const acnRole = platform?.acn?.role
+
+    useEffect(() => {
+        if (Object.keys(facets).length > 0) {
+            setInitialKamOptions([
+                { label: 'All Roles', value: '' },
+                ...Object.entries(facets.kamName || {}).map(([value, _]) => ({
+                    label: value,
+                    value: value,
+                })),
+            ])
+            setInitialPlanOptions([
+                { label: 'All Plans', value: '' },
+                ...Object.entries(facets.payStatus || {}).map(([value, _]) => ({
+                    label: value,
+                    value: value,
+                })),
+            ])
+            setInitialStatusOptions([
+                { label: 'All Status', value: '' },
+                ...Object.entries(facets.agentStatus || {}).map(([value, _]) => ({
+                    label: value,
+                    value: value,
+                })),
+            ])
+            setInitialLocationOptions([
+                { label: 'All Locations', value: '' },
+                ...Object.entries(facets.areaOfOperation || {}).map(([value, _]) => ({
+                    label: value,
+                    value: value,
+                })),
+            ])
+            setInitialAppInstalledOptions([
+                { label: 'All', value: '' },
+                ...Object.entries(facets.appInstalled || {}).map(([value, _]) => ({
+                    label: value === 'true' ? 'Yes' : 'No',
+                    value: value,
+                })),
+            ])
+            setInitialInventoryStatusOptions([
+                { label: 'Available', value: 'Available' },
+                { label: 'Hold', value: 'Hold' },
+                { label: 'Sold', value: 'Sold' },
+                { label: 'De-listed', value: 'De-listed' },
+            ])
+        }
+    }, [facets])
+
+    const [todayFacets, setTodayFacets] = useState<TodayFacetsType>({})
     // Sort state and handler for Algolia sort
     const [sortBy, setSortBy] = useState('recent')
     const handleSortChange = (value: string) => {
@@ -304,13 +379,35 @@ const AgentsPage = () => {
         setCurrentPage(1)
     }
 
+    useEffect(() => {
+        const fetchFacets = async () => {
+            try {
+                // Get all facets (for Total Agents and App Installed)
+                const allFacets = await getAllAgentFacets()
+                setFacets(allFacets)
+
+                // Get today's filtered facets (for other metrics)
+                const todayFacetsData = await getTodayAgentFacets()
+                setTodayFacets(todayFacetsData)
+            } catch (error) {
+                console.error('Error fetching facets:', error)
+            }
+        }
+
+        fetchFacets()
+    }, [])
+
     const metrics = useMemo(() => {
-        const interestedCount = facets.agentStatus?.['Interested'] || 0
+        // For Total Agents and App Installed - use all facets (no date filter)
+        const totalAgentsValue = totalAgents // This should come from your existing source
         const appInstalledCount = facets.appInstalled?.['true'] || 0
-        const contactStatusFacets = facets.contactStatus || {}
 
-        const connectsCount = (contactStatusFacets['connected'] || 0) + (contactStatusFacets['connnected'] || 0)
+        // For other metrics - use today's filtered facets
+        const interestedCount = todayFacets.agentStatus?.['interested'] || 0
+        const contactStatusFacets = todayFacets.contactStatus || {}
 
+        const connectsCount = (contactStatusFacets['Connected'] || 0) + (contactStatusFacets['connnected'] || 0)
+        console.log(contactStatusFacets, 'here')
         const rnrCount = Object.keys(contactStatusFacets).reduce((acc, key) => {
             if (key.toLowerCase().startsWith('rnr')) {
                 return acc + (contactStatusFacets[key] || 0)
@@ -321,10 +418,9 @@ const AgentsPage = () => {
         // Agents Enquired: sum of all noOfEnquiries facet counts where key > '0'
         let totalEnquiries = 0
         let agentsEnquired = 0
-        if (facets.noOfEnquiries) {
-            agentsEnquired = Object.entries(facets.noOfEnquiries)
+        if (todayFacets.noOfEnquiries) {
+            agentsEnquired = Object.entries(todayFacets.noOfEnquiries)
                 .filter(([key, _]) => {
-                    // key is a string, but we want numeric > 0
                     const num = parseInt(key, 10)
                     totalEnquiries += num
                     return !isNaN(num) && num > 0
@@ -332,18 +428,17 @@ const AgentsPage = () => {
                 .reduce((acc, [_, count]) => acc + (count as number), 0)
         }
 
-        // Some values are placeholders as the data source is not yet available.
         return [
-            { label: 'Total Agents', value: totalAgents },
+            { label: 'Total Agents', value: totalAgentsValue },
             { label: 'Interested', value: interestedCount },
-            { label: 'Calls', value: 100 },
+            { label: 'Calls', value: 100 }, // Still placeholder
             { label: 'Connects', value: connectsCount },
             { label: 'RNR', value: rnrCount },
             { label: 'Enquiry', value: totalEnquiries },
             { label: 'Agents Enquired', value: agentsEnquired },
             { label: 'App Installed', value: appInstalledCount },
         ]
-    }, [totalAgents, facets])
+    }, [totalAgents, facets, todayFacets])
 
     // Fetch facets for filters from Algolia
     useEffect(() => {
@@ -351,7 +446,7 @@ const AgentsPage = () => {
             try {
                 const allFacets = await algoliaAgentsService.getAllAgentFacets()
                 setFacets(allFacets)
-                console.log('Facets', allFacets)
+                console.log('Facets here', allFacets)
             } catch (err) {
                 console.error('Failed to fetch agent facets', err)
             }
@@ -431,55 +526,14 @@ const AgentsPage = () => {
         modalFilters,
     ])
 
+    const kamOptions = initialKamOptions
+    const planOptions = initialPlanOptions
+    const statusOptions = initialStatusOptions
+    const locationOptions = initialLocationOptions
+    const appInstalledOptions = initialAppInstalledOptions
+    const inventoryStatusOptions = initialInventoryStatusOptions
+
     // Dynamic dropdown options from Algolia facets
-    const kamOptions = [
-        { label: 'All Roles', value: '' },
-        ...Object.entries(facets.kamName || {}).map(([value, _]) => ({
-            label: value,
-            value: value,
-        })),
-    ]
-
-    const planOptions = [
-        { label: 'All Plans', value: '' },
-        ...Object.entries(facets.payStatus || {}).map(([value, _]) => ({
-            label: value,
-            value: value,
-        })),
-    ]
-
-    const statusOptions = [
-        { label: 'All Status', value: '' },
-        ...Object.entries(facets.agentStatus || {}).map(([value, _]) => ({
-            label: value,
-            value: value,
-        })),
-    ]
-
-    const locationOptions = [
-        { label: 'All Locations', value: '' },
-        ...Object.entries(facets.areaOfOperation || {}).map(([value, _]) => ({
-            label: value,
-            value: value,
-        })),
-    ]
-
-    // App Installed options from facets
-    const appInstalledOptions = [
-        { label: 'All', value: '' },
-        ...Object.entries(facets.appInstalled || {}).map(([value, _]) => ({
-            label: value === 'true' ? 'Yes' : 'No',
-            value: value,
-        })),
-    ]
-
-    // Inventory status options from facets
-    const inventoryStatusOptions = [
-        { label: 'Available', value: 'Available', count: facets['inventoryStatus.available']?.true || 0 },
-        { label: 'Hold', value: 'Hold', count: facets['inventoryStatus.hold']?.true || 0 },
-        { label: 'Sold', value: 'Sold', count: facets['inventoryStatus.sold']?.true || 0 },
-        { label: 'De-listed', value: 'De-listed', count: facets['inventoryStatus.delisted']?.true || 0 },
-    ]
 
     const handleAgentClick = (agentId: string, agentData: any) => {
         dispatch(setSelectedAgent(agentData))
@@ -511,174 +565,290 @@ const AgentsPage = () => {
         }
     }
 
-    // Table columns configuration
-    const columns: TableColumn[] = [
-        {
-            key: 'name',
-            header: 'Agent Name',
-            render: (value, row) => (
-                <button
-                    onClick={() => handleAgentClick(row.objectID, row)}
-                    className='whitespace-nowrap text-sm font-semibold w-auto hover:text-blue-600 cursor-pointer'
-                >
-                    {value}
-                </button>
-            ),
-        },
-        {
-            key: 'phoneNumber',
-            header: 'Contact Number',
-            render: (value) => (
-                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
-            ),
-        },
-        {
-            key: 'cpId',
-            header: 'Agent ID',
-            render: (value) => (
-                <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
-            ),
-        },
-        {
-            key: 'activity',
-            header: 'Agent Activity',
-            render: (value) => <StatusBadge status={value} type='agent' />,
-        },
-        {
-            key: 'userType',
-            header: 'Plan Details',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>{toCapitalizedWords(value)}</span>
-            ),
-        },
-        {
-            key: 'noOfInventories',
-            header: 'Inventories',
-            render: (value) => <StatusBadge status={value} type='agent' />,
-        },
-        {
-            key: 'noOfRequirements',
-            header: 'Requirements',
-            render: (value) => <StatusBadge status={value} type='agent' />,
-        },
-        {
-            key: 'noOfEnquiries',
-            header: 'Enquiries',
-            render: (value) => <StatusBadge status={value} type='agent' />,
-        },
-        {
-            key: 'noOfLegalLeads',
-            header: 'Legal Leads',
-            render: (value) => <StatusBadge status={value} type='agent' />,
-        },
-        {
-            key: 'lastSeen',
-            header: 'Last Seen',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDate(value)}</span>
-            ),
-        },
-        {
-            key: 'lastConnected',
-            header: 'Last Tried',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                    {' '}
-                    {value ? formatRelativeTime(value) : 'Never'}
-                </span>
-            ),
-        },
+    // Create a comprehensive mapping from kamId to kamName
+    const kamIdToNameMap = useMemo(() => {
+        const map = new Map<string, string>()
 
-        {
-            key: 'lastTried',
-            header: 'Last Tried',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                    {' '}
-                    {value ? formatRelativeTime(value) : 'Never'}
-                </span>
-            ),
-        },
-        {
-            key: 'contactStatus',
-            header: 'Last Connected Status',
-            render: (value) => {
-                return <StatusBadge status={value || 'N/A'} type='connect' />
-            },
-        },
-        {
-            key: 'lastEnquiry',
-            header: 'Last Enquired',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDate(value)}</span>
-            ),
-        },
-        {
-            key: 'agentStatus',
-            header: 'Agent Status',
-            dropdown: {
-                options: agentStatusOptions.map((option) => ({
-                    label: option.label,
-                    value: option.value,
-                    color: option.color,
-                    textColor: option.textColor,
-                })),
-                placeholder: 'Select Status',
-                onChange: (value, row) => updateAgentStatus(row.objectID, 'agentStatus', value),
-            },
-        },
-        {
-            key: 'payStatus',
-            header: 'Pay Status',
-            dropdown: {
-                options: payStatusOptions.map((option) => ({
-                    label: option.label,
-                    value: option.value,
-                    color: option.color,
-                    textColor: option.textColor,
-                })),
-                placeholder: 'Select Pay Status',
-                onChange: (value, row) => updateAgentStatus(row.objectID, 'payStatus', value),
-            },
-        },
-        {
-            key: 'kamName',
-            header: 'KAM',
-            render: (value) => (
-                <span className='whitespace-nowrap text-sm font-normal w-auto'>{toCapitalizedWords(value)}</span>
-            ),
-        },
-        {
-            key: 'actions',
-            header: 'Actions',
-            fixed: true,
-            fixedPosition: 'right',
-            render: (_, row) => (
-                <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
+        // Add prefetched mappings first (highest priority)
+        Object.entries(kamNameMappings).forEach(([kamId, kamName]) => {
+            if (kamId && kamId !== 'N/A' && kamName && kamName !== 'N/A') {
+                //console.log(kamId, kamName, ' here')
+                map.set(kamId, kamName as string)
+            }
+        })
+
+        // Add mappings from current agents data (lowest priority)
+        agentsData.forEach((agent) => {
+            if (agent.kamId && agent.kamId !== 'N/A' && agent.kamName && agent.kamName !== 'N/A') {
+                //console.log(agent.kamId, agent.kamName, ' here')
+                map.set(agent.kamId, agent.kamName)
+            }
+        })
+
+        return map
+    }, [kamNameMappings, agentsData])
+
+    useEffect(() => {
+        dispatch(prefetchKamNameMappings() as any)
+    }, [dispatch])
+
+    // Generate KAM options from facets with kamName labels but kamId values
+    const kamAssignedOptions: DropdownOption[] = useMemo(() => {
+        const options: DropdownOption[] = []
+
+        // Use facets.kamId instead of facets.kamName if available
+        const kamFacets = facets.kamId || facets.kamName || {}
+
+        Object.keys(kamFacets).forEach((facetKey) => {
+            // Check if facetKey is in format "kamId:kamName" or just "kamId"
+            let kamId: string
+            let kamName: string
+
+            if (facetKey.includes(':')) {
+                // Split combined "kamId:kamName" format
+                ;[kamId, kamName] = facetKey.split(':')
+            } else {
+                // Use as is and lookup kamName
+                kamId = facetKey
+                kamName = kamIdToNameMap.get(kamId) || kamId
+            }
+
+            options.push({
+                label: kamName, // Display kamName
+                value: kamId, // Use pure kamId as value
+                color: '#F3F3F3',
+                textColor: '#000000',
+            })
+        })
+
+        //console.log('🔍 Generated options:', options.map(opt => `${opt.value}:${opt.label}`))
+
+        return options
+    }, [facets.kamId, facets.kamName, kamIdToNameMap])
+
+    // Helper function to update agent KAM
+    const updateAgentKAMHandler = async (agentId: string, kamId: string) => {
+        try {
+            // Get kamName from the mapping
+            console.log(kamId, 'here')
+            const kamName = kamIdToNameMap.get(kamId) || kamId
+
+            // Update local state optimistically
+            setAgentsData((prevData) =>
+                prevData.map((agent) => (agent.objectID === agentId ? { ...agent, kamId, kamName } : agent)),
+            )
+
+            // Update in Firebase using thunk with role check
+            await dispatch(
+                updateAgentKAM({
+                    cpId: agentId,
+                    kamId: kamId,
+                    kamName: kamName,
+                    userRole: acnRole,
+                }),
+            ).unwrap()
+
+            console.log('✅ Agent KAM updated successfully')
+        } catch (error) {
+            console.error('❌ Failed to update agent KAM:', error)
+            // Revert local state on error
+            setAgentsData((prevData) =>
+                prevData.map((agent) =>
+                    agent.objectID === agentId ? { ...agent, kamId: agent.kamId, kamName: agent.kamName } : agent,
+                ),
+            )
+        }
+    }
+
+    // Table columns configuration
+    const columns: TableColumn[] = useMemo(
+        () => [
+            {
+                key: 'name',
+                header: 'Agent Name',
+                render: (value, row) => (
                     <button
-                        className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                        onClick={() => {
-                            setSelectedRowData(row)
-                            setIsCallResultModalOpen(true)
-                        }}
-                        title='Call'
+                        onClick={() => handleAgentClick(row.objectID, row)}
+                        className='whitespace-nowrap text-sm font-semibold w-auto hover:text-blue-600 cursor-pointer'
                     >
-                        <img src={phoneic} alt='Phone Icon' className='w-7 h-7 flex-shrink-0' />
+                        {value}
                     </button>
-                    <button
-                        className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
-                        onClick={() => {
-                            setSelectedRowData(row)
-                            setIsNotesModalOpen(true)
-                        }}
-                        title='Notes'
-                    >
-                        <img src={notesic} alt='Notes Icon' className='w-7 h-7 flex-shrink-0' />
-                    </button>
-                </div>
-            ),
-        },
-    ]
+                ),
+            },
+            {
+                key: 'phoneNumber',
+                header: 'Contact Number',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                ),
+            },
+            {
+                key: 'cpId',
+                header: 'Agent ID',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-gray-600 text-sm font-normal w-auto'>{value}</span>
+                ),
+            },
+            {
+                key: 'activity',
+                header: 'Agent Activity',
+                render: (value) => <StatusBadge status={value} type='agent' />,
+            },
+            {
+                key: 'userType',
+                header: 'Plan Details',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{toCapitalizedWords(value)}</span>
+                ),
+            },
+            {
+                key: 'noOfInventories',
+                header: 'Inventories',
+                render: (value) => <StatusBadge status={value} type='agent' />,
+            },
+            {
+                key: 'noOfRequirements',
+                header: 'Requirements',
+                render: (value) => <StatusBadge status={value} type='agent' />,
+            },
+            {
+                key: 'noOfEnquiries',
+                header: 'Enquiries',
+                render: (value) => <StatusBadge status={value} type='agent' />,
+            },
+            {
+                key: 'noOfLegalLeads',
+                header: 'Legal Leads',
+                render: (value) => <StatusBadge status={value} type='agent' />,
+            },
+            {
+                key: 'lastSeen',
+                header: 'Last Seen',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDate(value)}</span>
+                ),
+            },
+            {
+                key: 'lastConnected',
+                header: 'Last Connected',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                        {' '}
+                        {value ? formatRelativeTime(value) : 'Never'}
+                    </span>
+                ),
+            },
+
+            {
+                key: 'lastTried',
+                header: 'Last Tried',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                        {' '}
+                        {value ? formatRelativeTime(value) : 'Never'}
+                    </span>
+                ),
+            },
+            {
+                key: 'contactStatus',
+                header: 'Last Connected Status',
+                render: (value) => {
+                    return <StatusBadge status={value || 'N/A'} type='connect' />
+                },
+            },
+            {
+                key: 'lastEnquiry',
+                header: 'Last Enquired',
+                render: (value) => (
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDate(value)}</span>
+                ),
+            },
+            {
+                key: 'agentStatus',
+                header: 'Agent Status',
+                dropdown: {
+                    options: agentStatusOptions.map((option) => ({
+                        label: option.label,
+                        value: option.value,
+                        color: option.color,
+                        textColor: option.textColor,
+                    })),
+                    placeholder: 'Select Status',
+                    onChange: (value, row) => updateAgentStatus(row.objectID, 'agentStatus', value),
+                },
+            },
+            {
+                key: 'payStatus',
+                header: 'Pay Status',
+                dropdown: {
+                    options: payStatusOptions.map((option) => ({
+                        label: option.label,
+                        value: option.value,
+                        color: option.color,
+                        textColor: option.textColor,
+                    })),
+                    placeholder: 'Select Pay Status',
+                    onChange: (value, row) => updateAgentStatus(row.objectID, 'payStatus', value),
+                },
+            },
+            {
+                key: 'kamId', // Keep kamName as key for display
+                header: 'KAM',
+                ...(acnRole === 'marketing' || acnRole === 'kamModerator'
+                    ? {
+                          dropdown: {
+                              options: kamAssignedOptions.map((option) => ({
+                                  label: option.label,
+                                  value: option.value,
+                                  color: option.color,
+                                  textColor: option.textColor,
+                              })),
+                              placeholder: 'Select KAM',
+                              onChange: (kamId, row) => updateAgentKAMHandler(row.objectID, kamId), // Pass kamId
+                          },
+                      }
+                    : {
+                          render: (value, row) => (
+                              <span className='whitespace-nowrap text-sm font-normal w-auto'>
+                                  {toCapitalizedWords(row.kamName || value || 'N/A')}
+                              </span>
+                          ),
+                      }),
+            },
+
+            {
+                key: 'actions',
+                header: 'Actions',
+                fixed: true,
+                fixedPosition: 'right',
+                render: (_, row) => (
+                    <div className='flex items-center gap-1 whitespace-nowrap w-auto'>
+                        <button
+                            className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
+                            onClick={() => {
+                                setSelectedRowData(row)
+                                setIsCallResultModalOpen(true)
+                            }}
+                            title='Call'
+                        >
+                            <img src={phoneic} alt='Phone Icon' className='w-7 h-7 flex-shrink-0' />
+                        </button>
+                        <button
+                            className='h-8 w-8 p-0 flex items-center justify-center rounded hover:bg-gray-100 transition-colors flex-shrink-0'
+                            onClick={() => {
+                                setSelectedRowData(row)
+                                setIsNotesModalOpen(true)
+                            }}
+                            title='Notes'
+                        >
+                            <img src={notesic} alt='Notes Icon' className='w-7 h-7 flex-shrink-0' />
+                        </button>
+                    </div>
+                ),
+            },
+        ],
+        [kamAssignedOptions, updateAgentKAMHandler, acnRole, updateAgentStatus, kamIdToNameMap, agentsData],
+    )
 
     return (
         <Layout>

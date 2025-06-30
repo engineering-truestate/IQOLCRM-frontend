@@ -971,13 +971,13 @@ const AgentDetailsPage = () => {
                                         </div>
                                     </div>
                                     <div>
-                                        <div className='flex items-center bg-gray-100 rounded-md py-1 h-7 w-fit'>
+                                        <div className='flex items-center bg-[#24252E] rounded-md py-1 h-8 w-fit px-0.5'>
                                             <button
                                                 onClick={() => handleTabClick('Resale')}
                                                 className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                                                     activePropertyTab === 'Resale'
                                                         ? 'bg-white text-black shadow-sm'
-                                                        : 'text-gray-600 shadow-2xl hover:text-black'
+                                                        : 'text-white shadow-2xl'
                                                 }`}
                                             >
                                                 Resale
@@ -987,7 +987,7 @@ const AgentDetailsPage = () => {
                                                 className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                                                     activePropertyTab === 'Rental'
                                                         ? 'bg-white text-black shadow-sm'
-                                                        : 'text-gray-600 shadow-2xl hover:text-black'
+                                                        : 'text-white shadow-2xl'
                                                 }`}
                                             >
                                                 Rental

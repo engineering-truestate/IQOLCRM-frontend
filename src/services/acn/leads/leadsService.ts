@@ -277,10 +277,14 @@ export const addCallResultToLead = createAsyncThunk(
             leadId,
             callData,
             note,
+            name,
+            kamId,
         }: {
             leadId: string
             callData: Omit<CallResultData, 'timestamp'>
             note?: string
+            name: string
+            kamId: string
         },
         { rejectWithValue },
     ) => {
@@ -295,9 +299,14 @@ export const addCallResultToLead = createAsyncThunk(
             }
 
             const leadData = leadDoc.data()
-            const existingConnectHistory = leadData.connectHistory || []
-            const existingNotes = leadData.notes || []
-            const currentContactStatus = leadData.contactStatus || 'not contact'
+
+            // Add proper type checks
+            const existingConnectHistory = Array.isArray(leadData?.connectHistory) ? leadData.connectHistory : []
+
+            const existingNotes = Array.isArray(leadData?.notes) ? leadData.notes : []
+
+            const currentContactStatus =
+                typeof leadData?.contactStatus === 'string' ? leadData.contactStatus.toLowerCase() : 'not contact'
 
             const timestamp = Math.floor(Date.now() / 1000) // Unix timestamp in seconds
 
@@ -313,10 +322,10 @@ export const addCallResultToLead = createAsyncThunk(
             let updatedNotes = existingNotes
             if (note && note.trim()) {
                 const newNote: NoteData = {
-                    name: leadData.name,
-                    kamId: leadData.kamId || 'UNKNOWN',
+                    name: name || 'Unknown',
+                    kamId: kamId || 'UNKNOWN',
                     note: note.trim(),
-                    source: `direct - ${callData.connectMedium}`,
+                    source: `direct - ${callData?.connectMedium || 'unknown'}`,
                     timestamp,
                     archive: false,
                 }
@@ -324,21 +333,36 @@ export const addCallResultToLead = createAsyncThunk(
             }
 
             // Determine new contact status based on connection result and current status
+            console.log(currentContactStatus, 'here')
             let newContactStatus = currentContactStatus
 
-            if (callData.connection === 'connected') {
+            if (callData?.connection === 'connected') {
                 // If connected, status becomes 'connected' regardless of previous status
                 newContactStatus = 'connected'
-            } else {
+            } else if (callData?.connection === 'not connected') {
                 // If not connected, handle RNR progression
                 if (currentContactStatus === 'not contact') {
                     // First failed attempt: not contact -> rnr-1
                     newContactStatus = 'rnr-1'
-                } else if (currentContactStatus.startsWith('rnr-')) {
+                } else if (typeof currentContactStatus === 'string' && currentContactStatus.startsWith('rnr-')) {
                     // Extract current RNR number and increment
-                    const currentRnrNumber = parseInt(currentContactStatus.split('-')[1])
-                    const nextRnrNumber = currentRnrNumber + 1
-                    newContactStatus = `rnr-${nextRnrNumber}`
+                    try {
+                        const rnrParts = currentContactStatus.split('-')
+                        if (rnrParts.length === 2) {
+                            const currentRnrNumber = parseInt(rnrParts[1])
+                            if (!isNaN(currentRnrNumber)) {
+                                const nextRnrNumber = currentRnrNumber + 1
+                                newContactStatus = `rnr-${nextRnrNumber}`
+                            } else {
+                                newContactStatus = 'rnr-1'
+                            }
+                        } else {
+                            newContactStatus = 'rnr-1'
+                        }
+                    } catch (error) {
+                        console.warn('Error parsing RNR number, defaulting to rnr-1:', error)
+                        newContactStatus = 'rnr-1'
+                    }
                 } else if (currentContactStatus === 'connected') {
                     // If was connected but now not connected, start RNR sequence
                     newContactStatus = 'rnr-1'
@@ -355,12 +379,9 @@ export const addCallResultToLead = createAsyncThunk(
             }
 
             // Update lastConnect only if call was successful
-            if (callData.connection === 'connected') {
+            if (callData?.connection === 'connected') {
                 updateData.lastConnect = timestamp
             }
-            // if (callData.connection === 'not connected') {
-            //     updateData.lastTried = timestamp
-            // }
 
             await updateDoc(docRef, updateData)
 
@@ -378,7 +399,7 @@ export const addCallResultToLead = createAsyncThunk(
             }
         } catch (error: any) {
             console.error('❌ Error adding call result:', error)
-            return rejectWithValue(error.message || 'Failed to add call result')
+            return rejectWithValue(error?.message || 'Failed to add call result')
         }
     },
 )
@@ -478,7 +499,7 @@ export const fetchLeadWithConnectHistory = createAsyncThunk(
 //     inboundEnqCredits: number
 //     inboundReqCredits: number
 //     contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
-//     contactHistory: ContactHistoryItem[]
+//     connectHistory: ContactHistoryItem[]
 //     lastTried: number
 //     kamName: string
 //     kamId: string
@@ -606,7 +627,7 @@ export const verifyLeadAndCreateAgent = createAsyncThunk(
                 inboundEnqCredits: 5,
                 inboundReqCredits: 5,
                 contactStatus: leadData.contactStatus || 'not contact',
-                contactHistory: leadData.connectHistory || [],
+                connectHistory: leadData.connectHistory || [],
                 lastTried: leadData.lastTried || 0,
                 lastConnected: 0,
                 kamName: verificationData.kamName,
