@@ -49,6 +49,7 @@ import ChoosePlatform from './ChoosePlatform'
 import Resale from './pages/restack/resale/Resale'
 import ResalePage from './pages/restack/resale/ResalePage'
 import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
+import JunkLeads from './pages/canvas_homes/sales_dashboard/JunkLead'
 import PrimaryImages from './pages/restack/Primary/PrimaryImages'
 
 export const authRoutes: RouteObject[] = [
@@ -100,6 +101,10 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(SalesDashboard, null)),
     },
     {
+        path: '/canvas-homes/sales/junkleads',
+        element: React.createElement(React.Suspense, null, React.createElement(JunkLeads, null)),
+    },
+    {
         path: '/canvas-homes/sales/leaddetails/:leadId',
         element: React.createElement(React.Suspense, null, React.createElement(LeadDetails, null)),
     },
@@ -112,7 +117,7 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(HomePage, null)),
     },
     {
-        path: '/canvas-homes/marketingdetails',
+        path: '/canvas-homes/marketingdetails/:campaignId',
         element: React.createElement(React.Suspense, null, React.createElement(MarketingDetails, null)),
     },
 

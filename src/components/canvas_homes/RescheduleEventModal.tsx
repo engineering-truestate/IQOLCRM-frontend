@@ -82,7 +82,6 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
     // Options
     const reasonOptions = [
-        // { value: '', label: 'Select reason' },
         { value: 'rnr', label: 'Ring No Response' },
         { value: 'client requested callback later', label: 'Client Requested Callback Later' },
         { value: 'needs time for family discussion', label: 'Needs Time for Family Discussion' },
@@ -92,7 +91,6 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
     ]
 
     const eventNameOptions = [
-        // { value: '', label: 'Select Event Name' },
         { value: 'visit scheduled', label: 'Site Visit' },
         { value: 'call scheduled', label: 'Schedule call' },
     ]
@@ -160,11 +158,16 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             const leadStatus = getLeadStatus()
             const stage = getStage()
 
+            // Get open tasks for the enquiry
+            const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
+            const remainingOpenTasks = openTasks
+
             // Prepare the data for updating task, enquiry, lead, and adding activities
             const taskUpdateData = {
                 eventName: formData.eventName,
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledTimestamp,
+                status: 'open' as 'open' | 'complete',
             }
 
             const enquiryUpdateData = {
@@ -174,7 +177,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             }
 
             const taskExecutionActivity = {
-                activityType: 'task execution',
+                activityType: 'task rescheduled',
                 timestamp: currentTimestamp,
                 agentName: agentName,
                 data: {
@@ -197,7 +200,8 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                   })
                 : Promise.resolve()
 
-            const leadUpdateData = {
+            // Determine lead update data based on remaining tasks
+            let leadUpdateData = {
                 leadStatus: leadStatus as
                     | 'interested'
                     | 'follow up'
@@ -213,7 +217,24 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                     | undefined,
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledTimestamp,
+                taskType: taskType,
                 ...(stage && { stage: stage }),
+            }
+
+            // If there are other open tasks, check if any has an earlier scheduled date
+            if (remainingOpenTasks.length > 0) {
+                const earliestTask = remainingOpenTasks[0]
+
+                if (earliestTask.added) {
+                    // If another task has an earlier date, use its data for the lead
+                    leadUpdateData = {
+                        leadStatus: leadStatus as any,
+                        lastModified: currentTimestamp,
+                        taskType: earliestTask.taskType,
+                        scheduledDate: earliestTask.taskId === taskId ? scheduledTimestamp : earliestTask.scheduledDate,
+                        ...(stage && { stage: stage }),
+                    }
+                }
             }
 
             // Execute all updates in parallel
