@@ -1,13 +1,16 @@
 import { https, logger } from 'firebase-functions'
 import { getAuth } from 'firebase-admin/auth'
 import { initializeApp } from 'firebase-admin/app'
-import { getFirestore } from 'firebase-admin/firestore'
+import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { google } from 'googleapis'
 import { onRequest, onCall } from 'firebase-functions/v2/https'
 import axios from 'axios'
 import mime from 'mime-types'
 import cors from 'cors'
 import crypto from 'crypto'
+import { doc, increment } from 'firebase/firestore'
+
+import { addCampaginData } from './helper/addCampaginData.js'
 
 initializeApp()
 const db = getFirestore()
@@ -151,255 +154,677 @@ export const setCustomClaims = https.onRequest(async (req, res) => {
 
 // ACN Upload to Google Drive
 
-const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
-oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN })
+// const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
+// oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN })
 
-export const drive = google.drive({ version: 'v3', auth: oauth2Client })
+// export const drive = google.drive({ version: 'v3', auth: oauth2Client })
 
-export const uploadToDrive = onRequest(async (req, res) => {
+// export const uploadToDrive = onRequest(async (req, res) => {
+//     return corsHandler(req, res, async () => {
+//         try {
+//             const { propId, uploadedFileUrls } = req.body
+
+//             if (!propId || !uploadedFileUrls) {
+//                 return res.status(400).json({ error: 'Missing propId or uploadedFiles' })
+//             }
+
+//             const parentFolderId = '1sfUWHYjBvi_6LTjdyAh8LqX4Bay3neMi'
+//             const folderId = await findOrCreateFolder(parentFolderId, propId)
+
+//             await emptyGoogleDriveFolder(folderId)
+
+//             const uploadedFiles = [...uploadedFileUrls.photo, ...uploadedFileUrls.video, ...uploadedFileUrls.document]
+//             for (const file of uploadedFiles) {
+//                 await uploadFileToDrive(file, folderId)
+//             }
+
+//             const sharableFolderUrl = await getSharableFolderUrl(folderId)
+
+//             res.status(200).json({
+//                 success: true,
+//                 sharableFolderUrl,
+//             })
+//         } catch (error) {
+//             console.error('Error uploading to Google Drive:', error)
+//             res.status(500).json({ error: error.message })
+//         }
+//     })
+// })
+
+// /**
+//  * Deletes all files inside a Google Drive folder.
+//  */
+// export async function emptyGoogleDriveFolder(folderId) {
+//     try {
+//         // List all files in the folder
+//         const response = await drive.files.list({
+//             q: `'${folderId}' in parents and trashed=false`,
+//             fields: 'files(id, name)',
+//         })
+
+//         const files = response.data.files
+//         if (files.length === 0) {
+//             console.log(`Folder (${folderId}) is already empty.`)
+//             return
+//         }
+
+//         // Delete each file in the folder
+//         for (const file of files) {
+//             await drive.files.delete({ fileId: file.id })
+//             console.log(`Deleted file: ${file.name} (ID: ${file.id})`)
+//         }
+
+//         console.log(`Successfully emptied folder: ${folderId}`)
+//     } catch (error) {
+//         console.error(`Error emptying folder: ${error.message}`)
+//         throw new Error(`Error emptying folder: ${error.message}`)
+//     }
+// }
+
+// // ✅ Helper function to find or create a folder
+// export async function findOrCreateFolder(parentFolderId, folderName) {
+//     const response = await drive.files.list({
+//         q: `'${parentFolderId}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+//         fields: 'files(id, name)',
+//     })
+
+//     if (response.data.files.length > 0) {
+//         return response.data.files[0].id
+//     }
+
+//     const folder = await drive.files.create({
+//         requestBody: {
+//             name: folderName,
+//             mimeType: 'application/vnd.google-apps.folder',
+//             parents: [parentFolderId],
+//         },
+//         fields: 'id',
+//     })
+
+//     return folder.data.id
+// }
+
+// const extractFilenameFromUrl = (fileUrl) => {
+//     const urlParts = fileUrl.split('%2F')
+//     const lastPart = urlParts[urlParts.length - 1]
+//     return decodeURIComponent(lastPart.split('?')[0])
+// }
+
+// // ✅ Helper function to upload a file from Firebase Storage to Google Drive
+// export async function uploadFileToDrive(fileUrl, folderId) {
+//     try {
+//         const response = await axios.get(fileUrl, { responseType: 'stream' })
+
+//         const originalName = extractFilenameFromUrl(fileUrl)
+//         const mimeType = mime.lookup(originalName) || 'application/octet-stream'
+
+//         const fileMetadata = {
+//             name: originalName, // ✅ Use the same filename from Firebase Storage
+//             parents: [folderId],
+//         }
+//         const media = {
+//             mimeType: mimeType,
+//             body: response.data,
+//         }
+
+//         const file = await drive.files.create({
+//             requestBody: fileMetadata,
+//             media: media,
+//             fields: 'id',
+//         })
+
+//         console.log(`Uploaded ${originalName} to Google Drive (ID: ${file.data.id})`)
+//     } catch (error) {
+//         console.error(`Error uploading ${fileUrl} to Google Drive:`, error)
+//         throw new Error(`Error uploading file to Google Drive: ${error.message}`)
+//     }
+// }
+
+// // ✅ Helper function to make the folder sharable
+// async function getSharableFolderUrl(folderId) {
+//     try {
+//         await drive.permissions.create({
+//             fileId: folderId,
+//             requestBody: {
+//                 role: 'reader',
+//                 type: 'anyone',
+//             },
+//         })
+
+//         return `https://drive.google.com/drive/folders/${folderId}`
+//     } catch (error) {
+//         console.error('Error setting sharing permissions:', error)
+//         throw new Error(`Error setting folder sharing permissions: ${error.message}`)
+//     }
+// }
+
+// export const initiatePhonePePayment = onCall(async (request) => {
+//     try {
+//         const { amount, transactionId, redirectUrl, mobileNumber } = request.data
+//         const userId = request.data.userId || 'INT000'
+
+//         if (!amount || !transactionId || !redirectUrl) {
+//             throw new Error('Missing required parameters: amount, transactionId, redirectUrl')
+//         }
+
+//         const amountInPaise = parseInt(amount) * 100
+
+//         // Construct the payload
+//         const payload = {
+//             merchantId: PHONEPE_MERCHANT_ID,
+//             merchantTransactionId: transactionId,
+//             amount: amountInPaise,
+//             merchantUserId: userId,
+//             redirectUrl: redirectUrl,
+//             redirectMode: 'REDIRECT',
+//             callbackUrl: 'https://phonepewebhook-wi5onpxm7q-uc.a.run.app',
+//             mobileNumber: mobileNumber,
+//             paymentInstrument: {
+//                 type: 'PAY_PAGE', // Redirect to PhonePe's payment page
+//             },
+//         }
+
+//         // Convert payload to base64
+//         const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+
+//         // Generate SHA-256 hash signature
+//         const apiPath = '/pg/v1/pay'
+//         const checksum =
+//             crypto
+//                 .createHash('sha256')
+//                 .update(payloadBase64 + apiPath + PHONEPE_SALT_KEY)
+//                 .digest('hex') + `###${PHONEPE_SALT_INDEX}`
+
+//         // ✅ Save mobileNumber in Firestore before calling PhonePe
+//         const paymentRef = db.collection('acnPayments').doc(transactionId)
+//         await paymentRef.set({
+//             status: 'INITIATED',
+//             phonenumber: mobileNumber, // ✅ Store mobileNumber
+//             createdAt: new Date(),
+//         })
+
+//         // Send payment request
+//         const response = await axios.post(
+//             `${PHONEPE_BASE_URL}${apiPath}`,
+//             { request: payloadBase64 },
+//             { headers: { 'Content-Type': 'application/json', 'X-VERIFY': checksum } },
+//         )
+
+//         console.log('response', response.data)
+//         const responseData = response.data
+//         if (responseData.success) {
+//             return { success: true, paymentUrl: responseData.data.instrumentResponse.redirectInfo.url }
+//         } else {
+//             throw new Error(responseData.message)
+//         }
+//     } catch (error) {
+//         console.error('PhonePe Payment Error:', error.message)
+//         return { success: false, error: error.message }
+//     }
+// })
+
+// export const phonePeWebhook = onRequest(async (req, res) => {
+//     try {
+//         console.log('✅ Webhook received:', JSON.stringify(req.body, null, 2))
+
+//         if (!req.body.response) {
+//             return res.status(400).json({ error: "Missing 'response' field in request body" })
+//         }
+
+//         const decodedResponse = JSON.parse(Buffer.from(req.body.response, 'base64').toString('utf-8'))
+//         console.log('🔍 Decoded Webhook Response:', JSON.stringify(decodedResponse, null, 2))
+
+//         if (!decodedResponse.data || !decodedResponse.data.merchantTransactionId) {
+//             return res.status(400).json({ error: 'Missing merchantTransactionId', receivedData: decodedResponse })
+//         }
+
+//         const { success, code, message, data } = decodedResponse
+
+//         // if (!data?.merchantTransactionId) {
+//         //     return res.status(400).json({ error: "Missing merchantTransactionId" });
+//         // }
+
+//         // Update Firestore with payment status
+//         const paymentRef = db.collection('acnPayments').doc(data?.merchantTransactionId)
+//         const existingDoc = await paymentRef.get()
+//         const existingData = existingDoc.exists ? existingDoc.data() : {}
+//         await paymentRef.set(
+//             {
+//                 ...existingData, // Keep existing fields (like mobileNumber)
+//                 status: code,
+//                 message,
+//                 data,
+//                 updatedAt: new Date(),
+//             },
+//             { merge: true },
+//         )
+
+//         console.log(`✅ Payment updated in Firestore: ${data?.merchantTransactionId} -> ${code}`)
+//         res.status(200).json({ success: true })
+//     } catch (error) {
+//         console.error('PhonePe Webhook Error:', error)
+//         res.status(500).json({ error: error.message })
+//     }
+// })
+
+// for the campaign data
+// export const handleMultipleCampaignData = https.onRequest(async (req, res) => {
+//   return corsHandler(req, res, async () => {
+//     if (req.method !== "POST") {
+//       return res.status(405).send("Method Not Allowed");
+//     }
+
+//     const getUnixDateTime = () => {
+//       return Math.floor(Date.now() / 1000);
+//     };
+
+//     const unixDateTime = getUnixDateTime();
+
+//     try {
+//       // Destructure required fields from the request body
+//       const {
+//         phonenumber,
+//         name,
+//         campaign,
+//         projectId,
+//         projectName,
+//         utmDetails,
+//         currentAgent,
+//       } = req.body;
+
+//       // Validate required fields
+//       if (
+//         !phonenumber ||
+//         !name ||
+//         !campaign ||
+//         !projectId ||
+//         !projectName ||
+//         !currentAgent
+//       ) {
+//         return res.status(400).json({
+//           error:
+//             "Missing required fields: phonenumber, name, campaign, projectId, and projectName.",
+//         });
+//       }
+//       const AgentSnapshot = await db
+//         .collection("internal-agents")
+//         .where("name", "==", currentAgent)
+//         .get();
+
+//         let agentId='';
+//      if (!AgentSnapshot.empty) {
+//         const agentDoc = AgentSnapshot.docs[0];
+//         const agentData = agentDoc.data();
+//         agentId = agentData.canvasHomes?.agentId;
+//      }
+
+//       // Create a new campaign data object
+//       const newUserDataCampaign = {
+//         phonenumber,
+//         name,
+//         campaign,
+//         projectId,
+//         projectName,
+//         utmDetails,
+//         currentAgent,
+//         agentId,
+//         added: unixDateTime,
+//       };
+
+//       // Add campaign meta data
+//       const campaignDataWithMeta = addCampaginData(
+//         newUserDataCampaign,
+//         unixDateTime
+//       );
+//       const counterRef1 = doc(db, 'canvashomesAdmin', 'lastUser')
+//       let newUserId = '';
+//       const nextUserId = await runTransaction(db, async (transaction) => {
+//           const counterDoc = await transaction.get(counterRef1)
+//           let currentCount = 0
+//           if (counterDoc.exists()) {
+//               currentCount = counterDoc.data().count || 0
+//           }
+//           const newCount = currentCount + 1
+//            newUserId = `user${newCount.toString().padStart(2, '0')}`
+//           const timestamp = getUnixDateTime()
+//           const newUser = {
+//               ...userData,
+//               userId: newUserId,
+//               added: timestamp,
+//               lastModified: timestamp,
+//           }
+//           transaction.set(doc(db, 'canvashomesUsers', newUserId), newUser)
+//           transaction.update(counterRef, {
+//               count: increment(1),
+//           })
+
+//       })
+
+//       const counterRef = doc(db, 'canvashomesAdmin', 'lastLead')
+//       let newLeadId='';
+//       leadData = campaignDataWithMeta.leadData
+//         const nextLeadId = await runTransaction(db, async (transaction) => {
+//           const counterDoc = await transaction.get(counterRef)
+//           let currentNumber = 0
+//           if (counterDoc.exists()) {
+//               currentNumber = counterDoc.data().count || 0
+//           }
+//           const newNumber = currentNumber + 1
+//            newLeadId = `lead${newNumber.toString().padStart(2, '0')}`
+
+//           const newLead = {
+//               ...leadData,
+//               userId:newUserId,
+//               leadId: newLeadId,
+//               added: unixDateTime,
+//               lastModified: unixDateTime,
+//           }
+//           transaction.set(doc(db, 'canvashomesLeads', newLeadId), newLead)
+//           transaction.update(counterRef, {
+//               count: increment(1),
+//           })
+//           return newLeadId
+//         })
+//       nextLeadId();
+
+//       const counterRef2 = doc(db, 'canvashomesAdmin', 'lastEnquiry')
+
+//       const nextEnquiryId = await runTransaction(db, async (transaction) => {
+//           const counterDoc = await transaction.get(counterRef2)
+//           let currentNumber = 0
+//           if (counterDoc.exists()) {
+//               currentNumber = counterDoc.data().count || 0
+//           }
+//           const newNumber = currentNumber + 1
+//           const newEnquiryId = `enq${newNumber.toString().padStart(2, '0')}`
+//           const timestamp = getUnixDateTime()
+//           const newEnquiry = {
+//               ...enquiryData,
+//               leadId:newLeadId,
+//               enquiryId: newEnquiryId,
+//               notes: enquiryData.notes || [],
+//               activityHistory: enquiryData.activityHistory || [],
+//               agentHistory: enquiryData.agentHistory || [],
+//               added: timestamp,
+//               lastModified: timestamp,
+//           }
+//           transaction.set(doc(db, 'canvashomesEnquiries', newEnquiryId), newEnquiry)
+//           transaction.update(counterRef, {
+//               count: increment(1),
+//           })
+//           return newEnquiryId
+//       })
+
+//       // Query the database for an existing user by phonenumber
+//       const userSnapshot = await db
+//         .collection("new_users")
+//         .where("phonenumber", "==", phonenumber)
+//         .get();
+
+//       if (!userSnapshot.empty) {
+//         const userDoc = userSnapshot.docs[0];
+//         const userData = userDoc.data();
+
+//         const history = userData.history || [];
+
+//         // Prepare a new history entry with previous user data
+//         const newHistoryEntry = {
+//           projectId: userData.projectId || null,
+//           taskHistory: userData.taskHistory || [],
+//           notesHistory: userData.notesHistory || [],
+//           property_requirement_formHistory:
+//             userData.property_requirement_form || [],
+//           sharedPropertiesHistory: userData.sharedProperties || [],
+//           agentChangeHistory: userData.agentChange || [],
+//           timestamp: unixDateTime,
+//         };
+
+//         // Push new history entry only if the user has a projectId
+//         if (userData.projectId) {
+//           history.push(newHistoryEntry);
+//         }
+
+//         // Merge new campaign data and updated history into the existing document
+//         await userDoc.ref.set(
+//           {
+//             ...campaignDataWithMeta,
+//             history,
+//           },
+//           { merge: true }
+//         );
+
+//         return res.status(200).json({
+//           message:
+//             "Existing document updated with new campaign data and history.",
+//         });
+//       } else {
+//         // If no existing user, create a new document with the campaign data
+//         await db.collection("new_users").add(campaignDataWithMeta);
+//         return res.status(201).json({ message: "New document created." });
+//       }
+//     } catch (error) {
+//       console.error("Error processing the request:", error);
+//       return res.status(500).json({ error: error.message });
+//     }
+//   });
+// });
+
+export const handleMultipleCampaignData = onRequest(async (req, res) => {
     return corsHandler(req, res, async () => {
+        if (req.method !== 'POST') {
+            return res.status(405).send('Method Not Allowed')
+        }
+
+        const getUnixDateTime = () => {
+            return Math.floor(Date.now() / 1000)
+        }
+
+        const unixDateTime = getUnixDateTime()
+
         try {
-            const { propId, uploadedFileUrls } = req.body
+            // Destructure required fields from the request body
+            const { phoneNumber, name, campaign, projectId, projectName, utmDetails, currentAgent } = req.body
 
-            if (!propId || !uploadedFileUrls) {
-                return res.status(400).json({ error: 'Missing propId or uploadedFiles' })
+            // Validate required fields
+            if (!phoneNumber || !name || !campaign || !projectId || !projectName || !currentAgent) {
+                return res.status(400).json({
+                    error: 'Missing required fields: phonenumber, name, campaign, projectId, projectName, and currentAgent.',
+                })
+            }
+            // Get agent information
+            const agentSnapshot = await db.collection('internal-agents').where('name', '==', currentAgent).get()
+
+            let agentId = ''
+            if (!agentSnapshot.empty) {
+                const agentDoc = agentSnapshot.docs[0]
+                const agentData = agentDoc.data()
+                agentId = agentData.canvasHomes?.agentId || ''
             }
 
-            const parentFolderId = '1sfUWHYjBvi_6LTjdyAh8LqX4Bay3neMi'
-            const folderId = await findOrCreateFolder(parentFolderId, propId)
-
-            await emptyGoogleDriveFolder(folderId)
-
-            const uploadedFiles = [...uploadedFileUrls.photo, ...uploadedFileUrls.video, ...uploadedFileUrls.document]
-            for (const file of uploadedFiles) {
-                await uploadFileToDrive(file, folderId)
+            // Create a new campaign data object
+            const newUserDataCampaign = {
+                phoneNumber,
+                name,
+                campaign,
+                projectId,
+                projectName,
+                utmDetails: utmDetails || {},
+                currentAgent,
+                agentId,
+                added: unixDateTime,
             }
 
-            const sharableFolderUrl = await getSharableFolderUrl(folderId)
+            // Add campaign meta data
+            const campaignDataWithMeta = addCampaginData(newUserDataCampaign, unixDateTime)
 
-            res.status(200).json({
-                success: true,
-                sharableFolderUrl,
+            let newUserId = ''
+            let newLeadId = ''
+            let newEnquiryId = ''
+
+            // Transaction to create user
+            await db.runTransaction(async (transaction) => {
+                const counterRef1 = db.collection('canvashomesAdmin').doc('lastUser')
+                const counterDoc = await transaction.get(counterRef1)
+
+                let currentCount = 0
+                if (counterDoc.exists) {
+                    currentCount = counterDoc.data().count || 0
+                }
+
+                const newCount = currentCount + 1
+                newUserId = `user${newCount.toString().padStart(3, '0')}`
+
+                const newUser = {
+                    ...newUserDataCampaign,
+                    userId: newUserId,
+                    added: unixDateTime,
+                    lastModified: unixDateTime,
+                }
+
+                console.log('updated user', newUserId)
+
+                transaction.set(db.collection('canvashomesUsers').doc(newUserId), newUser)
+                transaction.update(counterRef1, {
+                    count: FieldValue.increment(1),
+                })
             })
+            console.log('transaction 1 completed')
+
+            // Transaction to create lead
+            await db.runTransaction(async (transaction) => {
+                const counterRef = db.collection('canvashomesAdmin').doc('lastLead')
+                const counterDoc = await transaction.get(counterRef)
+
+                let currentNumber = 0
+                if (counterDoc.exists) {
+                    currentNumber = counterDoc.data().count || 0
+                }
+
+                const newNumber = currentNumber + 1
+                newLeadId = `lead${newNumber.toString().padStart(3, '0')}`
+
+                const newLead = {
+                    ...campaignDataWithMeta.leadData,
+                    userId: newUserId,
+                    leadId: newLeadId,
+                    added: unixDateTime,
+                    lastModified: unixDateTime,
+                }
+                console.log(newLeadId)
+
+                transaction.set(db.collection('canvashomesLeads').doc(newLeadId), newLead)
+                transaction.update(counterRef, {
+                    count: FieldValue.increment(1),
+                })
+            })
+            console.log('Transaction 2 completed')
+
+            // Transaction to create enquiry
+            await db.runTransaction(async (transaction) => {
+                const counterRef2 = db.collection('canvashomesAdmin').doc('lastEnquiry')
+                const counterDoc = await transaction.get(counterRef2)
+
+                let currentNumber = 0
+                if (counterDoc.exists) {
+                    currentNumber = counterDoc.data().count || 0
+                }
+
+                const newNumber = currentNumber + 1
+                newEnquiryId = `enq${newNumber.toString().padStart(3, '0')}`
+
+                const newEnquiry = {
+                    ...campaignDataWithMeta.enquiryData,
+                    leadId: newLeadId,
+                    userId: newUserId,
+                    enquiryId: newEnquiryId,
+                    added: unixDateTime,
+                    lastModified: unixDateTime,
+                }
+
+                transaction.set(db.collection('canvashomesEnquiries').doc(newEnquiryId), newEnquiry)
+                transaction.update(counterRef2, {
+                    count: FieldValue.increment(1),
+                })
+            })
+            console.log('Transaction 3 completed')
+            return res.status(200).json({
+                success: 'Successful',
+            })
+
+            // Check for existing user in new_users collection and handle history
+            //   const userSnapshot = await db
+            //     .collection("new_users")
+            //     .where("phonenumber", "==", phonenumber)
+            //     .get();
+
+            //   if (!userSnapshot.empty) {
+            //     const userDoc = userSnapshot.docs[0];
+            //     const userData = userDoc.data();
+            //     const history = userData.history || [];
+
+            //     // Prepare a new history entry with previous user data
+            //     const newHistoryEntry = {
+            //       projectId: userData.projectId || null,
+            //       taskHistory: userData.taskHistory || [],
+            //       notesHistory: userData.notesHistory || [],
+            //       property_requirement_formHistory: userData.property_requirement_form || [],
+            //       sharedPropertiesHistory: userData.sharedProperties || [],
+            //       agentChangeHistory: userData.agentChange || [],
+            //       timestamp: unixDateTime,
+            //     };
+
+            //     // Push new history entry only if the user has a projectId
+            //     if (userData.projectId) {
+            //       history.push(newHistoryEntry);
+            //     }
+
+            //     // Merge new campaign data and updated history into the existing document
+            //     await userDoc.ref.set(
+            //       {
+            //         ...campaignDataWithMeta,
+            //         userId: newUserId,
+            //         leadId: newLeadId,
+            //         enquiryId: newEnquiryId,
+            //         history,
+            //       },
+            //       { merge: true }
+            //     );
+
+            //     return res.status(200).json({
+            //       message: "Existing document updated with new campaign data and history.",
+            //       data: {
+            //         userId: newUserId,
+            //         leadId: newLeadId,
+            //         enquiryId: newEnquiryId,
+            //       }
+            //     });
+            //   } else {
+            //     // If no existing user, create a new document with the campaign data
+            //     const newUserDoc = {
+            //       ...campaignDataWithMeta,
+            //       userId: newUserId,
+            //       leadId: newLeadId,
+            //       enquiryId: newEnquiryId,
+            //       history: []
+            //     };
+
+            //     await db.collection("new_users").add(newUserDoc);
+
+            //     return res.status(201).json({
+            //       message: "New document created.",
+            //       data: {
+            //         userId: newUserId,
+            //         leadId: newLeadId,
+            //         enquiryId: newEnquiryId,
+            //       }
+            //     });
+            //   }
         } catch (error) {
-            console.error('Error uploading to Google Drive:', error)
-            res.status(500).json({ error: error.message })
+            console.error('Error processing the request:', error)
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: error.message,
+            })
         }
     })
-})
-
-/**
- * Deletes all files inside a Google Drive folder.
- */
-export async function emptyGoogleDriveFolder(folderId) {
-    try {
-        // List all files in the folder
-        const response = await drive.files.list({
-            q: `'${folderId}' in parents and trashed=false`,
-            fields: 'files(id, name)',
-        })
-
-        const files = response.data.files
-        if (files.length === 0) {
-            console.log(`Folder (${folderId}) is already empty.`)
-            return
-        }
-
-        // Delete each file in the folder
-        for (const file of files) {
-            await drive.files.delete({ fileId: file.id })
-            console.log(`Deleted file: ${file.name} (ID: ${file.id})`)
-        }
-
-        console.log(`Successfully emptied folder: ${folderId}`)
-    } catch (error) {
-        console.error(`Error emptying folder: ${error.message}`)
-        throw new Error(`Error emptying folder: ${error.message}`)
-    }
-}
-
-// ✅ Helper function to find or create a folder
-export async function findOrCreateFolder(parentFolderId, folderName) {
-    const response = await drive.files.list({
-        q: `'${parentFolderId}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        fields: 'files(id, name)',
-    })
-
-    if (response.data.files.length > 0) {
-        return response.data.files[0].id
-    }
-
-    const folder = await drive.files.create({
-        requestBody: {
-            name: folderName,
-            mimeType: 'application/vnd.google-apps.folder',
-            parents: [parentFolderId],
-        },
-        fields: 'id',
-    })
-
-    return folder.data.id
-}
-
-const extractFilenameFromUrl = (fileUrl) => {
-    const urlParts = fileUrl.split('%2F')
-    const lastPart = urlParts[urlParts.length - 1]
-    return decodeURIComponent(lastPart.split('?')[0])
-}
-
-// ✅ Helper function to upload a file from Firebase Storage to Google Drive
-export async function uploadFileToDrive(fileUrl, folderId) {
-    try {
-        const response = await axios.get(fileUrl, { responseType: 'stream' })
-
-        const originalName = extractFilenameFromUrl(fileUrl)
-        const mimeType = mime.lookup(originalName) || 'application/octet-stream'
-
-        const fileMetadata = {
-            name: originalName, // ✅ Use the same filename from Firebase Storage
-            parents: [folderId],
-        }
-        const media = {
-            mimeType: mimeType,
-            body: response.data,
-        }
-
-        const file = await drive.files.create({
-            requestBody: fileMetadata,
-            media: media,
-            fields: 'id',
-        })
-
-        console.log(`Uploaded ${originalName} to Google Drive (ID: ${file.data.id})`)
-    } catch (error) {
-        console.error(`Error uploading ${fileUrl} to Google Drive:`, error)
-        throw new Error(`Error uploading file to Google Drive: ${error.message}`)
-    }
-}
-
-// ✅ Helper function to make the folder sharable
-async function getSharableFolderUrl(folderId) {
-    try {
-        await drive.permissions.create({
-            fileId: folderId,
-            requestBody: {
-                role: 'reader',
-                type: 'anyone',
-            },
-        })
-
-        return `https://drive.google.com/drive/folders/${folderId}`
-    } catch (error) {
-        console.error('Error setting sharing permissions:', error)
-        throw new Error(`Error setting folder sharing permissions: ${error.message}`)
-    }
-}
-
-export const initiatePhonePePayment = onCall(async (request) => {
-    try {
-        const { amount, transactionId, redirectUrl, mobileNumber } = request.data
-        const userId = request.data.userId || 'INT000'
-
-        if (!amount || !transactionId || !redirectUrl) {
-            throw new Error('Missing required parameters: amount, transactionId, redirectUrl')
-        }
-
-        const amountInPaise = parseInt(amount) * 100
-
-        // Construct the payload
-        const payload = {
-            merchantId: PHONEPE_MERCHANT_ID,
-            merchantTransactionId: transactionId,
-            amount: amountInPaise,
-            merchantUserId: userId,
-            redirectUrl: redirectUrl,
-            redirectMode: 'REDIRECT',
-            callbackUrl: 'https://phonepewebhook-wi5onpxm7q-uc.a.run.app',
-            mobileNumber: mobileNumber,
-            paymentInstrument: {
-                type: 'PAY_PAGE', // Redirect to PhonePe's payment page
-            },
-        }
-
-        // Convert payload to base64
-        const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64')
-
-        // Generate SHA-256 hash signature
-        const apiPath = '/pg/v1/pay'
-        const checksum =
-            crypto
-                .createHash('sha256')
-                .update(payloadBase64 + apiPath + PHONEPE_SALT_KEY)
-                .digest('hex') + `###${PHONEPE_SALT_INDEX}`
-
-        // ✅ Save mobileNumber in Firestore before calling PhonePe
-        const paymentRef = db.collection('acnPayments').doc(transactionId)
-        await paymentRef.set({
-            status: 'INITIATED',
-            phonenumber: mobileNumber, // ✅ Store mobileNumber
-            createdAt: new Date(),
-        })
-
-        // Send payment request
-        const response = await axios.post(
-            `${PHONEPE_BASE_URL}${apiPath}`,
-            { request: payloadBase64 },
-            { headers: { 'Content-Type': 'application/json', 'X-VERIFY': checksum } },
-        )
-
-        console.log('response', response.data)
-        const responseData = response.data
-        if (responseData.success) {
-            return { success: true, paymentUrl: responseData.data.instrumentResponse.redirectInfo.url }
-        } else {
-            throw new Error(responseData.message)
-        }
-    } catch (error) {
-        console.error('PhonePe Payment Error:', error.message)
-        return { success: false, error: error.message }
-    }
-})
-
-export const phonePeWebhook = onRequest(async (req, res) => {
-    try {
-        console.log('✅ Webhook received:', JSON.stringify(req.body, null, 2))
-
-        if (!req.body.response) {
-            return res.status(400).json({ error: "Missing 'response' field in request body" })
-        }
-
-        const decodedResponse = JSON.parse(Buffer.from(req.body.response, 'base64').toString('utf-8'))
-        console.log('🔍 Decoded Webhook Response:', JSON.stringify(decodedResponse, null, 2))
-
-        if (!decodedResponse.data || !decodedResponse.data.merchantTransactionId) {
-            return res.status(400).json({ error: 'Missing merchantTransactionId', receivedData: decodedResponse })
-        }
-
-        const { success, code, message, data } = decodedResponse
-
-        // if (!data?.merchantTransactionId) {
-        //     return res.status(400).json({ error: "Missing merchantTransactionId" });
-        // }
-
-        // Update Firestore with payment status
-        const paymentRef = db.collection('acnPayments').doc(data?.merchantTransactionId)
-        const existingDoc = await paymentRef.get()
-        const existingData = existingDoc.exists ? existingDoc.data() : {}
-        await paymentRef.set(
-            {
-                ...existingData, // Keep existing fields (like mobileNumber)
-                status: code,
-                message,
-                data,
-                updatedAt: new Date(),
-            },
-            { merge: true },
-        )
-
-        console.log(`✅ Payment updated in Firestore: ${data?.merchantTransactionId} -> ${code}`)
-        res.status(200).json({ success: true })
-    } catch (error) {
-        console.error('PhonePe Webhook Error:', error)
-        res.status(500).json({ error: error.message })
-    }
 })
