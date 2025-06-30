@@ -33,7 +33,7 @@ import algoliaService, {
     type SearchFilters,
     type FacetValue,
 } from '../../../services/acn/properties/algoliaPropertiesService'
-import { formatCost } from '../../../components/helper/formatCost'
+import { formatExactCostToLacsOrCrs } from '../../../components/helper/formatCost'
 import filter from '/icons/acn/filter.svg'
 import BulkShareModal from '../../../components/acn/BulkShareModal'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
@@ -968,10 +968,11 @@ const PropertiesPage = () => {
     const SortFilter = () => {
         const [isOpen, setIsOpen] = useState(false)
         const sortOptions = [
-            { label: 'Sort', value: '' },
             { label: 'Price: Low to High', value: 'price_asc' },
             { label: 'Price: High to Low', value: 'price_desc' },
             { label: 'Recent First', value: 'date_desc' },
+            { label: 'Property ID: Low to High', value: 'properties_id_asc' },
+            { label: 'Property ID: High to Low', value: 'properties_id_desc' },
         ]
 
         const currentSort = sortOptions.find((option) => option.value === urlParams.sort)
@@ -1054,7 +1055,7 @@ const PropertiesPage = () => {
             header: activeTab === 'Resale' ? 'Sale Price' : 'Monthly Rent',
             render: (value) => (
                 <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                    {value ? formatCost(value) : 'N/A'}
+                    {value ? formatExactCostToLacsOrCrs(value) : 'N/A'}
                 </span>
             ),
         })

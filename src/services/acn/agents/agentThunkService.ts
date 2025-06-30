@@ -13,15 +13,15 @@ import {
     arrayUnion,
 } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import type { IInventory, IRequirement, IAgent } from '../../../data_types/acn/types'
+import type { IInventory, IRequirement, IAgent, IEnquiry, IQCInventory } from '../../../data_types/acn/types'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import { formatPhoneNumber } from '../../../components/helper/formatPhone'
 
 interface AgentDetailsResponse {
     inventories: IInventory[]
     requirements: IRequirement[]
-    enquiries: any[]
-    qc: any[]
+    enquiries: IEnquiry[]
+    qc: IQCInventory[]
     error?: string
 }
 
@@ -60,9 +60,9 @@ interface NoteData {
 
 export const upgradeUserPlan = createAsyncThunk(
     'agents/upgradeUserPlan',
-    async ({ cpId }: { cpId: string }, { rejectWithValue }) => {
+    async ({ cpId, planType }: { cpId: string; planType: 'trial' | 'premium' }, { rejectWithValue }) => {
         try {
-            console.log('🔄 Upgrading user plan for:', cpId)
+            console.log('🔄 Upgrading user plan for:', cpId, 'to:', planType)
 
             const agentRef = doc(db, 'acnAgents', cpId)
             const agentSnapshot = await getDoc(agentRef)
@@ -74,20 +74,40 @@ export const upgradeUserPlan = createAsyncThunk(
             const now = getUnixDateTime() // current unix timestamp in seconds
             const currentData = agentSnapshot.data()
 
-            const updates = {
-                nextRenewal: now + 2592000, // +30 days
-                planExpiry: now + 31536000, // +1 year
-                userType: 'premium',
-                monthlyCredits: 100,
+            let updates: any = {
                 lastModified: now,
+            }
+
+            if (planType === 'trial') {
+                updates = {
+                    ...updates,
+                    nextRenewal: now + 2592000, // +30 days
+                    planExpiry: now + 2592000, // +30 days for trial
+                    userType: 'trial',
+                    monthlyCredits: 100,
+                    trialStartedAt: now,
+                    trialUsed: true,
+                    onboardingComplete: true,
+                }
+            } else if (planType === 'premium') {
+                updates = {
+                    ...updates,
+                    nextRenewal: now + 2592000, // +30 days
+                    planExpiry: now + 31536000, // +1 year
+                    userType: 'premium',
+                    monthlyCredits: 100,
+                    trialUsed: true,
+                    onboardingComplete: true,
+                }
             }
 
             await updateDoc(agentRef, updates)
 
-            console.log('✅ User plan upgraded successfully')
+            console.log('✅ User plan upgraded successfully to:', planType)
 
             return {
                 cpId,
+                planType,
                 updates,
                 updatedAgent: {
                     ...currentData,
@@ -448,22 +468,48 @@ export const fetchAgentDetails = createAsyncThunk(
             const [buyerSnapshot, sellerSnapshot] = await Promise.all([getDocs(buyerQuery), getDocs(sellerQuery)])
 
             // Combine and deduplicate enquiries
-            const buyerEnquiries = buyerSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-                assetType: propertyType.toLowerCase(),
-            }))
+            const buyerEnquiries = buyerSnapshot.docs.map((doc) => {
+                const data = doc.data()
+                return {
+                    enquiryId: data.enquiryId || doc.id,
+                    propertyId: data.propertyId || '',
+                    propertyName: data.propertyName || '',
+                    buyerCpId: data.buyerCpId || agentId,
+                    buyerName: data.buyerName || '',
+                    buyerNumber: data.buyerNumber || '',
+                    sellerCpId: data.sellerCpId || '',
+                    sellerName: data.sellerName || '',
+                    sellerNumber: data.sellerNumber || '',
+                    status: data.status || 'pending',
+                    added: data.added || Date.now(),
+                    lastModified: data.lastModified || Date.now(),
+                    reviews: data.reviews || [],
+                } as IEnquiry
+            })
 
-            const sellerEnquiries = sellerSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-                assetType: propertyType.toLowerCase(),
-            }))
+            const sellerEnquiries = sellerSnapshot.docs.map((doc) => {
+                const data = doc.data()
+                return {
+                    enquiryId: data.enquiryId || doc.id,
+                    propertyId: data.propertyId || '',
+                    propertyName: data.propertyName || '',
+                    buyerCpId: data.buyerCpId || '',
+                    buyerName: data.buyerName || '',
+                    buyerNumber: data.buyerNumber || '',
+                    sellerCpId: data.sellerCpId || agentId,
+                    sellerName: data.sellerName || '',
+                    sellerNumber: data.sellerNumber || '',
+                    status: data.status || 'pending',
+                    added: data.added || Date.now(),
+                    lastModified: data.lastModified || Date.now(),
+                    reviews: data.reviews || [],
+                } as IEnquiry
+            })
 
             // Combine and remove duplicates based on enquiryId
             const allEnquiries = [...buyerEnquiries, ...sellerEnquiries]
             const uniqueEnquiries = allEnquiries.filter(
-                (enquiry, index, self) => index === self.findIndex((e) => e.id === enquiry.id),
+                (enquiry, index, self) => index === self.findIndex((e) => e.enquiryId === enquiry.enquiryId),
             )
 
             // Fetch QC data from Firebase
@@ -471,12 +517,16 @@ export const fetchAgentDetails = createAsyncThunk(
             const qcRef = collection(db, qcCollectionName)
             const qcQuery = query(qcRef, where('cpId', '==', agentId), where('stage', '!=', 'live'))
             const qcSnapshot = await getDocs(qcQuery)
-            const qc = qcSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                qcId: doc.id,
-                ...doc.data(),
-                assetType: propertyType.toLowerCase(),
-            }))
+            const qc = qcSnapshot.docs.map((doc) => {
+                const data = doc.data()
+                return {
+                    name: data.cpId || agentId,
+                    phoneNumber: data.cpPhone || '',
+                    propertyId: data.propertyId || doc.id,
+                    lastModified: data.lastModified || Date.now(),
+                    ...data,
+                } as IQCInventory
+            })
 
             return {
                 inventories,
