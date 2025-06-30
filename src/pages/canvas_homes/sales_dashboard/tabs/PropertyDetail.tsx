@@ -125,7 +125,7 @@ const PropertyDetail = ({
         return (
             <div className=' border-b-[2px] border-gray-200 pb-2 mb-4'>
                 <label className='text-sm text-gray-600 block mb-1'>{label}</label>
-                <div className='text-sm text-black font-medium'>{displayValue || '-'}</div>
+                <div className='text-sm text-black font-medium truncate'>{displayValue || '-'}</div>
             </div>
         )
     }
@@ -239,11 +239,28 @@ const PropertyDetail = ({
             render: (value) => <span className='text-sm'>{value}</span>,
         },
     ]
+    const getClubhouseColumns = (): TableColumn[] => [
+        {
+            key: 'name',
+            header: 'Name',
+            render: (value) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'sizeSqft',
+            header: 'Size (Sq Ft)',
+            render: (value) => <span className='text-sm font-medium'>{value}</span>,
+        },
+        {
+            key: 'floor',
+            header: 'Floor',
+            render: (value) => <span className='text-sm font-medium'>{value}</span>,
+        },
+    ]
 
     if (loading || !projectDetails) {
         return (
-            <div className={`w-full overflow-hidden font-sans ${className}`}>
-                <div className='py-4 px-6 bg-white min-h-screen'>
+            <div className={`w-full  overflow-hidden font-sans ${className}`}>
+                <div className='py-4 px-6 bg-white max-h-[85vh]'>
                     <div className='flex items-center justify-center h-64'>
                         <div className='text-gray-500'>Loading project details...</div>
                     </div>
@@ -309,7 +326,22 @@ const PropertyDetail = ({
                             {renderDisplayField('Latitude', projectDetails.lat, 'number')}
                         </div>
                         <div className='space-y-4'>
-                            {renderDisplayField('Google Map', projectDetails.mapLink)}
+                            <div className='space-y-4 border-b-[2px] border-gray-200 pb-2 mb-3'>
+                                <label className='text-sm text-gray-600 block mb-1'>Google Map </label>
+                                {projectDetails.mapLink ? (
+                                    <a
+                                        href={projectDetails.mapLink}
+                                        target='_blank'
+                                        rel='noopener noreferrer'
+                                        className='text-sm text-blue-600 hover:text-blue-800 underline'
+                                    >
+                                        Google Map Link
+                                    </a>
+                                ) : (
+                                    <span className='text-sm text-gray-400'>No Google Map Link available</span>
+                                )}
+                            </div>
+                            {/* {renderDisplayField('Google Map', projectDetails.mapLink)} */}
                             {renderDisplayField('Longitude', projectDetails.long, 'number')}
                         </div>
                     </div>
@@ -325,7 +357,7 @@ const PropertyDetail = ({
                             {renderDisplayField('Car Parking (total)', projectDetails.totalParking, 'number')}
                         </div>
                         <div className='space-y-4'>
-                            {renderDisplayField('EOI Amount (₹)', projectDetails.eoiAmount, 'number')}
+                            {/* {renderDisplayField('EOI Amount (₹)', projectDetails.eoiAmount, 'number')} */}
                             {renderDisplayField('No. of Towers', projectDetails.numberOfTowers, 'number')}
                             {renderDisplayField('Open Space', projectDetails.openArea)}
                         </div>
@@ -419,6 +451,26 @@ const PropertyDetail = ({
                                 className='rounded-lg'
                             />
                         )}
+                    </div>
+                </div>
+                <div className='mb-8 px-4'>
+                    <div className='flex items-center justify-between mb-4'>
+                        <h2 className='text-lg font-semibold text-black'>Clubhouse Details</h2>
+                    </div>
+                    <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+                        <FlexibleTable
+                            data={projectDetails?.clubhouseDetails || []}
+                            columns={getClubhouseColumns()}
+                            hoverable={true}
+                            borders={{
+                                table: false,
+                                header: true,
+                                rows: true,
+                                cells: false,
+                                outer: false,
+                            }}
+                            className='rounded-lg'
+                        />
                     </div>
                 </div>
 

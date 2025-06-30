@@ -46,10 +46,11 @@ import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
 import ChoosePlatform from './ChoosePlatform'
-import Resale from './pages/restack/Resale/Resale'
-import ResalePage from './pages/restack/Resale/ResalePage'
-import { ResaleDetailsPage } from './pages/restack/Resale/ResalePageDetails'
+import Resale from './pages/restack/resale/Resale'
+import ResalePage from './pages/restack/resale/ResalePage'
+import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
 import JunkLeads from './pages/canvas_homes/sales_dashboard/JunkLead'
+import PrimaryImages from './pages/restack/Primary/PrimaryImages'
 
 export const authRoutes: RouteObject[] = [
     {
@@ -324,6 +325,14 @@ export const protectedRoutes: RouteObject[] = [
             ProtectedRoute,
             null,
             React.createElement(React.Suspense, null, React.createElement(DocumentsPage, null)),
+        ),
+    },
+    {
+        path: '/restack/primary/:id/images',
+        element: React.createElement(
+            ProtectedRoute,
+            null,
+            React.createElement(React.Suspense, null, React.createElement(PrimaryImages, null)),
         ),
     },
     {

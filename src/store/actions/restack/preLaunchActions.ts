@@ -101,6 +101,25 @@ export const deletePreLaunchProperty = createAsyncThunk(
     },
 )
 
+// Async thunk for deleting a pre-launch property by ID
+export const deletePreLaunchPropertyById = createAsyncThunk(
+    'preLaunch/deletePropertyById',
+    async (projectId: string, { dispatch, rejectWithValue }) => {
+        try {
+            dispatch(deletePreLaunchPropertyRequest())
+
+            await PreLaunchService.deleteProperty(projectId)
+
+            dispatch(deletePreLaunchPropertySuccess(projectId))
+            return projectId
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete property'
+            dispatch(deletePreLaunchPropertyFailure(errorMessage))
+            return rejectWithValue(errorMessage)
+        }
+    },
+)
+
 // Async thunk for getting a single pre-launch property by ID
 export const getPreLaunchPropertyById = createAsyncThunk(
     'preLaunch/getPropertyById',
@@ -192,4 +211,5 @@ export const preLaunchActions = {
     setFilters,
     clearFilters,
     clearErrorState,
+    deletePreLaunchPropertyById,
 }

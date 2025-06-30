@@ -128,6 +128,7 @@ export interface PostReraProperty {
     CDPMapURL: string
     costSheet: string
     brochure: string
+    masterPlanURL: string
     projectAmenities: string[]
     clubHouseDetails: ClubHouseDetail[]
     litigation: string
@@ -139,6 +140,7 @@ export interface PostReraProperty {
     createdAt: number
     updatedAt: number
     sizes: string
+    stockType?: string
 }
 
 export interface PostReraPropertyState {

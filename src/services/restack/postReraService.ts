@@ -87,6 +87,7 @@ const PostReraService = {
                     CDPMapURL: data.CDPMapURL,
                     costSheet: data.costSheet,
                     brochure: data.brochure,
+                    masterPlanURL: data.masterPlanURL,
                     projectAmenities: data.projectAmenities,
                     clubHouseDetails: data.clubHouseDetails,
                     litigation: data.litigation,
@@ -98,6 +99,7 @@ const PostReraService = {
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt,
                     sizes: data.sizes,
+                    stockType: data.stockType,
                 }
                 properties.push(property)
             })
@@ -179,6 +181,8 @@ const PostReraService = {
                     CDPMapURL: data.CDPMapURL,
                     costSheet: data.costSheet,
                     brochure: data.brochure,
+                    masterPlanURL: data.masterPlanURL,
+                    stockType: data.stockType,
                     projectAmenities: data.projectAmenities,
                     clubHouseDetails: data.clubHouseDetails,
                     litigation: data.litigation,
@@ -282,6 +286,8 @@ const PostReraService = {
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt,
                     sizes: data.sizes,
+                    masterPlanURL: data.masterPlanURL,
+                    stockType: data.stockType,
                 }
                 return property
             } else {
@@ -374,6 +380,8 @@ const PostReraService = {
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt,
                     sizes: data.sizes,
+                    masterPlanURL: data.masterPlanURL,
+                    stockType: data.stockType,
                 }
                 console.log('Fetched post-rera property:', property)
                 return property

@@ -25,19 +25,30 @@ interface OverviewData {
     [key: string]: MonthlyData[]
 }
 
+interface ScrapedAtData {
+    [key: string]: string | number | undefined
+}
+
 const Rental: React.FC = () => {
     const navigate = useNavigate()
     const [overviewData, setOverviewData] = useState<OverviewData>({})
+    const [scrapedAtData, setScrapedAtData] = useState<ScrapedAtData>({})
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
     const [availableYears, setAvailableYears] = useState<number[]>([])
     const [loading, setLoading] = useState<boolean>(true)
+
+    // Helper function to parse date in dd/MM/yyyy format
+    const parseDate = (dateString: string): Date => {
+        const [day, month, year] = dateString.split('/').map(Number)
+        return new Date(year, month - 1, day) // Month is 0-indexed
+    }
 
     // Helper function to get available months from price history
     const getAvailableMonths = (priceHistory: { date: string; price: number }[]) => {
         if (!priceHistory || priceHistory.length === 0) return []
 
         return priceHistory.map((entry) => {
-            const date = new Date(entry.date)
+            const date = parseDate(entry.date)
             return {
                 year: date.getFullYear(),
                 month: date.getMonth(), // 0-11
@@ -55,7 +66,7 @@ const Rental: React.FC = () => {
         allData.forEach((property) => {
             if (property.priceHistory && property.priceHistory.length > 0) {
                 property.priceHistory.forEach((entry) => {
-                    const year = new Date(entry.date).getFullYear()
+                    const year = parseDate(entry.date).getFullYear()
                     years.add(year)
                 })
             }
@@ -124,13 +135,29 @@ const Rental: React.FC = () => {
         const fetchOverviewData = async () => {
             setLoading(true)
             try {
-                const [acresData, magicBricksData, acnData, myGateData, housingData] = await Promise.all([
+                const [acresResult, magicBricksResult, acnResult, myGateResult, housingResult] = await Promise.all([
                     get99AcresRentalData(),
                     getMagicBricksRentalData(),
                     getACNRentalData(),
                     getMyGateRentalData(),
                     getHousingRentalData(),
                 ])
+
+                const acresData = acresResult
+                const magicBricksData = magicBricksResult
+                const acnData = acnResult
+                const myGateData = myGateResult
+                const housingData = housingResult
+
+                // Store scrapedAt data in state
+                const newScrapedAtData: ScrapedAtData = {
+                    '99acres': acresResult.length > 0 ? acresResult[0].scrapedAt : undefined,
+                    magicbricks: magicBricksResult.length > 0 ? magicBricksResult[0].scrapedAt : undefined,
+                    ACN: acnResult.length > 0 ? acnResult[0].scrapedAt : undefined,
+                    myGate: myGateResult.length > 0 ? myGateResult[0].scrapedAt : undefined,
+                    Housing: housingResult.length > 0 ? housingResult[0].scrapedAt : undefined,
+                }
+                setScrapedAtData(newScrapedAtData)
 
                 // Get all available years from all data sources
                 const allData = [...acresData, ...magicBricksData, ...acnData, ...myGateData, ...housingData]
@@ -172,6 +199,7 @@ const Rental: React.FC = () => {
 
     const renderSourceSection = (sourceName: string, displayName: string) => {
         const data = overviewData[sourceName]
+        const scrapedAt = scrapedAtData[sourceName]
 
         if (!data || data.length === 0) {
             return null
@@ -181,12 +209,19 @@ const Rental: React.FC = () => {
             <div key={sourceName} className='bg-white rounded-lg shadow-sm border border-gray-200 mb-8'>
                 <div className='px-6 py-4 border-b border-gray-200 flex justify-between'>
                     <h2 className='text-xl font-semibold text-gray-900'>{displayName}</h2>
-                    <button
-                        onClick={() => handleRentalTypeSelect(sourceName)}
-                        className='bg-black text-white w-35 text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
-                    >
-                        View Inventories
-                    </button>
+                    <div className='flex gap-2'>
+                        {scrapedAt && (
+                            <div className=' text-sm mt-1 text-gray-500'>
+                                Last Scraped At: {new Date(scrapedAt).toLocaleString()}
+                            </div>
+                        )}
+                        <button
+                            onClick={() => handleRentalTypeSelect(sourceName)}
+                            className='bg-black text-white w-35 text-xs font-medium px-3 py-1 rounded transition-colors hover:bg-gray-800'
+                        >
+                            View Inventories
+                        </button>
+                    </div>
                 </div>
                 <div className='p-6'>
                     <FlexibleTable
