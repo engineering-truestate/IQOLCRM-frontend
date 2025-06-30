@@ -597,7 +597,7 @@ export interface IAgent {
     lastConnected: number
     lastTried: number
     contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
-    contactHistory: ContactHistoryItem[]
+    connectHistory: ContactHistoryItem[]
     notes: Note[]
     appInstalled: boolean
     communityJoined: boolean
@@ -629,7 +629,6 @@ export interface IAgent {
     inboundEnqCredits: number
     inboundReqCredits: number
     contactStatus: 'connected' | 'not contact' | 'rnr-2' | 'rnr-3' | 'rnr-1' | 'rnr-4' | 'rnr-5' | 'rnr-6'
-    contactHistory: ContactHistoryItem[]
     lastTried: number
     kamName: string
     kamId: string

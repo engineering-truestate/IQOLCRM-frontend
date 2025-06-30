@@ -10,6 +10,7 @@ import { toast } from 'react-toastify'
 import copyic from '/icons/acn/copy-icon.svg'
 import crossic from '/icons/acn/cross.svg'
 import { ClipLoader } from 'react-spinners'
+import useAuth from '../../hooks/useAuth'
 
 interface CallModalProps {
     isOpen: boolean
@@ -35,6 +36,7 @@ interface CallModalProps {
 }
 
 const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
+    const { user } = useAuth()
     const dispatch = useDispatch<AppDispatch>()
     const location = useLocation()
 
@@ -45,7 +47,7 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
     // Form state
     const [connection, setConnection] = useState<'connected' | 'not connected' | ''>('connected')
     const [connectMedium, setConnectMedium] = useState<'on call' | 'on whatsapp' | ''>('on call')
-    const [direction, setDirection] = useState<'inbound' | 'outbound' | ''>('inbound')
+    const [direction, setDirection] = useState<'inbound' | 'outbound' | ''>('outbound')
     const [note, setNote] = useState('')
 
     // Redux selectors - use appropriate selector based on context
@@ -92,10 +94,23 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
         if (rowData) {
             setIsLoading(true)
             try {
+                // Set default values if connected and fields are empty
+                let finalDirection = direction
+                let finalConnectMedium = connectMedium
+
+                if (connection === 'connected') {
+                    if (direction === '') {
+                        finalDirection = 'outbound'
+                    }
+                    if (connectMedium === '') {
+                        finalConnectMedium = 'on call'
+                    }
+                }
+
                 const callData = {
                     connection,
-                    connectMedium,
-                    direction,
+                    connectMedium: finalConnectMedium,
+                    direction: finalDirection,
                 }
 
                 if (isLeadsContext && rowData.leadId) {
@@ -104,9 +119,11 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                             leadId: rowData.leadId,
                             callData,
                             note: note.trim() || undefined,
+                            name: user?.displayName ?? 'Unknown',
+                            kamId: rowData.kamId || 'CURRENT_USER',
                         }),
                     ).unwrap()
-                    console.log('here')
+                    console.log('here', callData)
                     //toast.success('Call result added successfully')
                 } else if (isAgentsContext && rowData.cpId) {
                     await dispatch(
@@ -114,6 +131,8 @@ const CallModal: React.FC<CallModalProps> = ({ isOpen, onClose, rowData }) => {
                             cpId: rowData.cpId,
                             callData,
                             note: note.trim() || undefined,
+                            name: user?.displayName ?? 'Unknown',
+                            kamId: rowData.kamId || 'CURRENT_USER',
                         }),
                     ).unwrap()
                 }
