@@ -450,6 +450,13 @@ const AddEditInventoryPage = () => {
     }, [selectedPlace])
 
     const handleFieldChange = (fieldId: string, value: any) => {
+        // Special handling for PlacesSearch - don't store the object, only use it to trigger updates
+        if (fieldId === 'selectedPlace' || (typeof value === 'object' && value?.name && value?.lat && value?.lng)) {
+            // This is a Places object, don't store it in formData
+            setSelectedPlace(value)
+            return
+        }
+
         setFormData((prev) => ({
             ...prev,
             [fieldId]: value,
@@ -793,7 +800,11 @@ const AddEditInventoryPage = () => {
                                                                     }
                                                                     error={errors[field.field || '']}
                                                                     assetType={assetType}
-                                                                    formData={{ ...formData, setSelectedPlace }}
+                                                                    formData={{
+                                                                        ...formData,
+                                                                        setSelectedPlace,
+                                                                        selectedPlace: selectedPlace?.name || '',
+                                                                    }}
                                                                 />
                                                             </div>
                                                         </div>,
@@ -814,7 +825,11 @@ const AddEditInventoryPage = () => {
                                                                         }
                                                                         error={errors[field.field || '']}
                                                                         assetType={assetType}
-                                                                        formData={{ ...formData, setSelectedPlace }}
+                                                                        formData={{
+                                                                            ...formData,
+                                                                            setSelectedPlace,
+                                                                            selectedPlace: selectedPlace?.name || '',
+                                                                        }}
                                                                     />
                                                                 </div>
                                                                 <div className='w-1/2'>
@@ -830,7 +845,11 @@ const AddEditInventoryPage = () => {
                                                                         }
                                                                         error={errors[nextField.field || '']}
                                                                         assetType={assetType}
-                                                                        formData={{ ...formData, setSelectedPlace }}
+                                                                        formData={{
+                                                                            ...formData,
+                                                                            setSelectedPlace,
+                                                                            selectedPlace: selectedPlace?.name || '',
+                                                                        }}
                                                                     />
                                                                 </div>
                                                             </div>,
@@ -849,7 +868,11 @@ const AddEditInventoryPage = () => {
                                                                         }
                                                                         error={errors[field.field || '']}
                                                                         assetType={assetType}
-                                                                        formData={{ ...formData, setSelectedPlace }}
+                                                                        formData={{
+                                                                            ...formData,
+                                                                            setSelectedPlace,
+                                                                            selectedPlace: selectedPlace?.name || '',
+                                                                        }}
                                                                     />
                                                                 </div>
                                                                 <div className='w-1/2' />
