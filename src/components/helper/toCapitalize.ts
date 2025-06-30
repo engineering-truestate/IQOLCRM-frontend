@@ -1,5 +1,5 @@
 export function toCapitalizedWords(str: string | null | undefined): string {
-    if (!str || typeof str !== 'string') return 'NA'
+    if (!str || typeof str !== 'string') return '-'
     str = str.trim()
 
     const words = str.split(/\s+/)

@@ -6,6 +6,7 @@ interface NotesProps {
     notes: NoteItem[]
     onAddNote: (noteData: { agentId: string; agentName: string; taskType: string; note: string }) => Promise<void>
     loading: boolean
+    agentName: string | null
 }
 
 interface Note {
@@ -21,7 +22,7 @@ interface TaskSection {
     notes: Note[]
 }
 
-const Notes: React.FC<NotesProps> = ({ notes = [], loading }) => {
+const Notes: React.FC<NotesProps> = ({ notes = [], loading, agentName }) => {
     const [expandedSections, _setExpandedSections] = useState<{ [key: string]: boolean }>({
         'lead-registration': true,
         'site-visit': true,
@@ -110,47 +111,112 @@ const Notes: React.FC<NotesProps> = ({ notes = [], loading }) => {
                 {taskSections.map(
                     (section) =>
                         section.notes.length > 0 && (
-                            <div key={section.id} className='border border-gray-300 bg-red rounded-md h-45'>
+                            <div key={section.id} className='border border-gray-300 bg-red rounded-md max-h-45 '>
                                 {/* Task Header */}
                                 <div className='flex items-center h-10 px-2 justify-between cursor-pointer border-b-2 border-gray-300 rounded-t-md'>
                                     <div className='flex flex-row'>
                                         <svg
                                             width='22'
                                             height='22'
-                                            viewBox='0 0 24 24'
+                                            viewBox='0 0 22 22'
                                             fill='none'
                                             xmlns='http://www.w3.org/2000/svg'
                                         >
                                             <path
-                                                d='M20.1654 10.9999C20.1654 5.94908 16.0495 1.83325 10.9987 1.83325C5.94786 1.83325 1.83203 5.94908 1.83203 10.9999C1.83203 13.6583 2.97786 16.0508 4.79286 17.7283C4.79286 17.7374 4.79286 17.7374 4.7837 17.7466C4.87536 17.8383 4.98536 17.9116 5.07703 17.9941C5.13203 18.0399 5.17786 18.0858 5.23286 18.1224C5.39786 18.2599 5.5812 18.3883 5.75536 18.5166C5.81953 18.5624 5.87453 18.5991 5.9387 18.6449C6.11286 18.7641 6.2962 18.8741 6.4887 18.9749C6.55286 19.0116 6.6262 19.0574 6.69036 19.0941C6.8737 19.1949 7.0662 19.2866 7.26786 19.3691C7.3412 19.4058 7.41453 19.4424 7.48786 19.4699C7.68953 19.5524 7.8912 19.6258 8.09286 19.6899C8.1662 19.7174 8.23953 19.7449 8.31286 19.7633C8.53286 19.8274 8.75286 19.8824 8.97286 19.9374C9.03703 19.9558 9.1012 19.9741 9.17453 19.9833C9.4312 20.0383 9.68786 20.0749 9.9537 20.1024C9.99036 20.1024 10.027 20.1116 10.0637 20.1208C10.3754 20.1483 10.687 20.1666 10.9987 20.1666C11.3104 20.1666 11.622 20.1483 11.9245 20.1208C11.9612 20.1208 11.9979 20.1116 12.0345 20.1024C12.3004 20.0749 12.557 20.0383 12.8137 19.9833C12.8779 19.9741 12.942 19.9466 13.0154 19.9374C13.2354 19.8824 13.4645 19.8366 13.6754 19.7633C13.7487 19.7358 13.822 19.7083 13.8954 19.6899C14.097 19.6166 14.3079 19.5524 14.5004 19.4699C14.5737 19.4424 14.647 19.4058 14.7204 19.3691C14.9129 19.2866 15.1054 19.1949 15.2979 19.0941C15.3712 19.0574 15.4354 19.0116 15.4995 18.9749C15.6829 18.8649 15.8662 18.7641 16.0495 18.6449C16.1137 18.6083 16.1687 18.5624 16.2329 18.5166C16.4162 18.3883 16.5904 18.2599 16.7554 18.1224C16.8104 18.0766 16.8562 18.0308 16.9112 17.9941C17.012 17.9116 17.1129 17.8291 17.2045 17.7466C17.2045 17.7374 17.2045 17.7374 17.1954 17.7283C19.0195 16.0508 20.1654 13.6583 20.1654 10.9999ZM15.527 15.5558C13.0429 13.8874 8.97286 13.8874 6.47036 15.5558C6.06703 15.8216 5.73703 16.1333 5.46203 16.4724C4.0687 15.0608 3.20703 13.1266 3.20703 10.9999C3.20703 6.70075 6.69953 3.20825 10.9987 3.20825C15.2979 3.20825 18.7904 6.70075 18.7904 10.9999C18.7904 13.1266 17.9287 15.0608 16.5354 16.4724C16.2695 16.1333 15.9304 15.8216 15.527 15.5558Z'
-                                                fill='#606060'
+                                                d='M7.33203 1.83325V4.58325'
+                                                stroke='#515162'
+                                                stroke-width='1.5'
+                                                stroke-miterlimit='10'
+                                                stroke-linecap='round'
+                                                stroke-linejoin='round'
                                             />
                                             <path
-                                                d='M11 6.35254C9.1025 6.35254 7.5625 7.89254 7.5625 9.79004C7.5625 11.6509 9.02 13.1634 10.9542 13.2184C10.9817 13.2184 11.0183 13.2184 11.0367 13.2184C11.055 13.2184 11.0825 13.2184 11.1008 13.2184C11.11 13.2184 11.1192 13.2184 11.1192 13.2184C12.9708 13.1542 14.4283 11.6509 14.4375 9.79004C14.4375 7.89254 12.8975 6.35254 11 6.35254Z'
-                                                fill='#606060'
+                                                d='M14.668 1.83325V4.58325'
+                                                stroke='#515162'
+                                                stroke-width='1.5'
+                                                stroke-miterlimit='10'
+                                                stroke-linecap='round'
+                                                stroke-linejoin='round'
+                                            />
+                                            <path
+                                                d='M6.41797 11.9167H13.7513'
+                                                stroke='#515162'
+                                                stroke-width='1.5'
+                                                stroke-miterlimit='10'
+                                                stroke-linecap='round'
+                                                stroke-linejoin='round'
+                                            />
+                                            <path
+                                                d='M6.41797 15.5833H11.0013'
+                                                stroke='#515162'
+                                                stroke-width='1.5'
+                                                stroke-miterlimit='10'
+                                                stroke-linecap='round'
+                                                stroke-linejoin='round'
+                                            />
+                                            <path
+                                                d='M14.6667 3.20825C17.7192 3.37325 19.25 4.53742 19.25 8.84575V14.5108C19.25 18.2874 18.3333 20.1758 13.75 20.1758H8.25C3.66667 20.1758 2.75 18.2874 2.75 14.5108V8.84575C2.75 4.53742 4.28083 3.38242 7.33333 3.20825H14.6667Z'
+                                                stroke='#515162'
+                                                stroke-width='1.5'
+                                                stroke-miterlimit='10'
+                                                stroke-linecap='round'
+                                                stroke-linejoin='round'
                                             />
                                         </svg>
 
                                         <span>
-                                            <h3 className='font-medium text-sm'>{section.title}</h3>
+                                            <h3 className='font-medium text-sm ml-2'>{section.title}</h3>
                                         </span>
                                     </div>
                                     <div>
                                         <span>
-                                            <h3 className='font-medium text-sm'>Agent:{section.notes[0]?.agent}</h3>
+                                            <h3 className='font-medium text-sm'>Agent: {agentName}</h3>
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* Notes List - Scrollable */}
                                 {expandedSections[section.id] && (
-                                    <div className='p-4 pb-0 h-31 overflow-y-auto space-y-3 pr-2 scrollbar-hide'>
+                                    <div className='p-4 max-h-31 g overflow-y-auto space-y-3 pr-2 scrollbar-hide'>
                                         {[...section.notes]
                                             .sort((a, b) => b.timestamp - a.timestamp)
                                             .map((note) => (
                                                 <div key={note.id}>
-                                                    <div className='flex items-start justify-between mb-2'>
-                                                        <span className='text-xs text-gray-500'>
+                                                    <div className='flex mb-2'>
+                                                        <svg
+                                                            width='22'
+                                                            height='22'
+                                                            viewBox='0 0 22 22'
+                                                            fill='none'
+                                                            xmlns='http://www.w3.org/2000/svg'
+                                                        >
+                                                            <path
+                                                                d='M11.1089 11.7151C11.0447 11.7059 10.9622 11.7059 10.8889 11.7151C9.27552 11.6601 7.99219 10.3401 7.99219 8.7176C7.99219 7.05844 9.33052 5.71094 10.9989 5.71094C12.658 5.71094 14.0055 7.05844 14.0055 8.7176C13.9964 10.3401 12.7222 11.6601 11.1089 11.7151Z'
+                                                                stroke='#515162'
+                                                                stroke-width='1.5'
+                                                                stroke-linecap='round'
+                                                                stroke-linejoin='round'
+                                                            />
+                                                            <path
+                                                                d='M17.177 17.7649C15.5453 19.2591 13.382 20.1666 10.9986 20.1666C8.61531 20.1666 6.45198 19.2591 4.82031 17.7649C4.91198 16.9033 5.46198 16.0599 6.44281 15.3999C8.95448 13.7316 13.0611 13.7316 15.5545 15.3999C16.5353 16.0599 17.0853 16.9033 17.177 17.7649Z'
+                                                                stroke='#515162'
+                                                                stroke-width='1.5'
+                                                                stroke-linecap='round'
+                                                                stroke-linejoin='round'
+                                                            />
+                                                            <path
+                                                                d='M10.9987 20.1666C16.0613 20.1666 20.1654 16.0625 20.1654 10.9999C20.1654 5.93731 16.0613 1.83325 10.9987 1.83325C5.93609 1.83325 1.83203 5.93731 1.83203 10.9999C1.83203 16.0625 5.93609 20.1666 10.9987 20.1666Z'
+                                                                stroke='#515162'
+                                                                stroke-width='1.5'
+                                                                stroke-linecap='round'
+                                                                stroke-linejoin='round'
+                                                            />
+                                                        </svg>
+                                                        <span className='text-[13px] text-gray-500 ml-2'>
+                                                            {note.agent} |
+                                                        </span>
+
+                                                        <span className='text-[13px] text-gray-500'>
                                                             {formatUnixDateTime(note.timestamp)}
                                                         </span>
                                                     </div>

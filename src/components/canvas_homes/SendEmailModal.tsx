@@ -3,9 +3,15 @@ import { sendLeadEmail } from '../../services/canvas_homes'
 import { useParams } from 'react-router-dom'
 import { leadService } from '../../services/canvas_homes/leadService'
 import type { Lead } from '../../services/canvas_homes/types'
+import { taskService } from '../../services/canvas_homes'
+import useAuth from '../../hooks/useAuth'
+import { toast } from 'react-toastify'
 
 interface EmailModalProps {
     onClose: () => void
+    email: string
+    taskId: string
+    refreshData: () => void
 }
 
 interface EmailChip {
@@ -13,15 +19,16 @@ interface EmailChip {
     id: string
 }
 
-const SendEmailModal: React.FC<EmailModalProps> = ({ onClose }) => {
+const SendEmailModal: React.FC<EmailModalProps> = ({ onClose, email, taskId, refreshData }) => {
     const { leadId } = useParams<{ leadId: string }>()
     const [leadData, setLeadData] = useState<Lead | null>(null)
-    const [toEmail, setToEmail] = useState('mail.rajanydv@gmail.com')
+    const [toEmail, setToEmail] = useState(email)
     const [ccEmails, setCcEmails] = useState<EmailChip[]>([{ email: 'rahul@canvas-homes.com', id: '2' }])
     const [toInput, setToInput] = useState('')
     const [ccInput, setCcInput] = useState('')
     const [subject, setSubject] = useState('')
     const [content, setContent] = useState('')
+    const { user } = useAuth()
 
     // Fetch lead data on component mount
     useEffect(() => {
@@ -58,8 +65,8 @@ Please don't call the customer
 
 Regards,
 Canvas Homes (IQOL Technologies Pvt Ltd)
-Agent Name
-Agent's Phone Number`)
+Agent Name :- ${user?.displayName}
+Agent's Phone Number :-${user?.phoneNumber || ''}`)
 
                 setSubject(`Lead Registration for ${leadData.propertyName} | IQOL Technologies`)
             }
@@ -68,8 +75,8 @@ Agent's Phone Number`)
         setTemplateData()
     }, [leadData])
     // New state for minimize/expand functionality
-    const [isMinimized, setIsMinimized] = useState(false)
-    const [isExpanded, setIsExpanded] = useState(false)
+    const [isMinimized] = useState(false)
+    const [isExpanded] = useState(false)
 
     const handleToKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -109,32 +116,18 @@ Agent's Phone Number`)
 
     const onSend = async () => {
         try {
-            const response = await sendLeadEmail(toEmail, content, subject)
-            console.log('Email sent successfully:', response)
+            await sendLeadEmail(toEmail, content, subject)
+            await taskService.update(taskId, { emailSent: toEmail })
+            refreshData()
+            toast.success('Email sent successfully')
             onClose()
         } catch (error) {
-            console.error('Failed to send email:', error)
+            toast.error('Failed to send email')
         }
     }
 
     const onDiscard = () => {
         onClose()
-    }
-
-    // Handle minimize toggle
-    const handleMinimize = () => {
-        setIsMinimized(!isMinimized)
-        if (isExpanded) {
-            setIsExpanded(false) // Reset expanded state when minimizing
-        }
-    }
-
-    // Handle expand toggle
-    const handleExpand = () => {
-        setIsExpanded(!isExpanded)
-        if (isMinimized) {
-            setIsMinimized(false) // Reset minimized state when expanding
-        }
     }
 
     // Get modal classes based on state
@@ -154,25 +147,6 @@ Agent's Phone Number`)
                     {/* Header */}
                     <div className='bg-blue-500 px-6 py-2 flex justify-between items-center'>
                         <h2 className='text-white text-md font-medium'>New Message</h2>
-                        <div className='flex items-center space-x-4'>
-                            <button
-                                onClick={handleMinimize}
-                                className='text-white hover:text-gray-200 text-xl'
-                                title={isMinimized ? 'Restore' : 'Minimize'}
-                            >
-                                {isMinimized ? '☐' : '−'}
-                            </button>
-                            <button
-                                onClick={handleExpand}
-                                className='text-white hover:text-gray-200 text-lg'
-                                title={isExpanded ? 'Restore' : 'Expand'}
-                            >
-                                {isExpanded ? '⤡' : '⤢'}
-                            </button>
-                            <button onClick={onClose} className='text-white hover:text-gray-200 text-xl font-light'>
-                                ×
-                            </button>
-                        </div>
                     </div>
 
                     {/* Form Content - Hide when minimized */}

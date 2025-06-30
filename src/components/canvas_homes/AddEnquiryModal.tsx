@@ -200,6 +200,8 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                 source: 'manual',
                 leadStatus: null, // Default status
                 stage: null,
+                rnr: false,
+                rnrCount: 0,
                 agentHistory: [
                     {
                         agentId: formData.agentId,
@@ -235,6 +237,8 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                 propertyName: formData.propertyName,
                 agentId: formData.agentId,
                 agentName: formData.agentName,
+                rnr: false,
+                rnrCount: 0,
                 stage: null,
                 taskType: null,
                 scheduledDate: null,

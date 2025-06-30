@@ -146,6 +146,8 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                     leadStatus: formData.leadStatus,
                     tag: formData.tag,
                     lastModified: currentTimestamp,
+                    rnr: false,
+                    rnrCount: 0,
                 }
 
                 const addLeadClosedActivity = enquiryService.addActivity(enquiryId, {
@@ -203,6 +205,8 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                             stage: mostRecentEnquiry.stage,
                             leadStatus: mostRecentEnquiry.leadStatus as any,
                             propertyName: mostRecentEnquiry.propertyName,
+                            rnr: mostRecentEnquiry?.rnr,
+                            rnrCount: mostRecentEnquiry.rnrCount,
                             tag: mostRecentEnquiry.tag,
                             taskType: earliestTask.taskType,
                             scheduledDate: earliestTask.scheduledDate,
@@ -219,6 +223,8 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                             tag: mostRecentEnquiry.tag,
                             taskType: null,
                             scheduledDate: null,
+                            rnr: false,
+                            rnrCount: 0,
                             lastModified: currentTimestamp,
                         }
                         shouldUpdateLead = true
@@ -237,6 +243,8 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                             leadStatus: formData.leadStatus as any,
                             completionDate: currentTimestamp,
                             tag: formData.tag,
+                            rnr: false,
+                            rnrCount: 0,
                             scheduledDate: earliestTask.scheduledDate,
                             taskType: earliestTask.taskType,
                             lastModified: currentTimestamp,
@@ -250,6 +258,8 @@ const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskSt
                             leadStatus: formData.leadStatus as any,
                             completionDate: currentTimestamp,
                             tag: formData.tag,
+                            rnr: false,
+                            rnrCount: 0,
                             scheduledDate: null,
                             taskType: null,
                             lastModified: currentTimestamp,

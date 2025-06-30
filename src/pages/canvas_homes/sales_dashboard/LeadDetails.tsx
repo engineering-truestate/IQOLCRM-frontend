@@ -269,6 +269,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
 
     // Tab Content Renderer
     const renderTabContent = (): React.ReactNode => {
+        console.log(currentEnquiry?.notes)
         switch (activeTab) {
             case 'Task':
                 return (
@@ -286,6 +287,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
                             dueDate: task.dueDate,
                             createdAt: task.createdAt,
                             eventName: (task as any).eventName ?? '',
+                            emailSent: (task as any).emailSent ?? '',
                             // Add all required fields with defaults or from context
                             name: (task as any).name ?? leadData?.name ?? '',
                             leadAddDate: (task as any).leadAddDate ?? leadData?.added ?? 0,
@@ -326,15 +328,14 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
                 return (
                     <Notes
                         notes={(currentEnquiry?.notes || []).map((note) => ({
-                            // Map Note to NoteItem, filling missing fields with defaults or from context
                             timestamp: note.createdAt ?? 0,
                             agentId: currentEnquiry?.agentId ?? '',
                             agentName: leadData?.agentName ?? '',
                             taskType: '', // Provide a default or map if available
                             note: note.content,
-                            // Optionally, include other NoteItem fields if needed
                             ...note,
                         }))}
+                        agentName={leadData?.agentName || null}
                         onAddNote={async (noteData) => {
                             // Call your addNote function with the note content
                             addNote(noteData.note)

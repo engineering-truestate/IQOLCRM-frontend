@@ -75,6 +75,8 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({
                 leadStatus: currentEnquiry?.leadStatus,
                 propertyName: currentEnquiry.propertyName,
                 propertyId: currentEnquiry.propertyId,
+                rnr: currentEnquiry.rnr,
+                rnrCount: currentEnquiry.rnrCount,
                 tag: currentEnquiry.tag,
                 lastModified: currentTimestamp,
                 taskType: null as string | null,

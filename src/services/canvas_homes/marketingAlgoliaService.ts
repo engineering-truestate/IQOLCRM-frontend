@@ -66,13 +66,11 @@ const buildCampaignFilterString = (filters: CampaignSearchFilters): string => {
     if (filters.campaignName && filters.campaignName.length > 0) {
         const campaignFilters = filters.campaignName.map((campaign) => `campaignName:"${campaign}"`).join(' OR ')
         filterParts.push(`(${campaignFilters})`)
-        console.log('Added campaignName filter:', campaignFilters)
     }
 
     if (filters.status && filters.status.length > 0) {
         const statusFilters = filters.status.map((status) => `status:"${status}"`).join(' OR ')
         filterParts.push(`(${statusFilters})`)
-        console.log('Added status filter:', statusFilters)
     }
 
     // Date range filter - consistent seconds timestamps
@@ -134,7 +132,6 @@ const buildCampaignFilterString = (filters: CampaignSearchFilters): string => {
     }
 
     const finalFilter = filterParts.join(' AND ')
-    console.log('Final filter string:', finalFilter)
     return finalFilter
 }
 
@@ -165,14 +162,6 @@ export const searchCampaigns = async (params: CampaignSearchParams = {}): Promis
         const indexName = getCampaignIndexNameForSort(sortBy)
         const filterString = buildCampaignFilterString(filters)
 
-        console.log('Algolia campaign search params:', {
-            indexName,
-            query,
-            page,
-            hitsPerPage,
-            filters: filterString,
-        })
-
         const response = await searchClient.search({
             requests: [
                 {
@@ -184,23 +173,6 @@ export const searchCampaigns = async (params: CampaignSearchParams = {}): Promis
                     facets: ['campaignName', 'status'],
                     maxValuesPerFacet: 100,
                     analytics: true,
-                    attributesToRetrieve: [
-                        'objectID',
-                        'campaignId',
-                        'campaignName',
-                        'status',
-                        'startDate',
-                        'endDate',
-                        'totalCost',
-                        'totalClicks',
-                        'totalImpressions',
-                        'totalConversions',
-                        'averageCpc',
-                        'ctr',
-                        'isPaused',
-                        'activeDuration',
-                        'added',
-                    ],
                 },
             ],
         })
@@ -217,7 +189,6 @@ export const searchCampaigns = async (params: CampaignSearchParams = {}): Promis
             facets: result.facets || {},
         }
     } catch (error) {
-        console.error('Algolia campaign search error:', error)
         throw new Error(`Campaign search failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
@@ -417,21 +388,6 @@ export const formatCampaignFiltersForDisplay = (filters: CampaignSearchFilters):
 }
 
 // Helper function to initialize facets on app load
-export const initializeCampaignFacets = async (): Promise<Record<string, Record<string, number>>> => {
-    try {
-        const response = await searchCampaigns({
-            query: '',
-            page: 0,
-            hitsPerPage: 0, // Only get facets, no hits
-        })
-
-        return response.facets || {}
-    } catch (error) {
-        console.error('Initialize campaign facets error:', error)
-        return {}
-    }
-}
-
 export default {
     searchCampaigns,
     getCampaignFacetValues,
@@ -442,5 +398,4 @@ export default {
     getCampaignsByIds,
     trackCampaignSearchEvent,
     formatCampaignFiltersForDisplay,
-    initializeCampaignFacets,
 }

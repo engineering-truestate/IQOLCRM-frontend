@@ -131,6 +131,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 tag: tag,
                 scheduledDate: scheduledDate < currentTimestamp ? currentTimestamp : scheduledDate,
                 added: currentTimestamp,
+                rnr: false,
+                rnrCount: 0,
                 completionDate: null,
                 lastModified: currentTimestamp,
             }
