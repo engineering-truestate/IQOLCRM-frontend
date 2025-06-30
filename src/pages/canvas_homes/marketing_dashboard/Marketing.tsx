@@ -158,7 +158,7 @@ const Marketing = () => {
     const [allCampaignsData, setAllCampaignsData] = useState<Campaign[]>([])
     const [filteredCampaignsData, setFilteredCampaignsData] = useState<Campaign[]>([])
     const [facets, setFacets] = useState<Record<string, Record<string, number>>>({})
-    const [isLoading, setIsLoading] = useState(false)
+    const [isLoading] = useState(false)
 
     // Update URL when filters change
     const updateURL = useCallback(

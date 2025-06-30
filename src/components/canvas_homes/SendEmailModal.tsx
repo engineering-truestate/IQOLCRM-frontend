@@ -75,8 +75,8 @@ Agent's Phone Number :-${user?.phoneNumber || ''}`)
         setTemplateData()
     }, [leadData])
     // New state for minimize/expand functionality
-    const [isMinimized, setIsMinimized] = useState(false)
-    const [isExpanded, setIsExpanded] = useState(false)
+    const [isMinimized] = useState(false)
+    const [isExpanded] = useState(false)
 
     const handleToKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -128,22 +128,6 @@ Agent's Phone Number :-${user?.phoneNumber || ''}`)
 
     const onDiscard = () => {
         onClose()
-    }
-
-    // Handle minimize toggle
-    const handleMinimize = () => {
-        setIsMinimized(!isMinimized)
-        if (isExpanded) {
-            setIsExpanded(false) // Reset expanded state when minimizing
-        }
-    }
-
-    // Handle expand toggle
-    const handleExpand = () => {
-        setIsExpanded(!isExpanded)
-        if (isMinimized) {
-            setIsMinimized(false) // Reset minimized state when expanding
-        }
     }
 
     // Get modal classes based on state

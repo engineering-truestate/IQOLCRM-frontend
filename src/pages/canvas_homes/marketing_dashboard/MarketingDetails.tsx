@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
@@ -57,7 +57,6 @@ interface ProcessedMetric {
 }
 
 const MarketingDetails = () => {
-    const navigate = useNavigate()
     const dispatch = useDispatch<AppDispatch>()
     const { properties } = useSelector((state: RootState) => state.preLaunch)
     const { campaignId } = useParams<{ campaignId: string }>()
@@ -75,7 +74,6 @@ const MarketingDetails = () => {
     // UI states
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [setSuccessMessage] = useState<string | null>(null)
 
     // Property selection states
     const [isEditingProperty, setIsEditingProperty] = useState(false)
