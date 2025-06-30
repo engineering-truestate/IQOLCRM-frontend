@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch } from '../../../store'
 import { setSelectedAgent } from '../../../store/slices/agentDetailsSlice'
@@ -58,43 +58,6 @@ const payStatusOptions = [
     { label: 'Maybe', value: 'maybe', color: '#FADA7A', textColor: '#000000' },
 ]
 
-// Lead Source component with outlined design and SVG icons
-// const getSourceIcon = (source: string) => {
-//     switch (source) {
-//         case 'WhatsApp':
-//             return <img src={whatsappic} alt='WhatsApp' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-//         case 'Instagram':
-//             return <img src={instagramic} alt='Instagram' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-//         case 'Facebook':
-//             return <img src={facebookic} alt='Facebook' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-//         case 'Classified':
-//             return <img src={classifiedic} alt='Classified' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-//         case 'Organic':
-//             return <img src={organicic} alt='Organic' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-//         case 'Referral':
-//             return <img src={referic} alt='Referral' className='w-5 h-5 text-gray-600 flex-shrink-0' />
-//         default:
-//             return (
-//                 <svg className='w-4 h-4 text-gray-600 flex-shrink-0' fill='currentColor' viewBox='0 0 24 24'>
-//                     <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z' />
-//                 </svg>
-//             )
-//     }
-// }
-
-// const LeadSource = ({ source }: { source: string }) => {
-//     return (
-//         <div className='flex items-center gap-2 whitespace-nowrap'>
-//             <span className='inline-flex items-center rounded-full border border-gray-300 px-3 py-2 text-xs font-medium bg-white'>
-//                 <span className='flex items-center gap-2'>
-//                     {getSourceIcon(source)}
-//                     <span className='text-sm text-black'>{source}</span>
-//                 </span>
-//             </span>
-//         </div>
-//     )
-// }
-
 // FiltersBar component for all filters
 interface FiltersBarProps {
     kamOptions: { label: string; value: string }[]
@@ -115,7 +78,7 @@ interface FiltersBarProps {
     setSelectedAppInstalled: (v: string[]) => void
     selectedInventoryStatuses: string[]
     setSelectedInventoryStatuses: (v: string[]) => void
-    facets: Record<string, any>
+    allFacets: Record<string, any>
     resetAllFilters: () => void
     handleSortChange: (value: string) => void
     sortBy: string
@@ -124,7 +87,7 @@ interface FiltersBarProps {
 
 const FiltersBar: React.FC<FiltersBarProps> = ({
     handleSortChange,
-    sortBy = 'recent',
+    sortBy = 'cp_desc',
     kamOptions,
     planOptions,
     statusOptions,
@@ -140,17 +103,17 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
     setSelectedAppInstalled,
     selectedInventoryStatuses,
     setSelectedInventoryStatuses,
-    facets,
+    allFacets,
     resetAllFilters,
     setIsAgentsFiltersModalOpen,
 }) => {
-    // Helper to convert options to AlgoliaFacetMultiSelect format
+    // Helper to convert options to AlgoliaFacetMultiSelect format using allFacets
     const toFacetOptions = (opts: { label: string; value: string }[], facetName: string) => {
         return opts
             .filter((o) => o.value !== '')
             .map((o) => ({
                 value: o.value,
-                count: facets[facetName]?.[o.value] || 0,
+                count: allFacets[facetName]?.[o.value] || 0,
             }))
     }
 
@@ -162,7 +125,6 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
             >
                 <img src={resetic} alt='Reset Filters' className='w-5 h-5' />
             </button>
-
             <AlgoliaFacetMultiSelect
                 options={toFacetOptions(kamOptions, 'kamName')}
                 selectedValues={selectedKam}
@@ -184,7 +146,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
                 optionClassName='px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer first:rounded-t-md last:rounded-b-md'
             />
             <AlgoliaFacetMultiSelect
-                options={toFacetOptions(planOptions, 'payStatus')}
+                options={toFacetOptions(planOptions, 'userType')}
                 selectedValues={selectedPlan}
                 onSelectionChange={setSelectedPlan}
                 placeholder='Plan'
@@ -206,7 +168,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
             <AlgoliaFacetMultiSelect
                 options={inventoryStatusOptions.map((o) => ({
                     value: o.value,
-                    count: facets[`inventoryStatus.${o.value.toLowerCase()}`]?.true || 0,
+                    count: allFacets[`inventoryStatus.${o.value.toLowerCase()}`]?.true || 0,
                 }))}
                 selectedValues={selectedInventoryStatuses}
                 onSelectionChange={setSelectedInventoryStatuses}
@@ -239,21 +201,110 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
     )
 }
 
+// Custom hook for URL-based filter management
+// Custom hook for URL-based filter management - FIXED VERSION
 const useAgentFilters = () => {
-    const [selectedKam, setSelectedKam] = useState<string[]>([])
-    const [selectedPlan, setSelectedPlan] = useState<string[]>([])
-    const [selectedStatus, setSelectedStatus] = useState<string[]>([])
-    const [selectedLocation, setSelectedLocation] = useState<string[]>([])
-    const [selectedAppInstalled, setSelectedAppInstalled] = useState<string[]>([])
-    const [selectedInventoryStatuses, setSelectedInventoryStatuses] = useState<string[]>([])
-    const resetAllFilters = () => {
-        setSelectedKam([])
-        setSelectedPlan([])
-        setSelectedStatus([])
-        setSelectedLocation([])
-        setSelectedAppInstalled([])
-        setSelectedInventoryStatuses([])
-    }
+    const [searchParams, setSearchParams] = useSearchParams()
+
+    // Get current filter values from URL - these are stable
+    const selectedKam = useMemo(() => {
+        const value = searchParams.get('kam')
+        return value ? value.split(',').filter(Boolean) : []
+    }, [searchParams])
+
+    const selectedPlan = useMemo(() => {
+        const value = searchParams.get('plan')
+        return value ? value.split(',').filter(Boolean) : []
+    }, [searchParams])
+
+    const selectedStatus = useMemo(() => {
+        const value = searchParams.get('status')
+        return value ? value.split(',').filter(Boolean) : []
+    }, [searchParams])
+
+    const selectedLocation = useMemo(() => {
+        const value = searchParams.get('location')
+        return value ? value.split(',').filter(Boolean) : []
+    }, [searchParams])
+
+    const selectedAppInstalled = useMemo(() => {
+        const value = searchParams.get('appInstalled')
+        return value ? value.split(',').filter(Boolean) : []
+    }, [searchParams])
+
+    const selectedInventoryStatuses = useMemo(() => {
+        const value = searchParams.get('inventoryStatus')
+        return value ? value.split(',').filter(Boolean) : []
+    }, [searchParams])
+
+    // Simple update function that doesn't cause loops
+    const updateSingleFilter = useCallback(
+        (key: string, values: string[]) => {
+            const newParams = new URLSearchParams(searchParams)
+
+            if (values.length > 0) {
+                newParams.set(key, values.join(','))
+            } else {
+                newParams.delete(key)
+            }
+
+            const newUrl = `${window.location.pathname}?${newParams.toString()}`
+            window.history.pushState({}, '', newUrl)
+            setSearchParams(newParams, { replace: true })
+        },
+        [searchParams, setSearchParams],
+    )
+
+    // Individual setters - NO DEPENDENCIES ON OTHER FILTERS
+    const setSelectedKam = useCallback(
+        (values: string[]) => {
+            updateSingleFilter('kam', values)
+        },
+        [updateSingleFilter],
+    )
+
+    const setSelectedPlan = useCallback(
+        (values: string[]) => {
+            updateSingleFilter('plan', values)
+        },
+        [updateSingleFilter],
+    )
+
+    const setSelectedStatus = useCallback(
+        (values: string[]) => {
+            updateSingleFilter('status', values)
+        },
+        [updateSingleFilter],
+    )
+
+    const setSelectedLocation = useCallback(
+        (values: string[]) => {
+            updateSingleFilter('location', values)
+        },
+        [updateSingleFilter],
+    )
+
+    const setSelectedAppInstalled = useCallback(
+        (values: string[]) => {
+            updateSingleFilter('appInstalled', values)
+        },
+        [updateSingleFilter],
+    )
+
+    const setSelectedInventoryStatuses = useCallback(
+        (values: string[]) => {
+            updateSingleFilter('inventoryStatus', values)
+        },
+        [updateSingleFilter],
+    )
+
+    const resetAllFilters = useCallback(() => {
+        const newParams = new URLSearchParams()
+        const newUrl = `${window.location.pathname}`
+        window.history.pushState({}, '', newUrl)
+        setSearchParams(newParams, { replace: true })
+    }, [setSearchParams])
+
     return {
         selectedKam,
         setSelectedKam,
@@ -276,7 +327,8 @@ const ITEMS_PER_PAGE = 100
 const AgentsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
     const navigate = useNavigate()
-    const [searchValue, setSearchValue] = useState('')
+    const [searchParams, setSearchParams] = useSearchParams()
+    const searchValue = searchParams.get('search') || ''
 
     const { kamNameMappings } = useSelector((state: any) => state.qc)
     const {
@@ -294,14 +346,20 @@ const AgentsPage = () => {
         setSelectedInventoryStatuses,
         resetAllFilters,
     } = useAgentFilters()
-    const [initialKamOptions, setInitialKamOptions] = useState<{ label: string; value: string }[]>([])
-    const [initialPlanOptions, setInitialPlanOptions] = useState<{ label: string; value: string }[]>([])
-    const [initialStatusOptions, setInitialStatusOptions] = useState<{ label: string; value: string }[]>([])
-    const [initialLocationOptions, setInitialLocationOptions] = useState<{ label: string; value: string }[]>([])
-    const [initialAppInstalledOptions, setInitialAppInstalledOptions] = useState<{ label: string; value: string }[]>([])
-    const [initialInventoryStatusOptions, setInitialInventoryStatusOptions] = useState<
-        { label: string; value: string }[]
-    >([])
+
+    // Static filter options that don't change based on current filters
+    const [allFacets, setAllFacets] = useState<Record<string, any>>({})
+    const [staticKamOptions, setStaticKamOptions] = useState<{ label: string; value: string }[]>([])
+    const [staticPlanOptions, setStaticPlanOptions] = useState<{ label: string; value: string }[]>([])
+    const [staticStatusOptions, setStaticStatusOptions] = useState<{ label: string; value: string }[]>([])
+    const [staticLocationOptions, setStaticLocationOptions] = useState<{ label: string; value: string }[]>([])
+    const [staticAppInstalledOptions, setStaticAppInstalledOptions] = useState<{ label: string; value: string }[]>([])
+    const [staticInventoryStatusOptions] = useState<{ label: string; value: string }[]>([
+        { label: 'Available', value: 'available' },
+        { label: 'Hold', value: 'hold' },
+        { label: 'Sold', value: 'sold' },
+        { label: 'De-listed', value: 'delisted' },
+    ])
 
     const [isAgentsFiltersModalOpen, setIsAgentsFiltersModalOpen] = useState(false)
     const [modalFilters, setModalFilters] = useState<AgentSearchFilters>({})
@@ -315,6 +373,7 @@ const AgentsPage = () => {
     const [totalAgents, setTotalAgents] = useState(0)
     const [loading, setLoading] = useState(false)
     const [facets, setFacets] = useState<Record<string, any>>({})
+
     interface TodayFacetsType {
         agentStatus?: Record<string, number>
         contactStatus?: Record<string, number>
@@ -325,68 +384,92 @@ const AgentsPage = () => {
     const { platform } = useAuth()
     const acnRole = platform?.acn?.role
 
+    // Initialize static filter options once from all facets
     useEffect(() => {
-        if (Object.keys(facets).length > 0) {
-            setInitialKamOptions([
-                { label: 'All Roles', value: '' },
-                ...Object.entries(facets.kamName || {}).map(([value, _]) => ({
-                    label: value,
-                    value: value,
-                })),
-            ])
-            setInitialPlanOptions([
-                { label: 'All Plans', value: '' },
-                ...Object.entries(facets.payStatus || {}).map(([value, _]) => ({
-                    label: value,
-                    value: value,
-                })),
-            ])
-            setInitialStatusOptions([
-                { label: 'All Status', value: '' },
-                ...Object.entries(facets.agentStatus || {}).map(([value, _]) => ({
-                    label: value,
-                    value: value,
-                })),
-            ])
-            setInitialLocationOptions([
-                { label: 'All Locations', value: '' },
-                ...Object.entries(facets.areaOfOperation || {}).map(([value, _]) => ({
-                    label: value,
-                    value: value,
-                })),
-            ])
-            setInitialAppInstalledOptions([
-                { label: 'All', value: '' },
-                ...Object.entries(facets.appInstalled || {}).map(([value, _]) => ({
-                    label: value === 'true' ? 'Yes' : 'No',
-                    value: value,
-                })),
-            ])
-            setInitialInventoryStatusOptions([
-                { label: 'Available', value: 'Available' },
-                { label: 'Hold', value: 'Hold' },
-                { label: 'Sold', value: 'Sold' },
-                { label: 'De-listed', value: 'De-listed' },
-            ])
+        const fetchAllFacets = async () => {
+            try {
+                const allFacetsData = await getAllAgentFacets()
+                setAllFacets(allFacetsData)
+
+                // Set static options that won't change based on current filters
+                setStaticKamOptions([
+                    { label: 'All Roles', value: '' },
+                    ...Object.entries(allFacetsData.kamName || {}).map(([value, _]) => ({
+                        label: value,
+                        value: value,
+                    })),
+                ])
+                setStaticPlanOptions([
+                    { label: 'All Plans', value: '' },
+                    ...Object.entries(allFacetsData.userType || {}).map(([value, _]) => ({
+                        label: value,
+                        value: value,
+                    })),
+                ])
+                setStaticStatusOptions([
+                    { label: 'All Status', value: '' },
+                    ...Object.entries(allFacetsData.agentStatus || {}).map(([value, _]) => ({
+                        label: value,
+                        value: value,
+                    })),
+                ])
+                setStaticLocationOptions([
+                    { label: 'All Locations', value: '' },
+                    ...Object.entries(allFacetsData.areaOfOperation || {}).map(([value, _]) => ({
+                        label: value,
+                        value: value,
+                    })),
+                ])
+                setStaticAppInstalledOptions([
+                    { label: 'All', value: '' },
+                    ...Object.entries(allFacetsData.appInstalled || {}).map(([value, _]) => ({
+                        label: value === 'true' ? 'Yes' : 'No',
+                        value: value,
+                    })),
+                ])
+            } catch (error) {
+                console.error('Error fetching all facets:', error)
+            }
         }
-    }, [facets])
+
+        fetchAllFacets()
+    }, [])
 
     const [todayFacets, setTodayFacets] = useState<TodayFacetsType>({})
+
     // Sort state and handler for Algolia sort
-    const [sortBy, setSortBy] = useState('recent')
+    const sortBy = searchParams.get('sort') || 'cp_desc'
     const handleSortChange = (value: string) => {
-        setSortBy(value)
+        const newParams = new URLSearchParams(searchParams)
+        if (value === 'recent') {
+            newParams.delete('sort')
+        } else {
+            newParams.set('sort', value)
+        }
+        const newUrl = `${window.location.pathname}?${newParams.toString()}`
+        window.history.pushState({}, '', newUrl)
         setCurrentPage(1)
+        setSearchParams(newParams, { replace: true })
+    }
+
+    // Handle search input changes
+    const setSearchValue = (value: string) => {
+        const newParams = new URLSearchParams(searchParams)
+        if (value) {
+            newParams.set('search', value)
+        } else {
+            newParams.delete('search')
+        }
+        const newUrl = `${window.location.pathname}?${newParams.toString()}`
+        window.history.pushState({}, '', newUrl)
+        // Force re-render of searchParams
+        setSearchParams(newParams, { replace: true })
     }
 
     useEffect(() => {
         const fetchFacets = async () => {
             try {
-                // Get all facets (for Total Agents and App Installed)
-                const allFacets = await getAllAgentFacets()
-                setFacets(allFacets)
-
-                // Get today's filtered facets (for other metrics)
+                // Get today's filtered facets (for metrics)
                 const todayFacetsData = await getTodayAgentFacets()
                 setTodayFacets(todayFacetsData)
             } catch (error) {
@@ -399,15 +482,14 @@ const AgentsPage = () => {
 
     const metrics = useMemo(() => {
         // For Total Agents and App Installed - use all facets (no date filter)
-        const totalAgentsValue = totalAgents // This should come from your existing source
-        const appInstalledCount = facets.appInstalled?.['true'] || 0
+        const totalAgentsValue = totalAgents
+        const appInstalledCount = allFacets.appInstalled?.['true'] || 0
 
         // For other metrics - use today's filtered facets
         const interestedCount = todayFacets.agentStatus?.['interested'] || 0
         const contactStatusFacets = todayFacets.contactStatus || {}
 
         const connectsCount = (contactStatusFacets['Connected'] || 0) + (contactStatusFacets['connnected'] || 0)
-        console.log(contactStatusFacets, 'here')
         const rnrCount = Object.keys(contactStatusFacets).reduce((acc, key) => {
             if (key.toLowerCase().startsWith('rnr')) {
                 return acc + (contactStatusFacets[key] || 0)
@@ -438,21 +520,7 @@ const AgentsPage = () => {
             { label: 'Agents Enquired', value: agentsEnquired },
             { label: 'App Installed', value: appInstalledCount },
         ]
-    }, [totalAgents, facets, todayFacets])
-
-    // Fetch facets for filters from Algolia
-    useEffect(() => {
-        const fetchFacets = async () => {
-            try {
-                const allFacets = await algoliaAgentsService.getAllAgentFacets()
-                setFacets(allFacets)
-                console.log('Facets here', allFacets)
-            } catch (err) {
-                console.error('Failed to fetch agent facets', err)
-            }
-        }
-        fetchFacets()
-    }, [])
+    }, [totalAgents, allFacets, todayFacets])
 
     // Fetch agents data
     const fetchAgents = useCallback(async () => {
@@ -467,15 +535,15 @@ const AgentsPage = () => {
                 {} as Record<string, boolean>,
             )
 
-            // Combine all filters
+            // Combine all filters - USE ARRAYS, NOT SINGLE VALUES
             const filters: AgentSearchFilters = {
-                agentStatus: selectedStatus.length > 0 ? selectedStatus[0] : undefined,
-                kamName: selectedKam.length > 0 ? selectedKam[0] : undefined,
-                payStatus: selectedPlan.length > 0 ? selectedPlan[0] : undefined,
+                agentStatus: selectedStatus.length > 0 ? selectedStatus : undefined,
+                kamName: selectedKam.length > 0 ? selectedKam : undefined,
+                userType: selectedPlan.length > 0 ? selectedPlan : undefined,
                 areaOfOperation: selectedLocation.length > 0 ? selectedLocation : undefined,
                 inventoryStatus: Object.keys(inventoryStatusFilter).length > 0 ? inventoryStatusFilter : undefined,
-                appInstalled: selectedAppInstalled.length > 0 ? selectedAppInstalled[0] : undefined,
-                ...modalFilters, // Modal filters should override top bar filters if both are set
+                appInstalled: selectedAppInstalled.length > 0 ? selectedAppInstalled : undefined,
+                ...modalFilters,
             }
 
             const response = await algoliaAgentsService.searchAgents({
@@ -486,7 +554,6 @@ const AgentsPage = () => {
                 sortBy: sortBy || undefined,
             })
 
-            console.log('Agent data sample:', response.hits[0]) // Debug log
             setAgentsData(response.hits)
             setTotalAgents(response.nbHits)
             if (response.facets) {
@@ -513,27 +580,7 @@ const AgentsPage = () => {
     // Fetch agents when filters change
     useEffect(() => {
         fetchAgents()
-    }, [
-        searchValue,
-        selectedKam,
-        selectedPlan,
-        selectedStatus,
-        selectedLocation,
-        selectedInventoryStatuses,
-        selectedAppInstalled,
-        currentPage,
-        sortBy,
-        modalFilters,
-    ])
-
-    const kamOptions = initialKamOptions
-    const planOptions = initialPlanOptions
-    const statusOptions = initialStatusOptions
-    const locationOptions = initialLocationOptions
-    const appInstalledOptions = initialAppInstalledOptions
-    const inventoryStatusOptions = initialInventoryStatusOptions
-
-    // Dynamic dropdown options from Algolia facets
+    }, [fetchAgents])
 
     const handleAgentClick = (agentId: string, agentData: any) => {
         dispatch(setSelectedAgent(agentData))
@@ -572,7 +619,6 @@ const AgentsPage = () => {
         // Add prefetched mappings first (highest priority)
         Object.entries(kamNameMappings).forEach(([kamId, kamName]) => {
             if (kamId && kamId !== 'N/A' && kamName && kamName !== 'N/A') {
-                //console.log(kamId, kamName, ' here')
                 map.set(kamId, kamName as string)
             }
         })
@@ -580,7 +626,6 @@ const AgentsPage = () => {
         // Add mappings from current agents data (lowest priority)
         agentsData.forEach((agent) => {
             if (agent.kamId && agent.kamId !== 'N/A' && agent.kamName && agent.kamName !== 'N/A') {
-                //console.log(agent.kamId, agent.kamName, ' here')
                 map.set(agent.kamId, agent.kamName)
             }
         })
@@ -621,8 +666,6 @@ const AgentsPage = () => {
             })
         })
 
-        //console.log('🔍 Generated options:', options.map(opt => `${opt.value}:${opt.label}`))
-
         return options
     }, [facets.kamId, facets.kamName, kamIdToNameMap])
 
@@ -630,7 +673,6 @@ const AgentsPage = () => {
     const updateAgentKAMHandler = async (agentId: string, kamId: string) => {
         try {
             // Get kamName from the mapping
-            console.log(kamId, 'here')
             const kamName = kamIdToNameMap.get(kamId) || kamId
 
             // Update local state optimistically
@@ -733,18 +775,15 @@ const AgentsPage = () => {
                 header: 'Last Connected',
                 render: (value) => (
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                        {' '}
                         {value ? formatRelativeTime(value) : 'Never'}
                     </span>
                 ),
             },
-
             {
                 key: 'lastTried',
                 header: 'Last Tried',
                 render: (value) => (
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                        {' '}
                         {value ? formatRelativeTime(value) : 'Never'}
                     </span>
                 ),
@@ -792,7 +831,7 @@ const AgentsPage = () => {
                 },
             },
             {
-                key: 'kamId', // Keep kamName as key for display
+                key: 'kamId',
                 header: 'KAM',
                 ...(acnRole === 'marketing' || acnRole === 'kamModerator'
                     ? {
@@ -804,7 +843,7 @@ const AgentsPage = () => {
                                   textColor: option.textColor,
                               })),
                               placeholder: 'Select KAM',
-                              onChange: (kamId, row) => updateAgentKAMHandler(row.objectID, kamId), // Pass kamId
+                              onChange: (kamId, row) => updateAgentKAMHandler(row.objectID, kamId),
                           },
                       }
                     : {
@@ -815,7 +854,6 @@ const AgentsPage = () => {
                           ),
                       }),
             },
-
             {
                 key: 'actions',
                 header: 'Actions',
@@ -860,7 +898,7 @@ const AgentsPage = () => {
                     {/* Header */}
                     <div className='flex-shrink-0'>
                         <div className='flex items-center justify-between px-6'>
-                            <h1 className='text-lg font-semibold text-black'>Agents {/*({totalAgents})*/}</h1>
+                            <h1 className='text-lg font-semibold text-black'>Agents</h1>
                             <div className='flex items-center gap-4'>
                                 <div className='flex flex-row w-full gap-[10px] items-center'>
                                     <StateBaseTextField
@@ -895,12 +933,12 @@ const AgentsPage = () => {
                         <FiltersBar
                             handleSortChange={handleSortChange}
                             sortBy={sortBy}
-                            kamOptions={kamOptions}
-                            planOptions={planOptions}
-                            statusOptions={statusOptions}
-                            locationOptions={locationOptions}
-                            appInstalledOptions={appInstalledOptions}
-                            inventoryStatusOptions={inventoryStatusOptions}
+                            kamOptions={staticKamOptions}
+                            planOptions={staticPlanOptions}
+                            statusOptions={staticStatusOptions}
+                            locationOptions={staticLocationOptions}
+                            appInstalledOptions={staticAppInstalledOptions}
+                            inventoryStatusOptions={staticInventoryStatusOptions}
                             selectedKam={selectedKam}
                             setSelectedKam={setSelectedKam}
                             selectedPlan={selectedPlan}
@@ -913,7 +951,7 @@ const AgentsPage = () => {
                             setSelectedAppInstalled={setSelectedAppInstalled}
                             selectedInventoryStatuses={selectedInventoryStatuses}
                             setSelectedInventoryStatuses={setSelectedInventoryStatuses}
-                            facets={facets}
+                            allFacets={allFacets}
                             resetAllFilters={resetAllFilters}
                             setIsAgentsFiltersModalOpen={setIsAgentsFiltersModalOpen}
                         />
@@ -948,14 +986,12 @@ const AgentsPage = () => {
                         )}
                         {/* Pagination */}
                         <div className='flex items-center justify-center flex-shrink-0'>
-                            {/* {totalAgents > ITEMS_PER_PAGE && ( */}
                             <CustomPagination
                                 currentPage={currentPage}
                                 totalPages={Math.ceil(totalAgents / ITEMS_PER_PAGE)}
                                 onPageChange={setCurrentPage}
                                 className=''
                             />
-                            {/* )} */}
                         </div>
                     </div>
 
