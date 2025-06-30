@@ -140,6 +140,7 @@ export interface PostReraProperty {
     createdAt: number
     updatedAt: number
     sizes: string
+    stockType?: string
 }
 
 export interface PostReraPropertyState {

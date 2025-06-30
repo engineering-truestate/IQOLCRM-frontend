@@ -97,7 +97,7 @@ const RentalPage = () => {
 
     const columns: TableColumn[] = [
         {
-            key: 'name',
+            key: 'projectName',
             header: 'Project Name',
             render: (value: string, _: RestackRentalProperty) => (
                 <span className='whitespace-nowrap text-sm font-medium text-gray-900'>{value}</span>
