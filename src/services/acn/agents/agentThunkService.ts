@@ -525,7 +525,7 @@ export const fetchAgentDetails = createAsyncThunk(
                     propertyId: data.propertyId || doc.id,
                     lastModified: data.lastModified || Date.now(),
                     ...data,
-                } as IQCInventory
+                } as unknown as IQCInventory
             })
 
             return {
