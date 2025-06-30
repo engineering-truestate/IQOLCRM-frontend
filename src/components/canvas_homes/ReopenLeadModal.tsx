@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
+import { taskService } from '../../services/canvas_homes/taskService'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { toast } from 'react-toastify'
 
@@ -37,6 +38,7 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({
         }
         return true
     }
+
     const handleReopenLead = async () => {
         setError(null)
 
@@ -50,16 +52,43 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({
             // Get current timestamp for consistency
             const currentTimestamp = getUnixDateTime()
 
-            // Prepare promises for the lead and enquiry updates
-            const leadUpdatePromise = leadService.update(leadId, {
-                state: 'open',
-                lastModified: currentTimestamp,
-            })
+            // Get current enquiry data
+            const currentEnquiry = await enquiryService.getById(enquiryId)
 
+            if (!currentEnquiry) {
+                throw new Error('Enquiry not found')
+            }
+
+            // Get open tasks for this enquiry
+            const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
+
+            // Update the current enquiry to 'open'
             const enquiryUpdatePromise = enquiryService.update(enquiryId, {
                 state: 'open',
                 lastModified: currentTimestamp,
             })
+
+            // Prepare lead update data based on current enquiry
+            const leadUpdateData = {
+                state: 'open' as 'open' | 'closed' | 'fresh' | 'dropped',
+                stage: currentEnquiry.stage,
+                leadStatus: currentEnquiry?.leadStatus,
+                propertyName: currentEnquiry.propertyName,
+                propertyId: currentEnquiry.propertyId,
+                tag: currentEnquiry.tag,
+                lastModified: currentTimestamp,
+                taskType: null as string | null,
+                scheduledDate: null as number | null,
+            }
+
+            // If there are open tasks, set the earliest one
+            if (openTasks.length > 0) {
+                const earliestTask = openTasks[0]
+                leadUpdateData.taskType = earliestTask.taskType
+                leadUpdateData.scheduledDate = earliestTask.scheduledDate
+            }
+
+            const leadUpdatePromise = leadService.update(leadId, leadUpdateData)
 
             const addActivityPromise = enquiryService.addActivity(enquiryId, {
                 activityType: 'lead reopen',
@@ -67,6 +96,10 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({
                 agentName: agentName,
                 data: {
                     reason: reason,
+                    leadStatus: currentEnquiry.leadStatus,
+                    stage: currentEnquiry.stage,
+                    tag: currentEnquiry.tag,
+                    propertyName: currentEnquiry.propertyName,
                 },
             })
 
@@ -74,9 +107,9 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({
             await Promise.all([leadUpdatePromise, enquiryUpdatePromise, addActivityPromise])
 
             // Show success message after all operations are complete
-            toast.success('Lead Reopened successfully!')
+            toast.success('Lead reopened successfully!')
 
-            // Call the callback to refresh the lead data or perform actions after closure
+            // Call the callback to refresh the lead data
             if (onLeadReopen) {
                 onLeadReopen()
             }
@@ -91,6 +124,7 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({
             setIsLoading(false)
         }
     }
+
     const handleDiscard = () => {
         setReason('')
         setError(null)

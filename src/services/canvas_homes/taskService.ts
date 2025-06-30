@@ -3,13 +3,14 @@ import {
     doc,
     getDocs,
     getDoc,
-    setDoc,
     updateDoc,
     deleteDoc,
     query,
     limit,
     orderBy,
     where,
+    runTransaction,
+    increment,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 import type { Task } from './types'
@@ -44,32 +45,38 @@ class TaskService {
 
     async create(taskData: Omit<Task, 'taskId' | 'added' | 'lastModified'>): Promise<string> {
         try {
-            // Query by numeric field for proper sorting
-            const q = query(collection(db, this.collectionName), orderBy('taskNumber', 'desc'), limit(1))
-            const snapshot = await getDocs(q)
+            const counterRef = doc(db, 'canvashomesAdmin', 'lastTask')
 
-            let nextTaskNumber = 1
+            const nextTaskId = await runTransaction(db, async (transaction) => {
+                const counterDoc = await transaction.get(counterRef)
+                let currentNumber = 0
 
-            if (!snapshot.empty) {
-                const lastTaskNumber = snapshot.docs[0].data().taskNumber || 0
+                if (counterDoc.exists()) {
+                    currentNumber = counterDoc.data().count || 0
+                }
 
-                nextTaskNumber = lastTaskNumber + 1
-                console.log(nextTaskNumber)
-            }
+                const newTaskNumber = currentNumber + 1
+                const newTaskId = `task${newTaskNumber}`
+                const timestamp = getUnixDateTime()
 
-            // Generate taskId without padding - just task1, task2, task100, etc.
-            const nextTaskId = `task${nextTaskNumber}`
+                const newTask = {
+                    ...taskData,
+                    taskId: newTaskId,
+                    added: timestamp,
+                    lastModified: timestamp,
+                }
 
-            const timestamp = getUnixDateTime()
-            const newTask = {
-                ...taskData,
-                taskId: nextTaskId,
-                taskNumber: nextTaskNumber, // Numeric field for proper sorting
-                added: timestamp,
-                lastModified: timestamp,
-            }
+                // Save new task
+                transaction.set(doc(db, this.collectionName, newTaskId), newTask)
 
-            await setDoc(doc(db, this.collectionName, nextTaskId), newTask)
+                // Update the count
+                transaction.update(counterRef, {
+                    count: increment(1),
+                })
+
+                return newTaskId
+            })
+
             return nextTaskId
         } catch (error) {
             console.error('Error creating task:', error)
@@ -108,6 +115,23 @@ class TaskService {
             throw error
         }
     }
+    async getOpenByEnquiryId(enquiryId: string): Promise<Task[]> {
+        try {
+            const q = query(
+                collection(db, this.collectionName),
+                where('enquiryId', '==', enquiryId),
+                where('status', '==', 'open'),
+            )
+            const querySnapshot = await getDocs(q)
+
+            return querySnapshot.docs
+                .map((doc) => ({ taskId: doc.id, ...doc.data() }) as Task)
+                .sort((a, b) => (b.added ?? 0) - (a.added ?? 0))
+        } catch (error) {
+            console.error('Error fetching tasks by enquiry ID:', error)
+            throw error
+        }
+    }
 
     async delete(taskId: string): Promise<void> {
         try {
@@ -117,11 +141,11 @@ class TaskService {
             throw error
         }
     }
-    async getEarliestTaskByLeadId(leadId: string): Promise<Task | null> {
+    async getEarliestTaskByLeadId(enquiryId: string): Promise<Task | null> {
         try {
             const q = query(
                 collection(db, this.collectionName),
-                where('leadId', '==', leadId),
+                where('enquiryId', '==', enquiryId),
                 where('scheduledDate', '!=', null),
                 where('status', '==', 'open'),
                 orderBy('scheduledDate', 'asc'),

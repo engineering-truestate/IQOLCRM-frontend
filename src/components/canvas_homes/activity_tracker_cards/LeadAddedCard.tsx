@@ -3,7 +3,6 @@
 // Format time from Unix timestamp in seconds
 const formatTime = (timestamp: number) => {
     if (!timestamp) return ''
-
     // Convert seconds to milliseconds for Date object
     const date = new Date(timestamp * 1000)
 
@@ -32,7 +31,7 @@ interface LeadActivity {
 const LeadAddedCard = ({ activity }: { activity: LeadActivity }) => {
     const { activityType = 'Lead Added', timestamp = 0, agentName = '' } = activity || {}
     return (
-        <div className='bg-white border border-gray-300 rounded-lg p-4 w-full max-w-3xl mx-auto text-sm'>
+        <div className='bg-white border border-gray-300 rounded-md px-3 py-2.5 w-full max-w-210 ml-4 text-sm'>
             {/* Header - Activity Type and Time */}
             <div className='flex justify-between items-start'>
                 <div className='font-semibold text-gray-800'>
