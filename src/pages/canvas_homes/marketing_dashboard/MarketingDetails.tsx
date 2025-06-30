@@ -1,10 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import Layout from '../../../layout/Layout'
 import { FlexibleTable, type TableColumn } from '../../../components/design-elements/FlexibleTable'
+import Dropdown from '../../../components/design-elements/Dropdown'
 import google from '/icons/canvas_homes/google.svg'
 import { campaignService } from '../../../services/canvas_homes/campaignService'
-import { useNavigate } from 'react-router-dom'
+import type { AppDispatch, RootState } from '../../../store'
+import { fetchPreLaunchProperties } from '../../../store/actions/restack/preLaunchActions'
+import { toast } from 'react-toastify'
 
 // Types for API response
 interface GoogleAdsMetric {
@@ -24,16 +28,6 @@ interface GoogleAdsMetric {
     }
 }
 
-// // Direct format from the API - matching the server's exact response format
-// interface DirectMetric {
-//     campaignId: string
-//     date: string
-//     clicks: number
-//     conversions: number
-//     cost: number
-//     impressions: number
-// }
-
 interface CampaignData {
     campaignId: string
     campaignName: string
@@ -41,7 +35,8 @@ interface CampaignData {
     endDate: string
     isPaused: boolean
     lastActiveDate?: string
-    property?: string
+    propertyName?: string
+    propertyId?: string
     medium?: string
     totalCost?: string
     totalLeads?: number
@@ -51,6 +46,8 @@ interface CampaignData {
 interface ProcessedMetric {
     id: string
     date: string
+    startDate?: string
+    dateRange?: string
     totalCost: number
     totalImpression: number
     totalClicks: number
@@ -60,15 +57,30 @@ interface ProcessedMetric {
 }
 
 const MarketingDetails = () => {
+    const navigate = useNavigate()
+    const dispatch = useDispatch<AppDispatch>()
+    const { properties } = useSelector((state: RootState) => state.preLaunch)
     const { campaignId } = useParams<{ campaignId: string }>()
+
+    // Table states
     const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily')
     const [selectedRows, setSelectedRows] = useState<string[]>([])
     const [tableData, setTableData] = useState<ProcessedMetric[]>([])
     const [columns, setColumns] = useState<TableColumn[]>([])
+
+    // Campaign and metrics states
     const [campaignDetails, setCampaignDetails] = useState<CampaignData | null>(null)
+    const [rawMetrics, setRawMetrics] = useState<GoogleAdsMetric[]>([])
+
+    // UI states
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [rawMetrics, setRawMetrics] = useState<GoogleAdsMetric[]>([])
+    const [setSuccessMessage] = useState<string | null>(null)
+
+    // Property selection states
+    const [isEditingProperty, setIsEditingProperty] = useState(false)
+    const [selectedProperty, setSelectedProperty] = useState<{ id: string; name: string } | null>(null)
+    const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
 
     const formatDate = (d: Date) =>
         d.toLocaleDateString('en-GB', {
@@ -77,13 +89,34 @@ const MarketingDetails = () => {
             year: 'numeric',
         })
 
-    // Updated Google Ads API integration function using hosted endpoint
+    // Load properties for dropdown
+    useEffect(() => {
+        const loadProperties = async () => {
+            if (!properties || properties.length === 0) {
+                await dispatch(fetchPreLaunchProperties())
+            }
+        }
+        loadProperties()
+    }, [dispatch, properties])
+
+    // Set property options when properties load
+    useEffect(() => {
+        if (properties && properties.length > 0) {
+            const options = properties.map((property) => ({
+                label: property.projectName,
+                value: `${property.projectId}|${property.projectName}`,
+            }))
+            setPropertyOptions(options)
+        }
+    }, [properties])
+
+    // Fetch campaign metrics from API
     const getCampaignMetrics = async (campaign: CampaignData): Promise<any[]> => {
         try {
             setLoading(true)
             setError(null)
 
-            // Prepare campaign data as JSON payload - exactly matching the server's expected format
+            // Prepare campaign data as JSON payload
             const payload = {
                 campaignId: campaign.campaignId,
                 startDate: campaign.startDate,
@@ -107,7 +140,6 @@ const MarketingDetails = () => {
             }
 
             const data = await response.json()
-
             return data
         } catch (err) {
             console.error('Error fetching campaign metrics:', err)
@@ -121,9 +153,6 @@ const MarketingDetails = () => {
     // Process raw metrics into display format
     const processMetrics = (metrics: any[]): ProcessedMetric[] => {
         return metrics.map((metric, index) => {
-            // Handle both the Google Ads Metric format and the direct format provided
-
-            // Server response format (campaignId, date, clicks, conversions, cost, impressions)
             const costInRupees = metric.cost / 1000000 // Convert micros to rupees
             const clicks = metric.clicks
             const leads = metric.conversions
@@ -146,58 +175,97 @@ const MarketingDetails = () => {
     }
 
     // Load campaign details and metrics
-    useEffect(() => {
-        const loadCampaignData = async () => {
-            try {
-                if (!campaignId) {
-                    setError('Campaign ID is required')
-                    setLoading(false)
-                    return
-                }
-
-                // Fetch campaign details from Firebase using the campaignService
-                const campaign = await campaignService.getByCampaignId(campaignId)
-
-                if (!campaign) {
-                    setError(`Campaign with ID ${campaignId} not found`)
-                    setLoading(false)
-                    return
-                }
-
-                // Use the campaign data as is, without modifying its structure
-                // Just map it to the expected format for the component state
-                const campaignData: CampaignData = {
-                    campaignId: campaign.campaignId,
-                    campaignName: campaign.campaignName,
-                    startDate: campaign.startDate,
-                    endDate: campaign.endDate,
-                    isPaused: campaign.isPaused,
-                    lastActiveDate: campaign.lastActiveDate,
-                }
-
-                setCampaignDetails(campaign)
-
-                // Fetch metrics using the hosted Google Ads API
-                const metrics = await getCampaignMetrics(campaignData)
-                setRawMetrics(metrics)
-            } catch (err) {
-                console.error('Error loading campaign data:', err)
-                setError(err instanceof Error ? err.message : 'Failed to load campaign data')
+    const loadCampaignData = async () => {
+        try {
+            if (!campaignId) {
+                setError('Campaign ID is required')
                 setLoading(false)
+                return
             }
-        }
 
+            // Fetch campaign details from Firebase
+            const campaign = await campaignService.getByCampaignId(campaignId)
+
+            if (!campaign) {
+                setError(`Campaign with ID ${campaignId} not found`)
+                setLoading(false)
+                return
+            }
+
+            setCampaignDetails(campaign)
+
+            // Fetch metrics using the hosted Google Ads API
+            const metrics = await getCampaignMetrics(campaign)
+            setRawMetrics(metrics)
+        } catch (err) {
+            console.error('Error loading campaign data:', err)
+            setError(err instanceof Error ? err.message : 'Failed to load campaign data')
+            setLoading(false)
+        }
+    }
+
+    // Initial data load
+    useEffect(() => {
         loadCampaignData()
     }, [campaignId])
+
+    // Handle property selection from dropdown
+    const handlePropertySelect = (value: string) => {
+        if (value) {
+            const [id, name] = value.split('|')
+            setSelectedProperty({ id, name })
+        }
+    }
+
+    // Save property changes to campaign
+    const savePropertyChanges = async () => {
+        if (!selectedProperty || !campaignDetails) return
+
+        try {
+            setLoading(true)
+
+            // Update campaign with new property
+            const updatedCampaign = {
+                propertyName: selectedProperty.name,
+                propertyId: selectedProperty.id,
+            }
+
+            await campaignService.update(campaignDetails.campaignId, updatedCampaign)
+
+            // Show success message
+            toast.success('Property updated successfully')
+
+            // Reset editing state
+            setIsEditingProperty(false)
+
+            // Reload campaign data to reflect changes
+            await loadCampaignData()
+
+            // Clear success message after 3 seconds
+            setTimeout(() => {}, 3000)
+        } catch (err) {
+            toast.error('Error updating property')
+            setError(err instanceof Error ? err.message : 'Failed to update property')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Discard property changes
+    const discardPropertyChanges = () => {
+        setSelectedProperty(null)
+        setIsEditingProperty(false)
+    }
 
     // Process data based on API response
     const originalData = useMemo(() => {
         if (rawMetrics && rawMetrics.length > 0) {
             return processMetrics(rawMetrics)
         }
-        return [] // No fallback data, return empty array if no metrics
+        return []
     }, [rawMetrics])
 
+    // Helper functions for date grouping
     const getWeekNumber = (date: Date) => {
         const oneJan = new Date(date.getFullYear(), 0, 1)
         const days = Math.floor((date.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000))
@@ -211,8 +279,6 @@ const MarketingDetails = () => {
     const handleRowSelect = (rowId: string, selected: boolean) => {
         setSelectedRows((prev) => (selected ? [...prev, rowId] : prev.filter((id) => id !== rowId)))
     }
-
-    // const handleRowClick = (row: any) => {}
 
     // Set up table columns
     useEffect(() => {
@@ -251,7 +317,6 @@ const MarketingDetails = () => {
                     )
                 },
             },
-
             {
                 key: 'totalCost',
                 header: 'Total Cost',
@@ -313,7 +378,6 @@ const MarketingDetails = () => {
             originalData.forEach((item) => {
                 const d = new Date(item.date)
                 let key = ''
-                // const label = ''
                 let start: Date
                 let end: Date
 
@@ -357,8 +421,6 @@ const MarketingDetails = () => {
         setTableData(groupData())
     }, [activeTab, originalData])
 
-    const navigate = useNavigate()
-
     // Calculate totals for campaign details
     const campaignTotals = useMemo(() => {
         if (originalData.length === 0) return null
@@ -373,6 +435,72 @@ const MarketingDetails = () => {
             cpl: `₹${Math.round(avgCpl).toLocaleString()}`,
         }
     }, [originalData])
+
+    // Render property field with edit/add functionality
+    const renderPropertyField = () => {
+        const hasProperty = campaignDetails?.propertyName && campaignDetails.propertyName !== 'N/A'
+
+        if (isEditingProperty) {
+            return (
+                <div className='flex flex-col sm:flex-row gap-2 w-full'>
+                    <div className='relative w-full'>
+                        <Dropdown
+                            options={propertyOptions}
+                            onSelect={handlePropertySelect}
+                            defaultValue={
+                                hasProperty ? `${campaignDetails?.propertyId}|${campaignDetails?.propertyName}` : ''
+                            }
+                            placeholder='Select Property Name'
+                            className='w-full relative inline-block'
+                            triggerClassName={`relative w-full min-w-[177px] h-7 p-2 rounded-sm text-sm font-mediun text-gray-500 bg-gray-200 flex items-center justify-between disabled:opacity-50 ${
+                                selectedProperty ? '[&>span]:text-gray-700' : ''
+                            }`}
+                            menuClassName='absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg'
+                            optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
+                        />
+                    </div>
+                    <div className='flex gap-2 justify-end sm:flex-shrink-0'>
+                        <button
+                            onClick={discardPropertyChanges}
+                            className='px-2 h-7 w-fit text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-sm text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                        >
+                            Discard
+                        </button>
+                        <button
+                            onClick={savePropertyChanges}
+                            className='p-2 h-7 w-fit bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center'
+                            disabled={!selectedProperty}
+                        >
+                            Save
+                        </button>
+                    </div>
+                </div>
+            )
+        }
+
+        return (
+            <div className='flex items-center justify-between w-full'>
+                {hasProperty ? (
+                    <>
+                        <div className='font-normal truncate mr-2'>{campaignDetails.propertyName}</div>
+                        <button
+                            onClick={() => setIsEditingProperty(true)}
+                            className='p-2 w-fit text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-sm text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                        >
+                            Edit
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        onClick={() => setIsEditingProperty(true)}
+                        className='p-2 h-7 w-fit bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
+                    >
+                        Add Property
+                    </button>
+                )}
+            </div>
+        )
+    }
 
     if (loading) {
         return <Layout loading={true} />
@@ -400,30 +528,35 @@ const MarketingDetails = () => {
     return (
         <Layout loading={false}>
             <div className='w-full overflow-hidden'>
-                <div className='py-3 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
-                    <div className='flex items-center justify-between px-6 border-b-1 border-gray-400 pb-3'>
+                <div className='py-3 bg-white min-h-screen' style={{ width: '100%', maxWidth: '100%' }}>
+                    <div className='flex items-center justify-between px-4 sm:px-6 border-b-1 border-gray-400 pb-3'>
                         <div>
                             <div className='flex items-center gap-2 text-sm text-gray-600'>
                                 <button
                                     className='font-medium hover:text-gray-800 cursor-pointer'
-                                    onClick={() => navigate('/canvas-homes/marketing')}
+                                    onClick={() => (window.location.href = '/canvas-homes/marketing')}
                                 >
                                     <span>Marketing Dashboard</span>
                                 </button>
                                 <span>/</span>
-                                <span className='text-gray-900 font-medium'>{campaignDetails?.campaignName}</span>
+                                <span className='text-gray-900 font-medium truncate max-w-[150px] sm:max-w-none'>
+                                    {campaignDetails?.campaignName}
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className='flex flex-row w-full min-h-screen'>
-                        <div className='flex-1 p-6 pt-0'>
-                            <div className='flex gap-4 mb-3 border-b border-gray-200'>
+                    <div
+                        className='flex flex-col lg:flex-row w-full min-h-screen'
+                        style={{ height: 'auto', minHeight: '40vh', maxHeight: 'none' }}
+                    >
+                        <div className='flex-1 p-4 sm:p-6 pt-0 overflow-x-auto'>
+                            <div className='flex gap-2 sm:gap-4 mb-3 border-b border-gray-200 overflow-x-auto pb-1 sm:pb-0'>
                                 {['daily', 'weekly', 'monthly'].map((tab) => (
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab as 'daily' | 'weekly' | 'monthly')}
-                                        className={`pt-2 pb-3 px-4 text-sm font-medium capitalize border-b-2 transition-colors duration-150 ${
+                                        className={`pt-2 pb-3 px-2 sm:px-4 text-sm font-medium capitalize border-b-2 transition-colors duration-150 whitespace-nowrap ${
                                             activeTab === tab
                                                 ? 'border-blue-500 text-blue-600'
                                                 : 'border-transparent text-gray-500'
@@ -434,22 +567,29 @@ const MarketingDetails = () => {
                                 ))}
                             </div>
 
-                            <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
+                            <div className='bg-white rounded-lg shadow-sm overflow-hidden overflow-x-auto'>
                                 {tableData.length > 0 ? (
-                                    <FlexibleTable
-                                        data={tableData}
-                                        columns={columns}
-                                        borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
-                                        showCheckboxes={true}
-                                        selectedRows={selectedRows}
-                                        onRowSelect={handleRowSelect}
-                                        // onRowClick={handleRowClick}
-                                        className='rounded-lg'
-                                        stickyHeader={true}
-                                        hoverable={true}
-                                        headerClassName='font-normal text-left px-6'
-                                        cellClassName='text-left px-6'
-                                    />
+                                    <div className='overflow-x-auto'>
+                                        <FlexibleTable
+                                            data={tableData}
+                                            columns={columns}
+                                            borders={{
+                                                table: false,
+                                                header: true,
+                                                rows: true,
+                                                cells: false,
+                                                outer: true,
+                                            }}
+                                            showCheckboxes={true}
+                                            selectedRows={selectedRows}
+                                            onRowSelect={handleRowSelect}
+                                            className='rounded-lg min-w-full'
+                                            stickyHeader={true}
+                                            hoverable={true}
+                                            headerClassName='font-normal text-left px-3 sm:px-6 whitespace-nowrap'
+                                            cellClassName='text-left px-3 sm:px-6 whitespace-nowrap'
+                                        />
+                                    </div>
                                 ) : (
                                     <div className='p-8 text-center text-gray-500'>
                                         No data available for this campaign
@@ -459,14 +599,26 @@ const MarketingDetails = () => {
                         </div>
 
                         {/* Right: Campaign Details */}
-                        <div className='w-[25%] border-l border-gray-200 px-4 py-6'>
+                        <div
+                            className='w-full lg:w-[30%] border-t lg:border-t-0 lg:border-l border-gray-200 px-4 py-6'
+                            style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}
+                        >
                             <div className='flex items-center justify-between mb-4'>
                                 <h3 className='text-md font-semibold text-gray-700'>Campaign Details</h3>
                             </div>
 
                             <div className='space-y-4 text-sm text-[#24252E]'>
+                                <div className={`flex gap-3.5 justify-between ${isEditingProperty ? 'flex-col' : ''}`}>
+                                    <strong className='w-[40%] text-[#515162] font-normal'>Property Name</strong>
+
+                                    <div
+                                        className={`${isEditingProperty ? 'w-full mt-1' : 'w-[60%]'} text-left font-normal`}
+                                    >
+                                        {renderPropertyField()}
+                                    </div>
+                                </div>
+
                                 {[
-                                    ['Property Name', campaignDetails?.property || 'N/A'],
                                     ['Campaign Name', campaignDetails?.campaignName || 'N/A'],
                                     [
                                         'Source',
@@ -498,7 +650,7 @@ const MarketingDetails = () => {
                                 ].map(([label, value], idx) => (
                                     <div key={idx} className='flex gap-3.5 justify-between'>
                                         <strong className='w-[40%] text-[#515162] font-normal'>{label}</strong>
-                                        <div className='w-[60%] text-left font-normal'>{value}</div>
+                                        <div className='w-[60%] text-left font-normal truncate'>{value}</div>
                                     </div>
                                 ))}
                             </div>

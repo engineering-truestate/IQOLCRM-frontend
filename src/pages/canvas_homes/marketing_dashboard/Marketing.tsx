@@ -132,9 +132,10 @@ const Marketing = () => {
     const navigate = useNavigate()
 
     // Initialize state from URL params
-    const [selectedSummaryCard, setSelectedSummaryCard] = useState(() => searchParams.get('source') || 'All')
-    const [searchValue, setSearchValue] = useState(() => searchParams.get('search') || '')
-    const [selectedDateRange, setSelectedDateRange] = useState(() => searchParams.get('dateRange') || '')
+    const [selectedSummaryCard, setSelectedSummaryCard] = useState(() => 'All')
+    const [searchValue, setSearchValue] = useState('')
+    const [selectedDateRange, setSelectedDateRange] = useState(() => '')
+    const [loading, setLoading] = useState(false)
 
     // Separate state for date range picker (not applied until user confirms)
     const [pendingDateRange, setPendingDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
@@ -243,26 +244,23 @@ const Marketing = () => {
 
         if (selectedSummaryCard !== 'All') {
             const stateValue = selectedSummaryCard.toLowerCase()
-            // console.log(stateValue)
-            // filtered = filtered.filter((market) => market.source?.toLowerCase() === stateValue)
-            // doesnt work rn as only source is google
-            // db has no source field
+
             filtered = allCampaignsData
-            console.log(filtered)
+
             if (stateValue === 'meta' || stateValue === 'linkedin') {
                 filtered = []
             }
         }
 
         setFilteredCampaignsData(filtered)
-    }, [allCampaignsData, selectedSummaryCard])
+    }, [allCampaignsData, selectedSummaryCard, searchValue])
 
     // Main search function - stable reference
     const performSearch = useCallback(async () => {
         if (isLoading) return
 
-        setIsLoading(true)
         try {
+            setLoading(true)
             const result = await searchCampaigns({
                 query: searchValue,
                 filters: createFilters,
@@ -280,7 +278,7 @@ const Marketing = () => {
             setAllCampaignsData([])
             setFilteredCampaignsData([])
         } finally {
-            setIsLoading(false)
+            setLoading(false)
         }
     }, [searchValue, createFilters, isLoading])
 
@@ -291,11 +289,6 @@ const Marketing = () => {
     useEffect(() => {
         debouncedSearch()
     }, [searchValue, debouncedSearch])
-
-    useEffect(() => {
-        performSearch()
-    }, [performSearch])
-
     // Summary card calculations
     const summaryCardCounts = useMemo(() => {
         const counts = {
@@ -424,14 +417,14 @@ const Marketing = () => {
     // Table columns configuration
     const columns: TableColumn[] = [
         {
-            key: 'campaignName',
+            key: 'propertyName',
             header: 'Property',
-            render: (value) => (
+            render: (value, row) => (
                 <div
                     className='max-w-[130px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
-                    title={value}
+                    title={row.campaignName}
                 >
-                    {value}
+                    {value ? value : row.campaignName}
                 </div>
             ),
         },
@@ -524,7 +517,7 @@ const Marketing = () => {
     ]
 
     return (
-        <Layout loading={isLoading}>
+        <Layout>
             <div className='w-full overflow-hidden '>
                 <div className='py-2 px-6 bg-white min-h-screen' style={{ width: 'calc(100vw)', maxWidth: '100%' }}>
                     {/* Header */}
@@ -668,19 +661,25 @@ const Marketing = () => {
                             height: `${activeFilters.length > 0 ? 45 : 57}vh`, // You can adjust these values
                         }}
                     >
-                        <FlexibleTable
-                            showCheckboxes={true}
-                            data={filteredCampaignsData}
-                            columns={columns}
-                            borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
-                            headerClassName='font-normal text-left px-4'
-                            cellClassName='text-left px-4'
-                            onRowClick={handleRowClick}
-                            className='rounded-lg overflow-x-hidden'
-                            stickyHeader={true}
-                            hoverable={true}
-                            maxHeight={`${activeFilters.length > 0 ? 45 : 57}vh`}
-                        />
+                        {loading ? (
+                            <div className='flex items-center justify-center h-full'>
+                                <div className='text-gray,,-500'>Loading...</div>
+                            </div>
+                        ) : (
+                            <FlexibleTable
+                                showCheckboxes={true}
+                                data={filteredCampaignsData}
+                                columns={columns}
+                                borders={{ table: false, header: true, rows: true, cells: false, outer: true }}
+                                headerClassName='font-normal text-left px-4'
+                                cellClassName='text-left px-4'
+                                onRowClick={handleRowClick}
+                                className='rounded-lg overflow-x-hidden'
+                                stickyHeader={true}
+                                hoverable={true}
+                                maxHeight={`${activeFilters.length > 0 ? 45 : 57}vh`}
+                            />
+                        )}
                     </div>
                 </div>
             </div>

@@ -231,14 +231,6 @@ const Requirements: React.FC<RequirementsProps> = ({
             await updateEnquiryRequirements(updatedRequirements)
 
             // Create note content for new requirement
-            const noteContent = formData.notes || ''
-
-            await enquiryService.addNote(enquiryId, {
-                agentId: 'system',
-                agentName: 'System',
-                taskType: 'requirement collection',
-                note: noteContent,
-            })
 
             setRequirements(updatedRequirements)
             setActiveRequirement(newRequirement.id)
@@ -354,7 +346,7 @@ const Requirements: React.FC<RequirementsProps> = ({
     // Common styling
     const labelClassName = 'block text-sm font-medium text-gray-900 mb-1.5 text-sm placeholder:text-sm'
     const readOnlyFieldClassName =
-        'w-63.5 border border-gray-200 rounded-md px-3 py-2 text-gray-500 bg-gray-50 text-gray-700 h-[32px] flex items-center text-sm'
+        'w-63.5 border border-gray-200 rounded-md px-3 py-2 text-gray-500 text-gray-700 h-[32px] flex items-center text-sm'
     const dropdownClassName = 'w-full focus:outline-none focus:border-black rounded-md text-sm'
     const dropdownMenuClassName =
         'absolute z-10 top-full w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[200px] overflow-auto'
@@ -422,7 +414,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 options={BUDGET_OPTIONS}
                                 onSelect={(value) => handleInputChange('expectedBudget', value)}
                                 defaultValue={formData.expectedBudget}
-                                placeholder='Please Select'
+                                placeholder='Select'
                                 className={dropdownClassName}
                                 triggerClassName={getDropdownTriggerClassName(formData.expectedBudget)}
                                 menuClassName={dropdownMenuClassName}
@@ -437,7 +429,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 options={ZONE_OPTIONS}
                                 onSelect={(value) => handleInputChange('zone', value)}
                                 defaultValue={formData.zone}
-                                placeholder='Please Select'
+                                placeholder='Select'
                                 className={dropdownClassName}
                                 triggerClassName={getDropdownTriggerClassName(formData.zone)}
                                 menuClassName={dropdownMenuClassName}
@@ -452,7 +444,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 options={MICRO_MARKET_OPTIONS}
                                 onSelect={(value) => handleInputChange('microMarket', value)}
                                 defaultValue={formData.microMarket}
-                                placeholder='Please Select'
+                                placeholder='Select'
                                 className={dropdownClassName}
                                 triggerClassName={getDropdownTriggerClassName(formData.microMarket)}
                                 menuClassName={dropdownMenuClassName}
@@ -470,7 +462,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 options={PROPERTY_TYPE_OPTIONS}
                                 onSelect={(value) => handleInputChange('propertyType', value)}
                                 defaultValue={formData.propertyType}
-                                placeholder='Please Select'
+                                placeholder='Select'
                                 className={dropdownClassName}
                                 triggerClassName={getDropdownTriggerClassName(formData.propertyType)}
                                 menuClassName={dropdownMenuClassName}
@@ -485,7 +477,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 type='text'
                                 value={formData.typology}
                                 onChange={(e) => handleInputChange('typology', e.target.value)}
-                                placeholder='Select Typology'
+                                placeholder='Enter'
                                 className={inputClassName}
                                 disabled={saving}
                             />
@@ -497,7 +489,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 type='text'
                                 value={formData.size}
                                 onChange={(e) => handleInputChange('size', e.target.value)}
-                                placeholder='e.g., 1200-1500 sqft'
+                                placeholder='Enter'
                                 className={inputClassName}
                                 disabled={saving}
                             />
@@ -512,7 +504,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 options={PROPERTY_STAGE_OPTIONS}
                                 onSelect={(value) => handleInputChange('propertyStage', value)}
                                 defaultValue={formData.propertyStage}
-                                placeholder='Please Select'
+                                placeholder='Select'
                                 className={dropdownClassName}
                                 triggerClassName={getDropdownTriggerClassName(formData.propertyStage)}
                                 menuClassName={dropdownMenuClassName}
@@ -527,7 +519,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                                 options={possessionOptions}
                                 onSelect={(value) => handleInputChange('possessionType', value)}
                                 defaultValue={formData.possessionType}
-                                placeholder='Select Year'
+                                placeholder='Select'
                                 className={dropdownClassName}
                                 triggerClassName={getDropdownTriggerClassName(formData.possessionType)}
                                 menuClassName={dropdownMenuClassName}
@@ -593,22 +585,20 @@ const Requirements: React.FC<RequirementsProps> = ({
                         {/* Row 1 */}
                         <div>
                             <label className={labelClassName}>Expected Budget</label>
-                            <div className={readOnlyFieldClassName}>
-                                {currentRequirement.expectedBudget || 'Not specified'}
-                            </div>
+                            <div className={readOnlyFieldClassName}>{currentRequirement.expectedBudget || '-'}</div>
                         </div>
 
                         <div>
                             <label className={labelClassName}>Zone</label>
                             <div className={readOnlyFieldClassName}>
-                                {toCapitalizedWords(currentRequirement.zone) || 'Not specified'}
+                                {toCapitalizedWords(currentRequirement.zone) || '-'}
                             </div>
                         </div>
 
                         <div>
                             <label className={labelClassName}>Micro Market</label>
                             <div className={readOnlyFieldClassName}>
-                                {toCapitalizedWords(currentRequirement.microMarket) || 'Not specified'}
+                                {toCapitalizedWords(currentRequirement.microMarket) || '-'}
                             </div>
                         </div>
 
@@ -616,35 +606,29 @@ const Requirements: React.FC<RequirementsProps> = ({
                         <div>
                             <label className={labelClassName}>Property Type</label>
                             <div className={readOnlyFieldClassName}>
-                                {toCapitalizedWords(currentRequirement.propertyType) || 'Not specified'}
+                                {toCapitalizedWords(currentRequirement.propertyType) || '-'}
                             </div>
                         </div>
 
                         <div>
                             <label className={labelClassName}>Typology</label>
-                            <div className={readOnlyFieldClassName}>
-                                {currentRequirement.typology || 'Not specified'}
-                            </div>
+                            <div className={readOnlyFieldClassName}>{currentRequirement.typology || '-'}</div>
                         </div>
 
                         <div>
                             <label className={labelClassName}>Size</label>
-                            <div className={readOnlyFieldClassName}>{currentRequirement.size || 'Not specified'}</div>
+                            <div className={readOnlyFieldClassName}>{currentRequirement.size || '-'}</div>
                         </div>
 
                         {/* Row 3 */}
                         <div>
                             <label className={labelClassName}>Property Stage</label>
-                            <div className={readOnlyFieldClassName}>
-                                {currentRequirement.propertyStage || 'Not specified'}
-                            </div>
+                            <div className={readOnlyFieldClassName}>{currentRequirement.propertyStage || '-'}</div>
                         </div>
 
                         <div>
                             <label className={labelClassName}>Possession Type</label>
-                            <div className={readOnlyFieldClassName}>
-                                {currentRequirement.possessionType || 'Not specified'}
-                            </div>
+                            <div className={readOnlyFieldClassName}>{currentRequirement.possessionType || '-'}</div>
                         </div>
                     </div>
 

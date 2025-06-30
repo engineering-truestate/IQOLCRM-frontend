@@ -227,6 +227,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                 scheduledDate: null,
                 leadStatus: null,
                 state: 'fresh',
+                rnr: false,
+                rnrCount: 0,
                 added: getUnixDateTime(),
                 completionDate: null,
                 lastModified: getUnixDateTime(),
@@ -242,6 +244,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                 source: formData.source.toLowerCase(),
                 leadStatus: null,
                 stage: null,
+                rnr: false,
+                rnrCount: 0,
                 agentHistory: [
                     {
                         agentId: formData.agentId,

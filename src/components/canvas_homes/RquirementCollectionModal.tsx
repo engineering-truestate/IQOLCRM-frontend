@@ -146,6 +146,8 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                 state: 'dropped',
                 stage: leadStage,
                 lastModified: currentTimestamp,
+                rnr: false,
+                rnrCount: 0,
             })
 
             const addActivity = enquiryService.addActivity(enquiryId, {
@@ -199,6 +201,8 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                         propertyName: mostRecentEnquiry.propertyName,
                         tag: mostRecentEnquiry.tag,
                         taskType: earliestTask.taskType,
+                        rnr: mostRecentEnquiry?.rnr,
+                        rnrCount: mostRecentEnquiry.rnrCount,
                         scheduledDate: earliestTask.scheduledDate,
                         lastModified: currentTimestamp,
                         // Don't set completionDate as the lead is still active
@@ -210,6 +214,8 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                         stage: mostRecentEnquiry.stage,
                         leadStatus: mostRecentEnquiry.leadStatus,
                         propertyName: mostRecentEnquiry.propertyName,
+                        rnr: false,
+                        rnrCount: 0,
                         tag: mostRecentEnquiry.tag,
                         taskType: null,
                         scheduledDate: null,
@@ -234,6 +240,8 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                         completionDate: currentTimestamp,
                         tag: selectedTag,
                         scheduledDate: earliestTask.scheduledDate,
+                        rnr: false,
+                        rnrCount: 0,
                         taskType: earliestTask.taskType,
                         lastModified: currentTimestamp,
                     }
@@ -245,6 +253,8 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                         leadStatus: 'requirement collected',
                         completionDate: currentTimestamp,
                         tag: selectedTag,
+                        rnr: false,
+                        rnrCount: 0,
                         scheduledDate: null,
                         taskType: null,
                         lastModified: currentTimestamp,
@@ -378,7 +388,8 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                                     <Dropdown
                                         options={tagOptions}
                                         onSelect={setSelectedTag}
-                                        defaultValue={selectedTag}
+                                        value={selectedTag || ''}
+                                        defaultValue={selectedTag || ''}
                                         placeholder='Select Tag'
                                         className='w-full'
                                         triggerClassName='w-full px-4 py-1 border border-gray-300 text-gray-500 rounded-sm bg-white flex items-center justify-between text-left'
