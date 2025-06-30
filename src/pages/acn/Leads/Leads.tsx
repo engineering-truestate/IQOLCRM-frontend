@@ -33,6 +33,7 @@ import referic from '/icons/acn/referral.svg'
 import organicic from '/icons/acn/organic.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
 import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+import useAuth from '../../../hooks/useAuth'
 
 // Define filter state interface
 interface FilterState {
@@ -263,6 +264,9 @@ const MultiSelectDropdown = React.memo(
 const LeadsPage = () => {
     const dispatch = useDispatch<AppDispatch>()
     const [searchParams] = useSearchParams()
+
+    const { platform } = useAuth()
+    const acnRole = platform?.acn?.role
 
     // Redux selectors
     // const reduxLeads = useSelector(selectFilteredLeads)
@@ -598,6 +602,8 @@ const LeadsPage = () => {
         [facets],
     )
 
+    const canEditKam = acnRole === 'marketing' || acnRole === 'kamModerator'
+
     // Static options
     const sortOptions = useMemo(
         () => [
@@ -710,14 +716,23 @@ const LeadsPage = () => {
             {
                 key: 'kamName',
                 header: 'KAM Assigned',
-                dropdown: {
-                    options: kamAssignedOptions,
-                    placeholder: 'Select KAM',
-                    onChange: (value, row) => {
-                        handleUpdateKAM(row.leadId, value)
-                    },
-                },
+                ...(canEditKam
+                    ? {
+                          dropdown: {
+                              options: kamAssignedOptions,
+                              placeholder: 'Select KAM',
+                              onChange: (value, row) => {
+                                  handleUpdateKAM(row.leadId, value)
+                              },
+                          },
+                      }
+                    : {
+                          render: (value, _) => (
+                              <span className='whitespace-nowrap text-sm font-normal w-auto'>{value || 'N/A'}</span>
+                          ),
+                      }),
             },
+
             {
                 key: 'source',
                 header: 'Lead Source',

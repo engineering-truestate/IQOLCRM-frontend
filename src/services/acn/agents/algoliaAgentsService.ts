@@ -31,12 +31,12 @@ const AGENT_FACETS = [
 
 // Types for search parameters
 export interface AgentSearchFilters {
-    agentStatus?: string
+    agentStatus?: string[]
     role?: string[]
     location?: string[]
-    kamName?: string
-    payStatus?: string
-    appInstalled?: string
+    kamName?: string[]
+    payStatus?: string[]
+    appInstalled?: string[]
     contactStatus?: string
     inventoryStatus?: {
         delisted?: boolean
@@ -44,7 +44,7 @@ export interface AgentSearchFilters {
         sold?: boolean
         available?: boolean
     }
-    userType?: string
+    userType?: string[]
     activity?: string
     verified?: boolean
     blackListed?: boolean
@@ -85,22 +85,39 @@ export interface AgentFacetValue {
 const buildAgentFilterString = (filters: AgentSearchFilters): string => {
     const filterParts: string[] = []
 
-    // Single value filters
-    const singleValueFilters = [
-        { key: 'agentStatus', field: 'agentStatus' },
-        { key: 'kamName', field: 'kamName' },
-        { key: 'payStatus', field: 'payStatus' },
-        { key: 'appInstalled', field: 'appInstalled' },
-        { key: 'userType', field: 'userType' },
-        { key: 'activity', field: 'activity' },
-        { key: 'contactStatus', field: 'contactStatus' },
-    ]
-
-    singleValueFilters.forEach(({ key, field }) => {
-        if (filters[key as keyof AgentSearchFilters]) {
-            filterParts.push(`${field}:'${filters[key as keyof AgentSearchFilters]}'`)
+    // UPDATED: Handle array filters for multiselect
+    const handleArrayFilter = (filterKey: keyof AgentSearchFilters, algoliaField: string) => {
+        const filterValue = filters[filterKey]
+        if (Array.isArray(filterValue) && filterValue.length > 0) {
+            if (filterValue.length === 1) {
+                // Single value
+                filterParts.push(`${algoliaField}:'${filterValue[0]}'`)
+            } else {
+                // Multiple values - use OR logic
+                const orFilters = filterValue.map((value) => `${algoliaField}:'${value}'`).join(' OR ')
+                filterParts.push(`(${orFilters})`)
+            }
+        } else if (typeof filterValue === 'string' && filterValue) {
+            // Handle single string value (backward compatibility)
+            filterParts.push(`${algoliaField}:'${filterValue}'`)
         }
-    })
+    }
+
+    // Apply multiselect handling to all relevant filters
+    handleArrayFilter('agentStatus', 'agentStatus')
+    handleArrayFilter('kamName', 'kamName')
+    handleArrayFilter('payStatus', 'payStatus')
+    handleArrayFilter('appInstalled', 'appInstalled')
+    handleArrayFilter('areaOfOperation', 'areaOfOperation')
+    handleArrayFilter('businessCategory', 'businessCategory')
+    handleArrayFilter('userType', 'userType')
+
+    if (filters.activity) {
+        filterParts.push(`activity:'${filters.activity}'`)
+    }
+    if (filters.contactStatus) {
+        filterParts.push(`contactStatus:'${filters.contactStatus}'`)
+    }
 
     // Boolean filters
     if (filters.verified !== undefined) {
@@ -110,20 +127,7 @@ const buildAgentFilterString = (filters: AgentSearchFilters): string => {
         filterParts.push(`blackListed:${filters.blackListed}`)
     }
 
-    // Array filters
-    if (filters.areaOfOperation && filters.areaOfOperation.length > 0) {
-        const areaFilters = filters.areaOfOperation.map((area) => `areaOfOperation:'${area}'`).join(' OR ')
-        filterParts.push(`(${areaFilters})`)
-    }
-
-    if (filters.businessCategory && filters.businessCategory.length > 0) {
-        const categoryFilters = filters.businessCategory
-            .map((category) => `businessCategory:'${category}'`)
-            .join(' OR ')
-        filterParts.push(`(${categoryFilters})`)
-    }
-
-    // Date range filters
+    // Date range filters (unchanged)
     const dateRangeFilters = [
         { from: 'lastEnquiryFrom', to: 'lastEnquiryTo', field: 'lastEnquiry' },
         { from: 'lastSeenFrom', to: 'lastSeenTo', field: 'lastSeen' },
@@ -145,7 +149,7 @@ const buildAgentFilterString = (filters: AgentSearchFilters): string => {
         }
     })
 
-    // Inventory status filters
+    // Inventory status filters (unchanged)
     if (filters.inventoryStatus) {
         const subStatuses = ['delisted', 'hold', 'sold', 'available']
         const selected = subStatuses.filter(
@@ -157,7 +161,9 @@ const buildAgentFilterString = (filters: AgentSearchFilters): string => {
         }
     }
 
-    return filterParts.join(' AND ')
+    const finalFilter = filterParts.join(' AND ')
+    console.log('Built filter string:', finalFilter)
+    return finalFilter
 }
 
 // Algolia sort options for Agents page (replica-based)
@@ -165,6 +171,8 @@ export const agentSortOptions = [
     { label: 'Recent First', value: 'recent' },
     { label: 'Name A-Z', value: 'name_asc' },
     { label: 'Name Z-A', value: 'name_desc' },
+    { label: 'High to Low CP-ID', value: 'cp_desc' },
+    { label: 'Low to High CP-ID', value: 'cp_asc' },
 ]
 
 // Helper function to get the correct index name for sorting
@@ -176,6 +184,8 @@ export const getAgentIndexNameForSort = (sortBy?: string): string => {
     const sortIndexMap: Record<string, string> = {
         name_asc: `${INDEX_NAME}_name_asc`,
         name_desc: `${INDEX_NAME}_name_desc`,
+        cp_desc: `${INDEX_NAME}_cp_desc`,
+        cp_asc: `${INDEX_NAME}_cp_asc`,
         recent: `${INDEX_NAME}`,
     }
 
