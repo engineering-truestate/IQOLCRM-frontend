@@ -24,25 +24,22 @@ const ShareInventoryModal: React.FC<ShareInventoryModalProps> = ({ isOpen, onClo
     }
 
     const handleCopyToClipboard = () => {
-        const shareText = `
-Property Details
+        let shareText = 'Property Details\n\n'
 
-Property Name: ${property.propertyName || property.area || 'Unknown'}
-Property ID: ${property.propertyId || property.id}
-Location: ${property.micromarket || 'Unknown'}
-Asset Type: ${property.assetType || 'Unknown'}
-SBUA: ${property.sbua ? `${property.sbua} sq ft` : 'N/A'}
-Plot Size: ${property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
-Facing: ${property.facing || 'N/A'}
-Total Ask Price: ${formatCurrency(property.totalAskPrice)}
-Status: ${property.status || 'Unknown'}
-Agent: ${property.cpId || 'N/A'}
+        if (property.propertyName) shareText += `Property Name: ${property.propertyName}\n`
+        if (property.propertyId || property.id) shareText += `Property ID: ${property.propertyId || property.id}\n`
+        if (property.micromarket) shareText += `Location: ${property.micromarket}\n`
+        if (property.assetType) shareText += `Asset Type: ${property.assetType}\n`
+        if (property.sbua) shareText += `SBUA: ${property.sbua} sq ft\n`
+        if (property.plotSize) shareText += `Plot Size: ${property.plotSize} sq ft\n`
+        if (property.facing) shareText += `Facing: ${property.facing}\n`
+        if (property.totalAskPrice) shareText += `Total Ask Price: ${formatCurrency(property.totalAskPrice)}\n`
+        if (property.status) shareText += `Status: ${property.status}\n`
 
-Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`}
-        `.trim()
+        shareText += `\nLink: https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`
 
         navigator.clipboard
-            .writeText(shareText)
+            .writeText(shareText.trim())
             .then(() => {
                 console.log('Copied to clipboard')
                 // You can add a toast notification here
@@ -53,24 +50,22 @@ Link: ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || pr
     }
 
     const handleWhatsAppShare = () => {
-        const shareText = `
-*🏠 Property Details*
+        let shareText = '*🏠 Property Details*\n\n'
 
- *Property Name:* ${property.propertyName || property.area || 'Unknown'}
- *Property ID:* ${property.propertyId || property.id}
- *Location:* ${property.micromarket || 'Unknown'}
- *Asset Type:* ${property.assetType || 'Unknown'}
- *SBUA:* ${property.sbua ? `${property.sbua} sq ft` : 'N/A'}
- *Plot Size:* ${property.plotSize ? `${property.plotSize} sq ft` : 'N/A'}
- *Facing:* ${property.facing || 'N/A'}
- *Total Ask Price:* ${formatCurrency(property.totalAskPrice)}
- *Status:* ${property.status || 'Unknown'}
- *Agent:* ${property.cpId || 'N/A'}
+        if (property.propertyName || property.area)
+            shareText += `*Property Name:* ${property.propertyName || property.area}\n`
+        if (property.propertyId || property.id) shareText += `*Property ID:* ${property.propertyId || property.id}\n`
+        if (property.micromarket) shareText += `*Location:* ${property.micromarket}\n`
+        if (property.assetType) shareText += `*Asset Type:* ${property.assetType}\n`
+        if (property.sbua) shareText += `*SBUA:* ${property.sbua} sq ft\n`
+        if (property.plotSize) shareText += `*Plot Size:* ${property.plotSize} sq ft\n`
+        if (property.facing) shareText += `*Facing:* ${property.facing}\n`
+        if (property.totalAskPrice) shareText += `*Total Ask Price:* ${formatCurrency(property.totalAskPrice)}\n`
+        if (property.status) shareText += `*Status:* ${property.status}\n`
 
- *Link:* ${`https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`}
-        `.trim()
+        shareText += `\n*Link:* https://acnonline.in/?propertyId%5Bquery%5D=${property.propertyId || property.id}`
 
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText.trim())}`
         window.open(whatsappUrl, '_blank')
     }
 

@@ -84,6 +84,7 @@ export default function AgentDetailsDropdown({
     const [isMainDropdownOpen, setIsMainDropdownOpen] = useState(false)
     // Add confirmation modal state
     const [showConfirmModal, setShowConfirmModal] = useState(false)
+    const [upgradeType, setUpgradeType] = useState<'trial' | 'premium'>('premium')
 
     // State for individual sections
     const [openSections, setOpenSections] = useState({
@@ -201,8 +202,9 @@ export default function AgentDetailsDropdown({
         setEditableUserDetails((prev) => ({ ...prev, [field]: value }))
     }
 
-    // Updated upgrade plan handler with confirmation
-    const handleUpgradePlan = () => {
+    // Updated upgrade plan handlers with plan type
+    const handleUpgradePlan = (planType: 'trial' | 'premium') => {
+        setUpgradeType(planType)
         setShowConfirmModal(true)
     }
 
@@ -210,9 +212,9 @@ export default function AgentDetailsDropdown({
         setShowConfirmModal(false)
         if (agentDetails?.cpId) {
             try {
-                await dispatch(upgradeUserPlan({ cpId: agentDetails.cpId })).unwrap()
+                await dispatch(upgradeUserPlan({ cpId: agentDetails.cpId, planType: upgradeType })).unwrap()
                 console.log('✅ Plan upgraded successfully')
-                toast.success('Plan upgraded successfully')
+                toast.success(`Plan upgraded to ${upgradeType} successfully`)
             } catch (error) {
                 console.error('❌ Failed to upgrade plan:', error)
                 toast.error('Failed to upgrade plan')
@@ -222,6 +224,30 @@ export default function AgentDetailsDropdown({
 
     const cancelUpgrade = () => {
         setShowConfirmModal(false)
+    }
+
+    // Helper function to determine available upgrade options
+    const getUpgradeOptions = () => {
+        const userType = agentDetails?.userType
+        const trialUsed = (agentDetails as any)?.trialUsed
+
+        if (userType === 'premium') {
+            return { showTrial: false, showPremium: false }
+        }
+
+        if (userType === 'trial') {
+            return { showTrial: false, showPremium: true }
+        }
+
+        if (userType === 'basic') {
+            if (trialUsed === false) {
+                return { showTrial: true, showPremium: true }
+            } else {
+                return { showTrial: false, showPremium: true }
+            }
+        }
+
+        return { showTrial: false, showPremium: true }
     }
 
     if (!agentDetails) {
@@ -282,8 +308,10 @@ export default function AgentDetailsDropdown({
     const renderSection = (title: string, fields: any, sectionKey: string) => {
         const isOpen = openSections[sectionKey as keyof typeof openSections]
 
-        // Special handling for Plan Details section with upgrade button
+        // Special handling for Plan Details section with upgrade buttons
         if (sectionKey === 'planDetails') {
+            const upgradeOptions = getUpgradeOptions()
+
             return (
                 <div className='border-b-1 border-[#D3D4DD] overflow-y-auto'>
                     <button
@@ -313,26 +341,42 @@ export default function AgentDetailsDropdown({
                                 ) : null,
                             )}
 
-                            {/* Upgrade Button - Only show for kamModerator */}
-                            {canUpgradePlan && (
+                            {/* Upgrade Buttons - Only show for kamModerator */}
+                            {canUpgradePlan && (upgradeOptions.showTrial || upgradeOptions.showPremium) && (
                                 <div className='mt-3 pt-2 border-t border-gray-100'>
-                                    <button
-                                        onClick={handleUpgradePlan}
-                                        disabled={upgradeLoading || agentDetails.userType === 'premium'}
-                                        className={`w-full px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                                            agentDetails.userType === 'premium'
-                                                ? 'bg-black text-white cursor-not-allowed'
-                                                : upgradeLoading
-                                                  ? 'bg-black text-white cursor-not-allowed'
-                                                  : 'bg-black text-white'
-                                        }`}
-                                    >
-                                        {agentDetails.userType === 'premium'
-                                            ? 'Premium Plan Active'
-                                            : upgradeLoading
-                                              ? 'Upgrading...'
-                                              : 'Upgrade to Premium'}
-                                    </button>
+                                    <div className='flex gap-2'>
+                                        {upgradeOptions.showTrial && (
+                                            <button
+                                                onClick={() => handleUpgradePlan('trial')}
+                                                disabled={upgradeLoading}
+                                                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                                                    upgradeLoading
+                                                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                                                        : 'bg-black text-white hover:bg-gray-800'
+                                                }`}
+                                            >
+                                                {upgradeLoading && upgradeType === 'trial'
+                                                    ? 'Upgrading...'
+                                                    : 'Upgrade to Trial'}
+                                            </button>
+                                        )}
+
+                                        {upgradeOptions.showPremium && (
+                                            <button
+                                                onClick={() => handleUpgradePlan('premium')}
+                                                disabled={upgradeLoading}
+                                                className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                                                    upgradeLoading
+                                                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                                                        : 'bg-black text-white hover:bg-gray-800'
+                                                }`}
+                                            >
+                                                {upgradeLoading && upgradeType === 'premium'
+                                                    ? 'Upgrading...'
+                                                    : 'Upgrade to Premium'}
+                                            </button>
+                                        )}
+                                    </div>
 
                                     {upgradeError && (
                                         <div className='mt-2 text-xs text-red-600 bg-red-50 p-2 rounded'>
@@ -595,8 +639,8 @@ export default function AgentDetailsDropdown({
             {/* Confirmation Modal */}
             {showConfirmModal && (
                 <ConfirmModal
-                    title='Upgrade Plan'
-                    message="Are you sure you want to upgrade this agent's plan to Premium? This action will update their plan expiry, renewal date, and credits."
+                    title={`Upgrade Plan to ${upgradeType === 'trial' ? 'Trial' : 'Premium'}`}
+                    message={`Are you sure you want to upgrade this agent's plan to ${upgradeType === 'trial' ? 'Trial' : 'Premium'}? This action will update their plan expiry, renewal date, and credits.`}
                     onConfirm={confirmUpgrade}
                     onCancel={cancelUpgrade}
                 />

@@ -116,6 +116,8 @@ export interface IInventory {
     ageOfInventory: number
     ageOfStatus: number
     extraDetails: string
+    agentName?: string
+    agentPhoneNumber?: string
 }
 
 type InventoryState = {
@@ -243,8 +245,8 @@ interface AgentData {
 
 // Base QC Inventory type with required fields
 interface BaseQCInventory {
-    name: string
-    phoneNumber: string
+    agentName?: string
+    agentPhoneNumber?: string
     propertyId: string
     propertyName: string
     cpId: string
