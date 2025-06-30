@@ -3,18 +3,21 @@ export interface RestackRentalProperty {
     propertyName: string
     description: string
     configuration: string
+    name?: string
     superBuiltUpArea: number
     carpetArea: number
-    builtup: number
+    builtUpArea: number
     price: number
     micromarket: string
+    location: string
     address: string
-    furnishStatus: string
+    furnishing: string
     ageOfProperty: number
-    postedOn: string
+    createdAt: string
     postedBy: string
     url: string
-    aboutProject: string
+    about: string
+    scrapedAt: string
     priceHistory: {
         date: string
         price: number

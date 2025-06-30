@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router'
 import algoliaAgentsService from '../../services/acn/agents/algoliaAgentsService'
 import type { AgentSearchFilters } from '../../services/acn/agents/algoliaAgentsService'
 import AlgoliaFacetMultiSelect from '../design-elements/AlgoliaFacetMultiSelect'
-import DateRangePicker from '../design-elements/DateRangePicker'
 import Button from '../design-elements/Button'
 
 // ---------- Types ----------
@@ -39,6 +39,7 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
     filters,
     onFiltersChange,
 }) => {
+    const [searchParams, setSearchParams] = useSearchParams()
     const [facets, setFacets] = useState<Record<string, any>>({})
     const [localFilters, setLocalFilters] = useState<AgentSearchFilters>(filters)
     const [dateLimits, setDateLimits] = useState<{
@@ -60,6 +61,79 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
         lastContact: {},
     })
 
+    // Radio button states for date filters
+    const [lastEnquiryStatus, setLastEnquiryStatus] = useState<'received' | 'not-received' | null>(null)
+    const [lastSeenStatus, setLastSeenStatus] = useState<'yes' | 'no' | null>(null)
+    const [lastContactStatus, setLastContactStatus] = useState<'yes' | 'no' | null>(null)
+
+    // URL parameter helpers
+    const getArrayFromParams = (key: string): string[] => {
+        const value = searchParams.get(key)
+        return value ? value.split(',').filter(Boolean) : []
+    }
+
+    const updateUrlParams = (updates: Record<string, string[] | string | undefined>) => {
+        const newParams = new URLSearchParams(searchParams)
+
+        Object.entries(updates).forEach(([key, value]) => {
+            if (Array.isArray(value) && value.length > 0) {
+                newParams.set(key, value.join(','))
+            } else if (typeof value === 'string' && value) {
+                newParams.set(key, value)
+            } else {
+                newParams.delete(key)
+            }
+        })
+
+        const newUrl = `${window.location.pathname}?${newParams.toString()}`
+        window.history.pushState({}, '', newUrl)
+        setSearchParams(newParams, { replace: true })
+    }
+
+    // Initialize local filters from URL when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            const urlFilters: AgentSearchFilters = {
+                // Get arrays from URL
+                areaOfOperation: getArrayFromParams('modalAreaOfOperation'),
+                businessCategory: getArrayFromParams('modalBusinessCategory'),
+
+                // Get single values from URL
+                payStatus: getArrayFromParams('modalPayStatus'),
+
+                // Get date ranges from URL
+                lastEnquiryFrom: searchParams.get('modalLastEnquiryFrom') || undefined,
+                lastEnquiryTo: searchParams.get('modalLastEnquiryTo') || undefined,
+                lastSeenFrom: searchParams.get('modalLastSeenFrom') || undefined,
+                lastSeenTo: searchParams.get('modalLastSeenTo') || undefined,
+                lastContactFrom: searchParams.get('modalLastContactFrom') || undefined,
+                lastContactTo: searchParams.get('modalLastContactTo') || undefined,
+            }
+
+            setLocalFilters(urlFilters)
+
+            // Convert Unix timestamps back to date strings for display
+            setDateRanges({
+                lastEnquiry: {
+                    start: urlFilters.lastEnquiryFrom
+                        ? unixToDateString(parseInt(urlFilters.lastEnquiryFrom))
+                        : undefined,
+                    end: urlFilters.lastEnquiryTo ? unixToDateString(parseInt(urlFilters.lastEnquiryTo)) : undefined,
+                },
+                lastSeen: {
+                    start: urlFilters.lastSeenFrom ? unixToDateString(parseInt(urlFilters.lastSeenFrom)) : undefined,
+                    end: urlFilters.lastSeenTo ? unixToDateString(parseInt(urlFilters.lastSeenTo)) : undefined,
+                },
+                lastContact: {
+                    start: urlFilters.lastContactFrom
+                        ? unixToDateString(parseInt(urlFilters.lastContactFrom))
+                        : undefined,
+                    end: urlFilters.lastContactTo ? unixToDateString(parseInt(urlFilters.lastContactTo)) : undefined,
+                },
+            })
+        }
+    }, [isOpen, searchParams])
+
     // Fetch facets and date limits when modal opens
     useEffect(() => {
         const fetchData = async () => {
@@ -80,26 +154,6 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
             fetchData()
         }
     }, [isOpen])
-
-    // Reset local filters when modal opens with new filters
-    useEffect(() => {
-        setLocalFilters(filters)
-        // Convert Unix timestamps back to date strings for display
-        setDateRanges({
-            lastEnquiry: {
-                start: filters.lastEnquiryFrom ? unixToDateString(parseInt(filters.lastEnquiryFrom)) : undefined,
-                end: filters.lastEnquiryTo ? unixToDateString(parseInt(filters.lastEnquiryTo)) : undefined,
-            },
-            lastSeen: {
-                start: filters.lastSeenFrom ? unixToDateString(parseInt(filters.lastSeenFrom)) : undefined,
-                end: filters.lastSeenTo ? unixToDateString(parseInt(filters.lastSeenTo)) : undefined,
-            },
-            lastContact: {
-                start: filters.lastContactFrom ? unixToDateString(parseInt(filters.lastContactFrom)) : undefined,
-                end: filters.lastContactTo ? unixToDateString(parseInt(filters.lastContactTo)) : undefined,
-            },
-        })
-    }, [filters])
 
     const handleApply = () => {
         // Convert date ranges to Unix timestamps and update filters
@@ -150,6 +204,19 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
             delete updatedFilters.lastContactTo
         }
 
+        // Update URL with modal filters (using modal prefix to avoid conflicts)
+        updateUrlParams({
+            modalAreaOfOperation: updatedFilters.areaOfOperation,
+            modalBusinessCategory: updatedFilters.businessCategory,
+            modalPayStatus: updatedFilters.payStatus,
+            modalLastEnquiryFrom: updatedFilters.lastEnquiryFrom,
+            modalLastEnquiryTo: updatedFilters.lastEnquiryTo,
+            modalLastSeenFrom: updatedFilters.lastSeenFrom,
+            modalLastSeenTo: updatedFilters.lastSeenTo,
+            modalLastContactFrom: updatedFilters.lastContactFrom,
+            modalLastContactTo: updatedFilters.lastContactTo,
+        })
+
         onFiltersChange(updatedFilters)
         onClose()
     }
@@ -161,6 +228,23 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
             lastSeen: {},
             lastContact: {},
         })
+        setLastEnquiryStatus(null)
+        setLastSeenStatus(null)
+        setLastContactStatus(null)
+
+        // Clear modal filters from URL
+        updateUrlParams({
+            modalAreaOfOperation: undefined,
+            modalBusinessCategory: undefined,
+            modalPayStatus: undefined,
+            modalLastEnquiryFrom: undefined,
+            modalLastEnquiryTo: undefined,
+            modalLastSeenFrom: undefined,
+            modalLastSeenTo: undefined,
+            modalLastContactFrom: undefined,
+            modalLastContactTo: undefined,
+        })
+
         onFiltersChange({})
         onClose()
     }
@@ -173,19 +257,59 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
         }))
     }
 
-    // Handle date range changes
+    // Handle date range changes with URL sync
     const handleDateRangeChange = (
         field: 'lastEnquiry' | 'lastSeen' | 'lastContact',
         start?: string | null,
         end?: string | null,
     ) => {
-        setDateRanges((prev) => ({
-            ...prev,
+        const newDateRanges = {
+            ...dateRanges,
             [field]: {
                 start: start || undefined,
                 end: end || undefined,
             },
-        }))
+        }
+        setDateRanges(newDateRanges)
+
+        // Update URL immediately for date changes
+        const urlKey =
+            field === 'lastEnquiry' ? 'modalLastEnquiry' : field === 'lastSeen' ? 'modalLastSeen' : 'modalLastContact'
+
+        updateUrlParams({
+            [`${urlKey}Start`]: start || undefined,
+            [`${urlKey}End`]: end || undefined,
+        })
+    }
+
+    // Handle area selection with URL sync
+    const handleAreaSelection = (value: string) => {
+        const currentValues = localFilters.areaOfOperation || []
+        const isSelected = currentValues.includes(value)
+        const newValues = isSelected ? currentValues.filter((v) => v !== value) : [...currentValues, value]
+
+        const updatedFilters = { ...localFilters, areaOfOperation: newValues }
+        setLocalFilters(updatedFilters)
+
+        // Update URL immediately
+        updateUrlParams({
+            modalAreaOfOperation: newValues,
+        })
+    }
+
+    // Handle business category selection with URL sync
+    const handleBusinessCategorySelection = (value: string) => {
+        const currentValues = localFilters.businessCategory || []
+        const isSelected = currentValues.includes(value)
+        const newValues = isSelected ? currentValues.filter((v) => v !== value) : [...currentValues, value]
+
+        const updatedFilters = { ...localFilters, businessCategory: newValues }
+        setLocalFilters(updatedFilters)
+
+        // Update URL immediately
+        updateUrlParams({
+            modalBusinessCategory: newValues,
+        })
     }
 
     if (!isOpen) return null
@@ -195,131 +319,270 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
             {/* Left overlay (60%) */}
             <div className='w-[60%] h-full bg-black opacity-50' onClick={onClose} role='presentation' />
             {/* Right panel (40%) */}
-            <div className='w-[40%] h-full overflow-y-auto bg-white p-6 shadow-lg animate-slide-in'>
-                <div className='flex justify-between items-center mb-4'>
-                    <h2 className='text-xl font-normal'>Filters</h2>
-                    <Button
-                        onClick={handleReset}
-                        className='text-sm border border-[#24252E] px-3 py-1 rounded hover:bg-[#24252E] hover:text-white transition'
-                    >
-                        Reset
-                    </Button>
-                </div>
-                <div className='w-full h-px bg-gray-400 my-5' />
-
-                {/* App Installed & Pay Status */}
-                <div className='flex gap-4 mb-4'>
-                    <div className='flex-1 flex flex-col gap-2'>
-                        <span className='text-[15px] text-semibold text-[#0A0B0A]'>App Installed</span>
-                        <AlgoliaFacetMultiSelect
-                            options={getFacetOptions('appInstalled')}
-                            selectedValues={localFilters.appInstalled ? [localFilters.appInstalled] : []}
-                            onSelectionChange={(values) =>
-                                setLocalFilters({ ...localFilters, appInstalled: values[0] })
-                            }
-                            placeholder='Please Select'
-                            label='App Installed'
-                            className='w-full text-sm text-[#696979]'
-                            triggerClassName='w-full border border-gray-300 rounded p-3'
-                        />
-                    </div>
-                    <div className='flex-1 flex flex-col gap-2'>
-                        <span className='text-[15px] text-semibold text-[#0A0B0A]'>Pay Status</span>
-                        <AlgoliaFacetMultiSelect
-                            options={getFacetOptions('payStatus')}
-                            selectedValues={localFilters.payStatus ? [localFilters.payStatus] : []}
-                            onSelectionChange={(values) => setLocalFilters({ ...localFilters, payStatus: values[0] })}
-                            placeholder='Please Select'
-                            label='Pay Status'
-                            className='w-full text-sm text-[#696979]'
-                            triggerClassName='w-full border border-gray-300 rounded p-3'
-                        />
+            <div className='w-[40%] h-full bg-white shadow-lg flex flex-col'>
+                {/* Header */}
+                <div className='p-2 border-b border-gray-200'>
+                    <div className='flex justify-between items-center'>
+                        <h2 className='text-xl font-medium text-gray-900'>Filters</h2>
+                        <Button onClick={handleReset} className='text-sm border border-gray-300 px-3 py-1 rounded'>
+                            Reset
+                        </Button>
                     </div>
                 </div>
 
-                {/* Area of Operation */}
-                <div className='mb-4'>
-                    <AlgoliaFacetMultiSelect
-                        options={getFacetOptions('areaOfOperation')}
-                        selectedValues={localFilters.areaOfOperation || []}
-                        onSelectionChange={(values) => setLocalFilters({ ...localFilters, areaOfOperation: values })}
-                        placeholder='Area of Operation'
-                        label='Area'
-                        className='w-full'
-                        triggerClassName='w-full border border-gray-300 rounded px-2 py-1'
-                    />
-                </div>
-
-                {/* Business Category */}
-                <div className='mb-4'>
-                    <AlgoliaFacetMultiSelect
-                        options={getFacetOptions('businessCategory')}
-                        selectedValues={localFilters.businessCategory || []}
-                        onSelectionChange={(values) => setLocalFilters({ ...localFilters, businessCategory: values })}
-                        placeholder='Business Category'
-                        label='Work Category'
-                        className='w-full'
-                        triggerClassName='w-full border border-gray-300 rounded px-2 py-1'
-                    />
-                </div>
-
-                {/* Date Ranges */}
-                <div>
-                    <div className='mb-2'>
-                        <label className='block text-sm font-normal mb-1'>Last Enquiry</label>
-                        <DateRangePicker
-                            onDateRangeChange={(start, end) => handleDateRangeChange('lastEnquiry', start, end)}
-                            placeholder='Select Last Enquiry Range'
-                            className='w-full'
-                            triggerClassName='w-full'
-                        />
-                        <div className='text-xs text-gray-500 mt-1'>
-                            Available range: {unixToDateString(dateLimits.lastEnquiry.min)} to{' '}
-                            {unixToDateString(dateLimits.lastEnquiry.max)}
+                {/* Content */}
+                <div className='flex-1 overflow-y-auto p-6 space-y-6'>
+                    {/*Pay Status */}
+                    <div className='grid grid-cols-2 gap-4'>
+                        <div className='space-y-2'>
+                            <label className='block text-sm font-medium text-gray-700'>Pay Status</label>
+                            <AlgoliaFacetMultiSelect
+                                options={getFacetOptions('payStatus')}
+                                selectedValues={localFilters.payStatus || []}
+                                onSelectionChange={(values) => {
+                                    const updatedFilters = { ...localFilters, payStatus: values }
+                                    setLocalFilters(updatedFilters)
+                                    updateUrlParams({ modalPayStatus: values })
+                                }}
+                                placeholder='Please Select'
+                                label='Pay Status'
+                                className='w-full'
+                                triggerClassName='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                            />
                         </div>
                     </div>
-                    <div className='mb-2'>
-                        <label className='block text-sm font-normal mb-1'>Last Seen</label>
-                        <DateRangePicker
-                            onDateRangeChange={(start, end) => handleDateRangeChange('lastSeen', start, end)}
-                            placeholder='Select Last Seen Range'
-                            className='w-full'
-                            triggerClassName='w-full'
-                        />
-                        <div className='text-xs text-gray-500 mt-1'>
-                            Available range: {unixToDateString(dateLimits.lastSeen.min)} to{' '}
-                            {unixToDateString(dateLimits.lastSeen.max)}
+
+                    {/* Area */}
+                    <div className='space-y-3'>
+                        <label className='block text-sm font-medium text-gray-700'>Area</label>
+                        <div className='flex flex-wrap gap-2'>
+                            {getFacetOptions('areaOfOperation')
+                                .slice(0, 6)
+                                .map((option) => (
+                                    <button
+                                        key={option.value}
+                                        onClick={() => handleAreaSelection(option.value)}
+                                        className={`px-3 py-1.5 text-sm border rounded-md transition ${
+                                            (localFilters.areaOfOperation || []).includes(option.value)
+                                                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {option.value}
+                                    </button>
+                                ))}
                         </div>
                     </div>
-                    <div className='mb-2'>
-                        <label className='block text-sm font-normal mb-1'>Last Connect</label>
-                        <DateRangePicker
-                            onDateRangeChange={(start, end) => handleDateRangeChange('lastContact', start, end)}
-                            placeholder='Select Last Connect Range'
-                            className='w-full'
-                            triggerClassName='w-full'
-                        />
-                        <div className='text-xs text-gray-500 mt-1'>
-                            Available range: {unixToDateString(dateLimits.lastContact.min)} to{' '}
-                            {unixToDateString(dateLimits.lastContact.max)}
+
+                    {/* Work Category */}
+                    <div className='space-y-3'>
+                        <label className='block text-sm font-medium text-gray-700'>Work Category</label>
+                        <div className='flex flex-wrap gap-2'>
+                            {getFacetOptions('businessCategory')
+                                .slice(0, 3)
+                                .map((option) => (
+                                    <button
+                                        key={option.value}
+                                        onClick={() => handleBusinessCategorySelection(option.value)}
+                                        className={`px-3 py-1.5 text-sm border rounded-md transition ${
+                                            (localFilters.businessCategory || []).includes(option.value)
+                                                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {option.value}
+                                    </button>
+                                ))}
+                        </div>
+                    </div>
+
+                    {/* Last Enquiry */}
+                    <div className='space-y-3'>
+                        <div className='flex items-center gap-4'>
+                            <label className='text-sm font-medium text-gray-700'>Last Enquiry</label>
+                            <div className='flex border border-gray-300 rounded-md overflow-hidden bg-[#F0F0F5]'>
+                                <button
+                                    onClick={() =>
+                                        setLastEnquiryStatus(lastEnquiryStatus === 'received' ? null : 'received')
+                                    }
+                                    className={`px-3 py-1 text-xs transition ${
+                                        lastEnquiryStatus === 'received'
+                                            ? 'bg-white text-black font-semibold'
+                                            : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
+                                    }`}
+                                >
+                                    Received
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        setLastEnquiryStatus(
+                                            lastEnquiryStatus === 'not-received' ? null : 'not-received',
+                                        )
+                                    }
+                                    className={`px-3 py-1 text-xs border-l border-gray-300 transition ${
+                                        lastEnquiryStatus === 'not-received'
+                                            ? 'bg-white text-black font-semibold'
+                                            : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
+                                    }`}
+                                >
+                                    Not Received
+                                </button>
+                            </div>
+                        </div>
+                        <div className='grid grid-cols-2 gap-3'>
+                            <input
+                                type='date'
+                                placeholder='DD/MM/YYYY'
+                                value={dateRanges.lastEnquiry.start || ''}
+                                onChange={(e) =>
+                                    handleDateRangeChange('lastEnquiry', e.target.value, dateRanges.lastEnquiry.end)
+                                }
+                                className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                            />
+                            <div className='flex items-center gap-2'>
+                                <span className='text-sm text-gray-500'>To</span>
+                                <input
+                                    type='date'
+                                    placeholder='DD/MM/YYYY'
+                                    value={dateRanges.lastEnquiry.end || ''}
+                                    onChange={(e) =>
+                                        handleDateRangeChange(
+                                            'lastEnquiry',
+                                            dateRanges.lastEnquiry.start,
+                                            e.target.value,
+                                        )
+                                    }
+                                    className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Last Seen */}
+                    <div className='space-y-3'>
+                        <div className='flex items-center gap-4'>
+                            <label className='text-sm font-medium text-gray-700'>Last Seen</label>
+                            <div className='flex border border-gray-300 rounded-md overflow-hidden bg-[#F0F0F5]'>
+                                <button
+                                    onClick={() => setLastSeenStatus(lastSeenStatus === 'yes' ? null : 'yes')}
+                                    className={`px-3 py-1 text-xs transition ${
+                                        lastSeenStatus === 'yes'
+                                            ? 'bg-white text-black font-semibold'
+                                            : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
+                                    }`}
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    onClick={() => setLastSeenStatus(lastSeenStatus === 'no' ? null : 'no')}
+                                    className={`px-3 py-1 text-xs border-l border-gray-300 transition ${
+                                        lastSeenStatus === 'no'
+                                            ? 'bg-white text-black font-semibold'
+                                            : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
+                                    }`}
+                                >
+                                    No
+                                </button>
+                            </div>
+                        </div>
+                        <div className='grid grid-cols-2 gap-3'>
+                            <input
+                                type='date'
+                                placeholder='DD/MM/YYYY'
+                                value={dateRanges.lastSeen.start || ''}
+                                onChange={(e) =>
+                                    handleDateRangeChange('lastSeen', e.target.value, dateRanges.lastSeen.end)
+                                }
+                                className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                            />
+                            <div className='flex items-center gap-2'>
+                                <span className='text-sm text-gray-500'>To</span>
+                                <input
+                                    type='date'
+                                    placeholder='DD/MM/YYYY'
+                                    value={dateRanges.lastSeen.end || ''}
+                                    onChange={(e) =>
+                                        handleDateRangeChange('lastSeen', dateRanges.lastSeen.start, e.target.value)
+                                    }
+                                    className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Last Connect */}
+                    <div className='space-y-3'>
+                        <div className='flex items-center gap-4'>
+                            <label className='text-sm font-medium text-gray-700 '>Last Connect</label>
+                            <div className='flex border border-gray-300 rounded-md overflow-hidden bg-[#F0F0F5]'>
+                                <button
+                                    onClick={() => setLastContactStatus(lastContactStatus === 'yes' ? null : 'yes')}
+                                    className={`px-3 py-1 text-xs transition ${
+                                        lastContactStatus === 'yes'
+                                            ? 'bg-white text-black font-semibold'
+                                            : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
+                                    }`}
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    onClick={() => setLastContactStatus(lastContactStatus === 'no' ? null : 'no')}
+                                    className={`px-3 py-1 text-xs border-l border-gray-300 transition ${
+                                        lastContactStatus === 'no'
+                                            ? 'bg-white text-black font-semibold'
+                                            : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
+                                    }`}
+                                >
+                                    No
+                                </button>
+                            </div>
+                        </div>
+                        <div className='grid grid-cols-2 gap-3'>
+                            <input
+                                type='date'
+                                placeholder='DD/MM/YYYY'
+                                value={dateRanges.lastContact.start || ''}
+                                onChange={(e) =>
+                                    handleDateRangeChange('lastContact', e.target.value, dateRanges.lastContact.end)
+                                }
+                                className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                            />
+                            <div className='flex items-center gap-2'>
+                                <span className='text-sm text-gray-500'>To</span>
+                                <input
+                                    type='date'
+                                    placeholder='DD/MM/YYYY'
+                                    value={dateRanges.lastContact.end || ''}
+                                    onChange={(e) =>
+                                        handleDateRangeChange(
+                                            'lastContact',
+                                            dateRanges.lastContact.start,
+                                            e.target.value,
+                                        )
+                                    }
+                                    className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className='flex justify-end gap-3 mt-6'>
-                    <Button
-                        onClick={onClose}
-                        className='px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50'
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={handleApply}
-                        className='px-4 py-2 bg-[#24252E] text-white rounded hover:bg-[#393A47]'
-                    >
-                        Apply Filters
-                    </Button>
+                {/* Footer */}
+                <div className='sticky bottom-0 bg-white border-t border-gray-200 px-6 py-2'>
+                    <div className='flex justify-end gap-3'>
+                        <Button
+                            onClick={onClose}
+                            className='px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-800 transition'
+                        >
+                            Clear
+                        </Button>
+                        <Button
+                            onClick={handleApply}
+                            className='px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition'
+                        >
+                            Apply
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>

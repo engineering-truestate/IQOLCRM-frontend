@@ -472,23 +472,19 @@ const RequirementsPage = () => {
                         {/* Tab Switches and Filters */}
                         <div className='flex items-center gap-4 mb-2 px-6'>
                             {/* Tab Switches for Resale/Rental */}
-                            <div className='flex items-center bg-gray-100 rounded-md p-1 h-8'>
+                            <div className='flex items-center bg-[#24252E] rounded-md py-1 h-6 w-fit px-0.5'>
                                 <button
                                     onClick={() => handleTabChange('resale')}
-                                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                                        activeTab === 'resale'
-                                            ? 'bg-white text-black shadow-sm'
-                                            : 'text-gray-600 hover:text-black'
+                                    className={`px-3 py-0.8 text-sm font-medium rounded transition-colors ${
+                                        activeTab === 'resale' ? 'bg-white text-black shadow-sm' : 'text-white'
                                     }`}
                                 >
                                     Resale
                                 </button>
                                 <button
                                     onClick={() => handleTabChange('rental')}
-                                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                                        activeTab === 'rental'
-                                            ? 'bg-white text-black shadow-sm'
-                                            : 'text-gray-600 hover:text-black'
+                                    className={`px-3 py-0.8 text-sm font-medium rounded transition-colors ${
+                                        activeTab === 'rental' ? 'bg-white text-black shadow-sm' : 'text-white'
                                     }`}
                                 >
                                     Rental

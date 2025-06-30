@@ -93,6 +93,7 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, rowData }) => 
                     await dispatch(addNoteToLead({ leadId: rowData.leadId, noteData })).unwrap()
                     // Refresh notes for leads - get fresh data directly
                     const updatedNotes = await dispatch(fetchLeadWithNotes(rowData.leadId)).unwrap()
+                    //console.log(updatedNotes)
                     setNotes(updatedNotes)
                     toast.success('Note added successfully')
                 } else if (isAgentsContext && rowData.cpId) {

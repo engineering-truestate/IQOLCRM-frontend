@@ -113,7 +113,7 @@ const NumberInput: React.FC<NumberInputProps> = ({
         if (numberType === 'integer') {
             formatted = Math.round(num).toString()
         } else if (numberType === 'decimal') {
-            formatted = num.toFixed(decimalPlaces)
+            formatted = num.toString()
         } else if (numberType === 'currency') {
             formatted = num.toFixed(decimalPlaces)
             if (forDisplay && thousandSeparator) {

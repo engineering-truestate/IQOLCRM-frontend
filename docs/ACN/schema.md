@@ -102,9 +102,9 @@ Stores detailed profiles of registered channel partners, including business acti
 | inboundEnqCredits                 | number      | –                                                                               | 250                          |
 | inboundReqCredits                 | number      | –                                                                               | 150                          |
 | contactStatus                     | string      | connected, not contact, rnr-1 to rnr-6                                          | "connected"                  |
-| contactHistory                    | array       | Array of objects                                                                | –                            |
-| ├─ contactHistory[].timestamp     | number (TS) | –                                                                               | 1717905000000                |
-| └─ contactHistory[].contactResult | string      | connected, not connected, on call, on whatsapp, out bound, in bound             | "connected"                  |
+| connectHistory                    | array       | Array of objects                                                                | –                            |
+| ├─ connectHistory[].timestamp     | number (TS) | –                                                                               | 1717905000000                |
+| └─ connectHistory[].contactResult | string      | connected, not connected, on call, on whatsapp, out bound, in bound             | "connected"                  |
 | lastTried                         | number (TS) | –                                                                               | 1717916400000                |
 | kamName                           | string      | –                                                                               | "Priya Sharma"               |
 | kamId                             | string      | –                                                                               | "kam_101"                    |

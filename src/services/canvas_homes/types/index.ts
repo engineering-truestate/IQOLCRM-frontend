@@ -30,11 +30,13 @@ export interface Lead {
         | 'booking dropped'
         | 'requirement collected'
         | 'closed'
+        | string
         | null
     state: 'open' | 'closed' | 'fresh' | 'dropped' | string | null
     added: number | null
     lastModified: number | null
     completionDate?: number | null
+    lastScheduledDate?: number | null
 }
 
 export interface Enquiry {
@@ -76,7 +78,7 @@ export interface Enquiry {
               added: string | null
           }[]
         | null
-    state: 'open' | 'closed' | 'fresh' | 'dropped' | null
+    state: 'open' | 'closed' | 'fresh' | 'dropped' | 'junk' | null
     added: number | null
     lastModified: number | null
 }

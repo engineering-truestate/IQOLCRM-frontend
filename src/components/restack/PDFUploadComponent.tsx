@@ -65,13 +65,13 @@ const PDFUploadComponent: React.FC<PDFUploadProps> = ({
 
     // Validate PDF file
     const validateFile = (file: File) => {
-        const allowedTypes = ['application/pdf']
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
         const maxSizeBytes = maxSizeMB * 1024 * 1024
 
         if (!allowedTypes.includes(file.type)) {
             return {
                 valid: false,
-                error: `Only PDF files are allowed. "${file.name}" is not a PDF file.`,
+                error: `Only  files are allowed. "${file.name}" is not a PDF file.`,
             }
         }
 

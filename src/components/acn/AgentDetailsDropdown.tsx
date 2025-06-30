@@ -14,8 +14,9 @@ import type { AppDispatch, RootState } from '../../store'
 import { toCapitalizedWords } from '../helper/toCapitalize'
 import { getAgentFacetValues } from '../../services/acn/agents/algoliaAgentsService'
 import { useSelector } from 'react-redux'
-import ConfirmModal from './ConfirmModal' // Add this import
+import ConfirmModal from './ConfirmModal'
 import { toast } from 'react-toastify'
+import useAuth from '../../hooks/useAuth'
 
 interface DropdownProps {
     setIsNotesModalOpen: (open: boolean) => void
@@ -68,13 +69,21 @@ export default function AgentDetailsDropdown({
 
     console.log(agentDetails, 'page')
 
+    const { platform } = useAuth()
+    const acnRole = platform?.acn?.role
+
+    // Check if user can edit KAM (marketing or kamModerator)
+    const canEditKam = acnRole === 'marketing' || acnRole === 'kamModerator'
+
+    // Check if user can upgrade plan (only kamModerator)
+    const canUpgradePlan = acnRole === 'kamModerator'
+
     // get loading state from redux
     const [loading, setLoading] = useState(false)
     // State for the main dropdown visibiliy
     const [isMainDropdownOpen, setIsMainDropdownOpen] = useState(false)
     // Add confirmation modal state
     const [showConfirmModal, setShowConfirmModal] = useState(false)
-    //const [showSuccessAlert, setShowSuccessAlert] = useState(false)
 
     // State for individual sections
     const [openSections, setOpenSections] = useState({
@@ -111,18 +120,21 @@ export default function AgentDetailsDropdown({
         'West Bangalore',
         'Pan Bangalore',
     ]
+
     // KAM options from Algolia facet
     const [kamOptions, setKamOptions] = useState<{ value: string; label: string }[]>([])
     const [kamLoading, setKamLoading] = useState(false)
 
     useEffect(() => {
-        setKamLoading(true)
-        getAgentFacetValues('kamName')
-            .then((facetValues) => {
-                setKamOptions(facetValues.map((f) => ({ value: f.value, label: f.value })))
-            })
-            .finally(() => setKamLoading(false))
-    }, [])
+        if (canEditKam) {
+            setKamLoading(true)
+            getAgentFacetValues('kamName')
+                .then((facetValues) => {
+                    setKamOptions(facetValues.map((f) => ({ value: f.value, label: f.value })))
+                })
+                .finally(() => setKamLoading(false))
+        }
+    }, [canEditKam])
 
     const yesNoOptions = [
         { value: 'true', label: 'Yes' },
@@ -301,32 +313,34 @@ export default function AgentDetailsDropdown({
                                 ) : null,
                             )}
 
-                            {/* Upgrade Button */}
-                            <div className='mt-3 pt-2 border-t border-gray-100'>
-                                <button
-                                    onClick={handleUpgradePlan}
-                                    disabled={upgradeLoading || agentDetails.userType === 'premium'}
-                                    className={`w-full px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                                        agentDetails.userType === 'premium'
-                                            ? 'bg-black text-white cursor-not-allowed'
+                            {/* Upgrade Button - Only show for kamModerator */}
+                            {canUpgradePlan && (
+                                <div className='mt-3 pt-2 border-t border-gray-100'>
+                                    <button
+                                        onClick={handleUpgradePlan}
+                                        disabled={upgradeLoading || agentDetails.userType === 'premium'}
+                                        className={`w-full px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                                            agentDetails.userType === 'premium'
+                                                ? 'bg-black text-white cursor-not-allowed'
+                                                : upgradeLoading
+                                                  ? 'bg-black text-white cursor-not-allowed'
+                                                  : 'bg-black text-white'
+                                        }`}
+                                    >
+                                        {agentDetails.userType === 'premium'
+                                            ? 'Premium Plan Active'
                                             : upgradeLoading
-                                              ? 'bg-black text-white cursor-not-allowed'
-                                              : 'bg-black text-white'
-                                    }`}
-                                >
-                                    {agentDetails.userType === 'premium'
-                                        ? 'Premium Plan Active'
-                                        : upgradeLoading
-                                          ? 'Upgrading...'
-                                          : 'Upgrade to Premium'}
-                                </button>
+                                              ? 'Upgrading...'
+                                              : 'Upgrade to Premium'}
+                                    </button>
 
-                                {upgradeError && (
-                                    <div className='mt-2 text-xs text-red-600 bg-red-50 p-2 rounded'>
-                                        {upgradeError}
-                                    </div>
-                                )}
-                            </div>
+                                    {upgradeError && (
+                                        <div className='mt-2 text-xs text-red-600 bg-red-50 p-2 rounded'>
+                                            {upgradeError}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -451,25 +465,33 @@ export default function AgentDetailsDropdown({
                                             />
                                         </div>
                                     </div>
-                                    {/* kam dropdown */}
+
+                                    {/* KAM field - conditional rendering based on role */}
                                     <div className='flex justify-between items-center py-1.5'>
                                         <span className='text-xs text-gray-600'>KAM</span>
                                         <div className='w-fit'>
-                                            {kamLoading ? (
-                                                <span className='text-xs text-gray-400'>Loading...</span>
+                                            {canEditKam ? (
+                                                kamLoading ? (
+                                                    <span className='text-xs text-gray-400'>Loading...</span>
+                                                ) : (
+                                                    <Dropdown
+                                                        options={kamOptions}
+                                                        value={String(editableUserDetails.kam)}
+                                                        onSelect={(value) => handleUserDetailChange('kam', value)}
+                                                        placeholder='KAM'
+                                                        triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                                        menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
+                                                        optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                                    />
+                                                )
                                             ) : (
-                                                <Dropdown
-                                                    options={kamOptions}
-                                                    value={String(editableUserDetails.kam)}
-                                                    onSelect={(value) => handleUserDetailChange('kam', value)}
-                                                    placeholder='KAM'
-                                                    triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                                    menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
-                                                    optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
-                                                />
+                                                <span className='text-xs text-gray-900 font-medium'>
+                                                    {editableUserDetails.kam || 'N/A'}
+                                                </span>
                                             )}
                                         </div>
                                     </div>
+
                                     {/* inWhatsappCommunity dropdown */}
                                     <div className='flex justify-between items-center py-1.5'>
                                         <span className='text-xs text-gray-600'>In Whatsapp Community</span>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { leadService } from '../../services/canvas_homes/leadService'
+import { AgentService } from '../../services/canvas_homes/agentService'
 import Dropdown from '../design-elements/Dropdown'
 import { toast } from 'react-toastify'
 import type { Enquiry } from '../../services/canvas_homes/types'
@@ -48,6 +49,37 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [agents, setAgentOptions] = useState([
+        { label: 'Deepak Goyal', value: 'agent001|Deepak Goyal' },
+        { label: 'Rajan Yadav', value: 'agent002|Rajan Yadav' },
+        { label: 'Deepak Singh Chauhan', value: 'agent003|Deepak Singh Chauhan' },
+        { label: 'Samarth Jangir', value: 'agent004|Samarth Jangir' },
+        { label: 'Rahul Mehta', value: 'agent005|Rahul Mehta' },
+    ])
+    useEffect(() => {
+        if (isOpen) {
+            const fetchAgents = async () => {
+                try {
+                    const agentsMap = await AgentService.fetchSalesAgents()
+                    console.log(agentsMap)
+
+                    // Only update agent options if we got some agents from the service
+                    if (Object.keys(agentsMap).length > 0) {
+                        const options = Object.entries(agentsMap).map(([agentId, name]) => ({
+                            label: name,
+                            value: `${agentId}|${name}`,
+                        }))
+                        setAgentOptions(options)
+                    }
+                } catch (error) {
+                    console.error('Error fetching agents:', error)
+                    // Keep the default agent options on error
+                }
+            }
+
+            fetchAgents()
+        }
+    }, [isOpen])
 
     useEffect(() => {
         // Reset form data when modal opens
@@ -55,7 +87,6 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
             if (!properties || properties.length === 0) {
                 await dispatch(fetchPreLaunchProperties())
             }
-            console.log('Properties loaded:', properties)
             return properties.map((property) => ({
                 label: property.projectName,
                 value: `${property.projectId}|${property.projectName}`,
@@ -74,16 +105,6 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
             setPropertyOptions(options)
         }
     }, [properties])
-
-    // Agent options with IDs
-    const agents = [
-        // { label: 'Select name', value: '' },
-        { label: 'Deepak Goyal', value: 'agent001|Deepak Goyal' },
-        { label: 'Rajan Yadav', value: 'agent002|Rajan Yadav' },
-        { label: 'Deepak Singh Chauhan', value: 'agent003|Deepak Singh Chauhan' },
-        { label: 'Samarth Jangir', value: 'agent004|Samarth Jangir' },
-        { label: 'Rahul Mehta', value: 'agent005|Rahul Mehta' },
-    ]
 
     // Set current date and time when modal opens
     useEffect(() => {
@@ -196,6 +217,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                             propertyAdded: formData.propertyName,
                             leadStatus: null,
                             tag: null,
+                            agentName: formData.agentName,
                         },
                     },
                 ],
@@ -214,6 +236,8 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                 agentId: formData.agentId,
                 agentName: formData.agentName,
                 stage: null,
+                taskType: null,
+                scheduledDate: null,
                 leadStatus: null,
                 tag: null,
                 state: 'open',
@@ -257,6 +281,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
             enquiryDate: getCurrentDateTimeString(),
         })
         setError(null)
+
         onClose()
     }
 

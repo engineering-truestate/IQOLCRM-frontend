@@ -7,6 +7,8 @@ import { useSelector /*, useDispatch */ } from 'react-redux'
 // import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 import Dropdown from '../../../../components/design-elements/Dropdown'
 import { toCapitalizedWords } from '../../../../components/helper/toCapitalize'
+import { doc, runTransaction, increment } from 'firebase/firestore'
+import { db } from '../../../../firebase'
 
 // Types
 interface Requirement {
@@ -132,6 +134,42 @@ const Requirements: React.FC<RequirementsProps> = ({
         }
     }, [existingRequirements, activeRequirement, isAddingNew])
 
+    // Generate a sequential requirement ID using a counter in Firestore
+    const generateRequirementId = async (): Promise<string> => {
+        try {
+            const counterRef = doc(db, 'canvashomesAdmin', 'lastReq')
+
+            const newReqId = await runTransaction(db, async (transaction) => {
+                const counterDoc = await transaction.get(counterRef)
+                let currentNumber = 0
+
+                if (counterDoc.exists()) {
+                    currentNumber = counterDoc.data().count || 0
+                }
+
+                const newReqNumber = currentNumber + 1
+                const newReqId = `req${newReqNumber}`
+
+                // Update the counter
+                transaction.set(
+                    counterRef,
+                    {
+                        count: increment(1),
+                    },
+                    { merge: true },
+                )
+
+                return newReqId
+            })
+
+            return newReqId
+        } catch (error) {
+            console.error('Error generating requirement ID:', error)
+            // Fallback to timestamp ID if transaction fails
+            return Date.now().toString()
+        }
+    }
+
     // Handle form input changes
     const handleInputChange = (field: string, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }))
@@ -173,8 +211,11 @@ const Requirements: React.FC<RequirementsProps> = ({
 
         setSaving(true)
         try {
+            // Generate sequential requirement ID
+            const reqId = await generateRequirementId()
+
             const newRequirement: Requirement = {
-                id: Date.now().toString(),
+                id: reqId,
                 name: `Requirement ${requirements.length + 1}`,
                 ...formData,
                 added: new Date().toLocaleDateString('en-US', {
