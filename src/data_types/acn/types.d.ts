@@ -59,13 +59,30 @@ interface HighlightResult {
 
 // ==================== ENQUIRY TYPES ====================
 
+interface IReview {
+    review: string
+    stars: number
+    timestamp: number
+}
+
 export interface IEnquiry {
     enquiryId: string
+    // property details
     propertyId: string
-    cpId: string
+    propertyName: string
+    // buyer agent details
+    buyerCpId: string
+    buyerName: string
+    buyerNumber: string
+    // seller agent details
+    sellerCpId: string
+    sellerName: string
+    sellerNumber: string
+    // enquiry details
     status: 'site visit done' | 'pending' | 'not interested' | 'interested'
     added: number
     lastModified: number
+    reviews: IReview[]
 }
 
 type EnquiryState = {
