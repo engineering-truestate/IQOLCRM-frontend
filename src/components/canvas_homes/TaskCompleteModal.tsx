@@ -116,6 +116,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                     tag: tagValue,
                     taskType: earliestTask.taskType,
                     scheduledDate: earliestTask.scheduledDate,
+                    rnr: false,
+                    rnrCount: 0,
                     completionDate: currentTimestamp,
                     lastModified: currentTimestamp,
                 }
@@ -128,6 +130,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                     tag: tagValue,
                     taskType: null,
                     scheduledDate: null,
+                    rnr: false,
+                    rnrCount: 0,
                     completionDate: currentTimestamp,
                     lastModified: currentTimestamp,
                 }
@@ -137,6 +141,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
             const taskUpdatePromise = taskService.update(taskId, {
                 status: 'complete',
                 completionDate: currentTimestamp,
+                rnr: false,
+                rnrCount: 0,
             })
 
             // Prepare the enquiry update promise
@@ -145,6 +151,8 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
                 stage: stage,
                 leadStatus: leadStatus,
                 tag: tagValue,
+                rnr: false,
+                rnrCount: 0,
                 lastModified: currentTimestamp,
             })
 

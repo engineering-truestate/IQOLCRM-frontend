@@ -11,6 +11,7 @@ interface Platforms {
     }
     canvasHomes: {
         role: string
+        agentid: string
     }
     vault: {
         role: string

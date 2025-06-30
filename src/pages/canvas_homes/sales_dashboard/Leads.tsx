@@ -534,7 +534,8 @@ const Leads = () => {
                     className='max-w-[80px] overflow-hidden whitespace-nowrap truncate text-sm font-normal text-gray-900'
                     title={value || row.property || '-'} // optional: full text on hover
                 >
-                    {toCapitalizedWords(value || '-')}
+                    <div>{toCapitalizedWords(value || '-')}</div>
+                    {row.rnr && <div>RNR {row.rnrCount}</div>}
                 </div>
             ),
         },
@@ -763,7 +764,7 @@ const Leads = () => {
                             className='p-2 w-full sm:w-fit h-8 font-[10px] hover:bg-gray-300'
                             onClick={goToJunkLeads}
                         >
-                            <span>Junk Lead</span>
+                            <span>View Junk</span>
                         </Button>
                         <Button
                             bgColor='bg-blue-600'
@@ -845,13 +846,13 @@ const Leads = () => {
                 <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
             </div>
             {selectedRows.length > 0 && (
-                <div className='fixed bottom-0 w-[86%] bg-white border-t border-gray-300 shadow-md p-4 flex justify-between items-center z-50'>
+                <div className='fixed bottom-0 w-[86%] bg-gray-200 border-t border-gray-300 shadow-md p-4 flex justify-between items-center z-50'>
                     <span className='text-sm text-gray-700'>{selectedRows.length} selected</span>
                     <button
-                        className='bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700'
+                        className='bg-gray-500 text-white text-sm px-4 py-2 rounded hover:bg-gray-700'
                         onClick={handleJunkSelected}
                     >
-                        Junk Selected
+                        Move to Junk
                     </button>
                 </div>
             )}

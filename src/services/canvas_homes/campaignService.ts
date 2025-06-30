@@ -1,5 +1,6 @@
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
+import { getUnixDateTime } from '../../components/helper/getUnixDateTime'
 
 // Define Campaign interface based on the provided data structure
 interface Campaign {
@@ -14,6 +15,8 @@ interface Campaign {
     isPaused: boolean
     lastActiveDate: string
     startDate: string
+    propertyId?: string
+    propertyName?: string
     status: string
     totalClicks: number
     totalConversions: string
@@ -62,6 +65,18 @@ class CampaignService {
             throw new Error(
                 `Failed to fetch campaign by campaignId: ${error instanceof Error ? error.message : 'Unknown error'}`,
             )
+        }
+    }
+    async update(campaignId: string, updates: Partial<Campaign>): Promise<void> {
+        try {
+            const updateData = {
+                ...updates,
+                lastModified: getUnixDateTime(),
+            }
+            await updateDoc(doc(db, this.collectionName, campaignId), updateData)
+        } catch (error) {
+            console.error('Error updating campaign:', error)
+            throw error
         }
     }
 }
