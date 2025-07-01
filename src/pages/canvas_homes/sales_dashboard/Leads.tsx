@@ -677,18 +677,7 @@ const Leads = () => {
                         menuClassName={dropdownClasses.menu}
                         optionClassName={dropdownClasses.option}
                     />
-                    <Dropdown
-                        options={generateDropdownOptions('source', 'Source')}
-                        onSelect={setSelectedSource}
-                        defaultValue={selectedSource}
-                        value={selectedSource}
-                        forcePlaceholderAlways
-                        placeholder='Source'
-                        className={dropdownClasses.container}
-                        triggerClassName={dropdownClasses.trigger(!!selectedSource)}
-                        menuClassName={dropdownClasses.menu}
-                        optionClassName={dropdownClasses.option}
-                    />
+
                     <Dropdown
                         options={generateDropdownOptions('stage', 'Lead Stage')}
                         onSelect={setSelectedLeadStage}
@@ -734,6 +723,18 @@ const Leads = () => {
                         placeholder='Lead Status'
                         className={dropdownClasses.container}
                         triggerClassName={dropdownClasses.trigger(!!selectedLeadStatus)}
+                        menuClassName={dropdownClasses.menu}
+                        optionClassName={dropdownClasses.option}
+                    />
+                    <Dropdown
+                        options={generateDropdownOptions('source', 'Source')}
+                        onSelect={setSelectedSource}
+                        defaultValue={selectedSource}
+                        value={selectedSource}
+                        forcePlaceholderAlways
+                        placeholder='Source'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedSource)}
                         menuClassName={dropdownClasses.menu}
                         optionClassName={dropdownClasses.option}
                     />

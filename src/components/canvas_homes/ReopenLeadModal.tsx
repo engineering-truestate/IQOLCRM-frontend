@@ -4,6 +4,7 @@ import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { toast } from 'react-toastify'
+import useAuth from '../../hooks/useAuth'
 
 interface ReopenLeadModalProps {
     isOpen: boolean
@@ -25,6 +26,7 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({
     const [reason, setReason] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
+    const { user } = useAuth()
 
     const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setReason(event.target.value)
@@ -95,7 +97,7 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({
             const addActivityPromise = enquiryService.addActivity(enquiryId, {
                 activityType: 'lead reopen',
                 timestamp: currentTimestamp,
-                agentName: agentName,
+                agentName: user?.displayName || null,
                 data: {
                     reason: reason,
                     leadStatus: currentEnquiry.leadStatus,

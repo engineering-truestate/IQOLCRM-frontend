@@ -449,7 +449,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose }) => {
                                         }
                                         placeholder='Select Agent'
                                         className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-black disabled:opacity-50 ${
+                                        triggerClassName={`relative w-full h-8 px-3 py-4 border border-gray-300 rounded-lg text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-black disabled:opacity-50 truncate ${
                                             formData.agentName ? '[&>span]:text-black' : ''
                                         }`}
                                         menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
