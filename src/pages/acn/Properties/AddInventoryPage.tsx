@@ -111,6 +111,8 @@ const mapPropertyToFormData = (property: IInventory): Record<string, any> => {
         photo: property.photo || [],
         video: property.video || [],
         driveLink: property.driveLink || '',
+        agentName: property.agentName || '',
+        agentPhoneNumber: property.agentPhoneNumber || '',
     }
 }
 
@@ -222,6 +224,8 @@ const mapFormDataToProperty = (formData: Record<string, any>, assetType: Propert
         dateOfStatusLastChecked: Date.now(),
         ageOfInventory: 0,
         ageOfStatus: 0,
+        agentName: formData.name,
+        agentPhoneNumber: formData.phoneNumber || '',
     }
 }
 
@@ -233,6 +237,8 @@ const mapFormDataToQC = (
     kamName: string,
 ): Partial<IQCInventory> => {
     return {
+        agentName: formData.name,
+        agentPhoneNumber: formData.phoneNumber || '',
         propertyName: formData.propertyName || '',
         address: formData.area || formData.propertyName || '',
         area: formData.area || formData.propertyName || '',
@@ -450,6 +456,13 @@ const AddEditInventoryPage = () => {
     }, [selectedPlace])
 
     const handleFieldChange = (fieldId: string, value: any) => {
+        // Special handling for PlacesSearch - don't store the object, only use it to trigger updates
+        if (fieldId === 'selectedPlace' || (typeof value === 'object' && value?.name && value?.lat && value?.lng)) {
+            // This is a Places object, don't store it in formData
+            setSelectedPlace(value)
+            return
+        }
+
         setFormData((prev) => ({
             ...prev,
             [fieldId]: value,
@@ -680,7 +693,10 @@ const AddEditInventoryPage = () => {
                                         <input
                                             type='text'
                                             value={agentPhoneInput}
-                                            onChange={(e) => setAgentPhoneInput(e.target.value)}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                setAgentPhoneInput(e.target.value)
+                                                handleFieldChange('agentPhoneNumber', e.target.value)
+                                            }}
                                             placeholder='Type here'
                                             className='flex-1 p-2 border border-gray-300 rounded text-[14px] text-black placeholder-gray-400'
                                         />
@@ -793,7 +809,11 @@ const AddEditInventoryPage = () => {
                                                                     }
                                                                     error={errors[field.field || '']}
                                                                     assetType={assetType}
-                                                                    formData={{ ...formData, setSelectedPlace }}
+                                                                    formData={{
+                                                                        ...formData,
+                                                                        setSelectedPlace,
+                                                                        selectedPlace: selectedPlace?.name || '',
+                                                                    }}
                                                                 />
                                                             </div>
                                                         </div>,
@@ -814,7 +834,11 @@ const AddEditInventoryPage = () => {
                                                                         }
                                                                         error={errors[field.field || '']}
                                                                         assetType={assetType}
-                                                                        formData={{ ...formData, setSelectedPlace }}
+                                                                        formData={{
+                                                                            ...formData,
+                                                                            setSelectedPlace,
+                                                                            selectedPlace: selectedPlace?.name || '',
+                                                                        }}
                                                                     />
                                                                 </div>
                                                                 <div className='w-1/2'>
@@ -830,7 +854,11 @@ const AddEditInventoryPage = () => {
                                                                         }
                                                                         error={errors[nextField.field || '']}
                                                                         assetType={assetType}
-                                                                        formData={{ ...formData, setSelectedPlace }}
+                                                                        formData={{
+                                                                            ...formData,
+                                                                            setSelectedPlace,
+                                                                            selectedPlace: selectedPlace?.name || '',
+                                                                        }}
                                                                     />
                                                                 </div>
                                                             </div>,
@@ -849,7 +877,11 @@ const AddEditInventoryPage = () => {
                                                                         }
                                                                         error={errors[field.field || '']}
                                                                         assetType={assetType}
-                                                                        formData={{ ...formData, setSelectedPlace }}
+                                                                        formData={{
+                                                                            ...formData,
+                                                                            setSelectedPlace,
+                                                                            selectedPlace: selectedPlace?.name || '',
+                                                                        }}
                                                                     />
                                                                 </div>
                                                                 <div className='w-1/2' />

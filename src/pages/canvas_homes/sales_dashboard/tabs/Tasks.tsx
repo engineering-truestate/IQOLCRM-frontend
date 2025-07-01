@@ -33,6 +33,7 @@ interface DisplayTask {
     status: string
     firebaseTask: Task
     eoiEntries: any[]
+    emailSent: string
 }
 
 const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error, setActiveTab, refreshData }) => {
@@ -65,6 +66,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                 status: firebaseTask.status,
                 firebaseTask: firebaseTask,
                 eoiEntries: firebaseTask.eoiEntries || [],
+                emailSent: firebaseTask.emailSent || '',
             }))
             .sort((a, b) => {
                 return a.date - b.date
@@ -248,7 +250,13 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
 
         switch (task.type?.toLowerCase()) {
             case 'lead registration':
-                return <LeadRegistrationTask propertyLink={(task.firebaseTask as any).propertyLink || '#'} />
+                return (
+                    <LeadRegistrationTask
+                        propertyLink={(task.firebaseTask as any).propertyLink || '#'}
+                        emailSent={task?.emailSent || ''}
+                        refreshData={refreshData || (() => {})}
+                    />
+                )
             case 'initial contact':
                 return <InitialContactTask {...commonProps} setActiveTab={setActiveTab || (() => {})} />
             case 'site visit':
@@ -351,7 +359,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                         key={task.id}
                         task={task}
                         index={index}
-                        isExpanded={expandedTasks[task.id] || task.eoiEntries?.length > 0}
+                        isExpanded={expandedTasks[task.id] || task.eoiEntries?.length > 0 || task.emailSent !== ''}
                         onToggleExpansion={toggleTaskExpansion}
                         taskStatusOptions={taskStatusOptions}
                         onStatusUpdate={handleTaskStatusUpdate}

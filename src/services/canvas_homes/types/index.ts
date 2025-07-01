@@ -36,6 +36,8 @@ export interface Lead {
     added: number | null
     lastModified: number | null
     completionDate?: number | null
+    rnr?: boolean
+    rnrCount?: number
     lastScheduledDate?: number | null
 }
 
@@ -52,6 +54,8 @@ export interface Enquiry {
     notes: NoteItem[] | null
     activityHistory: ActivityHistoryItem[] | null
     tag: 'cold' | 'potential' | 'hot' | 'super hot' | string | null
+    rnr?: boolean
+    rnrCount?: number
     documents?:
         | {
               id: string | null
@@ -124,6 +128,9 @@ export interface Task {
     eoiEntries?: any
     completionDate?: number
     lastModified: number
+    rnr?: boolean
+    rnrCount?: number
+    emailSent?: string
 }
 
 export interface User {

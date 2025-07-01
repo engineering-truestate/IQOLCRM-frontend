@@ -13,14 +13,15 @@ import {
     arrayUnion,
 } from 'firebase/firestore'
 import { db } from '../../../firebase'
-import type { IInventory, IRequirement, IAgent } from '../../../data_types/acn/types'
+import type { IInventory, IRequirement, IAgent, IEnquiry, IQCInventory } from '../../../data_types/acn/types'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import { formatPhoneNumber } from '../../../components/helper/formatPhone'
 
 interface AgentDetailsResponse {
     inventories: IInventory[]
     requirements: IRequirement[]
-    enquiries: any[]
-    qc: any[]
+    enquiries: IEnquiry[]
+    qc: IQCInventory[]
     error?: string
 }
 
@@ -39,11 +40,29 @@ interface AgentData {
     // Add other agent fields as needed
 }
 
+// Define CallResultData type
+interface CallResultData {
+    connection: string
+    connectMedium: string
+    [key: string]: any // Add additional fields as needed
+    timestamp: number
+}
+
+// Define NoteData type if not already defined
+interface NoteData {
+    name: string
+    kamId: string
+    note: string
+    source: string
+    timestamp: number
+    archive: boolean
+}
+
 export const upgradeUserPlan = createAsyncThunk(
     'agents/upgradeUserPlan',
-    async ({ cpId }: { cpId: string }, { rejectWithValue }) => {
+    async ({ cpId, planType }: { cpId: string; planType: 'trial' | 'premium' }, { rejectWithValue }) => {
         try {
-            console.log('🔄 Upgrading user plan for:', cpId)
+            console.log('🔄 Upgrading user plan for:', cpId, 'to:', planType)
 
             const agentRef = doc(db, 'acnAgents', cpId)
             const agentSnapshot = await getDoc(agentRef)
@@ -55,20 +74,40 @@ export const upgradeUserPlan = createAsyncThunk(
             const now = getUnixDateTime() // current unix timestamp in seconds
             const currentData = agentSnapshot.data()
 
-            const updates = {
-                nextRenewal: now + 2592000, // +30 days
-                planExpiry: now + 31536000, // +1 year
-                userType: 'premium',
-                monthlyCredits: 100,
+            let updates: any = {
                 lastModified: now,
+            }
+
+            if (planType === 'trial') {
+                updates = {
+                    ...updates,
+                    nextRenewal: now + 2592000, // +30 days
+                    planExpiry: now + 2592000, // +30 days for trial
+                    userType: 'trial',
+                    monthlyCredits: 100,
+                    trialStartedAt: now,
+                    trialUsed: true,
+                    onboardingComplete: true,
+                }
+            } else if (planType === 'premium') {
+                updates = {
+                    ...updates,
+                    nextRenewal: now + 2592000, // +30 days
+                    planExpiry: now + 31536000, // +1 year
+                    userType: 'premium',
+                    monthlyCredits: 100,
+                    trialUsed: true,
+                    onboardingComplete: true,
+                }
             }
 
             await updateDoc(agentRef, updates)
 
-            console.log('✅ User plan upgraded successfully')
+            console.log('✅ User plan upgraded successfully to:', planType)
 
             return {
                 cpId,
+                planType,
                 updates,
                 updatedAgent: {
                     ...currentData,
@@ -133,8 +172,10 @@ export const fetchAgentByPhone = createAsyncThunk(
         try {
             console.log('🔍 Fetching agent by phone:', phoneNumber)
 
+            const cleanedPhone = formatPhoneNumber(phoneNumber)
+
             const agentsRef = collection(db, 'acnAgents')
-            const agentQuery = query(agentsRef, where('phoneNumber', '==', phoneNumber))
+            const agentQuery = query(agentsRef, where('phoneNumber', '==', cleanedPhone))
             const agentSnapshot = await getDocs(agentQuery)
 
             if (agentSnapshot.empty) {
@@ -168,14 +209,14 @@ export const addCallResultToAgent = createAsyncThunk(
             cpId,
             callData,
             note,
+            name,
+            kamId,
         }: {
             cpId: string
-            callData: {
-                connection: 'connected' | 'not connected' | ''
-                connectMedium: 'on call' | 'on whatsapp' | ''
-                direction: 'inbound' | 'outbound' | ''
-            }
+            callData: Omit<CallResultData, 'timestamp'>
             note?: string
+            name: string
+            kamId: string
         },
         { rejectWithValue },
     ) => {
@@ -190,76 +231,90 @@ export const addCallResultToAgent = createAsyncThunk(
             }
 
             const agentData = agentDoc.data()
-            const contactHistory = agentData.contactHistory || []
-            const currentContactStatus = agentData.contactStatus || 'not contact'
 
-            const timestamp = Math.floor(Date.now() / 1000)
+            // Add proper type checks
+            const existingConnectHistory = Array.isArray(agentData?.connectHistory) ? agentData.connectHistory : []
 
-            // Determine contactResult based on callData
-            let contactResult: string
-            if (callData.connection === 'connected') {
-                if (callData.connectMedium === 'on call') {
-                    contactResult = callData.direction === 'inbound' ? 'in bound' : 'out bound'
-                } else {
-                    contactResult = 'on whatsapp'
-                }
-            } else {
-                contactResult = 'not connected'
-            }
+            const existingNotes = Array.isArray(agentData?.notes) ? agentData.notes : []
 
-            const newHistoryItem = {
+            const currentContactStatus =
+                typeof agentData?.contactStatus === 'string' ? agentData.contactStatus.toLowerCase() : 'not contact'
+
+            const timestamp = getUnixDateTime() // Unix timestamp in seconds
+
+            // Create new connect history entry
+            const newConnectHistory: CallResultData = {
+                connection: callData.connection,
+                connectMedium: callData.connectMedium,
+                ...callData,
                 timestamp,
-                contactResult,
             }
 
-            // RNR Logic (same as leads)
+            const updatedConnectHistory = [...existingConnectHistory, newConnectHistory]
+
+            // Create note entry if note is provided
+            let updatedNotes = existingNotes
+            if (note && note.trim()) {
+                const newNote: NoteData = {
+                    name: name || 'Unknown',
+                    kamId: kamId || 'UNKNOWN',
+                    note: note.trim(),
+                    source: `direct - ${callData?.connectMedium || 'unknown'}`,
+                    timestamp,
+                    archive: false,
+                }
+                updatedNotes = [...existingNotes, newNote]
+            }
+
+            // Determine new contact status based on connection result and current status
+            console.log(currentContactStatus, 'here')
             let newContactStatus = currentContactStatus
 
-            if (callData.connection === 'connected') {
+            if (callData?.connection === 'connected') {
                 // If connected, status becomes 'connected' regardless of previous status
                 newContactStatus = 'connected'
-            } else {
+            } else if (callData?.connection === 'not connected') {
                 // If not connected, handle RNR progression
                 if (currentContactStatus === 'not contact') {
                     // First failed attempt: not contact -> rnr-1
                     newContactStatus = 'rnr-1'
-                } else if (currentContactStatus.startsWith('rnr-')) {
+                } else if (typeof currentContactStatus === 'string' && currentContactStatus.startsWith('rnr-')) {
                     // Extract current RNR number and increment
-                    const currentRnrNumber = parseInt(currentContactStatus.split('-')[1])
-                    const nextRnrNumber = currentRnrNumber + 1
-                    newContactStatus = `rnr-${nextRnrNumber}`
+                    try {
+                        const rnrParts = currentContactStatus.split('-')
+                        if (rnrParts.length === 2) {
+                            const currentRnrNumber = parseInt(rnrParts[1])
+                            if (!isNaN(currentRnrNumber)) {
+                                const nextRnrNumber = currentRnrNumber + 1
+                                newContactStatus = `rnr-${nextRnrNumber}`
+                            } else {
+                                newContactStatus = 'rnr-1'
+                            }
+                        } else {
+                            newContactStatus = 'rnr-1'
+                        }
+                    } catch (error) {
+                        console.warn('Error parsing RNR number, defaulting to rnr-1:', error)
+                        newContactStatus = 'rnr-1'
+                    }
                 } else if (currentContactStatus === 'connected') {
                     // If was connected but now not connected, start RNR sequence
                     newContactStatus = 'rnr-1'
                 }
             }
 
+            // Update contact status and last tried/connect based on call result
             const updateData: any = {
-                contactHistory: [...contactHistory, newHistoryItem],
+                connectHistory: updatedConnectHistory,
+                notes: updatedNotes,
                 contactStatus: newContactStatus,
                 lastTried: timestamp,
-                lastModified: Date.now(),
+                lastModified: timestamp,
             }
 
-            // Update lastConnected only if connected
-            if (callData.connection === 'connected') {
-                updateData.lastConnected = timestamp
-            }
-            // if (callData.connection === 'not connected') {
-            //     updateData.lastTried = timestamp
-            // }
-
-            // Add note if provided
-            if (note && note.trim()) {
-                const noteEntry = {
-                    note: note.trim(),
-                    timestamp,
-                    source: 'contact',
-                    kamId: agentData.kamId || 'UNKNOWN',
-                    archive: false,
-                }
-
-                updateData.notes = [...(agentData.notes || []), noteEntry]
+            // Update lastConnect only if call was successful
+            if (callData?.connection === 'connected') {
+                updateData.lastConnect = timestamp
             }
 
             await updateDoc(docRef, updateData)
@@ -269,13 +324,16 @@ export const addCallResultToAgent = createAsyncThunk(
 
             return {
                 cpId,
+                callResult: newConnectHistory,
+                allConnectHistory: updatedConnectHistory,
+                allNotes: updatedNotes,
                 updateData,
                 previousContactStatus: currentContactStatus,
                 newContactStatus,
             }
         } catch (error: any) {
             console.error('❌ Error adding call result to agent:', error)
-            return rejectWithValue(error.message || 'Failed to add call result to agent')
+            return rejectWithValue(error?.message || 'Failed to add call result to agent')
         }
     },
 )
@@ -294,11 +352,11 @@ export const fetchAgentWithConnectHistory = createAsyncThunk(
             }
 
             const agentData = agentDoc.data()
-            console.log('✅ Agent connect history fetched:', agentData.contactHistory)
+            console.log('✅ Agent connect history fetched:', agentData.connectHistory)
 
             return {
                 cpId,
-                contactHistory: agentData.contactHistory || [],
+                connectHistory: agentData.connectHistory || [],
                 lastConnected: agentData.lastConnected,
                 contactStatus: agentData.contactStatus,
             }
@@ -410,22 +468,48 @@ export const fetchAgentDetails = createAsyncThunk(
             const [buyerSnapshot, sellerSnapshot] = await Promise.all([getDocs(buyerQuery), getDocs(sellerQuery)])
 
             // Combine and deduplicate enquiries
-            const buyerEnquiries = buyerSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-                assetType: propertyType.toLowerCase(),
-            }))
+            const buyerEnquiries = buyerSnapshot.docs.map((doc) => {
+                const data = doc.data()
+                return {
+                    enquiryId: data.enquiryId || doc.id,
+                    propertyId: data.propertyId || '',
+                    propertyName: data.propertyName || '',
+                    buyerCpId: data.buyerCpId || agentId,
+                    buyerName: data.buyerName || '',
+                    buyerNumber: data.buyerNumber || '',
+                    sellerCpId: data.sellerCpId || '',
+                    sellerName: data.sellerName || '',
+                    sellerNumber: data.sellerNumber || '',
+                    status: data.status || 'pending',
+                    added: data.added || Date.now(),
+                    lastModified: data.lastModified || Date.now(),
+                    reviews: data.reviews || [],
+                } as IEnquiry
+            })
 
-            const sellerEnquiries = sellerSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-                assetType: propertyType.toLowerCase(),
-            }))
+            const sellerEnquiries = sellerSnapshot.docs.map((doc) => {
+                const data = doc.data()
+                return {
+                    enquiryId: data.enquiryId || doc.id,
+                    propertyId: data.propertyId || '',
+                    propertyName: data.propertyName || '',
+                    buyerCpId: data.buyerCpId || '',
+                    buyerName: data.buyerName || '',
+                    buyerNumber: data.buyerNumber || '',
+                    sellerCpId: data.sellerCpId || agentId,
+                    sellerName: data.sellerName || '',
+                    sellerNumber: data.sellerNumber || '',
+                    status: data.status || 'pending',
+                    added: data.added || Date.now(),
+                    lastModified: data.lastModified || Date.now(),
+                    reviews: data.reviews || [],
+                } as IEnquiry
+            })
 
             // Combine and remove duplicates based on enquiryId
             const allEnquiries = [...buyerEnquiries, ...sellerEnquiries]
             const uniqueEnquiries = allEnquiries.filter(
-                (enquiry, index, self) => index === self.findIndex((e) => e.id === enquiry.id),
+                (enquiry, index, self) => index === self.findIndex((e) => e.enquiryId === enquiry.enquiryId),
             )
 
             // Fetch QC data from Firebase
@@ -433,12 +517,16 @@ export const fetchAgentDetails = createAsyncThunk(
             const qcRef = collection(db, qcCollectionName)
             const qcQuery = query(qcRef, where('cpId', '==', agentId), where('stage', '!=', 'live'))
             const qcSnapshot = await getDocs(qcQuery)
-            const qc = qcSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                qcId: doc.id,
-                ...doc.data(),
-                assetType: propertyType.toLowerCase(),
-            }))
+            const qc = qcSnapshot.docs.map((doc) => {
+                const data = doc.data()
+                return {
+                    name: data.cpId || agentId,
+                    phoneNumber: data.cpPhone || '',
+                    propertyId: data.propertyId || doc.id,
+                    lastModified: data.lastModified || Date.now(),
+                    ...data,
+                } as unknown as IQCInventory
+            })
 
             return {
                 inventories,
@@ -487,9 +575,28 @@ export const updateAgentStatus = createAsyncThunk(
 
 export const updateAgentKAM = createAsyncThunk(
     'agents/updateAgentKAM',
-    async ({ cpId, kam }: { cpId: string; kam: string }): Promise<{ success: boolean; error?: string }> => {
+    async ({
+        cpId,
+        kamId,
+        kamName,
+        userRole,
+    }: {
+        cpId: string
+        kamId: string
+        kamName: string
+        userRole?: string
+    }): Promise<{ success: boolean; error?: string }> => {
         try {
-            const agentRef = collection(db, 'agents')
+            // Check if user has required role
+            if (!userRole || (userRole !== 'marketing' && userRole !== 'kamModerator')) {
+                return {
+                    success: false,
+                    error: 'Access denied. Only marketing and KAM moderator roles can update agent KAM.',
+                }
+            }
+            console.log(kamId, 'here 2')
+
+            const agentRef = collection(db, 'acnAgents') // Updated collection name
             const agentQuery = query(agentRef, where('cpId', '==', cpId))
             const agentSnapshot = await getDocs(agentQuery)
 
@@ -498,7 +605,11 @@ export const updateAgentKAM = createAsyncThunk(
             }
 
             const agentDoc = agentSnapshot.docs[0]
-            await updateDoc(doc(db, 'agents', agentDoc.id), { kam })
+            // Update both kamId and kamName
+            await updateDoc(doc(db, 'acnAgents', agentDoc.id), {
+                kamId,
+                kamName,
+            })
 
             return { success: true }
         } catch (error) {
@@ -801,7 +912,8 @@ export const addAgentWithVerification = createAsyncThunk(
                 inboundEnqCredits: 0,
                 inboundReqCredits: 0,
                 contactStatus: 'not contact',
-                contactHistory: [],
+                connectHistory: verificationData.connectHistory,
+                leadId: verificationData.leadId,
                 lastTried: 0,
                 kamName: verificationData.kamName,
                 kamId: verificationData.kamId,

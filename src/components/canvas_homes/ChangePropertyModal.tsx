@@ -139,6 +139,8 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     leadStatus: 'property changed',
                     state: 'open',
                     lastModified: currentTimestamp,
+                    rnr: false,
+                    rnrCount: 0,
                 })
 
                 const addActivity = enquiryService.addActivity(enquiryId, {
@@ -173,6 +175,8 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     source: 'manual',
                     leadStatus: 'interested',
                     stage: null,
+                    rnr: false,
+                    rnrCount: 0,
                     agentHistory: [
                         {
                             agentId: leadData?.agentId || null,
@@ -209,6 +213,8 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                     propertyName: formData.propertyName,
                     tag: formData.tag,
                     scheduledDate: null,
+                    rnr: false,
+                    rnrCount: 0,
                     taskType: null,
                     leadStatus: 'interested' as any,
                     lastModified: currentTimestamp,
@@ -402,7 +408,9 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
                                         <Dropdown
                                             options={tagOptions}
                                             onSelect={(value) => handleInputChange('tag', value)}
-                                            defaultValue={leadData?.tag || ''}
+                                            value={formData.tag || ''}
+                                            defaultValue={formData.tag || ''}
+                                            placeholder='Select Tag'
                                             className='w-full relative inline-block'
                                             triggerClassName={`relative w-full h-8 px-3  border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none disabled:opacity-50 ${
                                                 formData.tag ? '[&>span]:text-black' : ''

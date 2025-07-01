@@ -4,14 +4,39 @@ import { algoliasearch, type SearchResponse } from 'algoliasearch'
 const searchClient = algoliasearch('VR5QNVAGQ8', '8859e68d9f9f21f28d0983ffe8bd7705')
 const INDEX_NAME = 'agents'
 
+// Consistent facets array used across all functions
+const AGENT_FACETS = [
+    'agentStatus',
+    'appInstalled',
+    'areaOfOperation',
+    'businessCategory',
+    'contactStatus',
+    'connectHistory.timestamp',
+    'inventoryStatus.available',
+    'inventoryStatus.delisted',
+    'inventoryStatus.hold',
+    'inventoryStatus.sold',
+    'kamName',
+    'kamId',
+    'payStatus',
+    'noOfEnquiries',
+    'userType',
+    'activity',
+    'verified',
+    'blackListed',
+    'lastEnquiry',
+    'lastSeen',
+    'lastTried',
+]
+
 // Types for search parameters
 export interface AgentSearchFilters {
-    agentStatus?: string
+    agentStatus?: string[]
     role?: string[]
     location?: string[]
-    kamName?: string
-    payStatus?: string
-    appInstalled?: string
+    kamName?: string[]
+    payStatus?: string[]
+    appInstalled?: string[]
     contactStatus?: string
     inventoryStatus?: {
         delisted?: boolean
@@ -19,7 +44,7 @@ export interface AgentSearchFilters {
         sold?: boolean
         available?: boolean
     }
-    userType?: string
+    userType?: string[]
     activity?: string
     verified?: boolean
     blackListed?: boolean
@@ -60,22 +85,39 @@ export interface AgentFacetValue {
 const buildAgentFilterString = (filters: AgentSearchFilters): string => {
     const filterParts: string[] = []
 
-    // Single value filters
-    const singleValueFilters = [
-        { key: 'agentStatus', field: 'agentStatus' },
-        { key: 'kamName', field: 'kamName' },
-        { key: 'payStatus', field: 'payStatus' },
-        { key: 'appInstalled', field: 'appInstalled' },
-        { key: 'userType', field: 'userType' },
-        { key: 'activity', field: 'activity' },
-        { key: 'contactStatus', field: 'contactStatus' },
-    ]
-
-    singleValueFilters.forEach(({ key, field }) => {
-        if (filters[key as keyof AgentSearchFilters]) {
-            filterParts.push(`${field}:'${filters[key as keyof AgentSearchFilters]}'`)
+    // UPDATED: Handle array filters for multiselect
+    const handleArrayFilter = (filterKey: keyof AgentSearchFilters, algoliaField: string) => {
+        const filterValue = filters[filterKey]
+        if (Array.isArray(filterValue) && filterValue.length > 0) {
+            if (filterValue.length === 1) {
+                // Single value
+                filterParts.push(`${algoliaField}:'${filterValue[0]}'`)
+            } else {
+                // Multiple values - use OR logic
+                const orFilters = filterValue.map((value) => `${algoliaField}:'${value}'`).join(' OR ')
+                filterParts.push(`(${orFilters})`)
+            }
+        } else if (typeof filterValue === 'string' && filterValue) {
+            // Handle single string value (backward compatibility)
+            filterParts.push(`${algoliaField}:'${filterValue}'`)
         }
-    })
+    }
+
+    // Apply multiselect handling to all relevant filters
+    handleArrayFilter('agentStatus', 'agentStatus')
+    handleArrayFilter('kamName', 'kamName')
+    handleArrayFilter('payStatus', 'payStatus')
+    handleArrayFilter('appInstalled', 'appInstalled')
+    handleArrayFilter('areaOfOperation', 'areaOfOperation')
+    handleArrayFilter('businessCategory', 'businessCategory')
+    handleArrayFilter('userType', 'userType')
+
+    if (filters.activity) {
+        filterParts.push(`activity:'${filters.activity}'`)
+    }
+    if (filters.contactStatus) {
+        filterParts.push(`contactStatus:'${filters.contactStatus}'`)
+    }
 
     // Boolean filters
     if (filters.verified !== undefined) {
@@ -85,24 +127,11 @@ const buildAgentFilterString = (filters: AgentSearchFilters): string => {
         filterParts.push(`blackListed:${filters.blackListed}`)
     }
 
-    // Array filters
-    if (filters.areaOfOperation && filters.areaOfOperation.length > 0) {
-        const areaFilters = filters.areaOfOperation.map((area) => `areaOfOperation:'${area}'`).join(' OR ')
-        filterParts.push(`(${areaFilters})`)
-    }
-
-    if (filters.businessCategory && filters.businessCategory.length > 0) {
-        const categoryFilters = filters.businessCategory
-            .map((category) => `businessCategory:'${category}'`)
-            .join(' OR ')
-        filterParts.push(`(${categoryFilters})`)
-    }
-
-    // Date range filters
+    // Date range filters (unchanged)
     const dateRangeFilters = [
         { from: 'lastEnquiryFrom', to: 'lastEnquiryTo', field: 'lastEnquiry' },
         { from: 'lastSeenFrom', to: 'lastSeenTo', field: 'lastSeen' },
-        { from: 'lastContactFrom', to: 'lastContactTo', field: 'contactHistory.timestamp' },
+        { from: 'lastContactFrom', to: 'lastContactTo', field: 'connectHistory.timestamp' },
     ]
 
     dateRangeFilters.forEach(({ from, to, field }) => {
@@ -120,7 +149,7 @@ const buildAgentFilterString = (filters: AgentSearchFilters): string => {
         }
     })
 
-    // Inventory status filters
+    // Inventory status filters (unchanged)
     if (filters.inventoryStatus) {
         const subStatuses = ['delisted', 'hold', 'sold', 'available']
         const selected = subStatuses.filter(
@@ -132,7 +161,9 @@ const buildAgentFilterString = (filters: AgentSearchFilters): string => {
         }
     }
 
-    return filterParts.join(' AND ')
+    const finalFilter = filterParts.join(' AND ')
+    console.log('Built filter string:', finalFilter)
+    return finalFilter
 }
 
 // Algolia sort options for Agents page (replica-based)
@@ -140,6 +171,8 @@ export const agentSortOptions = [
     { label: 'Recent First', value: 'recent' },
     { label: 'Name A-Z', value: 'name_asc' },
     { label: 'Name Z-A', value: 'name_desc' },
+    { label: 'High to Low CP-ID', value: 'cp_desc' },
+    { label: 'Low to High CP-ID', value: 'cp_asc' },
 ]
 
 // Helper function to get the correct index name for sorting
@@ -151,6 +184,8 @@ export const getAgentIndexNameForSort = (sortBy?: string): string => {
     const sortIndexMap: Record<string, string> = {
         name_asc: `${INDEX_NAME}_name_asc`,
         name_desc: `${INDEX_NAME}_name_desc`,
+        cp_desc: `${INDEX_NAME}_cp_desc`,
+        cp_asc: `${INDEX_NAME}_cp_asc`,
         recent: `${INDEX_NAME}`,
     }
 
@@ -171,6 +206,7 @@ export const searchAgents = async (params: AgentSearchParams = {}): Promise<Algo
             page,
             hitsPerPage,
             filters: filterString,
+            facets: AGENT_FACETS,
         })
 
         const response = await searchClient.search({
@@ -181,28 +217,20 @@ export const searchAgents = async (params: AgentSearchParams = {}): Promise<Algo
                     page,
                     hitsPerPage,
                     filters: filterString,
-                    facets: [
-                        'agentStatus',
-                        'appInstalled',
-                        'areaOfOperation',
-                        'businessCategory',
-                        'contactHistory.timestamp',
-                        'contactStatus',
-                        'inventoryStatus.available',
-                        'inventoryStatus.delisted',
-                        'inventoryStatus.hold',
-                        'inventoryStatus.sold',
-                        'kamName',
-                        'noOfEnquiries',
-                        'payStatus',
-                    ],
-                    maxValuesPerFacet: 100,
+                    facets: AGENT_FACETS,
+                    maxValuesPerFacet: 1000,
                     analytics: true,
                 },
             ],
         })
 
         const result = response.results[0] as SearchResponse<any>
+
+        console.log('Search response facets:', {
+            totalHits: result.nbHits,
+            facetsReceived: Object.keys(result.facets || {}),
+            facetCounts: result.facets,
+        })
 
         return {
             hits: result.hits || [],
@@ -226,6 +254,8 @@ export const getAgentFacetValues = async (
     maxFacetHits: number = 100,
 ): Promise<AgentFacetValue[]> => {
     try {
+        console.log(`Fetching facet values for: ${facetName}`)
+
         const response = await searchClient.search({
             requests: [
                 {
@@ -240,6 +270,8 @@ export const getAgentFacetValues = async (
 
         const result = response.results[0] as SearchResponse<any>
         const facetValues = result.facets?.[facetName] || {}
+
+        console.log(`Facet values for ${facetName}:`, facetValues)
 
         return Object.entries(facetValues)
             .map(([value, count]) => ({
@@ -256,32 +288,31 @@ export const getAgentFacetValues = async (
 // Get all facets for filters initialization
 export const getAllAgentFacets = async (): Promise<Record<string, any>> => {
     try {
+        console.log('Fetching all agent facets with facets:', AGENT_FACETS)
+
         const response = await searchClient.search({
             requests: [
                 {
                     indexName: INDEX_NAME,
                     query: '',
                     hitsPerPage: 0,
-                    facets: [
-                        'agentStatus',
-                        'appInstalled',
-                        'areaOfOperation',
-                        'businessCategory',
-                        'contactStatus',
-                        'contactHistory.timestamp',
-                        'inventoryStatus.available',
-                        'inventoryStatus.delisted',
-                        'inventoryStatus.hold',
-                        'inventoryStatus.sold',
-                        'kamName',
-                        'payStatus',
-                    ],
-                    maxValuesPerFacet: 100,
+                    facets: AGENT_FACETS,
+                    maxValuesPerFacet: 1000,
                 },
             ],
         })
 
         const result = response.results[0] as SearchResponse<any>
+
+        console.log('All facets response:', {
+            totalHits: result.nbHits,
+            facetsReceived: Object.keys(result.facets || {}),
+            facetCounts: Object.keys(result.facets || {}).map((key) => ({
+                facet: key,
+                count: Object.keys(result.facets![key] || {}).length,
+            })),
+        })
+
         return result.facets || {}
     } catch (error) {
         console.error('Failed to fetch agent facets:', error)
@@ -378,7 +409,7 @@ export const getAgentDateLimits = async (): Promise<{
                     indexName: INDEX_NAME,
                     query: '',
                     hitsPerPage: 0,
-                    facets: ['lastEnquiry', 'lastSeen', 'contactHistory.timestamp'],
+                    facets: ['lastEnquiry', 'lastSeen', 'connectHistory.timestamp'],
                     maxValuesPerFacet: 1000,
                 },
             ],
@@ -406,7 +437,7 @@ export const getAgentDateLimits = async (): Promise<{
         return {
             lastEnquiry: getMinMax('lastEnquiry'),
             lastSeen: getMinMax('lastSeen'),
-            lastContact: getMinMax('contactHistory.timestamp'),
+            lastContact: getMinMax('connectHistory.timestamp'),
         }
     } catch (error) {
         console.error('Get agent date limits error:', error)
@@ -420,6 +451,129 @@ export const getAgentDateLimits = async (): Promise<{
     }
 }
 
+export const getTodayAgentFacets = async (): Promise<Record<string, any>> => {
+    try {
+        // Calculate today's start and end timestamps (in seconds)
+        const now = new Date()
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1)
+
+        const startTimestamp = Math.floor(startOfDay.getTime() / 1000)
+        const endTimestamp = Math.floor(endOfDay.getTime() / 1000)
+
+        // Build filter string for today's lastConnected values
+        const todayFilter = `lastTried >= ${startTimestamp} AND lastTried <= ${endTimestamp}`
+
+        console.log('Today filter:', todayFilter)
+        console.log('Today facets being requested:', AGENT_FACETS)
+
+        const response = await searchClient.search({
+            requests: [
+                {
+                    indexName: INDEX_NAME,
+                    query: '',
+                    hitsPerPage: 0,
+                    filters: todayFilter,
+                    facets: AGENT_FACETS,
+                    maxValuesPerFacet: 1000,
+                },
+            ],
+        })
+
+        const result = response.results[0] as SearchResponse<any>
+
+        console.log('Today facets response:', {
+            totalHits: result.nbHits,
+            facetsReceived: Object.keys(result.facets || {}),
+            facetCounts: result.facets,
+        })
+
+        return result.facets || {}
+    } catch (error) {
+        console.error('Failed to fetch today agent facets:', error)
+        throw new Error(`Failed to get today facets: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+}
+
+// Test individual facets function for debugging
+export const testFacet = async (facetName: string): Promise<any> => {
+    try {
+        console.log(`Testing facet: ${facetName}`)
+
+        const response = await searchClient.search({
+            requests: [
+                {
+                    indexName: INDEX_NAME,
+                    query: '',
+                    hitsPerPage: 5,
+                    facets: [facetName],
+                    maxValuesPerFacet: 100,
+                    attributesToRetrieve: [facetName, 'objectID'],
+                },
+            ],
+        })
+
+        const result = response.results[0] as SearchResponse<any>
+
+        console.log(`Facet ${facetName} results:`, {
+            totalHits: result.nbHits,
+            facetValues: result.facets?.[facetName],
+            sampleData: result.hits.slice(0, 3).map((hit) => ({
+                objectID: hit.objectID,
+                [facetName]: hit[facetName],
+            })),
+        })
+
+        return result.facets?.[facetName] || {}
+    } catch (error) {
+        console.error(`Failed to test facet ${facetName}:`, error)
+        return {}
+    }
+}
+
+// Inspect agent data function for debugging
+export const inspectAgentData = async (): Promise<void> => {
+    try {
+        console.log('Inspecting agent data structure...')
+
+        const response = await searchClient.search({
+            requests: [
+                {
+                    indexName: INDEX_NAME,
+                    query: '',
+                    hitsPerPage: 3,
+                    attributesToRetrieve: ['*'],
+                },
+            ],
+        })
+
+        const result = response.results[0] as SearchResponse<any>
+        console.log('Sample agent data:', result.hits)
+
+        // Check what fields actually exist
+        if (result.hits.length > 0) {
+            console.log('Available fields in first record:', Object.keys(result.hits[0]))
+
+            // Check which of our expected facets exist
+            const firstRecord = result.hits[0]
+            const existingFacets = AGENT_FACETS.filter((facet) => {
+                const value = facet.includes('.')
+                    ? facet.split('.').reduce((obj, key) => obj?.[key], firstRecord)
+                    : firstRecord[facet]
+                return value !== undefined
+            })
+
+            console.log('Facets that exist in data:', existingFacets)
+            console.log(
+                "Facets that DON'T exist in data:",
+                AGENT_FACETS.filter((f) => !existingFacets.includes(f)),
+            )
+        }
+    } catch (error) {
+        console.error('Failed to inspect data:', error)
+    }
+}
+
 export default {
     searchAgents,
     getAgentFacetValues,
@@ -429,4 +583,7 @@ export default {
     getAgentSearchSuggestions,
     formatAgentFiltersForDisplay,
     getAgentDateLimits,
+    getTodayAgentFacets,
+    testFacet,
+    inspectAgentData,
 }

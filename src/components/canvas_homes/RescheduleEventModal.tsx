@@ -11,7 +11,7 @@ import { leadService } from '../../services/canvas_homes/leadService'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { UseLeadDetails } from '../../hooks/canvas_homes/useLeadDetails'
 import Dropdown from '../design-elements/Dropdown'
-
+import { toCapitalizedWords } from '../helper/toCapitalize'
 interface RootState {
     taskId: {
         taskId: string
@@ -41,6 +41,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
         datetime: '',
         leadStatus: '',
         note: '',
+        tag: '',
     })
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -95,6 +96,13 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
         { value: 'call scheduled', label: 'Schedule call' },
     ]
 
+    const tagOptions = [
+        { value: 'cold', label: 'Cold' },
+        { value: 'hot', label: 'Hot' },
+        { value: 'super hot', label: 'Super Hot' },
+        { value: 'potential', label: 'Potential' },
+    ]
+
     useEffect(() => {
         if (isOpen) {
             // Reset form when modal opens
@@ -104,10 +112,30 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 datetime: '',
                 leadStatus: '',
                 note: '',
+                tag: leadData?.tag || '',
             })
             setError(null)
         }
-    }, [isOpen])
+    }, [isOpen, leadData])
+
+    // Set defaults when reason is "rnr"
+    useEffect(() => {
+        if (formData.reason === 'rnr') {
+            // Set event name to "call scheduled"
+            const eventName = 'call scheduled'
+
+            // Set datetime to 24 hours from now
+            const tomorrow = new Date()
+            tomorrow.setHours(tomorrow.getHours() + 24)
+            const tomorrowStr = tomorrow.toISOString().slice(0, 16) // Format for datetime-local input
+
+            setFormData((prev) => ({
+                ...prev,
+                eventName,
+                datetime: tomorrowStr,
+            }))
+        }
+    }, [formData.reason])
 
     // Update leadStatus when eventName changes
     useEffect(() => {
@@ -129,7 +157,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
     const handleSubmit = async () => {
         // Validation
-        if (!formData.reason || !formData.eventName || !formData.datetime) {
+        if (!formData.reason || !formData.eventName || !formData.datetime || !formData.tag) {
             setError('Please fill in all required fields')
             return
         }
@@ -158,6 +186,13 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             const leadStatus = getLeadStatus()
             const stage = getStage()
 
+            // Get the current task to check for existing RNR count
+            const currentTask = await taskService.getById(taskId)
+            const currentRnrCount = currentTask?.rnrCount || 0
+
+            // Increment RNR count if reason is RNR
+            const rnrCount = formData.reason === 'rnr' ? currentRnrCount + 1 : currentRnrCount
+
             // Get open tasks for the enquiry
             const openTasks = await taskService.getOpenByEnquiryId(enquiryId)
             const remainingOpenTasks = openTasks
@@ -168,11 +203,14 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledTimestamp,
                 status: 'open' as 'open' | 'complete',
+                rnrCount: rnrCount, // Add the RNR count to the task
             }
 
             const enquiryUpdateData = {
                 leadStatus: leadStatus,
                 lastModified: currentTimestamp,
+                tag: formData.tag,
+                ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                 ...(stage && { stage: stage }),
             }
 
@@ -183,9 +221,10 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 data: {
                     taskType: taskType,
                     leadStatus: leadStatus,
-                    tag: leadData?.tag,
+                    tag: formData.tag,
                     reason: formData.reason,
                     note: formData.note.trim() || '',
+                    ...(formData.reason === 'rnr' && { rnrCount: rnrCount }),
                 },
             }
 
@@ -218,7 +257,9 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledTimestamp,
                 taskType: taskType,
+                tag: formData.tag,
                 ...(stage && { stage: stage }),
+                ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
             }
 
             // If there are other open tasks, check if any has an earlier scheduled date
@@ -232,7 +273,9 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                         lastModified: currentTimestamp,
                         taskType: earliestTask.taskType,
                         scheduledDate: earliestTask.taskId === taskId ? scheduledTimestamp : earliestTask.scheduledDate,
+                        tag: formData.tag,
                         ...(stage && { stage: stage }),
+                        ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                     }
                 }
             }
@@ -269,6 +312,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             datetime: '',
             leadStatus: '',
             note: '',
+            tag: '',
         })
         onClose()
     }
@@ -335,78 +379,107 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                                     {error}
                                 </div>
                             )}
+                            <div className='flex flex-row gap-7.5'>
+                                <div className='flex flex-col gap-[13px]'>
+                                    {/* Reason Field */}
+                                    <div>
+                                        <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                            Reason<span className='text-red-500'> *</span>
+                                        </label>
+                                        <Dropdown
+                                            options={reasonOptions}
+                                            onSelect={(value) => handleInputChange('reason', value)}
+                                            defaultValue={formData.reason}
+                                            placeholder='Select Reason'
+                                            className='w-full relative inline-block'
+                                            triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                                formData.reason ? '[&>span]:text-black' : ''
+                                            }`}
+                                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                            optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
+                                            disabled={isLoading}
+                                        />
+                                    </div>
+                                    <div className='grid grid-cols-2 gap-4'>
+                                        {/* Event Name */}
+                                        <div>
+                                            <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                                Event Name<span className='text-red-500'> *</span>
+                                            </label>
+                                            <Dropdown
+                                                options={eventNameOptions}
+                                                onSelect={(value) => handleInputChange('eventName', value)}
+                                                placeholder={
+                                                    formData?.eventName
+                                                        ? toCapitalizedWords(formData?.eventName)
+                                                        : 'Select Event'
+                                                }
+                                                className='w-full relative inline-block'
+                                                triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                                    formData.eventName ? '[&>span]:text-black' : ''
+                                                }`}
+                                                menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                                optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
+                                                disabled={isLoading}
+                                            />
+                                        </div>
 
-                            {/* Reason Field */}
-                            <div>
-                                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                    Reason<span className='text-red-500'> *</span>
-                                </label>
-                                <Dropdown
-                                    options={reasonOptions}
-                                    onSelect={(value) => handleInputChange('reason', value)}
-                                    defaultValue={formData.reason}
-                                    placeholder='Select Reason'
-                                    className='w-full relative inline-block'
-                                    triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                        formData.reason ? '[&>span]:text-black' : ''
-                                    }`}
-                                    menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                    optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
-                                    disabled={isLoading}
-                                />
-                            </div>
-
-                            {/* Event Name, Date/Time, and Lead Status Row */}
-                            <div className='grid grid-cols-3 gap-4'>
-                                {/* Event Name */}
-                                <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                        Event Name<span className='text-red-500'> *</span>
-                                    </label>
-                                    <Dropdown
-                                        options={eventNameOptions}
-                                        onSelect={(value) => handleInputChange('eventName', value)}
-                                        defaultValue={formData.eventName}
-                                        placeholder='Select Event '
-                                        className='w-full relative inline-block'
-                                        triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
-                                            formData.eventName ? '[&>span]:text-black' : ''
-                                        }`}
-                                        menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
-                                        optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
-                                        disabled={isLoading}
-                                    />
+                                        {/* Date and Time */}
+                                        <div>
+                                            <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                                Date and Time<span className='text-red-500'> *</span>
+                                            </label>
+                                            <input
+                                                type='datetime-local'
+                                                value={formData.datetime}
+                                                onChange={(e) => handleInputChange('datetime', e.target.value)}
+                                                min={new Date().toISOString().slice(0, 16)}
+                                                disabled={isLoading}
+                                                className='w-full h-8 px-3 py-3 border text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Date and Time */}
-                                <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                        Date and Time<span className='text-red-500'> *</span>
-                                    </label>
-                                    <input
-                                        type='datetime-local'
-                                        value={formData.datetime}
-                                        onChange={(e) => handleInputChange('datetime', e.target.value)}
-                                        min={new Date().toISOString().slice(0, 16)}
-                                        disabled={isLoading}
-                                        className='w-full h-8 px-3 py-3 border text-gray-500 border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50'
-                                    />
-                                </div>
-
-                                {/* Lead Status */}
-                                <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Lead Status</label>
-                                    <input
-                                        type='text'
-                                        value={
-                                            formData.leadStatus
-                                                ? formData.leadStatus.charAt(0).toUpperCase() +
-                                                  formData.leadStatus.slice(1)
-                                                : 'Status'
-                                        }
-                                        disabled
-                                        className='w-full px-4 py-1 border text-sm border-gray-300 rounded-sm text-gray-500 bg-gray-50'
-                                    />
+                                {/* Event Name, Date/Time, and Lead Status Row */}
+                                <div className='flex flex-col gap-[13px]'>
+                                    {/* Tag */}
+                                    <div>
+                                        <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                            Tag<span className='text-red-500'> *</span>
+                                        </label>
+                                        <Dropdown
+                                            options={tagOptions}
+                                            onSelect={(value) => handleInputChange('tag', value)}
+                                            value={formData.tag || ''}
+                                            defaultValue={formData.tag || ''}
+                                            placeholder='Select Tag'
+                                            className='w-full relative inline-block'
+                                            triggerClassName={`relative w-full h-8 px-3 py-2.5 border border-gray-300 rounded-sm text-sm text-gray-500 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${
+                                                formData.tag ? '[&>span]:text-black' : ''
+                                            }`}
+                                            menuClassName='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg'
+                                            optionClassName='px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer aria-selected:font-medium'
+                                            disabled={isLoading}
+                                        />
+                                    </div>
+                                    {/* Lead Status */}
+                                    <div>
+                                        <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                            Lead Status
+                                        </label>
+                                        <input
+                                            type='text'
+                                            value={
+                                                formData.leadStatus
+                                                    ? formData.leadStatus.charAt(0).toUpperCase() +
+                                                      formData.leadStatus.slice(1)
+                                                    : 'Status'
+                                            }
+                                            disabled
+                                            className='w-full px-4 py-1 border text-sm border-gray-300 rounded-sm text-gray-500 bg-gray-50'
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -437,7 +510,13 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isLoading || !formData.reason || !formData.eventName || !formData.datetime}
+                            disabled={
+                                isLoading ||
+                                !formData.reason ||
+                                !formData.eventName ||
+                                !formData.datetime ||
+                                !formData.tag
+                            }
                             className='px-6 py-2 w-auto bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (
