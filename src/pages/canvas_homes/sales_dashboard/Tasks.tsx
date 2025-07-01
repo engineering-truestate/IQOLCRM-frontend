@@ -298,11 +298,6 @@ const Tasks = () => {
         debouncedSearch()
     }, [searchValue, debouncedSearch])
 
-    // Initial search
-    useEffect(() => {
-        performSearch()
-    }, [performSearch])
-
     // Calculate the status counts manually
     const statusCounts = useMemo(() => {
         const counts = {

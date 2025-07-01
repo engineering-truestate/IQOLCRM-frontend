@@ -226,7 +226,7 @@ const Leads = () => {
     ])
 
     useEffect(() => {
-        let filtered = allLeadsData.filter((lead) => lead.state?.toLowerCase() !== 'junk')
+        let filtered = allLeadsData
 
         if (activeStatusCard !== 'All') {
             const stateValue = activeStatusCard.toLowerCase()
@@ -279,11 +279,6 @@ const Leads = () => {
     useEffect(() => {
         debouncedSearch()
     }, [searchValue, debouncedSearch])
-
-    useEffect(() => {
-        performSearch()
-    }, [performSearch])
-
     const statusCounts = useMemo(() => {
         const counts = {
             All: allLeadsData.length,
