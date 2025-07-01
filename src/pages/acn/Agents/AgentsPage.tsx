@@ -29,7 +29,7 @@ import algoliaAgentsService from '../../../services/acn/agents/algoliaAgentsServ
 import type { AgentSearchFilters } from '../../../services/acn/agents/algoliaAgentsService'
 import { getTodayAgentFacets, getAllAgentFacets } from '../../../services/acn/agents/algoliaAgentsService'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+import { formatUnixDateShort } from '../../../components/helper/getUnixDateTime'
 import { formatRelativeTime } from '../../../components/helper/formatDate'
 import searchnormalic from '/icons/acn/search-normal.svg'
 import userTick from '/icons/acn/user-tick.svg'
@@ -330,6 +330,16 @@ const AgentsPage = () => {
     const [searchParams, setSearchParams] = useSearchParams()
     const searchValue = searchParams.get('search') || ''
 
+    const [metricsData, setMetricsData] = useState({
+        totalAgents: 0,
+        appInstalled: 0,
+        calls: 0,
+        connects: 0,
+        rnr: 0,
+        enquiry: 0,
+        agentsEnquired: 0,
+    })
+
     const { kamNameMappings } = useSelector((state: any) => state.qc)
     const {
         selectedKam,
@@ -481,46 +491,17 @@ const AgentsPage = () => {
     }, [])
 
     const metrics = useMemo(() => {
-        // For Total Agents and App Installed - use all facets (no date filter)
-        const totalAgentsValue = totalAgents
-        const appInstalledCount = allFacets.appInstalled?.['true'] || 0
-
-        // For other metrics - use today's filtered facets
-        const interestedCount = todayFacets.agentStatus?.['interested'] || 0
-        const contactStatusFacets = todayFacets.contactStatus || {}
-
-        const connectsCount = (contactStatusFacets['Connected'] || 0) + (contactStatusFacets['connnected'] || 0)
-        const rnrCount = Object.keys(contactStatusFacets).reduce((acc, key) => {
-            if (key.toLowerCase().startsWith('rnr')) {
-                return acc + (contactStatusFacets[key] || 0)
-            }
-            return acc
-        }, 0)
-
-        // Agents Enquired: sum of all noOfEnquiries facet counts where key > '0'
-        let totalEnquiries = 0
-        let agentsEnquired = 0
-        if (todayFacets.noOfEnquiries) {
-            agentsEnquired = Object.entries(todayFacets.noOfEnquiries)
-                .filter(([key, _]) => {
-                    const num = parseInt(key, 10)
-                    totalEnquiries += num
-                    return !isNaN(num) && num > 0
-                })
-                .reduce((acc, [_, count]) => acc + (count as number), 0)
-        }
-
         return [
-            { label: 'Total Agents', value: totalAgentsValue },
-            { label: 'Interested', value: interestedCount },
-            { label: 'Calls', value: 100 }, // Still placeholder
-            { label: 'Connects', value: connectsCount },
-            { label: 'RNR', value: rnrCount },
-            { label: 'Enquiry', value: totalEnquiries },
-            { label: 'Agents Enquired', value: agentsEnquired },
-            { label: 'App Installed', value: appInstalledCount },
+            { label: 'Total Agents', value: metricsData.totalAgents },
+            { label: 'Interested', value: allFacets.agentStatus?.['interested'] || 0 },
+            { label: 'Calls', value: metricsData.calls },
+            { label: 'Connects', value: metricsData.connects },
+            { label: 'RNR', value: metricsData.rnr },
+            { label: 'Enquiry', value: metricsData.enquiry },
+            { label: 'Agents Enquired', value: metricsData.agentsEnquired },
+            { label: 'App Installed', value: metricsData.appInstalled },
         ]
-    }, [totalAgents, allFacets, todayFacets])
+    }, [metricsData, todayFacets])
 
     // Fetch agents data
     const fetchAgents = useCallback(async () => {
@@ -546,18 +527,24 @@ const AgentsPage = () => {
                 ...modalFilters,
             }
 
-            const response = await algoliaAgentsService.searchAgents({
-                query: searchValue,
-                filters,
-                page: currentPage - 1,
-                hitsPerPage: ITEMS_PER_PAGE,
-                sortBy: sortBy || undefined,
-            })
+            // Fetch both agents and metrics
+            const [agentsResponse, metricsResponse] = await Promise.all([
+                algoliaAgentsService.searchAgents({
+                    query: searchValue,
+                    filters,
+                    page: currentPage - 1,
+                    hitsPerPage: ITEMS_PER_PAGE,
+                    sortBy: sortBy || undefined,
+                }),
+                algoliaAgentsService.getAgentMetrics(filters),
+            ])
 
-            setAgentsData(response.hits)
-            setTotalAgents(response.nbHits)
-            if (response.facets) {
-                setFacets(response.facets)
+            setAgentsData(agentsResponse.hits)
+            setTotalAgents(agentsResponse.nbHits)
+            setMetricsData(metricsResponse)
+
+            if (agentsResponse.facets) {
+                setFacets(agentsResponse.facets)
             }
         } catch (error) {
             console.error('Error fetching agents:', error)
@@ -767,7 +754,7 @@ const AgentsPage = () => {
                 key: 'lastSeen',
                 header: 'Last Seen',
                 render: (value) => (
-                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDate(value)}</span>
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDateShort(value)}</span>
                 ),
             },
             {
@@ -799,7 +786,7 @@ const AgentsPage = () => {
                 key: 'lastEnquiry',
                 header: 'Last Enquired',
                 render: (value) => (
-                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDate(value)}</span>
+                    <span className='whitespace-nowrap text-sm font-normal w-auto'>{formatUnixDateShort(value)}</span>
                 ),
             },
             {

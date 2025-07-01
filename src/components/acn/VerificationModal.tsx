@@ -12,6 +12,7 @@ import {
 import { selectAgentNotesLoading } from '../../store/reducers/acn/agentsReducer'
 import type { AppDispatch, RootState } from '../../store'
 import { toast } from 'react-toastify'
+import { fetchFirmNames, searchFirmNames, addFirmName } from '../../services/acn/constants/constantService'
 
 interface VerificationModalProps {
     isOpen: boolean
@@ -56,6 +57,13 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
     const verificationLoading = isLeadsContext ? leadVerificationLoading : agentVerificationLoading
     const verificationError = isLeadsContext ? leadVerificationError : null
 
+    const firmNames = useSelector((state: RootState) => state.constants.firmNames.allNames)
+    const filteredFirmNames = useSelector((state: RootState) => state.constants.firmNames.filteredNames)
+    const firmNamesLoading = useSelector((state: RootState) => state.constants.loading.firmNames)
+    const searchingFirms = useSelector((state: RootState) => state.constants.loading.searchingFirms)
+
+    const [showFirmDropdown, setShowFirmDropdown] = useState(false)
+
     const [formData, setFormData] = useState({
         name: '',
         phoneNumber: '',
@@ -70,20 +78,12 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
 
     const [selectedAreas, setSelectedAreas] = useState<string[]>([])
     const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-    const [firmSearchResults, setFirmSearchResults] = useState<string[]>([])
-    const [showFirmDropdown, setShowFirmDropdown] = useState(false)
 
-    // Mock firm data for search suggestions
-    const firmDatabase = [
-        'ABC Real Estate Pvt Ltd',
-        'XYZ Properties',
-        'Dream Home Realty',
-        'Prime Location Consultants',
-        'Urban Living Solutions',
-        'Golden Gate Properties',
-        'Metro Housing Services',
-        'Prestige Real Estate',
-    ]
+    useEffect(() => {
+        if (isOpen && firmNames.length === 0) {
+            dispatch(fetchFirmNames())
+        }
+    }, [isOpen, firmNames.length, dispatch])
 
     // Load KAM options when modal opens
     useEffect(() => {
@@ -135,8 +135,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
         // Handle firm name search
         if (field === 'firmName') {
             if (value.length > 0) {
-                const results = firmDatabase.filter((firm) => firm.toLowerCase().includes(value.toLowerCase()))
-                setFirmSearchResults(results)
+                dispatch(searchFirmNames(value))
                 setShowFirmDropdown(true)
             } else {
                 setShowFirmDropdown(false)
@@ -159,6 +158,17 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
     const handleFirmSelect = (firmName: string) => {
         setFormData({ ...formData, firmName })
         setShowFirmDropdown(false)
+    }
+
+    const handleAddNewFirm = async (firmName: string) => {
+        try {
+            await dispatch(addFirmName(firmName)).unwrap()
+            setFormData({ ...formData, firmName })
+            setShowFirmDropdown(false)
+            toast.success('New firm added successfully!')
+        } catch (error) {
+            toast.error('Failed to add new firm')
+        }
     }
 
     const handleAreaToggle = (area: string) => {
@@ -388,21 +398,37 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
                                                 type='text'
                                                 value={formData.firmName}
                                                 onChange={(e) => handleInputChange('firmName', e.target.value)}
-                                                placeholder='Search firm name'
+                                                placeholder={firmNamesLoading ? 'Loading firms...' : 'Search firm name'}
                                                 className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-sm'
+                                                disabled={firmNamesLoading}
                                             />
                                         </div>
-                                        {showFirmDropdown && firmSearchResults.length > 0 && (
+                                        {showFirmDropdown && (
                                             <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto'>
-                                                {firmSearchResults.map((firm, index) => (
+                                                {searchingFirms ? (
+                                                    <div className='px-3 py-2 text-sm text-gray-500'>Searching...</div>
+                                                ) : filteredFirmNames.length > 0 ? (
+                                                    filteredFirmNames.map((firm, index) => (
+                                                        <button
+                                                            key={index}
+                                                            onClick={() => handleFirmSelect(firm)}
+                                                            className='w-full px-3 py-2 text-sm text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none first:rounded-t-lg last:rounded-b-lg'
+                                                        >
+                                                            {firm}
+                                                        </button>
+                                                    ))
+                                                ) : formData.firmName.trim() ? (
                                                     <button
-                                                        key={index}
-                                                        onClick={() => handleFirmSelect(firm)}
-                                                        className='w-full px-3 py-2 text-sm text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none first:rounded-t-lg last:rounded-b-lg'
+                                                        onClick={() => handleAddNewFirm(formData.firmName.trim())}
+                                                        className='w-full px-3 py-2 text-sm text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none rounded-lg text-blue-600'
                                                     >
-                                                        {firm}
+                                                        + Add "{formData.firmName.trim()}"
                                                     </button>
-                                                ))}
+                                                ) : (
+                                                    <div className='px-3 py-2 text-sm text-gray-500'>
+                                                        No firms found
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

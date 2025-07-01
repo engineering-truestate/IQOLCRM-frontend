@@ -32,7 +32,7 @@ import instagramic from '/icons/acn/insta.svg'
 import referic from '/icons/acn/referral.svg'
 import organicic from '/icons/acn/organic.svg'
 import { toCapitalizedWords } from '../../../components/helper/toCapitalize'
-import { formatUnixDate } from '../../../components/helper/getUnixDateTime'
+import { formatUnixDateShort } from '../../../components/helper/getUnixDateTime'
 import useAuth from '../../../hooks/useAuth'
 
 // Define filter state interface
@@ -83,7 +83,7 @@ const ITEMS_PER_PAGE = 50
 const LeadSourceCell = React.memo(({ source }: { source: string }) => {
     const getSourceIcon = () => {
         switch (source) {
-            case 'whatsApp':
+            case 'whatsapp campaign':
                 return <img src={whatsappic} alt='WhatsApp' className='w-5 h-5 text-gray-600 flex-shrink-0' />
             case 'instagram':
                 return <img src={instagramic} alt='Instagram' className='w-5 h-5 text-gray-600 flex-shrink-0' />
@@ -680,7 +680,7 @@ const LeadsPage = () => {
                 header: 'Last Tried',
                 render: (value) => (
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                        {value ? formatUnixDate(value) : 'Never'}
+                        {value ? formatUnixDateShort(value) : 'Never'}
                     </span>
                 ),
             },
@@ -689,7 +689,7 @@ const LeadsPage = () => {
                 header: 'Last Connect',
                 render: (value) => (
                     <span className='whitespace-nowrap text-sm font-normal w-auto'>
-                        {value ? formatUnixDate(value) : 'Never'}
+                        {value ? formatUnixDateShort(value) : 'Never'}
                     </span>
                 ),
             },

@@ -18,8 +18,8 @@ import setting from '../../../../public/icons/acn/sidebar/settingicon.svg'
 export const acnMenuItems = [
     { label: 'Agents', path: '/acn/agents', icon: Agenticon },
     { label: 'Leads', path: '/acn/leads', icon: Leadsicon },
-    { label: 'Requirements', path: '/acn/requirements', icon: Requirementsicon },
     { label: 'Properties', path: '/acn/properties', icon: Propertiesicon },
+    { label: 'Requirements', path: '/acn/requirements', icon: Requirementsicon },
     { label: 'QC Dashboard', path: '/acn/qc/dashboard', icon: QC_Dashboard },
 ]
 export const truestateMenuItems = [

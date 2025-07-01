@@ -4,6 +4,9 @@ import { algoliasearch, type SearchResponse } from 'algoliasearch'
 const searchClient = algoliasearch('VR5QNVAGQ8', '8859e68d9f9f21f28d0983ffe8bd7705')
 const INDEX_NAME = 'agents'
 
+const enquiriesSearchClient = algoliasearch('CB026NPIPR', 'ae246f017db19f23f57569596ecda949')
+const ENQUIRIES_INDEX_NAME = 'enquiries'
+
 // Consistent facets array used across all functions
 const AGENT_FACETS = [
     'agentStatus',
@@ -50,12 +53,32 @@ export interface AgentSearchFilters {
     blackListed?: boolean
     areaOfOperation?: string[]
     businessCategory?: string[]
-    lastEnquiryFrom?: string
-    lastEnquiryTo?: string
+
+    // Updated date filters for positive ranges (Yes selections)
+    lastEnquiryDidFrom?: string
+    lastEnquiryDidTo?: string
+    lastEnquiryReceivedFrom?: string
+    lastEnquiryReceivedTo?: string
     lastSeenFrom?: string
     lastSeenTo?: string
     lastContactFrom?: string
     lastContactTo?: string
+
+    // Negative date filters (No selections - NOT in range)
+    lastEnquiryDidNotFrom?: string
+    lastEnquiryDidNotTo?: string
+    lastEnquiryReceivedNotFrom?: string
+    lastEnquiryReceivedNotTo?: string
+    lastSeenNotFrom?: string
+    lastSeenNotTo?: string
+    lastContactNotFrom?: string
+    lastContactNotTo?: string
+
+    // Boolean filters for "Never" cases (when no date range specified)
+    hasNeverEnquiredDid?: boolean
+    hasNeverEnquiredReceived?: boolean
+    hasNeverBeenSeen?: boolean
+    hasNeverBeenContacted?: boolean
 }
 
 export interface AgentSearchParams {
@@ -85,25 +108,22 @@ export interface AgentFacetValue {
 const buildAgentFilterString = (filters: AgentSearchFilters): string => {
     const filterParts: string[] = []
 
-    // UPDATED: Handle array filters for multiselect
+    // Handle array filters for multiselect (existing logic)
     const handleArrayFilter = (filterKey: keyof AgentSearchFilters, algoliaField: string) => {
         const filterValue = filters[filterKey]
         if (Array.isArray(filterValue) && filterValue.length > 0) {
             if (filterValue.length === 1) {
-                // Single value
                 filterParts.push(`${algoliaField}:'${filterValue[0]}'`)
             } else {
-                // Multiple values - use OR logic
                 const orFilters = filterValue.map((value) => `${algoliaField}:'${value}'`).join(' OR ')
                 filterParts.push(`(${orFilters})`)
             }
         } else if (typeof filterValue === 'string' && filterValue) {
-            // Handle single string value (backward compatibility)
             filterParts.push(`${algoliaField}:'${filterValue}'`)
         }
     }
 
-    // Apply multiselect handling to all relevant filters
+    // Apply existing multiselect handling
     handleArrayFilter('agentStatus', 'agentStatus')
     handleArrayFilter('kamName', 'kamName')
     handleArrayFilter('payStatus', 'payStatus')
@@ -127,14 +147,15 @@ const buildAgentFilterString = (filters: AgentSearchFilters): string => {
         filterParts.push(`blackListed:${filters.blackListed}`)
     }
 
-    // Date range filters (unchanged)
-    const dateRangeFilters = [
-        { from: 'lastEnquiryFrom', to: 'lastEnquiryTo', field: 'lastEnquiry' },
+    // UPDATED: Positive date range filters (for "Yes" selections)
+    const positiveDateRangeFilters = [
+        { from: 'lastEnquiryDidFrom', to: 'lastEnquiryDidTo', field: 'lastEnquiryDid' },
+        { from: 'lastEnquiryReceivedFrom', to: 'lastEnquiryReceivedTo', field: 'lastEnquiryReceived' },
         { from: 'lastSeenFrom', to: 'lastSeenTo', field: 'lastSeen' },
-        { from: 'lastContactFrom', to: 'lastContactTo', field: 'connectHistory.timestamp' },
+        { from: 'lastContactFrom', to: 'lastContactTo', field: 'lastConnected' },
     ]
 
-    dateRangeFilters.forEach(({ from, to, field }) => {
+    positiveDateRangeFilters.forEach(({ from, to, field }) => {
         if (filters[from as keyof AgentSearchFilters] || filters[to as keyof AgentSearchFilters]) {
             const fromTimestamp = filters[from as keyof AgentSearchFilters]
             const toTimestamp = filters[to as keyof AgentSearchFilters]
@@ -149,7 +170,47 @@ const buildAgentFilterString = (filters: AgentSearchFilters): string => {
         }
     })
 
-    // Inventory status filters (unchanged)
+    // UPDATED: Negative date range filters (for "No" selections - NOT in range)
+    const negativeDateRangeFilters = [
+        { from: 'lastEnquiryDidNotFrom', to: 'lastEnquiryDidNotTo', field: 'lastEnquiryDid' },
+        { from: 'lastEnquiryReceivedNotFrom', to: 'lastEnquiryReceivedNotTo', field: 'lastEnquiryReceived' },
+        { from: 'lastSeenNotFrom', to: 'lastSeenNotTo', field: 'lastSeen' },
+        { from: 'lastContactNotFrom', to: 'lastContactNotTo', field: 'lastConnected' },
+    ]
+
+    negativeDateRangeFilters.forEach(({ from, to, field }) => {
+        if (filters[from as keyof AgentSearchFilters] || filters[to as keyof AgentSearchFilters]) {
+            const fromTimestamp = filters[from as keyof AgentSearchFilters]
+            const toTimestamp = filters[to as keyof AgentSearchFilters]
+
+            if (fromTimestamp && toTimestamp) {
+                // NOT in the specified range
+                filterParts.push(`NOT (${field} >= ${fromTimestamp} AND ${field} <= ${toTimestamp})`)
+            } else if (fromTimestamp) {
+                // NOT greater than or equal to start date
+                filterParts.push(`${field} < ${fromTimestamp}`)
+            } else if (toTimestamp) {
+                // NOT less than or equal to end date
+                filterParts.push(`${field} > ${toTimestamp}`)
+            }
+        }
+    })
+
+    // Handle "Never" boolean filters (when no date range specified for "No")
+    if (filters.hasNeverEnquiredDid) {
+        filterParts.push('(lastEnquiryDid:0 OR NOT _exists_:lastEnquiryDid)')
+    }
+    if (filters.hasNeverEnquiredReceived) {
+        filterParts.push('(lastEnquiryReceived:0 OR NOT _exists_:lastEnquiryReceived)')
+    }
+    if (filters.hasNeverBeenSeen) {
+        filterParts.push('(lastSeen:0 OR NOT _exists_:lastSeen)')
+    }
+    if (filters.hasNeverBeenContacted) {
+        filterParts.push('(lastConnected:0 OR NOT _exists_:lastConnected)')
+    }
+
+    // Inventory status filters (existing logic)
     if (filters.inventoryStatus) {
         const subStatuses = ['delisted', 'hold', 'sold', 'available']
         const selected = subStatuses.filter(
@@ -495,6 +556,143 @@ export const getTodayAgentFacets = async (): Promise<Record<string, any>> => {
     }
 }
 
+export const getAgentMetrics = async (
+    filters: AgentSearchFilters = {},
+): Promise<{
+    totalAgents: number
+    appInstalled: number
+    calls: number
+    connects: number
+    rnr: number
+    enquiry: number
+    agentsEnquired: number
+}> => {
+    try {
+        // Get current day timestamps
+        const now = new Date()
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1)
+        const startTimestamp = Math.floor(startOfDay.getTime() / 1000)
+        const endTimestamp = Math.floor(endOfDay.getTime() / 1000)
+
+        // Build filter string for agents
+        const agentFilterString = buildAgentFilterString(filters)
+
+        // Multiple queries to get different metrics
+        const queries = [
+            // Total agents with filters
+            {
+                indexName: INDEX_NAME,
+                query: '',
+                hitsPerPage: 0,
+                filters: agentFilterString,
+            },
+            // App installed with filters
+            {
+                indexName: INDEX_NAME,
+                query: '',
+                hitsPerPage: 0,
+                filters: agentFilterString ? `${agentFilterString} AND appInstalled:true` : 'appInstalled:true',
+            },
+            // Calls (lastTried today) with filters
+            {
+                indexName: INDEX_NAME,
+                query: '',
+                hitsPerPage: 0,
+                filters: agentFilterString
+                    ? `${agentFilterString} AND lastTried >= ${startTimestamp} AND lastTried <= ${endTimestamp}`
+                    : `lastTried >= ${startTimestamp} AND lastTried <= ${endTimestamp}`,
+            },
+            // Connects (lastConnected today) with filters
+            {
+                indexName: INDEX_NAME,
+                query: '',
+                hitsPerPage: 0,
+                filters: agentFilterString
+                    ? `${agentFilterString} AND lastConnected >= ${startTimestamp} AND lastConnected <= ${endTimestamp}`
+                    : `lastConnected >= ${startTimestamp} AND lastConnected <= ${endTimestamp}`,
+            },
+        ]
+
+        const response = await searchClient.search({ requests: queries })
+        const results = response.results as SearchResponse<any>[]
+
+        const totalAgents = results[0].nbHits ?? 0
+        const appInstalled = results[1].nbHits ?? 0
+        const calls = results[2].nbHits ?? 0
+        const connects = results[3].nbHits ?? 0
+        const rnr = calls - connects
+
+        // For enquiries, query the acnEnquiries index
+        const enquiryQueries = [
+            // Total enquiries today
+            {
+                indexName: ENQUIRIES_INDEX_NAME,
+                query: '',
+                hitsPerPage: 0,
+                filters: `added >= ${startTimestamp} AND added <= ${endTimestamp}`,
+            },
+            // Unique agents who enquired today (using facets)
+            {
+                indexName: ENQUIRIES_INDEX_NAME,
+                query: '',
+                hitsPerPage: 0,
+                filters: `added >= ${startTimestamp} AND added <= ${endTimestamp}`,
+                facets: ['buyerCpId'],
+                maxValuesPerFacet: 10000,
+            },
+        ]
+
+        const enquiryResponse = await enquiriesSearchClient.search({ requests: enquiryQueries })
+        const enquiryResults = enquiryResponse.results as SearchResponse<any>[]
+
+        const enquiry = enquiryResults[0].nbHits ?? 0
+        const agentsEnquired = Object.keys(enquiryResults[1].facets?.buyerCpId || {}).length
+
+        return {
+            totalAgents,
+            appInstalled,
+            calls,
+            connects,
+            rnr,
+            enquiry,
+            agentsEnquired,
+        }
+    } catch (error) {
+        console.error('Error fetching agent metrics:', error)
+        throw new Error(`Failed to fetch metrics: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+}
+
+// Update your existing getTodayAgentFacets function to include metrics
+export const getTodayAgentFacetsWithMetrics = async (
+    filters: AgentSearchFilters = {},
+): Promise<{
+    facets: Record<string, any>
+    metrics: {
+        totalAgents: number
+        appInstalled: number
+        calls: number
+        connects: number
+        rnr: number
+        enquiry: number
+        agentsEnquired: number
+    }
+}> => {
+    try {
+        // Get the existing facets
+        const facets = await getTodayAgentFacets()
+
+        // Get the metrics
+        const metrics = await getAgentMetrics(filters)
+
+        return { facets, metrics }
+    } catch (error) {
+        console.error('Failed to fetch today agent facets with metrics:', error)
+        throw new Error(`Failed to get facets and metrics: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+}
+
 // Test individual facets function for debugging
 export const testFacet = async (facetName: string): Promise<any> => {
     try {
@@ -586,4 +784,5 @@ export default {
     getTodayAgentFacets,
     testFacet,
     inspectAgentData,
+    getAgentMetrics,
 }

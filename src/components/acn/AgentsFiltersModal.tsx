@@ -4,6 +4,7 @@ import algoliaAgentsService from '../../services/acn/agents/algoliaAgentsService
 import type { AgentSearchFilters } from '../../services/acn/agents/algoliaAgentsService'
 import AlgoliaFacetMultiSelect from '../design-elements/AlgoliaFacetMultiSelect'
 import Button from '../design-elements/Button'
+import { getTodayDateString } from '../helper/formatDate'
 
 // ---------- Types ----------
 
@@ -30,7 +31,24 @@ const getEndOfDayTimestamp = (dateString: string): number => {
 
 // Helper function to convert Unix timestamp to date string
 const unixToDateString = (unixTimestamp: number): string => {
-    return new Date(unixTimestamp * 1000).toISOString().split('T')[0]
+    // Handle invalid or zero timestamps
+    if (!unixTimestamp || unixTimestamp === 0 || isNaN(unixTimestamp)) {
+        return ''
+    }
+
+    try {
+        const date = new Date(unixTimestamp * 1000)
+
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            return ''
+        }
+
+        return date.toISOString().split('T')[0]
+    } catch (error) {
+        console.error('Error converting timestamp to date string:', error)
+        return ''
+    }
 }
 
 export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
@@ -43,26 +61,31 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
     const [facets, setFacets] = useState<Record<string, any>>({})
     const [localFilters, setLocalFilters] = useState<AgentSearchFilters>(filters)
     const [dateLimits, setDateLimits] = useState<{
-        lastEnquiry: { min: number; max: number }
+        lastEnquiryDid: { min: number; max: number }
+        lastEnquiryReceived: { min: number; max: number }
         lastSeen: { min: number; max: number }
         lastContact: { min: number; max: number }
     }>({
-        lastEnquiry: { min: 0, max: Math.floor(Date.now() / 1000) },
-        lastSeen: { min: 0, max: Math.floor(Date.now() / 1000) },
-        lastContact: { min: 0, max: Math.floor(Date.now() / 1000) },
+        lastEnquiryDid: { min: 946684800, max: Math.floor(Date.now() / 1000) }, // Start from year 2000
+        lastEnquiryReceived: { min: 946684800, max: Math.floor(Date.now() / 1000) },
+        lastSeen: { min: 946684800, max: Math.floor(Date.now() / 1000) },
+        lastContact: { min: 946684800, max: Math.floor(Date.now() / 1000) },
     })
     const [dateRanges, setDateRanges] = useState<{
-        lastEnquiry: { start?: string; end?: string }
+        lastEnquiryDid: { start?: string; end?: string }
+        lastEnquiryReceived: { start?: string; end?: string }
         lastSeen: { start?: string; end?: string }
         lastContact: { start?: string; end?: string }
     }>({
-        lastEnquiry: {},
+        lastEnquiryDid: {},
+        lastEnquiryReceived: {},
         lastSeen: {},
         lastContact: {},
     })
 
     // Radio button states for date filters
-    const [lastEnquiryStatus, setLastEnquiryStatus] = useState<'received' | 'not-received' | null>(null)
+    const [lastEnquiryDidStatus, setLastEnquiryDidStatus] = useState<'yes' | 'no' | null>(null)
+    const [lastEnquiryReceivedStatus, setLastEnquiryReceivedStatus] = useState<'yes' | 'no' | null>(null)
     const [lastSeenStatus, setLastSeenStatus] = useState<'yes' | 'no' | null>(null)
     const [lastContactStatus, setLastContactStatus] = useState<'yes' | 'no' | null>(null)
 
@@ -97,38 +120,136 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
                 // Get arrays from URL
                 areaOfOperation: getArrayFromParams('modalAreaOfOperation'),
                 businessCategory: getArrayFromParams('modalBusinessCategory'),
-
-                // Get single values from URL
                 payStatus: getArrayFromParams('modalPayStatus'),
 
-                // Get date ranges from URL
-                lastEnquiryFrom: searchParams.get('modalLastEnquiryFrom') || undefined,
-                lastEnquiryTo: searchParams.get('modalLastEnquiryTo') || undefined,
+                // Get positive date ranges from URL
+                lastEnquiryDidFrom: searchParams.get('modalLastEnquiryDidFrom') || undefined,
+                lastEnquiryDidTo: searchParams.get('modalLastEnquiryDidTo') || undefined,
+                lastEnquiryReceivedFrom: searchParams.get('modalLastEnquiryReceivedFrom') || undefined,
+                lastEnquiryReceivedTo: searchParams.get('modalLastEnquiryReceivedTo') || undefined,
                 lastSeenFrom: searchParams.get('modalLastSeenFrom') || undefined,
                 lastSeenTo: searchParams.get('modalLastSeenTo') || undefined,
                 lastContactFrom: searchParams.get('modalLastContactFrom') || undefined,
                 lastContactTo: searchParams.get('modalLastContactTo') || undefined,
+
+                // Get negative date ranges from URL
+                lastEnquiryDidNotFrom: searchParams.get('modalLastEnquiryDidNotFrom') || undefined,
+                lastEnquiryDidNotTo: searchParams.get('modalLastEnquiryDidNotTo') || undefined,
+                lastEnquiryReceivedNotFrom: searchParams.get('modalLastEnquiryReceivedNotFrom') || undefined,
+                lastEnquiryReceivedNotTo: searchParams.get('modalLastEnquiryReceivedNotTo') || undefined,
+                lastSeenNotFrom: searchParams.get('modalLastSeenNotFrom') || undefined,
+                lastSeenNotTo: searchParams.get('modalLastSeenNotTo') || undefined,
+                lastContactNotFrom: searchParams.get('modalLastContactNotFrom') || undefined,
+                lastContactNotTo: searchParams.get('modalLastContactNotTo') || undefined,
+
+                // Get boolean fields from URL
+                hasNeverEnquiredDid: searchParams.get('modalHasNeverEnquiredDid') === 'true',
+                hasNeverEnquiredReceived: searchParams.get('modalHasNeverEnquiredReceived') === 'true',
+                hasNeverBeenSeen: searchParams.get('modalHasNeverBeenSeen') === 'true',
+                hasNeverBeenContacted: searchParams.get('modalHasNeverBeenContacted') === 'true',
             }
 
             setLocalFilters(urlFilters)
 
+            // Set radio button states based on URL
+            if (urlFilters.hasNeverEnquiredDid) {
+                setLastEnquiryDidStatus('no')
+            } else if (urlFilters.lastEnquiryDidFrom || urlFilters.lastEnquiryDidTo) {
+                setLastEnquiryDidStatus('yes')
+            } else if (urlFilters.lastEnquiryDidNotFrom || urlFilters.lastEnquiryDidNotTo) {
+                setLastEnquiryDidStatus('no')
+            } else {
+                setLastEnquiryDidStatus(null)
+            }
+
+            if (urlFilters.hasNeverEnquiredReceived) {
+                setLastEnquiryReceivedStatus('no')
+            } else if (urlFilters.lastEnquiryReceivedFrom || urlFilters.lastEnquiryReceivedTo) {
+                setLastEnquiryReceivedStatus('yes')
+            } else if (urlFilters.lastEnquiryReceivedNotFrom || urlFilters.lastEnquiryReceivedNotTo) {
+                setLastEnquiryReceivedStatus('no')
+            } else {
+                setLastEnquiryReceivedStatus(null)
+            }
+
+            if (urlFilters.hasNeverBeenSeen) {
+                setLastSeenStatus('no')
+            } else if (urlFilters.lastSeenFrom || urlFilters.lastSeenTo) {
+                setLastSeenStatus('yes')
+            } else if (urlFilters.lastSeenNotFrom || urlFilters.lastSeenNotTo) {
+                setLastSeenStatus('no')
+            } else {
+                setLastSeenStatus(null)
+            }
+
+            if (urlFilters.hasNeverBeenContacted) {
+                setLastContactStatus('no')
+            } else if (urlFilters.lastContactFrom || urlFilters.lastContactTo) {
+                setLastContactStatus('yes')
+            } else if (urlFilters.lastContactNotFrom || urlFilters.lastContactNotTo) {
+                setLastContactStatus('no')
+            } else {
+                setLastContactStatus(null)
+            }
+
             // Convert Unix timestamps back to date strings for display
             setDateRanges({
-                lastEnquiry: {
-                    start: urlFilters.lastEnquiryFrom
-                        ? unixToDateString(parseInt(urlFilters.lastEnquiryFrom))
-                        : undefined,
-                    end: urlFilters.lastEnquiryTo ? unixToDateString(parseInt(urlFilters.lastEnquiryTo)) : undefined,
+                lastEnquiryDid: {
+                    start:
+                        urlFilters.lastEnquiryDidFrom && parseInt(urlFilters.lastEnquiryDidFrom) > 0
+                            ? unixToDateString(parseInt(urlFilters.lastEnquiryDidFrom))
+                            : urlFilters.lastEnquiryDidNotFrom && parseInt(urlFilters.lastEnquiryDidNotFrom) > 0
+                              ? unixToDateString(parseInt(urlFilters.lastEnquiryDidNotFrom))
+                              : '',
+                    end:
+                        urlFilters.lastEnquiryDidTo && parseInt(urlFilters.lastEnquiryDidTo) > 0
+                            ? unixToDateString(parseInt(urlFilters.lastEnquiryDidTo))
+                            : urlFilters.lastEnquiryDidNotTo && parseInt(urlFilters.lastEnquiryDidNotTo) > 0
+                              ? unixToDateString(parseInt(urlFilters.lastEnquiryDidNotTo))
+                              : '',
+                },
+                lastEnquiryReceived: {
+                    start:
+                        urlFilters.lastEnquiryReceivedFrom && parseInt(urlFilters.lastEnquiryReceivedFrom) > 0
+                            ? unixToDateString(parseInt(urlFilters.lastEnquiryReceivedFrom))
+                            : urlFilters.lastEnquiryReceivedNotFrom &&
+                                parseInt(urlFilters.lastEnquiryReceivedNotFrom) > 0
+                              ? unixToDateString(parseInt(urlFilters.lastEnquiryReceivedNotFrom))
+                              : '',
+                    end:
+                        urlFilters.lastEnquiryReceivedTo && parseInt(urlFilters.lastEnquiryReceivedTo) > 0
+                            ? unixToDateString(parseInt(urlFilters.lastEnquiryReceivedTo))
+                            : urlFilters.lastEnquiryReceivedNotTo && parseInt(urlFilters.lastEnquiryReceivedNotTo) > 0
+                              ? unixToDateString(parseInt(urlFilters.lastEnquiryReceivedNotTo))
+                              : '',
                 },
                 lastSeen: {
-                    start: urlFilters.lastSeenFrom ? unixToDateString(parseInt(urlFilters.lastSeenFrom)) : undefined,
-                    end: urlFilters.lastSeenTo ? unixToDateString(parseInt(urlFilters.lastSeenTo)) : undefined,
+                    start:
+                        urlFilters.lastSeenFrom && parseInt(urlFilters.lastSeenFrom) > 0
+                            ? unixToDateString(parseInt(urlFilters.lastSeenFrom))
+                            : urlFilters.lastSeenNotFrom && parseInt(urlFilters.lastSeenNotFrom) > 0
+                              ? unixToDateString(parseInt(urlFilters.lastSeenNotFrom))
+                              : '',
+                    end:
+                        urlFilters.lastSeenTo && parseInt(urlFilters.lastSeenTo) > 0
+                            ? unixToDateString(parseInt(urlFilters.lastSeenTo))
+                            : urlFilters.lastSeenNotTo && parseInt(urlFilters.lastSeenNotTo) > 0
+                              ? unixToDateString(parseInt(urlFilters.lastSeenNotTo))
+                              : '',
                 },
                 lastContact: {
-                    start: urlFilters.lastContactFrom
-                        ? unixToDateString(parseInt(urlFilters.lastContactFrom))
-                        : undefined,
-                    end: urlFilters.lastContactTo ? unixToDateString(parseInt(urlFilters.lastContactTo)) : undefined,
+                    start:
+                        urlFilters.lastContactFrom && parseInt(urlFilters.lastContactFrom) > 0
+                            ? unixToDateString(parseInt(urlFilters.lastContactFrom))
+                            : urlFilters.lastContactNotFrom && parseInt(urlFilters.lastContactNotFrom) > 0
+                              ? unixToDateString(parseInt(urlFilters.lastContactNotFrom))
+                              : '',
+                    end:
+                        urlFilters.lastContactTo && parseInt(urlFilters.lastContactTo) > 0
+                            ? unixToDateString(parseInt(urlFilters.lastContactTo))
+                            : urlFilters.lastContactNotTo && parseInt(urlFilters.lastContactNotTo) > 0
+                              ? unixToDateString(parseInt(urlFilters.lastContactNotTo))
+                              : '',
                 },
             })
         }
@@ -143,7 +264,12 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
                     algoliaAgentsService.getAgentDateLimits(),
                 ])
                 setFacets(allFacets)
-                setDateLimits(limits)
+                setDateLimits({
+                    lastEnquiryDid: limits.lastEnquiry, // Map to your actual field names
+                    lastEnquiryReceived: limits.lastEnquiry,
+                    lastSeen: limits.lastSeen,
+                    lastContact: limits.lastContact,
+                })
             } catch (err) {
                 console.error('Failed to fetch agent data:', err)
                 setFacets({})
@@ -156,65 +282,134 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
     }, [isOpen])
 
     const handleApply = () => {
-        // Convert date ranges to Unix timestamps and update filters
         const updatedFilters = { ...localFilters }
 
-        // Handle Last Enquiry dates with database limits
-        if (dateRanges.lastEnquiry.start || dateRanges.lastEnquiry.end) {
-            if (dateRanges.lastEnquiry.start) {
-                const startTimestamp = getStartOfDayTimestamp(dateRanges.lastEnquiry.start)
-                updatedFilters.lastEnquiryFrom = Math.max(startTimestamp, dateLimits.lastEnquiry.min).toString()
+        // Helper function to handle date logic for each filter type
+        const handleDateFilter = (
+            status: 'yes' | 'no' | null,
+            dateRange: { start?: string; end?: string },
+            limits: { min: number; max: number },
+            positiveFromKey: keyof AgentSearchFilters,
+            positiveToKey: keyof AgentSearchFilters,
+            negativeFromKey: keyof AgentSearchFilters,
+            negativeToKey: keyof AgentSearchFilters,
+            neverKey: keyof AgentSearchFilters,
+        ) => {
+            if (status === 'yes') {
+                // Clear negative and never filters
+                delete updatedFilters[negativeFromKey]
+                delete updatedFilters[negativeToKey]
+                delete updatedFilters[neverKey]
+
+                // Set positive filters with type assertion
+                if (dateRange.start) {
+                    const startTimestamp = getStartOfDayTimestamp(dateRange.start)
+                    ;(updatedFilters as any)[positiveFromKey] = startTimestamp.toString()
+                }
+                if (dateRange.end) {
+                    const endTimestamp = getEndOfDayTimestamp(dateRange.end)
+                    ;(updatedFilters as any)[positiveToKey] = endTimestamp.toString()
+                }
+            } else if (status === 'no') {
+                // Clear positive and never filters
+                delete updatedFilters[positiveFromKey]
+                delete updatedFilters[positiveToKey]
+                delete updatedFilters[neverKey]
+
+                if (dateRange.start || dateRange.end) {
+                    // Set negative filters (NOT in range)
+                    if (dateRange.start) {
+                        const startTimestamp = getStartOfDayTimestamp(dateRange.start)
+                        ;(updatedFilters as any)[negativeFromKey] = startTimestamp.toString()
+                    }
+                    if (dateRange.end) {
+                        const endTimestamp = getEndOfDayTimestamp(dateRange.end)
+                        ;(updatedFilters as any)[negativeToKey] = endTimestamp.toString()
+                    }
+                } else {
+                    // No date range specified for "No", use never filter
+                    ;(updatedFilters as any)[neverKey] = true
+                }
+            } else {
+                // Clear all filters for this type
+                delete updatedFilters[positiveFromKey]
+                delete updatedFilters[positiveToKey]
+                delete updatedFilters[negativeFromKey]
+                delete updatedFilters[negativeToKey]
+                delete updatedFilters[neverKey]
             }
-            if (dateRanges.lastEnquiry.end) {
-                const endTimestamp = getEndOfDayTimestamp(dateRanges.lastEnquiry.end)
-                updatedFilters.lastEnquiryTo = Math.min(endTimestamp, dateLimits.lastEnquiry.max).toString()
-            }
-        } else {
-            delete updatedFilters.lastEnquiryFrom
-            delete updatedFilters.lastEnquiryTo
         }
 
-        // Handle Last Seen dates with database limits
-        if (dateRanges.lastSeen.start || dateRanges.lastSeen.end) {
-            if (dateRanges.lastSeen.start) {
-                const startTimestamp = getStartOfDayTimestamp(dateRanges.lastSeen.start)
-                updatedFilters.lastSeenFrom = Math.max(startTimestamp, dateLimits.lastSeen.min).toString()
-            }
-            if (dateRanges.lastSeen.end) {
-                const endTimestamp = getEndOfDayTimestamp(dateRanges.lastSeen.end)
-                updatedFilters.lastSeenTo = Math.min(endTimestamp, dateLimits.lastSeen.max).toString()
-            }
-        } else {
-            delete updatedFilters.lastSeenFrom
-            delete updatedFilters.lastSeenTo
-        }
+        // Apply date filter logic for each type
+        handleDateFilter(
+            lastEnquiryDidStatus,
+            dateRanges.lastEnquiryDid,
+            dateLimits.lastEnquiryDid,
+            'lastEnquiryDidFrom',
+            'lastEnquiryDidTo',
+            'lastEnquiryDidNotFrom',
+            'lastEnquiryDidNotTo',
+            'hasNeverEnquiredDid',
+        )
 
-        // Handle Last Contact dates with database limits
-        if (dateRanges.lastContact.start || dateRanges.lastContact.end) {
-            if (dateRanges.lastContact.start) {
-                const startTimestamp = getStartOfDayTimestamp(dateRanges.lastContact.start)
-                updatedFilters.lastContactFrom = Math.max(startTimestamp, dateLimits.lastContact.min).toString()
-            }
-            if (dateRanges.lastContact.end) {
-                const endTimestamp = getEndOfDayTimestamp(dateRanges.lastContact.end)
-                updatedFilters.lastContactTo = Math.min(endTimestamp, dateLimits.lastContact.max).toString()
-            }
-        } else {
-            delete updatedFilters.lastContactFrom
-            delete updatedFilters.lastContactTo
-        }
+        handleDateFilter(
+            lastEnquiryReceivedStatus,
+            dateRanges.lastEnquiryReceived,
+            dateLimits.lastEnquiryReceived,
+            'lastEnquiryReceivedFrom',
+            'lastEnquiryReceivedTo',
+            'lastEnquiryReceivedNotFrom',
+            'lastEnquiryReceivedNotTo',
+            'hasNeverEnquiredReceived',
+        )
 
-        // Update URL with modal filters (using modal prefix to avoid conflicts)
+        handleDateFilter(
+            lastSeenStatus,
+            dateRanges.lastSeen,
+            dateLimits.lastSeen,
+            'lastSeenFrom',
+            'lastSeenTo',
+            'lastSeenNotFrom',
+            'lastSeenNotTo',
+            'hasNeverBeenSeen',
+        )
+
+        handleDateFilter(
+            lastContactStatus,
+            dateRanges.lastContact,
+            dateLimits.lastContact,
+            'lastContactFrom',
+            'lastContactTo',
+            'lastContactNotFrom',
+            'lastContactNotTo',
+            'hasNeverBeenContacted',
+        )
+
+        // Update URL with all filter fields
         updateUrlParams({
             modalAreaOfOperation: updatedFilters.areaOfOperation,
             modalBusinessCategory: updatedFilters.businessCategory,
             modalPayStatus: updatedFilters.payStatus,
-            modalLastEnquiryFrom: updatedFilters.lastEnquiryFrom,
-            modalLastEnquiryTo: updatedFilters.lastEnquiryTo,
+            modalLastEnquiryDidFrom: updatedFilters.lastEnquiryDidFrom,
+            modalLastEnquiryDidTo: updatedFilters.lastEnquiryDidTo,
+            modalLastEnquiryDidNotFrom: updatedFilters.lastEnquiryDidNotFrom,
+            modalLastEnquiryDidNotTo: updatedFilters.lastEnquiryDidNotTo,
+            modalLastEnquiryReceivedFrom: updatedFilters.lastEnquiryReceivedFrom,
+            modalLastEnquiryReceivedTo: updatedFilters.lastEnquiryReceivedTo,
+            modalLastEnquiryReceivedNotFrom: updatedFilters.lastEnquiryReceivedNotFrom,
+            modalLastEnquiryReceivedNotTo: updatedFilters.lastEnquiryReceivedNotTo,
             modalLastSeenFrom: updatedFilters.lastSeenFrom,
             modalLastSeenTo: updatedFilters.lastSeenTo,
+            modalLastSeenNotFrom: updatedFilters.lastSeenNotFrom,
+            modalLastSeenNotTo: updatedFilters.lastSeenNotTo,
             modalLastContactFrom: updatedFilters.lastContactFrom,
             modalLastContactTo: updatedFilters.lastContactTo,
+            modalLastContactNotFrom: updatedFilters.lastContactNotFrom,
+            modalLastContactNotTo: updatedFilters.lastContactNotTo,
+            modalHasNeverEnquiredDid: updatedFilters.hasNeverEnquiredDid ? 'true' : undefined,
+            modalHasNeverEnquiredReceived: updatedFilters.hasNeverEnquiredReceived ? 'true' : undefined,
+            modalHasNeverBeenSeen: updatedFilters.hasNeverBeenSeen ? 'true' : undefined,
+            modalHasNeverBeenContacted: updatedFilters.hasNeverBeenContacted ? 'true' : undefined,
         })
 
         onFiltersChange(updatedFilters)
@@ -224,25 +419,41 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
     const handleReset = () => {
         setLocalFilters({})
         setDateRanges({
-            lastEnquiry: {},
+            lastEnquiryDid: {},
+            lastEnquiryReceived: {},
             lastSeen: {},
             lastContact: {},
         })
-        setLastEnquiryStatus(null)
+        setLastEnquiryDidStatus(null)
+        setLastEnquiryReceivedStatus(null)
         setLastSeenStatus(null)
         setLastContactStatus(null)
 
-        // Clear modal filters from URL
+        // Clear all modal filters from URL
         updateUrlParams({
             modalAreaOfOperation: undefined,
             modalBusinessCategory: undefined,
             modalPayStatus: undefined,
-            modalLastEnquiryFrom: undefined,
-            modalLastEnquiryTo: undefined,
+            modalLastEnquiryDidFrom: undefined,
+            modalLastEnquiryDidTo: undefined,
+            modalLastEnquiryDidNotFrom: undefined,
+            modalLastEnquiryDidNotTo: undefined,
+            modalLastEnquiryReceivedFrom: undefined,
+            modalLastEnquiryReceivedTo: undefined,
+            modalLastEnquiryReceivedNotFrom: undefined,
+            modalLastEnquiryReceivedNotTo: undefined,
             modalLastSeenFrom: undefined,
             modalLastSeenTo: undefined,
+            modalLastSeenNotFrom: undefined,
+            modalLastSeenNotTo: undefined,
             modalLastContactFrom: undefined,
             modalLastContactTo: undefined,
+            modalLastContactNotFrom: undefined,
+            modalLastContactNotTo: undefined,
+            modalHasNeverEnquiredDid: undefined,
+            modalHasNeverEnquiredReceived: undefined,
+            modalHasNeverBeenSeen: undefined,
+            modalHasNeverBeenContacted: undefined,
         })
 
         onFiltersChange({})
@@ -257,9 +468,9 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
         }))
     }
 
-    // Handle date range changes with URL sync
+    // Handle date range changes
     const handleDateRangeChange = (
-        field: 'lastEnquiry' | 'lastSeen' | 'lastContact',
+        field: 'lastEnquiryDid' | 'lastEnquiryReceived' | 'lastSeen' | 'lastContact',
         start?: string | null,
         end?: string | null,
     ) => {
@@ -271,18 +482,9 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
             },
         }
         setDateRanges(newDateRanges)
-
-        // Update URL immediately for date changes
-        const urlKey =
-            field === 'lastEnquiry' ? 'modalLastEnquiry' : field === 'lastSeen' ? 'modalLastSeen' : 'modalLastContact'
-
-        updateUrlParams({
-            [`${urlKey}Start`]: start || undefined,
-            [`${urlKey}End`]: end || undefined,
-        })
     }
 
-    // Handle area selection with URL sync
+    // Handle area selection
     const handleAreaSelection = (value: string) => {
         const currentValues = localFilters.areaOfOperation || []
         const isSelected = currentValues.includes(value)
@@ -290,14 +492,9 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
 
         const updatedFilters = { ...localFilters, areaOfOperation: newValues }
         setLocalFilters(updatedFilters)
-
-        // Update URL immediately
-        updateUrlParams({
-            modalAreaOfOperation: newValues,
-        })
     }
 
-    // Handle business category selection with URL sync
+    // Handle business category selection
     const handleBusinessCategorySelection = (value: string) => {
         const currentValues = localFilters.businessCategory || []
         const isSelected = currentValues.includes(value)
@@ -305,11 +502,6 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
 
         const updatedFilters = { ...localFilters, businessCategory: newValues }
         setLocalFilters(updatedFilters)
-
-        // Update URL immediately
-        updateUrlParams({
-            modalBusinessCategory: newValues,
-        })
     }
 
     if (!isOpen) return null
@@ -332,7 +524,7 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
 
                 {/* Content */}
                 <div className='flex-1 overflow-y-auto p-6 space-y-6'>
-                    {/*Pay Status */}
+                    {/* Pay Status */}
                     <div className='grid grid-cols-2 gap-4'>
                         <div className='space-y-2'>
                             <label className='block text-sm font-medium text-gray-700'>Pay Status</label>
@@ -342,7 +534,6 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
                                 onSelectionChange={(values) => {
                                     const updatedFilters = { ...localFilters, payStatus: values }
                                     setLocalFilters(updatedFilters)
-                                    updateUrlParams({ modalPayStatus: values })
                                 }}
                                 placeholder='Please Select'
                                 label='Pay Status'
@@ -396,66 +587,145 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Last Enquiry */}
+                    {/* Last Enquiry Did */}
                     <div className='space-y-3'>
                         <div className='flex items-center gap-4'>
-                            <label className='text-sm font-medium text-gray-700'>Last Enquiry</label>
+                            <label className='text-sm font-medium text-gray-700'>Last Enquiry Did</label>
                             <div className='flex border border-gray-300 rounded-md overflow-hidden bg-[#F0F0F5]'>
                                 <button
                                     onClick={() =>
-                                        setLastEnquiryStatus(lastEnquiryStatus === 'received' ? null : 'received')
+                                        setLastEnquiryDidStatus(lastEnquiryDidStatus === 'yes' ? null : 'yes')
                                     }
                                     className={`px-3 py-1 text-xs transition ${
-                                        lastEnquiryStatus === 'received'
+                                        lastEnquiryDidStatus === 'yes'
                                             ? 'bg-white text-black font-semibold'
                                             : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
                                     }`}
                                 >
-                                    Received
+                                    Yes
                                 </button>
                                 <button
-                                    onClick={() =>
-                                        setLastEnquiryStatus(
-                                            lastEnquiryStatus === 'not-received' ? null : 'not-received',
-                                        )
-                                    }
+                                    onClick={() => setLastEnquiryDidStatus(lastEnquiryDidStatus === 'no' ? null : 'no')}
                                     className={`px-3 py-1 text-xs border-l border-gray-300 transition ${
-                                        lastEnquiryStatus === 'not-received'
+                                        lastEnquiryDidStatus === 'no'
                                             ? 'bg-white text-black font-semibold'
                                             : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
                                     }`}
                                 >
-                                    Not Received
+                                    No
                                 </button>
                             </div>
                         </div>
-                        <div className='grid grid-cols-2 gap-3'>
-                            <input
-                                type='date'
-                                placeholder='DD/MM/YYYY'
-                                value={dateRanges.lastEnquiry.start || ''}
-                                onChange={(e) =>
-                                    handleDateRangeChange('lastEnquiry', e.target.value, dateRanges.lastEnquiry.end)
-                                }
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
-                            />
-                            <div className='flex items-center gap-2'>
-                                <span className='text-sm text-gray-500'>To</span>
+                        {/* Show date inputs for BOTH Yes and No */}
+                        {(lastEnquiryDidStatus === 'yes' || lastEnquiryDidStatus === 'no') && (
+                            <div className='grid grid-cols-2 gap-3'>
                                 <input
                                     type='date'
                                     placeholder='DD/MM/YYYY'
-                                    value={dateRanges.lastEnquiry.end || ''}
+                                    value={dateRanges.lastEnquiryDid.start || ''}
                                     onChange={(e) =>
                                         handleDateRangeChange(
-                                            'lastEnquiry',
-                                            dateRanges.lastEnquiry.start,
+                                            'lastEnquiryDid',
                                             e.target.value,
+                                            dateRanges.lastEnquiryDid.end,
                                         )
                                     }
                                     className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
                                 />
+                                <div className='flex items-center gap-2'>
+                                    <span className='text-sm text-gray-500'>To</span>
+                                    <input
+                                        type='date'
+                                        placeholder='DD/MM/YYYY'
+                                        value={dateRanges.lastEnquiryDid.end || ''}
+                                        onChange={(e) =>
+                                            handleDateRangeChange(
+                                                'lastEnquiryDid',
+                                                dateRanges.lastEnquiryDid.start,
+                                                e.target.value,
+                                            )
+                                        }
+                                        className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        {lastEnquiryDidStatus === 'no' && (
+                            <p className='text-xs text-gray-500 italic'>
+                                Show agents who did NOT enquire within this date range
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Last Enquiry Received */}
+                    <div className='space-y-3'>
+                        <div className='flex items-center gap-4'>
+                            <label className='text-sm font-medium text-gray-700'>Last Enquiry Received</label>
+                            <div className='flex border border-gray-300 rounded-md overflow-hidden bg-[#F0F0F5]'>
+                                <button
+                                    onClick={() =>
+                                        setLastEnquiryReceivedStatus(lastEnquiryReceivedStatus === 'yes' ? null : 'yes')
+                                    }
+                                    className={`px-3 py-1 text-xs transition ${
+                                        lastEnquiryReceivedStatus === 'yes'
+                                            ? 'bg-white text-black font-semibold'
+                                            : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
+                                    }`}
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        setLastEnquiryReceivedStatus(lastEnquiryReceivedStatus === 'no' ? null : 'no')
+                                    }
+                                    className={`px-3 py-1 text-xs border-l border-gray-300 transition ${
+                                        lastEnquiryReceivedStatus === 'no'
+                                            ? 'bg-white text-black font-semibold'
+                                            : 'bg-[#F0F0F5] text-[#696979] hover:bg-gray-50'
+                                    }`}
+                                >
+                                    No
+                                </button>
                             </div>
                         </div>
+                        {(lastEnquiryReceivedStatus === 'yes' || lastEnquiryReceivedStatus === 'no') && (
+                            <div className='grid grid-cols-2 gap-3'>
+                                <input
+                                    type='date'
+                                    placeholder='DD/MM/YYYY'
+                                    value={dateRanges.lastEnquiryReceived.start || ''}
+                                    onChange={(e) =>
+                                        handleDateRangeChange(
+                                            'lastEnquiryReceived',
+                                            e.target.value,
+                                            dateRanges.lastEnquiryReceived.end,
+                                        )
+                                    }
+                                    className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                                />
+                                <div className='flex items-center gap-2'>
+                                    <span className='text-sm text-gray-500'>To</span>
+                                    <input
+                                        type='date'
+                                        placeholder='DD/MM/YYYY'
+                                        value={dateRanges.lastEnquiryReceived.end || ''}
+                                        onChange={(e) =>
+                                            handleDateRangeChange(
+                                                'lastEnquiryReceived',
+                                                dateRanges.lastEnquiryReceived.start,
+                                                e.target.value,
+                                            )
+                                        }
+                                        className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        {lastEnquiryReceivedStatus === 'no' && (
+                            <p className='text-xs text-gray-500 italic'>
+                                Show agents who did NOT receive enquiries within this date range
+                            </p>
+                        )}
                     </div>
 
                     {/* Last Seen */}
@@ -485,35 +755,42 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
                                 </button>
                             </div>
                         </div>
-                        <div className='grid grid-cols-2 gap-3'>
-                            <input
-                                type='date'
-                                placeholder='DD/MM/YYYY'
-                                value={dateRanges.lastSeen.start || ''}
-                                onChange={(e) =>
-                                    handleDateRangeChange('lastSeen', e.target.value, dateRanges.lastSeen.end)
-                                }
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
-                            />
-                            <div className='flex items-center gap-2'>
-                                <span className='text-sm text-gray-500'>To</span>
+                        {(lastSeenStatus === 'yes' || lastSeenStatus === 'no') && (
+                            <div className='grid grid-cols-2 gap-3'>
                                 <input
                                     type='date'
                                     placeholder='DD/MM/YYYY'
-                                    value={dateRanges.lastSeen.end || ''}
+                                    value={dateRanges.lastSeen.start || ''}
                                     onChange={(e) =>
-                                        handleDateRangeChange('lastSeen', dateRanges.lastSeen.start, e.target.value)
+                                        handleDateRangeChange('lastSeen', e.target.value, dateRanges.lastSeen.end)
                                     }
                                     className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
                                 />
+                                <div className='flex items-center gap-2'>
+                                    <span className='text-sm text-gray-500'>To</span>
+                                    <input
+                                        type='date'
+                                        placeholder='DD/MM/YYYY'
+                                        value={dateRanges.lastSeen.end || ''}
+                                        onChange={(e) =>
+                                            handleDateRangeChange('lastSeen', dateRanges.lastSeen.start, e.target.value)
+                                        }
+                                        className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
+                        {lastSeenStatus === 'no' && (
+                            <p className='text-xs text-gray-500 italic'>
+                                Show agents who were NOT seen within this date range
+                            </p>
+                        )}
                     </div>
 
                     {/* Last Connect */}
                     <div className='space-y-3'>
                         <div className='flex items-center gap-4'>
-                            <label className='text-sm font-medium text-gray-700 '>Last Connect</label>
+                            <label className='text-sm font-medium text-gray-700'>Last Connect</label>
                             <div className='flex border border-gray-300 rounded-md overflow-hidden bg-[#F0F0F5]'>
                                 <button
                                     onClick={() => setLastContactStatus(lastContactStatus === 'yes' ? null : 'yes')}
@@ -537,33 +814,40 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
                                 </button>
                             </div>
                         </div>
-                        <div className='grid grid-cols-2 gap-3'>
-                            <input
-                                type='date'
-                                placeholder='DD/MM/YYYY'
-                                value={dateRanges.lastContact.start || ''}
-                                onChange={(e) =>
-                                    handleDateRangeChange('lastContact', e.target.value, dateRanges.lastContact.end)
-                                }
-                                className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
-                            />
-                            <div className='flex items-center gap-2'>
-                                <span className='text-sm text-gray-500'>To</span>
+                        {(lastContactStatus === 'yes' || lastContactStatus === 'no') && (
+                            <div className='grid grid-cols-2 gap-3'>
                                 <input
                                     type='date'
                                     placeholder='DD/MM/YYYY'
-                                    value={dateRanges.lastContact.end || ''}
+                                    value={dateRanges.lastContact.start || ''}
                                     onChange={(e) =>
-                                        handleDateRangeChange(
-                                            'lastContact',
-                                            dateRanges.lastContact.start,
-                                            e.target.value,
-                                        )
+                                        handleDateRangeChange('lastContact', e.target.value, dateRanges.lastContact.end)
                                     }
                                     className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
                                 />
+                                <div className='flex items-center gap-2'>
+                                    <span className='text-sm text-gray-500'>To</span>
+                                    <input
+                                        type='date'
+                                        placeholder='DD/MM/YYYY'
+                                        value={dateRanges.lastContact.end || ''}
+                                        onChange={(e) =>
+                                            handleDateRangeChange(
+                                                'lastContact',
+                                                dateRanges.lastContact.start,
+                                                e.target.value,
+                                            )
+                                        }
+                                        className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm'
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
+                        {lastContactStatus === 'no' && (
+                            <p className='text-xs text-gray-500 italic'>
+                                Show agents who were NOT contacted within this date range
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -572,7 +856,7 @@ export const AgentsFiltersModal: React.FC<AgentsFiltersModalProps> = ({
                     <div className='flex justify-end gap-3'>
                         <Button
                             onClick={onClose}
-                            className='px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-800 transition'
+                            className='px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition'
                         >
                             Clear
                         </Button>

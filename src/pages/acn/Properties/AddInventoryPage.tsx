@@ -31,6 +31,7 @@ import rowhouseIcon from '/icons/acn/ListingFlow/RowHouses.svg'
 import independentIcon from '/icons/acn/ListingFlow/IndependentBuildings.svg'
 import { toast } from 'react-toastify'
 import useAuth from '../../../hooks/useAuth'
+import { formatPhoneNumber } from '../../../components/helper/formatPhone'
 
 // Map old PropertyType to new AssetType
 type PropertyType = 'apartments' | 'villa' | 'plot' | 'rowhouse' | 'villament' | 'independent'
@@ -218,7 +219,7 @@ const mapFormDataToProperty = (formData: Record<string, any>, assetType: Propert
         document: Array.isArray(formData.document) ? formData.document : [],
         driveLink: formData.driveLink || '',
         extraDetails: formData.extraDetails || '',
-        cpId: formData.cpId || 'CURRENT_USER_ID',
+        cpId: formData.cpId,
         _geoloc: formData._geoloc || { lat: 0, lng: 0 },
         dateOfInventoryAdded: Date.now(),
         dateOfStatusLastChecked: Date.now(),
@@ -425,7 +426,7 @@ const AddEditInventoryPage = () => {
             console.log('📍 Place selected, updating form data:', selectedPlace)
 
             // Get micromarket from coordinates
-            const [micromarket, zone] = getMicromarketFromCoordinates(selectedPlace)
+            const [micromarket] = getMicromarketFromCoordinates(selectedPlace)
 
             // Validate coordinates before setting
             const validLat = selectedPlace.lat && !isNaN(selectedPlace.lat) ? selectedPlace.lat : 0
@@ -450,8 +451,7 @@ const AddEditInventoryPage = () => {
                 coordinates: { lat: validLat, lng: validLng },
                 mapLocation: selectedPlace.mapLocation,
             })
-            console.log('🏘️ Micromarket detected:', micromarket)
-            console.log('🌍 Zone detected:', zone)
+            console.log('here 2', formData)
         }
     }, [selectedPlace])
 
@@ -494,7 +494,9 @@ const AddEditInventoryPage = () => {
                 kamId: kamId,
                 name: result.name,
                 kamName: kamName,
+                phoneNumber: formatPhoneNumber(agentPhoneInput),
             }))
+            console.log('here', formData)
             console.log('👤 Agent fetched, updating cpId:', result)
         } catch (error) {
             console.error('Failed to fetch agent:', error)

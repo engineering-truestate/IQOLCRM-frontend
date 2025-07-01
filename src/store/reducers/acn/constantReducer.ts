@@ -7,11 +7,21 @@ import {
     fetchSellingPlatforms,
     addSellingPlatform,
     searchSellingPlatforms,
+    searchFirmNames,
+    fetchFirmNames,
+    addFirmName,
 } from '../../../services/acn/constants/constantService'
 
 interface Micromarket {
     name: string
     zone: string
+}
+
+interface FirmNamesState {
+    names: string[]
+    userAdded: string[]
+    allNames: string[]
+    filteredNames: string[]
 }
 
 interface BuilderNamesState {
@@ -32,6 +42,7 @@ interface ConstantsState {
     micromarkets: Micromarket[]
     builderNames: BuilderNamesState
     sellingPlatforms: SellingPlatformsState
+    firmNames: FirmNamesState
     loading: {
         micromarkets: boolean
         builderNames: boolean
@@ -40,6 +51,9 @@ interface ConstantsState {
         sellingPlatforms: boolean
         addingPlatform: boolean
         searchingPlatforms: boolean
+        firmNames: boolean
+        addingFirm: boolean
+        searchingFirms: boolean
     }
     error: {
         micromarkets: string | null
@@ -49,6 +63,9 @@ interface ConstantsState {
         sellingPlatforms: string | null
         addingPlatform: string | null
         searchingPlatforms: string | null
+        firmNames: string | null
+        addingFirm: string | null
+        searchingFirms: string | null
     }
 }
 
@@ -66,6 +83,12 @@ const initialState: ConstantsState = {
         allNames: [],
         filteredNames: [],
     },
+    firmNames: {
+        names: [],
+        userAdded: [],
+        allNames: [],
+        filteredNames: [],
+    },
     loading: {
         micromarkets: false,
         builderNames: false,
@@ -74,6 +97,9 @@ const initialState: ConstantsState = {
         sellingPlatforms: false,
         addingPlatform: false,
         searchingPlatforms: false,
+        firmNames: false,
+        addingFirm: false,
+        searchingFirms: false,
     },
     error: {
         micromarkets: null,
@@ -83,6 +109,9 @@ const initialState: ConstantsState = {
         sellingPlatforms: null,
         addingPlatform: null,
         searchingPlatforms: null,
+        firmNames: null,
+        addingFirm: null,
+        searchingFirms: null,
     },
 }
 
@@ -99,6 +128,9 @@ const constantsSlice = createSlice({
                 sellingPlatforms: null,
                 addingPlatform: null,
                 searchingPlatforms: null,
+                firmNames: null,
+                addingFirm: null,
+                searchingFirms: null,
             }
         },
         clearFilteredBuilderNames: (state) => {
@@ -115,6 +147,15 @@ const constantsSlice = createSlice({
         },
         resetFilteredSellingPlatforms: (state) => {
             state.sellingPlatforms.filteredNames = state.sellingPlatforms.allNames
+        },
+        clearFilteredFirmNames: (state) => {
+            state.firmNames.filteredNames = []
+        },
+        setFilteredFirmNames: (state, action: PayloadAction<string[]>) => {
+            state.firmNames.filteredNames = action.payload
+        },
+        resetFilteredFirmNames: (state) => {
+            state.firmNames.filteredNames = state.firmNames.allNames
         },
     },
     extraReducers: (builder) => {
@@ -234,6 +275,54 @@ const constantsSlice = createSlice({
                 state.loading.searchingPlatforms = false
                 state.error.searchingPlatforms = action.payload as string
             })
+        builder
+            .addCase(fetchFirmNames.pending, (state) => {
+                state.loading.firmNames = true
+                state.error.firmNames = null
+            })
+            .addCase(fetchFirmNames.fulfilled, (state, action) => {
+                state.loading.firmNames = false
+                state.firmNames = {
+                    ...action.payload,
+                    filteredNames: action.payload.allNames,
+                }
+            })
+            .addCase(fetchFirmNames.rejected, (state, action) => {
+                state.loading.firmNames = false
+                state.error.firmNames = action.payload as string
+            })
+
+        // Add Firm Name
+        builder
+            .addCase(addFirmName.pending, (state) => {
+                state.loading.addingFirm = true
+                state.error.addingFirm = null
+            })
+            .addCase(addFirmName.fulfilled, (state, action) => {
+                state.loading.addingFirm = false
+                state.firmNames.names.push(action.payload)
+                state.firmNames.allNames.push(action.payload)
+                state.firmNames.filteredNames = state.firmNames.allNames
+            })
+            .addCase(addFirmName.rejected, (state, action) => {
+                state.loading.addingFirm = false
+                state.error.addingFirm = action.payload as string
+            })
+
+        // Search Firm Names
+        builder
+            .addCase(searchFirmNames.pending, (state) => {
+                state.loading.searchingFirms = true
+                state.error.searchingFirms = null
+            })
+            .addCase(searchFirmNames.fulfilled, (state, action) => {
+                state.loading.searchingFirms = false
+                state.firmNames.filteredNames = action.payload
+            })
+            .addCase(searchFirmNames.rejected, (state, action) => {
+                state.loading.searchingFirms = false
+                state.error.searchingFirms = action.payload as string
+            })
     },
 })
 
@@ -244,6 +333,9 @@ export const {
     clearFilteredSellingPlatforms,
     setFilteredSellingPlatforms,
     resetFilteredSellingPlatforms,
+    clearFilteredFirmNames,
+    setFilteredFirmNames,
+    resetFilteredFirmNames,
 } = constantsSlice.actions
 
 export default constantsSlice.reducer

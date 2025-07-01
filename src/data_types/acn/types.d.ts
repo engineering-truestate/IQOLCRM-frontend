@@ -688,7 +688,7 @@ interface ILead {
     verified: boolean
     blackListed: boolean
     connectHistory: ConnectHistoryItem[]
-    lastConnect: number
+    lastConnected: number
     lastTried: number
     kamName: string
     kamId: string

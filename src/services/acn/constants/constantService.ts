@@ -177,3 +177,73 @@ export const searchSellingPlatforms = createAsyncThunk(
         }
     },
 )
+
+export const fetchFirmNames = createAsyncThunk('constants/fetchFirmNames', async (_, { rejectWithValue }) => {
+    try {
+        console.log('🔍 Fetching firm names from acn-admin')
+
+        const firmDocRef = doc(db, 'acn-admin', 'firmName')
+        const firmDoc = await getDoc(firmDocRef)
+
+        if (!firmDoc.exists()) {
+            throw new Error('Firm names document not found')
+        }
+
+        const firmData = firmDoc.data()
+        const names = firmData.names || []
+
+        console.log('✅ Firm names fetched:', names.length)
+        return {
+            names,
+            userAdded: [], // Initialize empty array for user added firms
+            allNames: [...names],
+        }
+    } catch (error: any) {
+        console.error('❌ Error fetching firm names:', error)
+        return rejectWithValue(error.message || 'Failed to fetch firm names')
+    }
+})
+
+// Add new firm name to names array
+export const addFirmName = createAsyncThunk('constants/addFirmName', async (firmName: string, { rejectWithValue }) => {
+    try {
+        console.log('➕ Adding new firm name:', firmName)
+
+        const firmDocRef = doc(db, 'acn-admin', 'firmName')
+
+        await updateDoc(firmDocRef, {
+            names: arrayUnion(firmName),
+        })
+
+        console.log('✅ Firm name added successfully:', firmName)
+        return firmName
+    } catch (error: any) {
+        console.error('❌ Error adding firm name:', error)
+        return rejectWithValue(error.message || 'Failed to add firm name')
+    }
+})
+
+// Search firm names (for autocomplete functionality)
+export const searchFirmNames = createAsyncThunk(
+    'constants/searchFirmNames',
+    async (searchTerm: string, { getState, rejectWithValue }) => {
+        try {
+            const state = getState() as any
+            const allNames = state.constants.firmNames.allNames || []
+
+            if (!searchTerm.trim()) {
+                return allNames
+            }
+
+            const filteredNames = allNames.filter((name: string) =>
+                name.toLowerCase().includes(searchTerm.toLowerCase()),
+            )
+
+            console.log('🔍 Filtered firm names:', filteredNames.length, 'for term:', searchTerm)
+            return filteredNames
+        } catch (error: any) {
+            console.error('❌ Error searching firm names:', error)
+            return rejectWithValue(error.message || 'Failed to search firm names')
+        }
+    },
+)

@@ -118,7 +118,7 @@ export const addQCInventory = createAsyncThunk<IQCInventory, Partial<IQCInventor
     'qc/addQCInventory',
     async (qcData, { rejectWithValue }) => {
         try {
-            console.log('🔄 Adding new QC inventory')
+            console.log('🔄 Adding new QC inventory', qcData)
 
             const nextId = await getNextQcId()
             // const qcCollection = collection(db, 'acnQCInventories')

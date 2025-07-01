@@ -77,3 +77,7 @@ export const formatRelativeTime = (timestamp: number): string => {
     // Return exact number of days ago
     return `${days} days ago`
 }
+
+export const getTodayDateString = (): string => {
+    return new Date().toISOString().split('T')[0]
+}
