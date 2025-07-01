@@ -78,6 +78,7 @@ const Rental: React.FC = () => {
     // Calculate monthly overview data for a specific year
     const calculateMonthlyOverview = (data: RestackRentalProperty[], year: number): MonthlyData[] => {
         const monthlyData: { [key: number]: MonthlyData } = {}
+
         const currentDate = new Date()
         const currentYear = currentDate.getFullYear()
         const currentMonth = currentDate.getMonth()

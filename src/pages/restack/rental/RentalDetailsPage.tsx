@@ -23,6 +23,7 @@ import {
     updateMagicBricksRentalDataById,
     updateMyGateRentalDataById,
 } from '../../../services/restack/rentalService'
+import { FlexibleTable } from '../../../components/design-elements/FlexibleTable'
 
 const configurationOptions = [
     { label: '1BHK', value: '1BHK' },
@@ -466,6 +467,16 @@ const RentalDetailsPage = () => {
                                 <p className='text-sm text-gray-700 leading-relaxed'>{propertyDetails.about || ''}</p>
                             )}
                         </div>
+                    </div>
+                    <div className='p-4'>
+                        <FlexibleTable
+                            data={propertyDetails.priceHistory || []}
+                            columns={[
+                                { key: 'date', header: 'Date' },
+                                { key: 'price', header: 'Price' },
+                            ]}
+                            className='mt-4'
+                        />
                     </div>
                 </div>
             </div>
