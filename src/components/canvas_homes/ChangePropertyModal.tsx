@@ -24,13 +24,13 @@ const ChangePropertyModal: React.FC<ChangePropertyModalProps> = ({ isOpen, onClo
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
     const dispatch = useDispatch<AppDispatch>()
-    const { user } = useAuth()
+    const { user, platform } = useAuth()
     const { leadId } = useParams()
     const { leadData } = UseLeadDetails(leadId || '')
     const { properties } = useSelector((state: RootState) => state.preLaunch)
     const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
 
-    const agentId = user?.uid || ''
+    const agentId = platform?.canvasHomes?.agentid || ''
     const agentName = user?.displayName || ''
     const previousPropertyName = leadData?.propertyName
 

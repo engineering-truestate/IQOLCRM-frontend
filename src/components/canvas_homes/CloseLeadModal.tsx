@@ -24,12 +24,12 @@ interface CloseLeadModalProps {
 const CloseLeadModal: React.FC<CloseLeadModalProps> = ({ isOpen, onClose, taskState, taskType, refreshData }) => {
     const taskIds: string = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId: string = useSelector((state: RootState) => state.taskId.enquiryId || '')
-    const { user } = useAuth()
+    const { user, platform } = useAuth()
     const { leadId } = useParams()
     const { leadData } = UseLeadDetails(leadId || '')
     // const navigate = useNavigate()
 
-    const agentId = user?.uid || ''
+    const agentId = platform?.canvasHomes?.agentid || ''
     const agentName = user?.displayName || ''
     const currentTimestamp = getUnixDateTime()
 

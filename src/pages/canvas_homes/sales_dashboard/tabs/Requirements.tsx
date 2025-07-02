@@ -3,8 +3,6 @@ import { enquiryService } from '../../../../services/canvas_homes'
 import RequirementCollectedModal from '../../../../components/canvas_homes/RquirementCollectionModal'
 import { toast } from 'react-toastify'
 import { useSelector /*, useDispatch */ } from 'react-redux'
-// import type { AppDispatch } from '../../../../store'
-// import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 import Dropdown from '../../../../components/design-elements/Dropdown'
 import { toCapitalizedWords } from '../../../../components/helper/toCapitalize'
 import { doc, runTransaction, increment } from 'firebase/firestore'
@@ -113,7 +111,6 @@ const Requirements: React.FC<RequirementsProps> = ({
     enquiryId,
     requirements: existingRequirements = [],
     onRequirementsUpdate,
-    // refreshData,
 }) => {
     // State management
     const [activeRequirement, setActiveRequirement] = useState<string | null>(null)
@@ -123,7 +120,6 @@ const Requirements: React.FC<RequirementsProps> = ({
     const [requirements, setRequirements] = useState<Requirement[]>(existingRequirements)
     const [isRequirementModalOpen, setIsRequirementModalOpen] = useState(false)
 
-    // const dispatch = useDispatch<AppDispatch>()
     const { taskState } = useSelector((state: RootState) => state.taskId)
 
     // Update local requirements when props change
@@ -148,7 +144,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                 }
 
                 const newReqNumber = currentNumber + 1
-                const newReqId = `req${newReqNumber.toString().padStart(2, '0')}`
+                const newReqId = `req${newReqNumber.toString().padStart(3, '0')}`
 
                 // Update the counter
                 transaction.set(

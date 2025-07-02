@@ -56,7 +56,7 @@ class TaskService {
                 }
 
                 const newTaskNumber = currentNumber + 1
-                const newTaskId = `task${newTaskNumber.toString().padStart(2, '0')}`
+                const newTaskId = `task${newTaskNumber.toString().padStart(3, '0')}`
                 const timestamp = getUnixDateTime()
 
                 const newTask = {

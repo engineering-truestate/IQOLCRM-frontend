@@ -10,6 +10,7 @@ import { useDispatch } from 'react-redux'
 import type { AppDispatch, RootState } from '../../store'
 import { useSelector } from 'react-redux'
 import { fetchPreLaunchProperties } from '../../store/actions/restack/preLaunchActions'
+import useAuth from '../../hooks/useAuth'
 
 interface AddEnquiryModalProps {
     isOpen: boolean
@@ -20,14 +21,7 @@ interface AddEnquiryModalProps {
     agentName: string
 }
 
-const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
-    agentName,
-    isOpen,
-    onClose,
-    leadId,
-    onEnquiryAdded,
-    stage,
-}) => {
+const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({ isOpen, onClose, leadId, onEnquiryAdded, stage }) => {
     // Format current date and time for datetime-local input
     const getCurrentDateTimeString = (): string => {
         const now = new Date()
@@ -46,6 +40,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
 
     const { properties } = useSelector((state: RootState) => state.preLaunch)
     const [propertyOptions, setPropertyOptions] = useState<{ label: string; value: string }[]>([])
+    const { user } = useAuth()
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -214,7 +209,7 @@ const AddEnquiryModal: React.FC<AddEnquiryModalProps> = ({
                     {
                         activityType: 'new enquiry',
                         timestamp: currentTimestamp,
-                        agentName: agentName,
+                        agentName: user?.displayName || null,
                         data: {
                             propertyAdded: formData.propertyName,
                             leadStatus: null,

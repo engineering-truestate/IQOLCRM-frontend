@@ -15,14 +15,7 @@ interface ReopenLeadModalProps {
     agentName?: string
 }
 
-const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({
-    isOpen,
-    onClose,
-    leadId,
-    onLeadReopen,
-    enquiryId,
-    agentName = '',
-}) => {
+const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({ isOpen, onClose, leadId, onLeadReopen, enquiryId }) => {
     const [reason, setReason] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)

@@ -10,6 +10,8 @@ import potentialIcon from '/icons/canvas_homes/bulbicon.svg'
 import superhotIcon from '/icons/canvas_homes/superhoticon.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
 import meta from '/icons/canvas_homes/meta.svg'
+import facebook from '/icons/canvas_homes/facebook.svg'
+import instagram from '/icons/canvas_homes/instagram.svg'
 import Documents from './tabs/Documents'
 import Notes from './tabs/Notes'
 import Requirements from './tabs/Requirements'
@@ -46,7 +48,7 @@ interface Document {
     url: string
     type: string
     size: number
-    uploadedAt: number
+    added: number
 }
 
 interface Note {
@@ -317,7 +319,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
                         enquiryId={selectedEnquiryId ?? ''}
                         documents={(currentEnquiry?.documents || []).map((doc) => ({
                             ...doc,
-                            uploadDate: String(doc.uploadedAt), // Convert to string
+                            added: doc.added, // Convert to string
                             storagePath: doc.url || '', // Map url to storagePath (or provide a default)
                             size: String(doc.size), // Convert size to string
                         }))}
@@ -446,6 +448,10 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
                 {sourceType === 'google' && <img src={google} alt='Google' className='w-4 h-4 object-contain' />}
                 {sourceType === 'linkedin' && <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />}
                 {sourceType === 'meta' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
+                {sourceType === 'instagram' && (
+                    <img src={instagram} alt='instagram' className='w-4 h-4 object-contain' />
+                )}
+                {sourceType === 'facebook' && <img src={facebook} alt='facebook' className='w-4 h-4 object-contain' />}
                 {sourceType === 'manual' && <img src={manualIcon} alt='Manual' className='w-4 h-4 object-contain' />}
 
                 <span className='ml-[3.5px] text-[13px] font-normal '>{formatValue(sourceType || '-')}</span>

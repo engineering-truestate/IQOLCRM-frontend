@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getUnixDateTime, getUnixDateTimeCustom } from '../helper/getUnixDateTime'
 import useAuth from '../../hooks/useAuth'
-import type { AppDispatch } from '../../store'
-import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { taskService } from '../../services/canvas_homes/taskService'
@@ -49,12 +47,11 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
     // Redux and route params
     const { taskId, enquiryId } = useSelector((state: RootState) => state.taskId)
     const { leadId } = useParams()
-    const dispatch = useDispatch<AppDispatch>()
-    const { user } = useAuth()
+    const { user, platform } = useAuth()
     const { leadData } = UseLeadDetails(leadId || '')
 
     // Agent details from auth
-    const agentId = user?.uid || ''
+    const agentId = platform?.canvasHomes?.agentid || ''
     const agentName = user?.displayName || ''
 
     // Determine leadStatus based on taskType and taskState
@@ -285,11 +282,9 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 taskService.update(taskId, taskUpdateData),
                 enquiryService.update(enquiryId, enquiryUpdateData),
                 enquiryService.addActivity(enquiryId, taskExecutionActivity),
-                noteUpdate, // Optional note update
+                noteUpdate,
                 leadService.update(leadId, leadUpdateData),
             ])
-
-            dispatch(clearTaskId())
             if (refreshData) {
                 refreshData()
             }

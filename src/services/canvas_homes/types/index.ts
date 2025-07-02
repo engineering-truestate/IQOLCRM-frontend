@@ -61,7 +61,7 @@ export interface Enquiry {
               id: string | null
               name: string | null
               size: string | null
-              uploadDate: string | null
+              added: number | null
               url: string | null
               storagePath: string | null
           }[]

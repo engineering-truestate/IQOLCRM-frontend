@@ -46,13 +46,13 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
     const { taskId, enquiryId, taskState } = useSelector((state: RootState) => state.taskId)
     const dispatch = useDispatch<AppDispatch>()
     const { leadId } = useParams()
-    const { user } = useAuth()
+    const { user, platform } = useAuth()
     const { leadData } = UseLeadDetails(leadId || '')
 
     // Set selected enquiry ID when component mounts
 
     // Agent details from auth
-    const agentId = user?.uid || ''
+    const agentId = platform?.canvasHomes?.agentid || ''
     const agentName = user?.displayName || ''
     let currentTaskType = taskType || taskState || ''
 
