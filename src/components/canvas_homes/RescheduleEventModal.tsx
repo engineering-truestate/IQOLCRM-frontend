@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { getUnixDateTime, getUnixDateTimeCustom } from '../helper/getUnixDateTime'
 import useAuth from '../../hooks/useAuth'
-import type { AppDispatch } from '../../store'
-import { clearTaskId } from '../../store/reducers/canvas-homes/taskIdReducer'
 import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { leadService } from '../../services/canvas_homes/leadService'
 import { taskService } from '../../services/canvas_homes/taskService'
@@ -49,12 +47,11 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
     // Redux and route params
     const { taskId, enquiryId } = useSelector((state: RootState) => state.taskId)
     const { leadId } = useParams()
-    const dispatch = useDispatch<AppDispatch>()
-    const { user } = useAuth()
+    const { user, platform } = useAuth()
     const { leadData } = UseLeadDetails(leadId || '')
 
     // Agent details from auth
-    const agentId = user?.uid || ''
+    const agentId = platform?.canvasHomes?.agentid || ''
     const agentName = user?.displayName || ''
 
     // Determine leadStatus based on taskType and taskState
@@ -157,7 +154,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
     const handleSubmit = async () => {
         // Validation
-        if (!formData.reason || !formData.eventName || !formData.datetime || !formData.tag) {
+        if (!formData.reason || !formData.eventName || !formData.datetime) {
             setError('Please fill in all required fields')
             return
         }
@@ -209,7 +206,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             const enquiryUpdateData = {
                 leadStatus: leadStatus,
                 lastModified: currentTimestamp,
-                tag: formData.tag,
+                tag: formData.tag == '' ? null : formData.tag,
                 ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                 ...(stage && { stage: stage }),
             }
@@ -221,7 +218,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 data: {
                     taskType: taskType,
                     leadStatus: leadStatus,
-                    tag: formData.tag,
+                    tag: formData.tag == '' ? null : formData.tag,
                     reason: formData.reason,
                     note: formData.note.trim() || '',
                     ...(formData.reason === 'rnr' && { rnrCount: rnrCount }),
@@ -257,7 +254,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledTimestamp,
                 taskType: taskType,
-                tag: formData.tag,
+                tag: formData.tag == '' ? null : formData.tag,
                 ...(stage && { stage: stage }),
                 ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
             }
@@ -273,7 +270,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                         lastModified: currentTimestamp,
                         taskType: earliestTask.taskType,
                         scheduledDate: earliestTask.taskId === taskId ? scheduledTimestamp : earliestTask.scheduledDate,
-                        tag: formData.tag,
+                        tag: formData.tag == '' ? null : formData.tag,
                         ...(stage && { stage: stage }),
                         ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                     }
@@ -285,11 +282,9 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 taskService.update(taskId, taskUpdateData),
                 enquiryService.update(enquiryId, enquiryUpdateData),
                 enquiryService.addActivity(enquiryId, taskExecutionActivity),
-                noteUpdate, // Optional note update
+                noteUpdate,
                 leadService.update(leadId, leadUpdateData),
             ])
-
-            dispatch(clearTaskId())
             if (refreshData) {
                 refreshData()
             }
@@ -445,9 +440,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                                 <div className='flex flex-col gap-[13px]'>
                                     {/* Tag */}
                                     <div>
-                                        <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                            Tag<span className='text-red-500'> *</span>
-                                        </label>
+                                        <label className='block text-sm font-medium text-gray-700 mb-2'>Tag</label>
                                         <Dropdown
                                             options={tagOptions}
                                             onSelect={(value) => handleInputChange('tag', value)}
@@ -510,13 +503,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={
-                                isLoading ||
-                                !formData.reason ||
-                                !formData.eventName ||
-                                !formData.datetime ||
-                                !formData.tag
-                            }
+                            disabled={isLoading || !formData.reason || !formData.eventName || !formData.datetime}
                             className='px-6 py-2 w-auto bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (

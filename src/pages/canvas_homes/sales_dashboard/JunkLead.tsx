@@ -15,17 +15,20 @@ const JunkLeads: React.FC = () => {
                     {/* Header */}
                     <div className='mb-4'>
                         <div className='flex items-center justify-between p-3 border-b border-gray-300'>
-                            <div>
-                                <h1
-                                    className='text-base font-semibold text-black cursor-pointer'
+                            <div className='flex items-center gap-2 text-sm text-gray-600'>
+                                <button
                                     onClick={() => {
                                         navigate('/canvas-homes/sales')
                                     }}
+                                    className='font-medium hover:text-gray-800'
                                 >
-                                    Sales Dashboard
-                                </h1>
+                                    <span>Sales Dashboard</span>
+                                </button>
+                                <span>/</span>
+                                <span className='text-gray-900 font-medium'>Junk Leads</span>
                             </div>
                         </div>
+
                         <div className='px-3 border-b border-gray-300'>
                             {/* Tab Navigation */}
                             <div className='flex gap-6'>

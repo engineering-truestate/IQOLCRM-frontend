@@ -4,6 +4,7 @@ import { enquiryService } from '../../services/canvas_homes/enquiryService'
 import { taskService } from '../../services/canvas_homes/taskService'
 import { getUnixDateTime } from '../helper/getUnixDateTime'
 import { toast } from 'react-toastify'
+import useAuth from '../../hooks/useAuth'
 
 interface CloseLeadSideModalProps {
     isOpen: boolean
@@ -20,11 +21,11 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
     leadId,
     onLeadClosed,
     enquiryId,
-    agentName = '',
 }) => {
     const [reason, setReason] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
+    const { user } = useAuth()
 
     const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setReason(event.target.value)
@@ -74,7 +75,7 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
             const addActivityPromise = enquiryService.addActivity(enquiryId, {
                 activityType: 'lead closed',
                 timestamp: currentTimestamp,
-                agentName: agentName,
+                agentName: user?.displayName || null,
                 data: {
                     reason: reason,
                 },
@@ -218,7 +219,7 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
                 <div className='flex flex-col'>
                     {/* Modal Header */}
                     <div className='flex items-center justify-between p-6'>
-                        <h2 className='text-xl font-semibold text-gray-900'>Close Lead</h2>
+                        <h2 className='text-xl font-semibold text-gray-900'>Close Enquiry</h2>
                         <button
                             onClick={onClose}
                             disabled={isLoading}
@@ -298,7 +299,7 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
                             {isLoading && (
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
                             )}
-                            {isLoading ? 'Saving...' : 'Close Lead'}
+                            {isLoading ? 'Saving...' : 'Close Enquiry'}
                         </button>
                     </div>
                 </div>

@@ -61,7 +61,7 @@ export interface Enquiry {
               id: string | null
               name: string | null
               size: string | null
-              uploadDate: string | null
+              added: number | null
               url: string | null
               storagePath: string | null
           }[]
@@ -69,7 +69,6 @@ export interface Enquiry {
     requirements?:
         | {
               id: string | null
-              name: string | null
               expectedBudget: string | null
               zone: string | null
               microMarket: string | null
@@ -77,9 +76,9 @@ export interface Enquiry {
               typology: string | null
               size: string | null
               propertyStage: string | null
-              possessionType: string | null
+              possessionBy: string | null
               notes: string | null
-              added: string | null
+              added: number | null
           }[]
         | null
     state: 'open' | 'closed' | 'fresh' | 'dropped' | 'junk' | null
@@ -115,7 +114,6 @@ export interface Task {
     agentId: string
     agentName: string
     name: string
-    leadAddDate: number
     propertyName: string
     taskType: 'lead registration' | 'initial contact' | 'site visit' | 'eoi collection' | 'booking' | string
     eventName?: string

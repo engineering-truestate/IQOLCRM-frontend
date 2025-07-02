@@ -65,7 +65,7 @@ class EnquiryService {
                 }
 
                 const newNumber = currentNumber + 1
-                const newEnquiryId = `enq${newNumber.toString().padStart(2, '0')}`
+                const newEnquiryId = `enq${newNumber.toString().padStart(3, '0')}`
 
                 const timestamp = getUnixDateTime()
                 const newEnquiry: Enquiry = {

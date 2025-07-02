@@ -185,6 +185,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks: firebaseTasks = [], loading, error
                       timestamp: currentUnixTime,
                       data: {
                           taskType: 'lead registration',
+                          emailSent: task.emailSent,
                       },
                   })
                 : Promise.resolve()

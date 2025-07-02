@@ -46,13 +46,13 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
     const { taskId, enquiryId, taskState } = useSelector((state: RootState) => state.taskId)
     const dispatch = useDispatch<AppDispatch>()
     const { leadId } = useParams()
-    const { user } = useAuth()
+    const { user, platform } = useAuth()
     const { leadData } = UseLeadDetails(leadId || '')
 
     // Set selected enquiry ID when component mounts
 
     // Agent details from auth
-    const agentId = user?.uid || ''
+    const agentId = platform?.canvasHomes?.agentid || ''
     const agentName = user?.displayName || ''
     let currentTaskType = taskType || taskState || ''
 
@@ -384,7 +384,9 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
 
                                 {/* Tag */}
                                 <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>Tag</label>
+                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                        Tag<span className='text-red-500'> *</span>
+                                    </label>
                                     <Dropdown
                                         options={tagOptions}
                                         onSelect={setSelectedTag}
@@ -427,13 +429,13 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={isLoading}
-                            className='px-6 py-2 w-30 bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
+                            disabled={isLoading || !selectedTag}
+                            className='px-6 py-2 w-fit bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
                             )}
-                            {isLoading ? 'Saving...' : 'Close Lead'}
+                            {isLoading ? 'Saving...' : 'Close Enquiry'}
                         </button>
                     </div>
                 </div>

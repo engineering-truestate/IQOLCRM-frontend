@@ -8,6 +8,8 @@ import DateRangePicker from '../../../components/design-elements/DateRangePicker
 import { searchLeads, type LeadSearchFilters } from '../../../services/canvas_homes/leadAlgoliaService'
 import google from '/icons/canvas_homes/google.svg'
 import linkedin from '/icons/canvas_homes/linkedin.svg'
+import instagram from '/icons/canvas_homes/instagram.svg'
+import facebook from '/icons/canvas_homes/facebook.svg'
 import meta from '/icons/canvas_homes/meta.svg'
 import AddLeadModal from '../../../components/canvas_homes/AddLeadModal'
 import { useNavigate } from 'react-router-dom'
@@ -279,14 +281,9 @@ const Leads = () => {
     useEffect(() => {
         debouncedSearch()
     }, [searchValue, debouncedSearch])
-
-    useEffect(() => {
-        performSearch()
-    }, [performSearch])
-
     const statusCounts = useMemo(() => {
         const counts = {
-            All: allLeadsData.length,
+            All: allLeadsData.filter((lead) => lead.state?.toLowerCase() !== 'junk').length,
             Fresh: 0,
             Open: 0,
             Closed: 0,
@@ -488,6 +485,12 @@ const Leads = () => {
                         {value === 'linkedin' && (
                             <img src={linkedin} alt='LinkedIn' className='w-4 h-4 object-contain' />
                         )}
+                        {value === 'instagram' && (
+                            <img src={instagram} alt='instagram' className='w-4 h-4 object-contain' />
+                        )}
+                        {value === 'facebook' && (
+                            <img src={facebook} alt='facebook' className='w-4 h-4 object-contain' />
+                        )}
                         {value === 'meta' && <img src={meta} alt='Meta' className='w-4 h-4 object-contain' />}
                         {!['Google', 'LinkedIn', 'META'].includes(value) && (
                             <span className='text-sm font-norma'>{toCapitalizedWords(value || '-')}</span>
@@ -682,18 +685,7 @@ const Leads = () => {
                         menuClassName={dropdownClasses.menu}
                         optionClassName={dropdownClasses.option}
                     />
-                    <Dropdown
-                        options={generateDropdownOptions('source', 'Source')}
-                        onSelect={setSelectedSource}
-                        defaultValue={selectedSource}
-                        value={selectedSource}
-                        forcePlaceholderAlways
-                        placeholder='Source'
-                        className={dropdownClasses.container}
-                        triggerClassName={dropdownClasses.trigger(!!selectedSource)}
-                        menuClassName={dropdownClasses.menu}
-                        optionClassName={dropdownClasses.option}
-                    />
+
                     <Dropdown
                         options={generateDropdownOptions('stage', 'Lead Stage')}
                         onSelect={setSelectedLeadStage}
@@ -739,6 +731,18 @@ const Leads = () => {
                         placeholder='Lead Status'
                         className={dropdownClasses.container}
                         triggerClassName={dropdownClasses.trigger(!!selectedLeadStatus)}
+                        menuClassName={dropdownClasses.menu}
+                        optionClassName={dropdownClasses.option}
+                    />
+                    <Dropdown
+                        options={generateDropdownOptions('source', 'Source')}
+                        onSelect={setSelectedSource}
+                        defaultValue={selectedSource}
+                        value={selectedSource}
+                        forcePlaceholderAlways
+                        placeholder='Source'
+                        className={dropdownClasses.container}
+                        triggerClassName={dropdownClasses.trigger(!!selectedSource)}
                         menuClassName={dropdownClasses.menu}
                         optionClassName={dropdownClasses.option}
                     />
