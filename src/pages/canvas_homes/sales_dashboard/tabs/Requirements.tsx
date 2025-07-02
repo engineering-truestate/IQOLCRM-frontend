@@ -3,17 +3,15 @@ import { enquiryService } from '../../../../services/canvas_homes'
 import RequirementCollectedModal from '../../../../components/canvas_homes/RquirementCollectionModal'
 import { toast } from 'react-toastify'
 import { useSelector /*, useDispatch */ } from 'react-redux'
-// import type { AppDispatch } from '../../../../store'
-// import { clearTaskId } from '../../../../store/reducers/canvas-homes/taskIdReducer'
 import Dropdown from '../../../../components/design-elements/Dropdown'
 import { toCapitalizedWords } from '../../../../components/helper/toCapitalize'
 import { doc, runTransaction, increment } from 'firebase/firestore'
 import { db } from '../../../../firebase'
+import { getUnixDateTime, formatUnixDate } from '../../../../components/helper/getUnixDateTime'
 
 // Types
 interface Requirement {
     id: string
-    name: string
     expectedBudget: string
     zone: string
     microMarket: string
@@ -21,9 +19,9 @@ interface Requirement {
     typology: string
     size: string
     propertyStage: string
-    possessionType: string
+    possessionBy: string
     notes: string
-    added: string
+    added: number
 }
 
 interface RootState {
@@ -89,11 +87,11 @@ const PROPERTY_TYPE_OPTIONS = [
 // ]
 
 const PROPERTY_STAGE_OPTIONS = [
-    { label: 'Pre Launch', value: 'Pre Launch' },
-    { label: 'Launch', value: 'Launch' },
-    { label: 'Under Construction', value: 'Under Construction' },
-    { label: 'Ready to Move', value: 'Ready to Move' },
-    { label: 'Complete', value: 'Complete' },
+    { label: 'Pre Launch', value: 'pre launch' },
+    { label: 'Launch', value: 'launch' },
+    { label: 'Under Construction', value: 'under construction' },
+    { label: 'Ready to Move', value: 'ready to move' },
+    { label: 'Complete', value: 'complete' },
 ]
 
 // Initial form state
@@ -105,7 +103,7 @@ const INITIAL_FORM_DATA = {
     typology: '',
     size: '',
     propertyStage: '',
-    possessionType: '',
+    possessionBy: '',
     notes: '',
 }
 
@@ -113,7 +111,6 @@ const Requirements: React.FC<RequirementsProps> = ({
     enquiryId,
     requirements: existingRequirements = [],
     onRequirementsUpdate,
-    // refreshData,
 }) => {
     // State management
     const [activeRequirement, setActiveRequirement] = useState<string | null>(null)
@@ -123,7 +120,6 @@ const Requirements: React.FC<RequirementsProps> = ({
     const [requirements, setRequirements] = useState<Requirement[]>(existingRequirements)
     const [isRequirementModalOpen, setIsRequirementModalOpen] = useState(false)
 
-    // const dispatch = useDispatch<AppDispatch>()
     const { taskState } = useSelector((state: RootState) => state.taskId)
 
     // Update local requirements when props change
@@ -148,7 +144,7 @@ const Requirements: React.FC<RequirementsProps> = ({
                 }
 
                 const newReqNumber = currentNumber + 1
-                const newReqId = `req${newReqNumber}`
+                const newReqId = `req${newReqNumber.toString().padStart(3, '0')}`
 
                 // Update the counter
                 transaction.set(
@@ -216,13 +212,8 @@ const Requirements: React.FC<RequirementsProps> = ({
 
             const newRequirement: Requirement = {
                 id: reqId,
-                name: `Requirement ${requirements.length + 1}`,
                 ...formData,
-                added: new Date().toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                }),
+                added: getUnixDateTime(),
             }
 
             const updatedRequirements = [...requirements, newRequirement]
@@ -517,11 +508,11 @@ const Requirements: React.FC<RequirementsProps> = ({
                             <label className={labelClassName}>Possession By</label>
                             <Dropdown
                                 options={possessionOptions}
-                                onSelect={(value) => handleInputChange('possessionType', value)}
-                                defaultValue={formData.possessionType}
+                                onSelect={(value) => handleInputChange('possessionBy', value)}
+                                defaultValue={formData.possessionBy}
                                 placeholder='Select'
                                 className={dropdownClassName}
-                                triggerClassName={getDropdownTriggerClassName(formData.possessionType)}
+                                triggerClassName={getDropdownTriggerClassName(formData.possessionBy)}
                                 menuClassName={dropdownMenuClassName}
                                 optionClassName={dropdownOptionClassName}
                                 disabled={saving}
@@ -569,9 +560,10 @@ const Requirements: React.FC<RequirementsProps> = ({
                 // Display Selected Requirement (Read-only)
                 <div>
                     <div className='flex items-center justify-between mb-6'>
-                        <h4 className='text-lg font-medium text-gray-900'>{currentRequirement.name}</h4>
                         <div className='flex gap-2'>
-                            <span className='text-sm text-gray-500'>Added: {currentRequirement.added}</span>
+                            <span className='text-sm text-gray-500'>
+                                Added: {formatUnixDate(currentRequirement.added)}
+                            </span>
                             <button
                                 onClick={() => handleDelete(currentRequirement.id)}
                                 className='text-red-600 hover:text-red-800 text-sm font-medium'
@@ -628,7 +620,7 @@ const Requirements: React.FC<RequirementsProps> = ({
 
                         <div>
                             <label className={labelClassName}>Possession Type</label>
-                            <div className={readOnlyFieldClassName}>{currentRequirement.possessionType || '-'}</div>
+                            <div className={readOnlyFieldClassName}>{currentRequirement.possessionBy || '-'}</div>
                         </div>
                     </div>
 

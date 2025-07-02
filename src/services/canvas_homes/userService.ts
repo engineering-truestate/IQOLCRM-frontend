@@ -55,7 +55,7 @@ class UserService {
                 }
 
                 const newCount = currentCount + 1
-                const newUserId = `user${newCount.toString().padStart(2, '0')}`
+                const newUserId = `user${newCount.toString().padStart(3, '0')}`
 
                 const timestamp = getUnixDateTime()
                 const newUser = {

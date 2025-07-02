@@ -204,9 +204,7 @@ const Tasks = () => {
     // Task search function
     const performSearch = useCallback(async () => {
         try {
-            setLoading(true)
             const filters = createTaskFilters()
-            console.log('Searching with filters:', filters)
 
             const result = await searchTasks({
                 query: searchValue,
@@ -214,8 +212,6 @@ const Tasks = () => {
                 page: 0,
                 hitsPerPage: 1000,
             })
-
-            console.log('Search result:', result)
 
             const transformedData = result.hits.map((task: any) => ({
                 ...task,
@@ -297,11 +293,6 @@ const Tasks = () => {
     useEffect(() => {
         debouncedSearch()
     }, [searchValue, debouncedSearch])
-
-    // Initial search
-    useEffect(() => {
-        performSearch()
-    }, [performSearch])
 
     // Calculate the status counts manually
     const statusCounts = useMemo(() => {

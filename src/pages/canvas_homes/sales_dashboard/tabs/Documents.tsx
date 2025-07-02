@@ -3,12 +3,13 @@ import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebas
 import { storage, db } from '../../../../firebase'
 import { enquiryService } from '../../../../services/canvas_homes'
 import { doc, runTransaction, increment } from 'firebase/firestore'
+import { getUnixDateTime, formatUnixDate } from '../../../../components/helper/getUnixDateTime'
 
 interface DocumentItem {
     id: string
     name: string
     size: string
-    uploadDate: string
+    added: number
     url: string
     storagePath: string
     isNew?: boolean
@@ -78,7 +79,7 @@ const Documents: React.FC<DocumentsProps> = ({
                 }
 
                 const newDocNumber = currentNumber + 1
-                const newDocId = `doc${newDocNumber}`
+                const newDocId = `doc${newDocNumber.toString().padStart(3, '0')}`
 
                 // Update the counter
                 transaction.set(
@@ -152,11 +153,7 @@ const Documents: React.FC<DocumentsProps> = ({
                             id: docId,
                             name: file.name,
                             size: formatFileSize(file.size),
-                            uploadDate: new Date().toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                            }),
+                            added: getUnixDateTime(),
                             url: downloadURL,
                             storagePath: storagePath,
                             isNew: true,
@@ -207,7 +204,7 @@ const Documents: React.FC<DocumentsProps> = ({
                 id: doc.id,
                 name: doc.name,
                 size: doc.size,
-                uploadDate: doc.uploadDate,
+                added: doc.added,
                 url: doc.url,
                 storagePath: doc.storagePath,
             }))
@@ -459,7 +456,7 @@ const Documents: React.FC<DocumentsProps> = ({
                                     <div className='flex items-center gap-2 mt-1'>
                                         <span className='text-xs text-gray-400'>{doc.size}</span>
                                         <span className='text-xs text-gray-400'>•</span>
-                                        <span className='text-xs text-gray-400'>{doc.uploadDate}</span>
+                                        <span className='text-xs text-gray-400'>{formatUnixDate(doc.added)}</span>
                                     </div>
                                 </div>
                             </div>

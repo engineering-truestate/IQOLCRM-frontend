@@ -123,7 +123,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 agentName: agentName,
                 propertyName: propertyName,
                 name: name,
-                leadAddDate,
                 taskType: formData.task,
                 status: 'open',
                 stage: stage,

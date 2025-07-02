@@ -50,11 +50,10 @@ const TaskCompleteModal: React.FC<TaskCompleteModalProps> = ({
     const dispatch = useDispatch<AppDispatch>()
     const taskId = useSelector((state: RootState) => state.taskId.taskId || '')
     const enquiryId = useSelector((state: RootState) => state.taskId.enquiryId || '')
-    const { user } = useAuth()
+    const { user, platform } = useAuth()
     const { leadId } = useParams()
     const { leadData } = UseLeadDetails(leadId || '')
-
-    const agentId = user?.uid || ''
+    const agentId = platform?.canvasHomes?.agentid || ''
     const agentName = user?.displayName || ''
 
     const [isLoading, setIsLoading] = useState(false)

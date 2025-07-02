@@ -545,7 +545,7 @@ const MarketingDetails = () => {
                     </div>
 
                     <div
-                        className='flex flex-col lg:flex-row w-full min-h-screen'
+                        className='flex flex-col lg:flex-row w-full min-h-screen '
                         style={{ height: 'auto', minHeight: '40vh', maxHeight: 'none' }}
                     >
                         <div className='flex-1 p-4 sm:p-6 pt-0 overflow-x-auto'>
@@ -565,9 +565,9 @@ const MarketingDetails = () => {
                                 ))}
                             </div>
 
-                            <div className='bg-white rounded-lg shadow-sm overflow-hidden overflow-x-auto'>
+                            <div className='bg-white rounded-lg shadow-sm overflow-y-auto'>
                                 {tableData.length > 0 ? (
-                                    <div className='overflow-x-auto'>
+                                    <div className='overflow-y-auto'>
                                         <FlexibleTable
                                             data={tableData}
                                             columns={columns}
@@ -586,6 +586,7 @@ const MarketingDetails = () => {
                                             hoverable={true}
                                             headerClassName='font-normal text-left px-3 sm:px-6 whitespace-nowrap'
                                             cellClassName='text-left px-3 sm:px-6 whitespace-nowrap'
+                                            maxHeight='75vh'
                                         />
                                     </div>
                                 ) : (
