@@ -140,7 +140,7 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({ isOpen, onClose, lead
                 <div className='flex flex-col'>
                     {/* Modal Header */}
                     <div className='flex items-center justify-between p-6'>
-                        <h2 className='text-xl font-semibold text-gray-900'>Reopen Lead</h2>
+                        <h2 className='text-xl font-semibold text-gray-900'>Reopen Enquiry</h2>
                         <button
                             onClick={onClose}
                             disabled={isLoading}
@@ -190,7 +190,9 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({ isOpen, onClose, lead
                         <div className='space-y-6'>
                             {/* Reason Textarea */}
                             <div>
-                                <label className='block text-sm font-medium text-gray-700 mb-2'>Reasons</label>
+                                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                    Reasons<span className='text-red-500'> *</span>
+                                </label>
                                 <textarea
                                     value={reason}
                                     onChange={handleInputChange}
@@ -214,13 +216,13 @@ const ReopenLeadModal: React.FC<ReopenLeadModalProps> = ({ isOpen, onClose, lead
                         </button>
                         <button
                             onClick={handleReopenLead}
-                            disabled={isLoading}
+                            disabled={isLoading || !reason}
                             className='px-6 py-2 w-30 bg-blue-500 whitespace-nowrap text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
                             )}
-                            {isLoading ? 'Saving...' : 'Reopen Lead'}
+                            {isLoading ? 'Saving...' : 'Reopen Enquiry'}
                         </button>
                     </div>
                 </div>

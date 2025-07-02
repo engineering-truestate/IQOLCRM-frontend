@@ -219,7 +219,7 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
                 <div className='flex flex-col'>
                     {/* Modal Header */}
                     <div className='flex items-center justify-between p-6'>
-                        <h2 className='text-xl font-semibold text-gray-900'>Close Lead</h2>
+                        <h2 className='text-xl font-semibold text-gray-900'>Close Enquiry</h2>
                         <button
                             onClick={onClose}
                             disabled={isLoading}
@@ -299,7 +299,7 @@ const CloseLeadSideModal: React.FC<CloseLeadSideModalProps> = ({
                             {isLoading && (
                                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
                             )}
-                            {isLoading ? 'Saving...' : 'Close Lead'}
+                            {isLoading ? 'Saving...' : 'Close Enquiry'}
                         </button>
                     </div>
                 </div>

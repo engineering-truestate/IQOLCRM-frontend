@@ -154,7 +154,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
     const handleSubmit = async () => {
         // Validation
-        if (!formData.reason || !formData.eventName || !formData.datetime || !formData.tag) {
+        if (!formData.reason || !formData.eventName || !formData.datetime) {
             setError('Please fill in all required fields')
             return
         }
@@ -206,7 +206,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             const enquiryUpdateData = {
                 leadStatus: leadStatus,
                 lastModified: currentTimestamp,
-                tag: formData.tag,
+                tag: formData.tag == '' ? null : formData.tag,
                 ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                 ...(stage && { stage: stage }),
             }
@@ -218,7 +218,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 data: {
                     taskType: taskType,
                     leadStatus: leadStatus,
-                    tag: formData.tag,
+                    tag: formData.tag == '' ? null : formData.tag,
                     reason: formData.reason,
                     note: formData.note.trim() || '',
                     ...(formData.reason === 'rnr' && { rnrCount: rnrCount }),
@@ -254,7 +254,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 lastModified: currentTimestamp,
                 scheduledDate: scheduledTimestamp,
                 taskType: taskType,
-                tag: formData.tag,
+                tag: formData.tag == '' ? null : formData.tag,
                 ...(stage && { stage: stage }),
                 ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
             }
@@ -270,7 +270,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                         lastModified: currentTimestamp,
                         taskType: earliestTask.taskType,
                         scheduledDate: earliestTask.taskId === taskId ? scheduledTimestamp : earliestTask.scheduledDate,
-                        tag: formData.tag,
+                        tag: formData.tag == '' ? null : formData.tag,
                         ...(stage && { stage: stage }),
                         ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                     }
@@ -440,9 +440,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                                 <div className='flex flex-col gap-[13px]'>
                                     {/* Tag */}
                                     <div>
-                                        <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                            Tag<span className='text-red-500'> *</span>
-                                        </label>
+                                        <label className='block text-sm font-medium text-gray-700 mb-2'>Tag</label>
                                         <Dropdown
                                             options={tagOptions}
                                             onSelect={(value) => handleInputChange('tag', value)}
@@ -505,13 +503,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={
-                                isLoading ||
-                                !formData.reason ||
-                                !formData.eventName ||
-                                !formData.datetime ||
-                                !formData.tag
-                            }
+                            disabled={isLoading || !formData.reason || !formData.eventName || !formData.datetime}
                             className='px-6 py-2 w-auto bg-blue-500 text-white rounded-sm text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                         >
                             {isLoading && (
