@@ -13,6 +13,12 @@ import type {
 } from '../../../data_types/acn/types'
 import type { IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import { updateAgentInventoryCountThunk } from '../agents/agentThunkService'
+import {
+    handleUploadToStorage,
+    handleUploadToDrive,
+    type UploadedFileUrls,
+    type FileToUpload,
+} from '../upload/fileUploadService'
 
 // Helper function to get current timestamp
 const getCurrentTimestamp = (): number => {
@@ -114,54 +120,110 @@ const getNextQcId = async (): Promise<string> => {
 }
 
 // Add QC Inventory
-export const addQCInventory = createAsyncThunk<IQCInventory, Partial<IQCInventory>, { rejectValue: string }>(
-    'qc/addQCInventory',
-    async (qcData, { rejectWithValue }) => {
-        try {
-            console.log('🔄 Adding new QC inventory')
-
-            const nextId = await getNextQcId()
-            // const qcCollection = collection(db, 'acnQCInventories')
-            const currentTime = getCurrentTimestamp()
-
-            const newQcData: Partial<IQCInventory> = {
-                ...qcData,
-                propertyId: nextId,
-                dateOfInventoryAdded: currentTime,
-                dateOfStatusLastChecked: currentTime,
-                lastModified: currentTime,
-                ageOfInventory: 0,
-                ageOfStatus: 0,
-                stage: 'kam',
-                qcStatus: 'pending',
-                kamStatus: 'pending',
-                qcHistory: [],
-                notes: [],
-                noOfEnquiries: 0,
-                _geoloc: qcData._geoloc || { lat: 0, lng: 0 },
-            }
-
-            const qcDocRef = doc(db, 'acnQCInventories', nextId)
-            await setDoc(qcDocRef, newQcData)
-            const result = { ...newQcData, id: nextId } as IQCInventory
-
-            console.log('✅ QC inventory added successfully:', result.propertyId)
-            return result
-        } catch (error: any) {
-            console.error('❌ Error adding QC inventory:', error)
-            return rejectWithValue(error.message || 'Failed to add QC inventory')
-        }
+export const addQCInventory = createAsyncThunk<
+    IQCInventory,
+    {
+        qcData: Partial<IQCInventory>
+        filesToUpload?: { [key: string]: FileToUpload[] }
     },
-)
+    { rejectValue: string }
+>('qc/addQCInventory', async ({ qcData, filesToUpload }, { rejectWithValue }) => {
+    try {
+        console.log('🔄 Adding new QC inventory')
+
+        const nextId = await getNextQcId()
+        const currentTime = getCurrentTimestamp()
+
+        let uploadedFileUrls: UploadedFileUrls = { photo: [], video: [], document: [] }
+        let driveLink: string | null = null
+
+        // Handle file uploads if files are provided
+        if (filesToUpload && Object.keys(filesToUpload).length > 0) {
+            try {
+                uploadedFileUrls = await handleUploadToStorage(nextId, filesToUpload)
+
+                // Upload to Google Drive if any files were uploaded
+                if (
+                    uploadedFileUrls.document.length > 0 ||
+                    uploadedFileUrls.photo.length > 0 ||
+                    uploadedFileUrls.video.length > 0
+                ) {
+                    driveLink = await handleUploadToDrive(nextId, uploadedFileUrls)
+                }
+            } catch (error: any) {
+                console.error('Error uploading files:', error)
+                throw new Error(`File upload failed: ${error.message}`)
+            }
+        }
+
+        const newQcData: Partial<IQCInventory> = {
+            ...qcData,
+            propertyId: nextId,
+            dateOfInventoryAdded: currentTime,
+            dateOfStatusLastChecked: currentTime,
+            lastModified: currentTime,
+            ageOfInventory: 0,
+            ageOfStatus: 0,
+            stage: 'kam',
+            qcStatus: 'pending',
+            kamStatus: 'pending',
+            qcHistory: [],
+            notes: [],
+            noOfEnquiries: 0,
+            _geoloc: qcData._geoloc || { lat: 0, lng: 0 },
+            // Add uploaded file URLs
+            photo: uploadedFileUrls.photo,
+            video: uploadedFileUrls.video,
+            document: uploadedFileUrls.document,
+            driveLink: driveLink ?? undefined,
+        }
+
+        const qcDocRef = doc(db, 'acnQCInventories', nextId)
+        await setDoc(qcDocRef, newQcData)
+        const result = { ...newQcData, id: nextId } as IQCInventory
+
+        console.log('✅ QC inventory added successfully:', result.propertyId)
+        return result
+    } catch (error: any) {
+        console.error('❌ Error adding QC inventory:', error)
+        return rejectWithValue(error.message || 'Failed to add QC inventory')
+    }
+})
 
 // Update QC Inventory
 export const updateQCInventory = createAsyncThunk<
     IQCInventory,
-    { id: string; updates: Partial<IQCInventory> },
+    {
+        id: string
+        updates: Partial<IQCInventory>
+        filesToUpload?: { [key: string]: FileToUpload[] }
+    },
     { rejectValue: string }
->('qc/updateQCInventory', async ({ id, updates }, { rejectWithValue }) => {
+>('qc/updateQCInventory', async ({ id, updates, filesToUpload }, { rejectWithValue }) => {
     try {
         console.log('🔄 Updating QC inventory:', id)
+
+        let uploadedFileUrls: UploadedFileUrls = { photo: [], video: [], document: [] }
+        let driveLink: string | null = updates.driveLink || null
+
+        // Handle file uploads if files are provided
+        if (filesToUpload && Object.keys(filesToUpload).length > 0) {
+            try {
+                uploadedFileUrls = await handleUploadToStorage(id, filesToUpload)
+
+                // Upload to Google Drive if any files were uploaded
+                if (
+                    uploadedFileUrls.document.length > 0 ||
+                    uploadedFileUrls.photo.length > 0 ||
+                    uploadedFileUrls.video.length > 0
+                ) {
+                    driveLink = await handleUploadToDrive(id, uploadedFileUrls)
+                }
+            } catch (error: any) {
+                console.error('Error uploading files:', error)
+                throw new Error(`File upload failed: ${error.message}`)
+            }
+        }
 
         const qcDocRef = doc(db, 'acnQCInventories', id)
         const currentTime = getCurrentTimestamp()
@@ -170,6 +232,20 @@ export const updateQCInventory = createAsyncThunk<
             ...updates,
             lastModified: currentTime,
             dateOfStatusLastChecked: currentTime,
+            // Merge uploaded files with existing ones
+            photo:
+                uploadedFileUrls.photo.length > 0
+                    ? [...(updates.photo || []), ...uploadedFileUrls.photo]
+                    : updates.photo,
+            video:
+                uploadedFileUrls.video.length > 0
+                    ? [...(updates.video || []), ...uploadedFileUrls.video]
+                    : updates.video,
+            document:
+                uploadedFileUrls.document.length > 0
+                    ? [...(updates.document || []), ...uploadedFileUrls.document]
+                    : updates.document,
+            driveLink,
         }
 
         await updateDoc(qcDocRef, updateData)
@@ -595,7 +671,7 @@ export const updateQCStatusWithRoleCheck = createAsyncThunk<
                     console.log('🏠 Creating new property from approved QC inventory:', property.propertyId)
 
                     const propertyData = convertQCInventoryToProperty(property)
-                    await dispatch(addProperty(propertyData))
+                    await dispatch(addProperty({ propertyData }))
                     await dispatch(
                         updateAgentInventoryCountThunk({ cpId: property.cpId, propertyId: property.propertyId }),
                     )

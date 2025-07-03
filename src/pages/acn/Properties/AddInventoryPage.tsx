@@ -21,6 +21,7 @@ import FormFieldRenderer, {
 } from './AddInventoryRenderer'
 import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import type { IQCInventory } from '../../../data_types/acn/types'
+import { type FileToUpload } from '../../../services/acn/upload/fileUploadService'
 
 // Import icons
 import apartmentIcon from '/icons/acn/ListingFlow/Apartments.svg'
@@ -329,6 +330,15 @@ const AddEditInventoryPage = () => {
     const kamId = platform?.acn?.kamId || 'INT003'
     const kamName = user?.displayName || 'Siddharth Gujrathi'
 
+    const [isEditMode, setIsEditMode] = useState(false)
+
+    const [filesToUpload, setFilesToUpload] = useState<{ [key: string]: FileToUpload[] }>({
+        photo: [],
+        video: [],
+        document: [],
+    })
+    const [isUploading, setIsUploading] = useState(false)
+
     // Determine the mode based on URL
     const isPropertyEdit = location.pathname.includes('/properties/') && location.pathname.includes('/edit')
     const isQCAdd = location.pathname.includes('/addinv')
@@ -385,11 +395,14 @@ const AddEditInventoryPage = () => {
     useEffect(() => {
         if (isPropertyEdit && id) {
             console.log('🔄 Loading property for edit:', id)
+            setIsEditMode(true)
             dispatch(fetchPropertyById(id))
         } else if (isQCEdit && id) {
             console.log('🔄 Loading QC for edit:', id)
+            setIsEditMode(true)
             dispatch(fetchQCInventoryById(id))
         } else if (isQCAdd) {
+            setIsEditMode(false)
             console.log('🆕 Ready to add new QC inventory')
         }
 
@@ -522,15 +535,19 @@ const AddEditInventoryPage = () => {
     const handleSubmit = async () => {
         console.log('formData', formData)
         if (validateForm()) {
+            setIsUploading(true) // Add loading state for file uploads
+
             try {
                 if (isPropertyEdit && property) {
                     // Property edit flow
                     const propertyData = mapFormDataToProperty(formData, selectedAssetType)
                     console.log('📝 Updating property:', property.id, propertyData)
+
                     await dispatch(
                         updateProperty({
                             id: property.id,
                             updates: propertyData,
+                            filesToUpload: Object.keys(filesToUpload).length > 0 ? filesToUpload : undefined,
                         }),
                     ).unwrap()
 
@@ -544,7 +561,13 @@ const AddEditInventoryPage = () => {
                     // QC add flow
                     const qcData = mapFormDataToQC(formData, selectedAssetType, kamId, kamName)
                     console.log('➕ Creating new QC:', qcData)
-                    const newQC = await dispatch(addQCInventory(qcData)).unwrap()
+
+                    const newQC = await dispatch(
+                        addQCInventory({
+                            qcData,
+                            filesToUpload: Object.keys(filesToUpload).length > 0 ? filesToUpload : undefined,
+                        }),
+                    ).unwrap()
 
                     console.log('✅ QC created successfully:', newQC)
                     setSuccessMessage('QC Inventory created successfully!')
@@ -556,10 +579,12 @@ const AddEditInventoryPage = () => {
                     // QC edit flow
                     const qcData = mapFormDataToQC(formData, selectedAssetType, kamId, kamName)
                     console.log('📝 Updating QC:', qcInventory.propertyId, qcData)
+
                     await dispatch(
                         updateQCInventory({
                             id: qcInventory.propertyId,
                             updates: qcData,
+                            filesToUpload: Object.keys(filesToUpload).length > 0 ? filesToUpload : undefined,
                         }),
                     ).unwrap()
 
@@ -571,7 +596,10 @@ const AddEditInventoryPage = () => {
                     }, 1500)
                 }
             } catch (error) {
+                console.error('❌ Error during form submission:', error)
                 toast.error(`${error}`)
+            } finally {
+                setIsUploading(false) // Reset loading state
             }
         }
     }
@@ -814,6 +842,9 @@ const AddEditInventoryPage = () => {
                                                                         setSelectedPlace,
                                                                         selectedPlace: selectedPlace?.name || '',
                                                                     }}
+                                                                    isEditMode={isEditMode}
+                                                                    filesToUpload={filesToUpload}
+                                                                    setFilesToUpload={setFilesToUpload}
                                                                 />
                                                             </div>
                                                         </div>,
@@ -839,6 +870,9 @@ const AddEditInventoryPage = () => {
                                                                             setSelectedPlace,
                                                                             selectedPlace: selectedPlace?.name || '',
                                                                         }}
+                                                                        isEditMode={isEditMode}
+                                                                        filesToUpload={filesToUpload}
+                                                                        setFilesToUpload={setFilesToUpload}
                                                                     />
                                                                 </div>
                                                                 <div className='w-1/2'>
@@ -859,6 +893,9 @@ const AddEditInventoryPage = () => {
                                                                             setSelectedPlace,
                                                                             selectedPlace: selectedPlace?.name || '',
                                                                         }}
+                                                                        isEditMode={isEditMode}
+                                                                        filesToUpload={filesToUpload}
+                                                                        setFilesToUpload={setFilesToUpload}
                                                                     />
                                                                 </div>
                                                             </div>,
@@ -882,6 +919,9 @@ const AddEditInventoryPage = () => {
                                                                             setSelectedPlace,
                                                                             selectedPlace: selectedPlace?.name || '',
                                                                         }}
+                                                                        isEditMode={isEditMode}
+                                                                        filesToUpload={filesToUpload}
+                                                                        setFilesToUpload={setFilesToUpload}
                                                                     />
                                                                 </div>
                                                                 <div className='w-1/2' />
@@ -902,14 +942,18 @@ const AddEditInventoryPage = () => {
                                 {
                                     <Button
                                         bgColor={
-                                            loading ? 'bg-gray-400' : successMessage ? 'bg-green-600' : 'bg-gray-900'
+                                            loading || isUploading
+                                                ? 'bg-gray-400'
+                                                : successMessage
+                                                  ? 'bg-green-600'
+                                                  : 'bg-gray-900'
                                         }
                                         textColor='text-white'
                                         className='px-4 py-2 hover:bg-gray-800 text-base font-medium'
                                         onClick={handleSubmit}
-                                        disabled={loading || successMessage !== ''}
+                                        disabled={loading || isUploading || successMessage !== ''}
                                     >
-                                        {loading ? (
+                                        {loading || isUploading ? (
                                             <div className='flex items-center gap-2'>
                                                 <svg className='animate-spin h-4 w-4' fill='none' viewBox='0 0 24 24'>
                                                     <circle
@@ -926,11 +970,13 @@ const AddEditInventoryPage = () => {
                                                         d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
                                                     ></path>
                                                 </svg>
-                                                {isPropertyEdit
-                                                    ? 'Updating...'
-                                                    : isQCEdit
+                                                {isUploading
+                                                    ? 'Uploading Files...'
+                                                    : isPropertyEdit
                                                       ? 'Updating...'
-                                                      : 'Creating...'}
+                                                      : isQCEdit
+                                                        ? 'Updating...'
+                                                        : 'Creating...'}
                                             </div>
                                         ) : successMessage ? (
                                             <div className='flex items-center gap-2'>
