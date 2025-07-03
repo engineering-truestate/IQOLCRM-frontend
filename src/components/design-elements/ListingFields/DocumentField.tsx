@@ -1,15 +1,26 @@
 import React, { useRef } from 'react'
+import { type FileToUpload } from '../../../services/acn/upload/fileUploadService'
 
 interface DocumentFieldProps {
-    value: File[]
-    setValue: (files: File[]) => void
+    value: string[] // Existing file URLs
+    setValue: (urls: string[]) => void
     label?: string
     required?: boolean
     error?: string
-    propertyId: string | 'id'
+    propertyId?: string
+    filesToUpload?: { [key: string]: FileToUpload[] }
+    setFilesToUpload?: (files: { [key: string]: FileToUpload[] }) => void
 }
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'video/mp4']
+const ACCEPTED_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'application/pdf',
+    'video/mp4',
+    'image/jpg',
+    'image/gif',
+    'image/webp',
+]
 const MAX_SIZE_MB = 50
 
 function formatBytes(bytes: number): string {
@@ -20,25 +31,64 @@ function formatBytes(bytes: number): string {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, required, error }) => {
+const DocumentField: React.FC<DocumentFieldProps> = ({
+    value,
+    setValue,
+    label,
+    required,
+    error,
+    filesToUpload,
+    setFilesToUpload,
+}) => {
     const inputRef = useRef<HTMLInputElement>(null)
 
-    // Merge value for display
-    const filesToShow: File[] = value
+    // Get all files to display (new files to upload)
+    const allFilesToUpload = filesToUpload
+        ? [...(filesToUpload.photo || []), ...(filesToUpload.video || []), ...(filesToUpload.document || [])]
+        : []
 
     const handleFiles = (fileList: FileList) => {
-        const newFiles: File[] = []
+        if (!setFilesToUpload || !filesToUpload) return
+
+        const newFiles: FileToUpload[] = []
+
         Array.from(fileList).forEach((file) => {
+            // Validate file type and size
             if (
                 ACCEPTED_TYPES.includes(file.type) &&
                 file.size <= MAX_SIZE_MB * 1024 * 1024 &&
-                !value.some((f) => f.name === file.name && f.size === file.size)
+                !allFilesToUpload.some((f) => f.name === file.name && f.file.size === file.size)
             ) {
-                newFiles.push(file)
+                newFiles.push({
+                    name: file.name,
+                    file: file,
+                })
             }
         })
+
         if (newFiles.length) {
-            setValue([...value, ...newFiles])
+            // Categorize files by type
+            const photoFiles: FileToUpload[] = []
+            const videoFiles: FileToUpload[] = []
+            const documentFiles: FileToUpload[] = []
+
+            newFiles.forEach((fileObj) => {
+                if (fileObj.file.type.startsWith('image/')) {
+                    photoFiles.push(fileObj)
+                } else if (fileObj.file.type.startsWith('video/')) {
+                    videoFiles.push(fileObj)
+                } else {
+                    documentFiles.push(fileObj)
+                }
+            })
+
+            // Update filesToUpload state
+            setFilesToUpload({
+                ...filesToUpload,
+                photo: [...(filesToUpload.photo || []), ...photoFiles],
+                video: [...(filesToUpload.video || []), ...videoFiles],
+                document: [...(filesToUpload.document || []), ...documentFiles],
+            })
         }
     }
 
@@ -49,8 +99,25 @@ const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, r
 
     const handleBrowse = () => inputRef.current?.click()
 
-    const handleRemove = (file: File) => {
-        setValue(value.filter((f) => f !== file))
+    const handleRemoveNewFile = (fileToRemove: FileToUpload) => {
+        if (!setFilesToUpload || !filesToUpload) return
+
+        const updatedFiles = { ...filesToUpload }
+
+        // Remove from appropriate category
+        if (fileToRemove.file.type.startsWith('image/')) {
+            updatedFiles.photo = updatedFiles.photo?.filter((f) => f !== fileToRemove) || []
+        } else if (fileToRemove.file.type.startsWith('video/')) {
+            updatedFiles.video = updatedFiles.video?.filter((f) => f !== fileToRemove) || []
+        } else {
+            updatedFiles.document = updatedFiles.document?.filter((f) => f !== fileToRemove) || []
+        }
+
+        setFilesToUpload(updatedFiles)
+    }
+
+    const handleRemoveExistingFile = (urlToRemove: string) => {
+        setValue(value.filter((url) => url !== urlToRemove))
     }
 
     const getFileIcon = (file: File) => {
@@ -58,12 +125,37 @@ const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, r
             return <span className='text-red-500 mr-1'>📄</span>
         }
         if (file.type.startsWith('image/')) {
-            return <img src={URL.createObjectURL(file)} alt='' className='w-6 h-6 object-cover rounded' />
+            return <img src={URL.createObjectURL(file)} alt='' className='w-6 h-6 object-cover rounded mr-1' />
         }
-        if (file.type === 'video/mp4') {
+        if (file.type.startsWith('video/')) {
             return <span className='text-blue-500 mr-1'>🎬</span>
         }
         return <span className='text-gray-400 mr-1'>📁</span>
+    }
+
+    const getUrlIcon = (url: string) => {
+        const extension = url.split('.').pop()?.toLowerCase()
+        if (extension === 'pdf') {
+            return <span className='text-red-500 mr-1'>📄</span>
+        }
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
+            return <span className='text-green-500 mr-1'>🖼️</span>
+        }
+        if (['mp4', 'avi', 'mov', 'wmv'].includes(extension || '')) {
+            return <span className='text-blue-500 mr-1'>🎬</span>
+        }
+        return <span className='text-gray-400 mr-1'>📁</span>
+    }
+
+    const getFileName = (url: string) => {
+        try {
+            const urlObj = new URL(url)
+            const pathname = urlObj.pathname
+            const fileName = pathname.split('/').pop() || 'Unknown file'
+            return decodeURIComponent(fileName)
+        } catch {
+            return 'Unknown file'
+        }
     }
 
     return (
@@ -74,6 +166,7 @@ const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, r
                     {required && <span className='text-red-500 ml-1'>*</span>}
                 </label>
             )}
+
             <div
                 className='border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition'
                 onDrop={handleDrop}
@@ -89,8 +182,8 @@ const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, r
                             d='M7 16a4 4 0 01.88-7.903A5.5 5.5 0 1119 16.5H7z'
                         />
                     </svg>
-                    <div className='mt-2 font-medium'>Choose a file or drag & drop it here</div>
-                    <div className='text-xs text-gray-500'>JPEG, PNG, PDF, MP4 up to 50MB</div>
+                    <div className='mt-2 font-medium'>Choose files or drag & drop them here</div>
+                    <div className='text-xs text-gray-500'>JPEG, PNG, PDF, MP4 up to 50MB each</div>
                     <button
                         type='button'
                         className='mt-4 px-4 py-2 bg-white border rounded shadow hover:bg-gray-100'
@@ -111,31 +204,80 @@ const DocumentField: React.FC<DocumentFieldProps> = ({ value, setValue, label, r
                     />
                 </div>
             </div>
-            <div className='mt-4 space-y-2'>
-                {filesToShow.map((f, idx) => (
-                    <div key={idx} className='flex items-center bg-green-100 rounded p-2'>
-                        {getFileIcon(f)}
-                        <div className='ml-2 flex-1'>
-                            <div className='font-medium truncate max-w-xs'>{f.name}</div>
-                            <div className='text-xs text-gray-500'>{formatBytes(f.size)}</div>
-                        </div>
-                        <button
-                            className='ml-2 text-gray-400 hover:text-red-500'
-                            onClick={() => handleRemove(f)}
-                            aria-label={`Remove ${f.name}`}
-                        >
-                            <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                                <path
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    strokeWidth={2}
-                                    d='M6 18L18 6M6 6l12 12'
-                                />
-                            </svg>
-                        </button>
+
+            {/* Display existing files */}
+            {value && value.length > 0 && (
+                <div className='mt-4'>
+                    <h4 className='text-sm font-medium text-gray-700 mb-2'>Existing Files</h4>
+                    <div className='space-y-2'>
+                        {value.map((url, idx) => (
+                            <div key={`existing-${idx}`} className='flex items-center bg-blue-50 rounded p-2'>
+                                {getUrlIcon(url)}
+                                <div className='ml-2 flex-1'>
+                                    <div className='font-medium truncate max-w-xs'>{getFileName(url)}</div>
+                                    <a
+                                        href={url}
+                                        target='_blank'
+                                        rel='noopener noreferrer'
+                                        className='text-xs text-blue-600 hover:text-blue-800 underline'
+                                    >
+                                        View file
+                                    </a>
+                                </div>
+                                <button
+                                    type='button'
+                                    className='ml-2 text-gray-400 hover:text-red-500'
+                                    onClick={() => handleRemoveExistingFile(url)}
+                                    aria-label={`Remove ${getFileName(url)}`}
+                                >
+                                    <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                                        <path
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                            strokeWidth={2}
+                                            d='M6 18L18 6M6 6l12 12'
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
+                </div>
+            )}
+
+            {/* Display new files to upload */}
+            {allFilesToUpload.length > 0 && (
+                <div className='mt-4'>
+                    <h4 className='text-sm font-medium text-gray-700 mb-2'>Files to Upload</h4>
+                    <div className='space-y-2'>
+                        {allFilesToUpload.map((fileObj, idx) => (
+                            <div key={`new-${idx}`} className='flex items-center bg-green-100 rounded p-2'>
+                                {getFileIcon(fileObj.file)}
+                                <div className='ml-2 flex-1'>
+                                    <div className='font-medium truncate max-w-xs'>{fileObj.name}</div>
+                                    <div className='text-xs text-gray-500'>{formatBytes(fileObj.file.size)}</div>
+                                </div>
+                                <button
+                                    type='button'
+                                    className='ml-2 text-gray-400 hover:text-red-500'
+                                    onClick={() => handleRemoveNewFile(fileObj)}
+                                    aria-label={`Remove ${fileObj.name}`}
+                                >
+                                    <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                                        <path
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                            strokeWidth={2}
+                                            d='M6 18L18 6M6 6l12 12'
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {error && <div className='text-xs text-red-600 mt-1'>{error}</div>}
         </div>
     )
