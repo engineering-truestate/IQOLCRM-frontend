@@ -24,17 +24,18 @@ export async function calculateALSC(data: Lead, tasks: Task[]): Promise<string |
             })
 
             // Compare and choose the smaller date between earliestTask.scheduledDate and lastModified
-            if (data.lastModified && earliestTask.scheduledDate < data.lastModified) {
-                endTime = data.lastModified
+            if (data.completionDate && earliestTask.scheduledDate < data.completionDate) {
+                endTime = data.completionDate
             } else {
                 endTime = earliestTask.scheduledDate
             }
         } else {
-            if (data.lastModified) {
+            if (data.completionDate) {
                 // Fallback to lead's last modified date if no latest enquiry or its lastModified is missing
-                endTime = data.lastModified
+                endTime = data.completionDate
             } else {
-                return null // No valid end time found
+                return null
+                // No valid end time found
             }
         }
 

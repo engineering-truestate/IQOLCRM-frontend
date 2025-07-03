@@ -350,7 +350,7 @@ const Leads = () => {
 
             return options
         },
-        [initialFacets, facets],
+        [initialFacets],
     )
 
     const handleRowSelect = (rowId: string, selected: boolean) => {
@@ -568,8 +568,15 @@ const Leads = () => {
         {
             key: 'lastModified',
             header: 'ASLC',
-            render: (_value, row) => <ASLCRenderer lead={row} />,
+            render: (_value, row) => {
+                if (row.state === 'closed' || row.state === 'dropped') {
+                    return <div className='text-sm text-gray-500'>-</div>
+                } else {
+                    return <ASLCRenderer lead={row} />
+                }
+            },
         },
+
         {
             key: 'taskType',
             header: 'Schedule Task',
