@@ -60,7 +60,7 @@ const ASLCRenderer: React.FC<ASLCRendererProps> = ({ lead }) => {
             if (latestEnquiry && latestEnquiry.enquiryId) {
                 try {
                     // Fetch tasks specifically for the latest enquiry
-                    const fetchedTasksForLatestEnquiry = await taskService.getByEnquiryId(latestEnquiry.enquiryId)
+                    const fetchedTasksForLatestEnquiry = await taskService.getOpenByEnquiryId(latestEnquiry.enquiryId)
                     tasksToPass = fetchedTasksForLatestEnquiry
                 } catch (error) {
                     console.error('Failed to fetch tasks for latest enquiry:', error)
