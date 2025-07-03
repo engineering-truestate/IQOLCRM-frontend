@@ -22,6 +22,8 @@ import { villamentComponents } from '../../../components/acn/addInventoryConfigs
 import { rowhouseComponents } from '../../../components/acn/addInventoryConfigs/rowhouseComponents'
 import { independentComponents } from '../../../components/acn/addInventoryConfigs/independentComponents'
 
+import { type FileToUpload } from '../../../services/acn/upload/fileUploadService'
+
 // Types
 export interface PropertyData {
     id?: string
@@ -119,6 +121,7 @@ const FIELD_COMPONENTS: Record<string, any> = {
     projectName: PlacesSearch,
     placesSearch: PlacesSearch,
     Document: DocumentField,
+    coordinates: 'coordinates', // Add coordinates support
 }
 
 interface FormFieldRendererProps {
@@ -128,6 +131,9 @@ interface FormFieldRendererProps {
     error?: string
     assetType?: AssetType
     formData?: Record<string, any>
+    isEditMode?: boolean // Add edit mode prop
+    filesToUpload?: { [key: string]: FileToUpload[] } // Add this
+    setFilesToUpload?: (files: { [key: string]: FileToUpload[] }) => void
 }
 
 const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
@@ -135,19 +141,114 @@ const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
     value,
     onChange,
     error,
-    // assetType,
     formData,
+    isEditMode = false, // Default to false
+    filesToUpload,
+    setFilesToUpload,
 }) => {
-    // Check if field is compulsory
-    // const fieldKey = field.field || ''
-    // const isCompulsoryField = assetType ? getCompulsoryFields(assetType).includes(fieldKey) : false
     const isRequired = field.required
+
+    // Handle places search replacement in edit mode
+    if ((field.type === 'projectName' || field.type === 'placesSearch') && isEditMode) {
+        return (
+            <div className='space-y-4'>
+                <TextInputField
+                    value={formData?.propertyName || ''}
+                    setValue={(val) => onChange({ ...formData, propertyName: val })}
+                    label='Property Name'
+                    required={isRequired}
+                    placeholder='Enter property name'
+                    type='text'
+                    error={error}
+                />
+                <TextInputField
+                    value={formData?.area || ''}
+                    setValue={(val) => onChange({ ...formData, area: val })}
+                    label='Area'
+                    required={false}
+                    placeholder='Enter area/address'
+                    type='text'
+                />
+                <TextInputField
+                    value={formData?.micromarket || ''}
+                    setValue={(val) => onChange({ ...formData, micromarket: val })}
+                    label='Micromarket'
+                    required={false}
+                    placeholder='Enter micromarket'
+                    type='text'
+                />
+                <TextInputField
+                    value={formData?.mapLocation || ''}
+                    setValue={(val) => onChange({ ...formData, mapLocation: val })}
+                    label='Map Location'
+                    required={false}
+                    placeholder='Enter map location'
+                    type='text'
+                />
+                <div className='grid grid-cols-2 gap-4'>
+                    <TextInputField
+                        value={formData?.coordinates?.lat || ''}
+                        setValue={(lat) =>
+                            onChange({
+                                ...formData,
+                                coordinates: { ...formData?.coordinates, lat },
+                            })
+                        }
+                        label='Latitude'
+                        required={false}
+                        placeholder='Enter latitude'
+                        type='number'
+                    />
+                    <TextInputField
+                        value={formData?.coordinates?.lng || ''}
+                        setValue={(lng) =>
+                            onChange({
+                                ...formData,
+                                coordinates: { ...formData?.coordinates, lng },
+                            })
+                        }
+                        label='Longitude'
+                        required={false}
+                        placeholder='Enter longitude'
+                        type='number'
+                    />
+                </div>
+            </div>
+        )
+    }
+
     const FieldComponent = FIELD_COMPONENTS[field.type]
 
     if (!FieldComponent) {
         return (
             <div className='p-4 bg-gray-100 rounded-md'>
                 <p className='text-sm text-gray-600'>Field type "{field.type}" not implemented yet</p>
+            </div>
+        )
+    }
+
+    // Handle coordinates field type
+    if (field.type === 'coordinates') {
+        return (
+            <div className='grid grid-cols-2 gap-4'>
+                <TextInputField
+                    value={value?.lat || ''}
+                    setValue={(lat) => onChange({ ...value, lat })}
+                    label='Latitude'
+                    required={isRequired}
+                    placeholder='Enter latitude'
+                    type='number'
+                    error={error}
+                />
+                <TextInputField
+                    value={value?.lng || ''}
+                    setValue={(lng) => onChange({ ...value, lng })}
+                    label='Longitude'
+                    required={isRequired}
+                    placeholder='Enter longitude'
+                    type='number'
+                    error={error}
+                />
             </div>
         )
     }
@@ -261,6 +362,8 @@ const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
                     required={isRequired}
                     error={error}
                     propertyId={formData?.propertyId}
+                    filesToUpload={filesToUpload}
+                    setFilesToUpload={setFilesToUpload}
                 />
             )
         default:

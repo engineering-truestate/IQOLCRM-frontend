@@ -16,6 +16,12 @@ import {
 import { db } from '../../../firebase'
 import { type IInventory } from '../../../store/reducers/acn/propertiesTypes'
 import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
+import {
+    handleUploadToStorage,
+    handleUploadToDrive,
+    type UploadedFileUrls,
+    type FileToUpload,
+} from '../upload/fileUploadService'
 
 // Helper function to get current Unix timestamp in milliseconds
 const getCurrentTimestamp = () => Date.now()
@@ -132,7 +138,16 @@ const generateUniquePropertyId = async (): Promise<string> => {
 // Add new property with unique ID generation - FIXED VERSION
 export const addProperty = createAsyncThunk(
     'properties/add',
-    async (propertyData: Partial<IInventory>, { rejectWithValue }) => {
+    async (
+        {
+            propertyData,
+            filesToUpload,
+        }: {
+            propertyData: Partial<IInventory>
+            filesToUpload?: { [key: string]: FileToUpload[] }
+        },
+        { rejectWithValue },
+    ) => {
         try {
             console.log('➕ Adding new property:', propertyData)
 
@@ -140,15 +155,42 @@ export const addProperty = createAsyncThunk(
             const propertyId = await generateUniquePropertyId()
             const currentTime = getCurrentTimestamp()
 
+            let uploadedFileUrls: UploadedFileUrls = { photo: [], video: [], document: [] }
+            let driveLink: string | null = null
+
+            // Handle file uploads if files are provided
+            if (filesToUpload && Object.keys(filesToUpload).length > 0) {
+                try {
+                    uploadedFileUrls = await handleUploadToStorage(propertyId, filesToUpload)
+
+                    // Upload to Google Drive if any files were uploaded
+                    if (
+                        uploadedFileUrls.document.length > 0 ||
+                        uploadedFileUrls.photo.length > 0 ||
+                        uploadedFileUrls.video.length > 0
+                    ) {
+                        driveLink = await handleUploadToDrive(propertyId, uploadedFileUrls)
+                    }
+                } catch (error: any) {
+                    console.error('Error uploading files:', error)
+                    throw new Error(`File upload failed: ${error.message}`)
+                }
+            }
+
             // Set default values and use Unix timestamps
             const propertyWithDefaults = setDefaultValues({
                 ...propertyData,
                 propertyId,
-                dateOfInventoryAdded: currentTime, // Use Unix timestamp directly
-                dateOfStatusLastChecked: currentTime, // Use Unix timestamp directly
+                dateOfInventoryAdded: currentTime,
+                dateOfStatusLastChecked: currentTime,
                 ageOfInventory: 0,
                 ageOfStatus: 0,
                 handoverDate: propertyData.handoverDate ? convertTimestampToUnix(propertyData.handoverDate) : null,
+                // Add uploaded file URLs
+                photo: uploadedFileUrls.photo,
+                video: uploadedFileUrls.video,
+                document: uploadedFileUrls.document,
+                driveLink: driveLink ?? undefined,
             })
 
             // Remove undefined fields
@@ -162,13 +204,12 @@ export const addProperty = createAsyncThunk(
 
             console.log('✅ Property added successfully with document ID:', propertyId)
 
-            // Return the property with Unix timestamps only (NO Firebase Timestamp objects)
             const returnProperty: IInventory = {
                 ...cleanedProperty,
                 id: propertyId,
                 propertyId: propertyId,
-                dateOfInventoryAdded: currentTime, // Ensure Unix timestamp
-                dateOfStatusLastChecked: currentTime, // Ensure Unix timestamp
+                dateOfInventoryAdded: currentTime,
+                dateOfStatusLastChecked: currentTime,
             } as IInventory
 
             console.log('🔄 Returning property to Redux:', returnProperty)
@@ -315,9 +356,42 @@ export const fetchPropertyById = createAsyncThunk(
 // Update existing property
 export const updateProperty = createAsyncThunk(
     'properties/update',
-    async ({ id, updates }: { id: string; updates: Partial<IInventory> }, { rejectWithValue }) => {
+    async (
+        {
+            id,
+            updates,
+            filesToUpload,
+        }: {
+            id: string
+            updates: Partial<IInventory>
+            filesToUpload?: { [key: string]: FileToUpload[] }
+        },
+        { rejectWithValue },
+    ) => {
         try {
             console.log('📝 Updating property:', id, updates)
+
+            let uploadedFileUrls: UploadedFileUrls = { photo: [], video: [], document: [] }
+            let driveLink: string | null = updates.driveLink || null
+
+            // Handle file uploads if files are provided
+            if (filesToUpload && Object.keys(filesToUpload).length > 0) {
+                try {
+                    uploadedFileUrls = await handleUploadToStorage(id, filesToUpload)
+
+                    // Upload to Google Drive if any files were uploaded
+                    if (
+                        uploadedFileUrls.document.length > 0 ||
+                        uploadedFileUrls.photo.length > 0 ||
+                        uploadedFileUrls.video.length > 0
+                    ) {
+                        driveLink = await handleUploadToDrive(id, uploadedFileUrls)
+                    }
+                } catch (error: any) {
+                    console.error('Error uploading files:', error)
+                    throw new Error(`File upload failed: ${error.message}`)
+                }
+            }
 
             const docRef = doc(db, 'acnProperties', id)
 
@@ -327,6 +401,20 @@ export const updateProperty = createAsyncThunk(
                 handoverDate: updates.handoverDate
                     ? convertTimestampToUnix(updates.handoverDate)
                     : updates.handoverDate,
+                // Merge uploaded files with existing ones
+                photo:
+                    uploadedFileUrls.photo.length > 0
+                        ? [...(updates.photo || []), ...uploadedFileUrls.photo]
+                        : updates.photo,
+                video:
+                    uploadedFileUrls.video.length > 0
+                        ? [...(updates.video || []), ...uploadedFileUrls.video]
+                        : updates.video,
+                document:
+                    uploadedFileUrls.document.length > 0
+                        ? [...(updates.document || []), ...uploadedFileUrls.document]
+                        : updates.document,
+                driveLink: driveLink ?? undefined,
             })
 
             if (updates.status) {
