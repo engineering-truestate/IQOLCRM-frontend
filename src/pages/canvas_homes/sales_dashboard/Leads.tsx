@@ -24,6 +24,7 @@ import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import useAuth from '../../../hooks/useAuth'
 import { enquiryService } from '../../../services/canvas_homes'
 import { leadService } from '../../../services/canvas_homes'
+import BulkChangeAgentModal from '../../../components/canvas_homes/BulkChangeAgentModal'
 
 // Status card component
 const StatusCard = ({
@@ -152,6 +153,7 @@ const Leads = () => {
             : '',
     )
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
+    const [isBulkChangeAgentModalOpen, setIsBulkChangeAgentModalOpen] = useState(false)
     // const [junkTab,setjunkTab]= useState(false)
 
     // Store initial facets to prevent filter options from changing
@@ -509,6 +511,10 @@ const Leads = () => {
             console.error('Error junking leads:', error)
             toast.error('Failed to junk selected leads')
         }
+    }
+
+    const handleChangeAgent = () => {
+        setIsBulkChangeAgentModalOpen(true)
     }
 
     const statusCards = [
@@ -925,17 +931,36 @@ const Leads = () => {
                 </div>
                 <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
             </div>
+
             {selectedRows.length > 0 && (
                 <div className='fixed bottom-0 w-[86%] bg-gray-200 border-t border-gray-300 shadow-md p-4 flex justify-between items-center z-50'>
                     <span className='text-sm text-gray-700'>{selectedRows.length} selected</span>
-                    <button
-                        className='bg-gray-500 text-white text-sm px-4 py-2 rounded hover:bg-gray-700'
-                        onClick={handleJunkSelected}
-                    >
-                        Move to Junk
-                    </button>
+                    <div className='px-4 gap-4 flex'>
+                        <button
+                            className='bg-gray-500 text-white text-sm px-4 py-2 rounded hover:bg-gray-700'
+                            onClick={handleChangeAgent}
+                        >
+                            Bulk Agent Transfer
+                        </button>
+                        <button
+                            className='bg-gray-500 text-white text-sm px-4 py-2 rounded hover:bg-gray-700'
+                            onClick={handleJunkSelected}
+                        >
+                            Move to Junk
+                        </button>
+                    </div>
                 </div>
             )}
+            <BulkChangeAgentModal
+                isOpen={isBulkChangeAgentModalOpen}
+                onClose={() => setIsBulkChangeAgentModalOpen(false)}
+                leadIds={selectedRows}
+                onAgentChange={() => {
+                    // Refresh data after agent change
+                    performSearch()
+                    setSelectedRows([])
+                }}
+            />
         </>
     )
 }
