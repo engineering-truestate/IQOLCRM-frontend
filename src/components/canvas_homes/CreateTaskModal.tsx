@@ -35,7 +35,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     leadStatus,
     leadId = '',
     propertyName,
-    leadAddDate,
     name,
     stage,
     tag,
