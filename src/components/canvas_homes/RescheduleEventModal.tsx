@@ -207,6 +207,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 leadStatus: leadStatus,
                 lastModified: currentTimestamp,
                 tag: formData.tag == '' ? null : formData.tag,
+                state: 'open',
                 ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                 ...(stage && { stage: stage }),
             }
@@ -255,6 +256,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 scheduledDate: scheduledTimestamp,
                 taskType: taskType,
                 tag: formData.tag == '' ? null : formData.tag,
+                state: 'open',
                 ...(stage && { stage: stage }),
                 ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
             }
@@ -271,6 +273,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                         taskType: earliestTask.taskType,
                         scheduledDate: earliestTask.taskId === taskId ? scheduledTimestamp : earliestTask.scheduledDate,
                         tag: formData.tag == '' ? null : formData.tag,
+                        state: 'open',
                         ...(stage && { stage: stage }),
                         ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                     }
