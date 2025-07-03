@@ -416,7 +416,7 @@ const Tasks = () => {
 
             return options
         },
-        [initialFacets, facets],
+        [initialFacets],
     )
 
     // Helper function to get task status badge color

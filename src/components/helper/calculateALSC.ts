@@ -1,21 +1,11 @@
 import type { Lead, Task } from '../../services/canvas_homes/types'
 import { getUnixDateTime } from './getUnixDateTime'
 
-export async function calculateALSC(data: Lead, tasks: Task[]): Promise<string | null> {
-    // Return null if no added timestamp is available
-    if (!data.added) {
-        return null
-    }
-
+export async function calculateALSC(data: Lead, tasks: Task[], created: number | null): Promise<string | null> {
     try {
-        // Ensure the lead has an ID
-        if (!data.leadId) {
-            return null
-        }
-
-        // Filter open tasks with scheduled dates
-        const openTasksWithSchedule = tasks.filter((task) => task.status === 'open' && task.scheduledDate)
+        const openTasksWithSchedule = tasks
         let endTime: number
+        const currentTime = getUnixDateTime() // Current time in Unix timestamp (seconds)
 
         if (openTasksWithSchedule.length > 0) {
             // Find the earliest task (smallest scheduled date)
@@ -24,21 +14,18 @@ export async function calculateALSC(data: Lead, tasks: Task[]): Promise<string |
             })
 
             // Compare and choose the smaller date between earliestTask.scheduledDate and lastModified
-            if (data.lastModified && earliestTask.scheduledDate < data.lastModified) {
-                endTime = data.lastModified
+            if (data.completionDate && earliestTask.scheduledDate < data.completionDate) {
+                endTime = data.completionDate
             } else {
                 endTime = earliestTask.scheduledDate
             }
         } else {
-            if (data.lastModified) {
-                // Fallback to lead's last modified date if no latest enquiry or its lastModified is missing
-                endTime = data.lastModified
+            if (data.completionDate) {
+                endTime = data.completionDate
             } else {
-                return null // No valid end time found
+                endTime = created || currentTime
             }
         }
-
-        const currentTime = getUnixDateTime() // Current time in Unix timestamp (seconds)
 
         // Calculate the difference in seconds
         const timeDifferenceSeconds = currentTime - endTime
@@ -49,8 +36,8 @@ export async function calculateALSC(data: Lead, tasks: Task[]): Promise<string |
         }
 
         // Calculate the number of days and remaining hours
-        const days = Math.floor(timeDifferenceSeconds / (60 * 60 * 24))
-        const remainingHours = Math.floor((timeDifferenceSeconds % (60 * 60 * 24)) / (60 * 60))
+        const days = Math.floor(timeDifferenceSeconds / 86400)
+        const remainingHours = Math.floor((timeDifferenceSeconds % 86400) / 3600)
 
         if (days === 0) return `${remainingHours} hrs`
 

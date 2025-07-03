@@ -81,7 +81,7 @@ export interface Enquiry {
               added: number | null
           }[]
         | null
-    state: 'open' | 'closed' | 'fresh' | 'dropped' | 'junk' | null
+    state: 'open' | 'closed' | 'fresh' | 'dropped' | 'junk' | null | string
     added: number | null
     lastModified: number | null
 }

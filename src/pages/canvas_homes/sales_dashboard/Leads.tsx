@@ -233,6 +233,7 @@ const Leads = () => {
         if (activeStatusCard !== 'All') {
             const stateValue = activeStatusCard.toLowerCase()
             filtered = filtered.filter((lead) => lead.state?.toLowerCase() === stateValue)
+            setSelectedRows([])
         }
 
         setFilteredLeadsData(filtered)
@@ -248,7 +249,8 @@ const Leads = () => {
                 hitsPerPage: 1000,
             })
 
-            setAllLeadsData(result.hits)
+            const filteredLeads = result.hits.filter((lead) => lead.state !== 'junk')
+            setAllLeadsData(filteredLeads)
             setFacets(result.facets || {})
 
             // Store initial facets on first load to maintain consistent filter options
@@ -350,7 +352,7 @@ const Leads = () => {
 
             return options
         },
-        [initialFacets, facets],
+        [initialFacets],
     )
 
     const handleRowSelect = (rowId: string, selected: boolean) => {
@@ -363,7 +365,7 @@ const Leads = () => {
 
     const handleSelectAllRows = (selected: boolean) => {
         if (selected) {
-            const allLeadIds = allLeadsData.map((lead) => lead.leadId)
+            const allLeadIds = filteredLeadsData.map((lead) => lead.leadId)
             setSelectedRows(allLeadIds)
         } else {
             setSelectedRows([])
@@ -568,8 +570,15 @@ const Leads = () => {
         {
             key: 'lastModified',
             header: 'ASLC',
-            render: (_value, row) => <ASLCRenderer lead={row} />,
+            render: (_value, row) => {
+                if (row.state === 'closed' || row.state === 'dropped') {
+                    return <div className='text-sm text-gray-500'>-</div>
+                } else {
+                    return <ASLCRenderer lead={row} />
+                }
+            },
         },
+
         {
             key: 'taskType',
             header: 'Schedule Task',
