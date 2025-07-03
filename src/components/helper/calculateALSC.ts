@@ -1,7 +1,7 @@
-import type { Lead, Task } from '../../services/canvas_homes/types'
+import type { Lead, Task, Enquiry } from '../../services/canvas_homes/types'
 import { getUnixDateTime } from './getUnixDateTime'
 
-export async function calculateALSC(data: Lead, tasks: Task[]): Promise<string | null> {
+export async function calculateALSC(data: Lead, tasks: Task[], created: number | null): Promise<string | null> {
     // Return null if no added timestamp is available
     if (!data.added) {
         return null
@@ -32,7 +32,12 @@ export async function calculateALSC(data: Lead, tasks: Task[]): Promise<string |
         } else {
             if (data.completionDate) {
                 // Fallback to lead's last modified date if no latest enquiry or its lastModified is missing
+
                 endTime = data.completionDate
+            } else if (created) {
+                // Fallback to lead's last modified date if no latest enquiry or its lastModified is missing
+
+                endTime = created
             } else {
                 return null
                 // No valid end time found

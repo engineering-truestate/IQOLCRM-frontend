@@ -101,7 +101,7 @@ const RequirementCollectedModal: React.FC<RequirementCollectedModalProps> = ({
 
             switch (currentTaskType.toLowerCase()) {
                 case 'initial contact':
-                    leadStage = 'initital contacted'
+                    leadStage = 'initial contacted'
                     currentTaskType = 'initial contact'
                     break
                 case 'site visit':
