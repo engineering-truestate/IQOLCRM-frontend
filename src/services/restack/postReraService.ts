@@ -2,7 +2,7 @@ import { db } from '../../firebase'
 import { collection, getDocs, getDoc, doc, addDoc, updateDoc, query, where } from 'firebase/firestore'
 import type { PostReraProperty, PostReraPropertyFilters } from '../../store/reducers/restack/postReraTypes'
 
-const COLLECTION_NAME = 'restackPostReraProperties'
+const COLLECTION_NAME = 'restackStock'
 
 const PostReraService = {
     async fetchProperties(filters?: PostReraPropertyFilters): Promise<PostReraProperty[]> {

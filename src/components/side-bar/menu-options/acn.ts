@@ -15,6 +15,9 @@ import primary from '../../../../public/icons/acn/sidebar/primary.svg'
 import Home from '../../../../public/icons/acn/sidebar/Homeicon.svg'
 import Sales from '../../../../public/icons/acn/sidebar/salesicon.svg'
 import setting from '../../../../public/icons/acn/sidebar/settingicon.svg'
+import stock from '../../../../public/icons/canvas_homes/stock.svg'
+import rental from '../../../../public/icons/canvas_homes/rental.svg'
+import resale from '../../../../public/icons/canvas_homes/resale.svg'
 export const acnMenuItems = [
     { label: 'Agents', path: '/acn/agents', icon: Agenticon },
     { label: 'Leads', path: '/acn/leads', icon: Leadsicon },
@@ -46,7 +49,7 @@ export const canvasMenuItems = [
 export const RestackItems = [
     { label: 'Pre-launch', path: '/restack/prelaunch', icon: prelaunch },
     { label: 'Primary', path: '/restack/primary', icon: primary },
-    { label: 'Stock', path: '/restack/stock', icon: primary },
-    { label: 'Resale', path: '/restack/resale', icon: primary },
-    { label: 'Rental', path: '/restack/rental', icon: primary },
+    { label: 'Stock', path: '/restack/stock', icon: stock },
+    { label: 'Resale', path: '/restack/resale', icon: resale },
+    { label: 'Rental', path: '/restack/rental', icon: rental },
 ]

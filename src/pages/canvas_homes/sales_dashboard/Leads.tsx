@@ -24,6 +24,7 @@ import { getUnixDateTime } from '../../../components/helper/getUnixDateTime'
 import useAuth from '../../../hooks/useAuth'
 import { enquiryService } from '../../../services/canvas_homes'
 import { leadService } from '../../../services/canvas_homes'
+import BulkChangeAgentModal from '../../../components/canvas_homes/BulkChangeAgentModal'
 
 // Status card component
 const StatusCard = ({
@@ -85,32 +86,74 @@ const tagStyles: Record<
 const Leads = () => {
     const [searchParams, setSearchParams] = useSearchParams()
     const navigate = useNavigate()
+    const localStorageKey = 'leadsFilters'
 
     // Initialize state from URL params
-    const [activeStatusCard, setActiveStatusCard] = useState('All')
+    const [activeStatusCard, setActiveStatusCard] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').activeStatusCard
+            : 'All',
+    )
     const [selectedRows, setSelectedRows] = useState<string[]>([])
-    const [searchValue, setSearchValue] = useState('')
-    const [selectedDateRange, setSelectedDateRange] = useState('')
+    const [searchValue, setSearchValue] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').searchValue
+            : '',
+    )
+    const [selectedDateRange, setSelectedDateRange] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').selectedDateRange
+            : '',
+    )
 
     // Separate state for date range picker (not applied until user confirms)
     const [pendingDateRange, setPendingDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
         startDate: null,
         endDate: null,
     })
+    const [customDateRange, setCustomDateRange] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').customDateRange
+            : { startDate: null, endDate: null },
+    )
 
-    const [customDateRange, setCustomDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
-        startDate: null,
-        endDate: null,
-    })
-
-    const [selectedProperty, setSelectedProperty] = useState('')
-    const [selectedAgent, setSelectedAgent] = useState('')
-    const [selectedSource, setSelectedSource] = useState('')
-    const [selectedLeadStage, setSelectedLeadStage] = useState('')
-    const [selectedTag, setSelectedTag] = useState('')
-    const [selectedTask, setSelectedTask] = useState('')
-    const [selectedLeadStatus, setSelectedLeadStatus] = useState('')
+    const [selectedProperty, setSelectedProperty] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').selectedProperty
+            : '',
+    )
+    const [selectedAgent, setSelectedAgent] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').selectedAgent
+            : '',
+    )
+    const [selectedSource, setSelectedSource] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').selectedSource
+            : '',
+    )
+    const [selectedLeadStage, setSelectedLeadStage] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').selectedLeadStage
+            : '',
+    )
+    const [selectedTag, setSelectedTag] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').selectedTag
+            : '',
+    )
+    const [selectedTask, setSelectedTask] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').selectedTask
+            : '',
+    )
+    const [selectedLeadStatus, setSelectedLeadStatus] = useState(
+        localStorage.getItem(localStorageKey)
+            ? JSON.parse(localStorage.getItem(localStorageKey) || '{}').selectedLeadStatus
+            : '',
+    )
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
+    const [isBulkChangeAgentModalOpen, setIsBulkChangeAgentModalOpen] = useState(false)
     // const [junkTab,setjunkTab]= useState(false)
 
     // Store initial facets to prevent filter options from changing
@@ -372,6 +415,39 @@ const Leads = () => {
         }
     }
 
+    useEffect(() => {
+        // Save filters to localStorage
+        localStorage.setItem(
+            localStorageKey,
+            JSON.stringify({
+                activeStatusCard,
+                searchValue,
+                selectedDateRange,
+                customDateRange,
+                selectedProperty,
+                selectedAgent,
+                selectedSource,
+                selectedLeadStage,
+                selectedTag,
+                selectedTask,
+                selectedLeadStatus,
+            }),
+        )
+    }, [
+        activeStatusCard,
+        searchValue,
+        selectedDateRange,
+        customDateRange,
+        selectedProperty,
+        selectedAgent,
+        selectedSource,
+        selectedLeadStage,
+        selectedTag,
+        selectedTask,
+        selectedLeadStatus,
+        localStorageKey,
+    ])
+
     const handleRowClick = (row: any) => {
         navigate(`leaddetails/${row.leadId}`)
     }
@@ -437,6 +513,10 @@ const Leads = () => {
             console.error('Error junking leads:', error)
             toast.error('Failed to junk selected leads')
         }
+    }
+
+    const handleChangeAgent = () => {
+        setIsBulkChangeAgentModalOpen(true)
     }
 
     const statusCards = [
@@ -824,6 +904,8 @@ const Leads = () => {
                                 setSelectedTag('')
                                 setSelectedTask('')
                                 setSelectedLeadStatus('')
+
+                                localStorage.removeItem(localStorageKey)
                             }}
                             className='ml-4 text-xs bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-1.5 px-4 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer'
                         >
@@ -858,17 +940,36 @@ const Leads = () => {
                 </div>
                 <AddLeadModal isOpen={isAddLeadModalOpen} onClose={() => setIsAddLeadModalOpen(false)} />
             </div>
+
             {selectedRows.length > 0 && (
                 <div className='fixed bottom-0 w-[86%] bg-gray-200 border-t border-gray-300 shadow-md p-4 flex justify-between items-center z-50'>
                     <span className='text-sm text-gray-700'>{selectedRows.length} selected</span>
-                    <button
-                        className='bg-gray-500 text-white text-sm px-4 py-2 rounded hover:bg-gray-700'
-                        onClick={handleJunkSelected}
-                    >
-                        Move to Junk
-                    </button>
+                    <div className='px-4 gap-4 flex'>
+                        <button
+                            className='bg-gray-500 text-white text-sm px-4 py-2 rounded hover:bg-gray-700'
+                            onClick={handleChangeAgent}
+                        >
+                            Bulk Agent Transfer
+                        </button>
+                        <button
+                            className='bg-gray-500 text-white text-sm px-4 py-2 rounded hover:bg-gray-700'
+                            onClick={handleJunkSelected}
+                        >
+                            Move to Junk
+                        </button>
+                    </div>
                 </div>
             )}
+            <BulkChangeAgentModal
+                isOpen={isBulkChangeAgentModalOpen}
+                onClose={() => setIsBulkChangeAgentModalOpen(false)}
+                leadIds={selectedRows}
+                onAgentChange={() => {
+                    // Refresh data after agent change
+                    performSearch()
+                    setSelectedRows([])
+                }}
+            />
         </>
     )
 }
