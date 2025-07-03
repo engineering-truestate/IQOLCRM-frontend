@@ -171,21 +171,11 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                 return
             }
 
-            // Validate sold price for single property updates when status is Sold/Rented
-            if (
-                isSinglePropertyUpdate &&
-                (selectedStatus === 'Sold' || selectedStatus === 'Rented') &&
-                !soldPrice.trim()
-            ) {
-                toast.error(`Please enter ${selectedStatus === 'Sold' ? 'sold price' : 'monthly rent'}`)
-                return
-            }
-
-            // Validate selling platform for Sold status
-            if (isSinglePropertyUpdate && selectedStatus === 'Sold' && !sellingPlatform.trim()) {
-                toast.error('Please select a selling platform')
-                return
-            }
+            // REMOVED: Validation for selling platform - no longer mandatory
+            // if (isSinglePropertyUpdate && selectedStatus === 'Sold' && !sellingPlatform.trim()) {
+            //     toast.error('Please select a selling platform')
+            //     return
+            // }
 
             // Update each property
             const updatePromises = propertyIdsToUpdate.map(async (id) => {
@@ -226,7 +216,7 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                     status: selectedStatus,
                 }
 
-                // Add sold object for Sold status
+                // UPDATED: Add sold object for Sold status only if both soldPrice and sellingPlatform are provided
                 if (isSinglePropertyUpdate && selectedStatus === 'Sold' && soldPrice && sellingPlatform) {
                     updateParams.sold = {
                         date: Math.floor(Date.now() / 1000), // Unix timestamp
@@ -302,7 +292,8 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                     {isSinglePropertyUpdate && (selectedStatus === 'Sold' || selectedStatus === 'Rented') && (
                         <div>
                             <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                {selectedStatus === 'Sold' ? 'Sold Price' : 'Monthly Rent'} (in Lakhs) *
+                                {selectedStatus === 'Sold' ? 'Sold Price (Optional)' : 'Monthly Rent (Optional)'} (in
+                                Lakhs)
                             </label>
                             <StateBaseTextField
                                 placeholder='Enter amount in lakhs'
@@ -311,7 +302,6 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                                 className='w-full'
                                 type='number'
                                 step='0.01'
-                                required
                             />
                         </div>
                     )}
@@ -319,7 +309,9 @@ const UpdateInventoryStatusModal: React.FC<UpdateInventoryStatusModalProps> = ({
                     {/* Selling Platform Field - Only show for Sold status */}
                     {isSinglePropertyUpdate && selectedStatus === 'Sold' && (
                         <div className='selling-platform-dropdown'>
-                            <label className='block text-sm font-medium text-gray-700 mb-2'>Selling Platform *</label>
+                            <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                Selling Platform (Optional)
+                            </label>
                             <div className='relative'>
                                 <StateBaseTextField
                                     placeholder='Search or select selling platform'

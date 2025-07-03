@@ -41,11 +41,13 @@ const formatValue = (value: any): string => {
         return new Date(value * 1000).toLocaleDateString()
     }
 
+    // Handle arrays (for multi-select values)
+    if (Array.isArray(value)) {
+        return value.length > 0 ? value.join(', ') : 'N/A'
+    }
+
     // Handle objects/arrays
     if (typeof value === 'object') {
-        if (Array.isArray(value)) {
-            return `${value.length} items`
-        }
         return '[Object]'
     }
 
@@ -99,11 +101,12 @@ export default function AgentDetailsDropdown({
     // State for edit mode and editable user details
     const [isEditingUserDetails, setIsEditingUserDetails] = useState(false)
     const [editableUserDetails, setEditableUserDetails] = useState({
+        name: agentDetails?.name || '', // Added name field
         phoneNumber: agentDetails?.phoneNumber || '',
         Address: agentDetails?.workAddress || '',
         mail: agentDetails?.emailAddress || '',
         firm: agentDetails?.firmName || '',
-        areaOfOperation: '',
+        areaOfOperation: (agentDetails as any)?.areaOfOperation || [], // Changed to array for multi-select
         kam: agentDetails?.kamName || '',
         inWhatsappCommunity:
             agentDetails && typeof (agentDetails as IAgent).inWhatsappCommunity === 'boolean'
@@ -113,13 +116,13 @@ export default function AgentDetailsDropdown({
             agentDetails && typeof agentDetails.onBroadcast === 'boolean' ? String(agentDetails.onBroadcast) : '',
     })
 
-    // Placeholder dropdown options
+    // Area of operation options for multi-select
     const areaOfOperationOptions = [
-        'North Bangalore',
-        'South Bangalore',
-        'East Bangalore',
-        'West Bangalore',
-        'Pan Bangalore',
+        { value: 'north bangalore', label: 'North Bangalore' },
+        { value: 'south bangalore', label: 'South Bangalore' },
+        { value: 'east bangalore', label: 'East Bangalore' },
+        { value: 'west bangalore', label: 'West Bangalore' },
+        { value: 'pan bangalore', label: 'Pan Bangalore' },
     ]
 
     // KAM options from Algolia facet
@@ -157,11 +160,12 @@ export default function AgentDetailsDropdown({
     const handleCancelEditUserDetails = () => {
         setIsEditingUserDetails(false)
         setEditableUserDetails({
+            name: agentDetails?.name || '', // Reset name field
             phoneNumber: agentDetails?.phoneNumber || '',
             Address: agentDetails?.workAddress || '',
             mail: agentDetails?.emailAddress || '',
             firm: agentDetails?.firmName || '',
-            areaOfOperation: '',
+            areaOfOperation: (agentDetails as any)?.areaOfOperation || [], // Reset to array
             kam: agentDetails?.kamName || '',
             inWhatsappCommunity:
                 agentDetails && typeof (agentDetails as any).inWhatsappCommunity === 'boolean'
@@ -176,11 +180,12 @@ export default function AgentDetailsDropdown({
         // Convert to string 'true'/'false' for inWhatsappCommunity and inWhatsappBroadcast
         const updatedDetails = {
             ...agentDetails,
+            name: editableUserDetails.name, // Added name field
             phoneNumber: editableUserDetails.phoneNumber,
             workAddress: editableUserDetails.Address,
             emailAddress: editableUserDetails.mail,
             firmName: editableUserDetails.firm,
-            areaOfOperation: editableUserDetails.areaOfOperation,
+            areaOfOperation: editableUserDetails.areaOfOperation, // Multi-select array
             kamName: editableUserDetails.kam,
             inWhatsappCommunity: editableUserDetails.inWhatsappCommunity === 'true',
             onBroadcast: editableUserDetails.inWhatsappBroadcast,
@@ -202,10 +207,27 @@ export default function AgentDetailsDropdown({
         setEditableUserDetails((prev) => ({ ...prev, [field]: value }))
     }
 
+    // Multi-select handler for area of operation
+    const handleAreaOfOperationChange = (selectedOptions: any[]) => {
+        const selectedValues = selectedOptions.map((option) => option.value)
+        setEditableUserDetails((prev) => ({ ...prev, areaOfOperation: selectedValues }))
+    }
+
     // Updated upgrade plan handlers with plan type
     const handleUpgradePlan = (planType: 'trial' | 'premium') => {
         setUpgradeType(planType)
         setShowConfirmModal(true)
+    }
+
+    const handleAddCreditsClick = () => {
+        // Check if user has permission to add credits
+        if (acnRole === 'kamModerator' || acnRole === 'marketing') {
+            setIsAddCreditsModalOpen(true)
+        } else {
+            toast.error(
+                'You do not have permission to add credits. Only KAM Moderator and Marketing team can add credits.',
+            )
+        }
     }
 
     const confirmUpgrade = async () => {
@@ -263,11 +285,12 @@ export default function AgentDetailsDropdown({
     }
 
     const userDetailsFields = {
+        name: agentDetails?.name ? String(agentDetails.name) : '', // Added name field
         phoneNumber: agentDetails?.phoneNumber ? String(agentDetails.phoneNumber) : '',
         Address: agentDetails?.workAddress ? String(agentDetails.workAddress) : '',
         mail: agentDetails?.emailAddress ? String(agentDetails.emailAddress) : '',
         firm: agentDetails?.firmName ? String(agentDetails.firmName) : '',
-        areaOfOperation: (agentDetails as any)?.areaOfOperation ? String((agentDetails as any).areaOfOperation) : '',
+        areaOfOperation: (agentDetails as any)?.areaOfOperation || [], // Multi-select array
         kam: agentDetails?.kamName ? String(agentDetails.kamName) : '',
         inWhatsappCommunity: (agentDetails as any)?.inWhatsappCommunity
             ? String((agentDetails as any).inWhatsappCommunity)
@@ -439,6 +462,19 @@ export default function AgentDetailsDropdown({
                                         handleSaveUserDetails()
                                     }}
                                 >
+                                    {/* Name Field - NEW */}
+                                    <div className='flex justify-between items-center py-1.5'>
+                                        <span className='text-xs text-gray-600'>Name</span>
+                                        <div className='w-fit'>
+                                            <StateBaseTextField
+                                                value={String(editableUserDetails.name)}
+                                                onChange={(e) => handleUserDetailChange('name', e.target.value)}
+                                                status='default'
+                                                fullWidth
+                                                placeholder='Name'
+                                            />
+                                        </div>
+                                    </div>
                                     {/* phoneNumber */}
                                     <div className='flex justify-between items-center py-1.5'>
                                         <span className='text-xs text-gray-600'>Phone Number</span>
@@ -491,21 +527,16 @@ export default function AgentDetailsDropdown({
                                             />
                                         </div>
                                     </div>
-                                    {/* areaOfOperation dropdown */}
+                                    {/* Area of Operation - Multi-Select Dropdown */}
                                     <div className='flex justify-between items-center py-1.5'>
                                         <span className='text-xs text-gray-600'>Area of Operation</span>
-                                        <div className='w-fit'>
-                                            <Dropdown
-                                                options={areaOfOperationOptions.map((area) => ({
-                                                    value: area,
-                                                    label: area,
-                                                }))}
-                                                value={String(editableUserDetails.areaOfOperation)}
-                                                onSelect={(value) => handleUserDetailChange('areaOfOperation', value)}
-                                                placeholder='Area of Operation'
-                                                triggerClassName='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                                                menuClassName='absolute w-full top-8 z-50 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'
-                                                optionClassName='px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 first:rounded-t-md last:rounded-b-md flex items-center gap-2'
+                                        <div className='w-full'>
+                                            <MultiSelectDropdown
+                                                options={areaOfOperationOptions}
+                                                selectedValues={editableUserDetails.areaOfOperation}
+                                                onChange={handleAreaOfOperationChange}
+                                                placeholder='Select Areas'
+                                                className='w-full'
                                             />
                                         </div>
                                     </div>
@@ -729,7 +760,7 @@ export default function AgentDetailsDropdown({
                             <img
                                 src={walletAdd}
                                 alt='Wallet Add Icon'
-                                onClick={() => setIsAddCreditsModalOpen(true)}
+                                onClick={handleAddCreditsClick}
                                 className='w-6 h-6'
                             />
                         </button>
@@ -746,6 +777,119 @@ export default function AgentDetailsDropdown({
                     {renderSection('Rental Details', rentalDetailsFields, 'rentalDetails')}
                     {renderSection('Enquiry Details', enquiryDetailsFields, 'enquiryDetails')}
                     {renderSection('Credits', creditsFields, 'credits')}
+                </div>
+            )}
+        </div>
+    )
+}
+
+// Multi-Select Dropdown Component
+interface MultiSelectDropdownProps {
+    options: { value: string; label: string }[]
+    selectedValues: string[]
+    onChange: (selectedOptions: { value: string; label: string }[]) => void
+    placeholder?: string
+    className?: string
+}
+
+const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
+    options,
+    selectedValues,
+    onChange,
+    placeholder = 'Select options',
+    className = '',
+}) => {
+    const [isOpen, setIsOpen] = useState(false)
+    const [searchTerm, setSearchTerm] = useState('')
+
+    const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(searchTerm.toLowerCase()))
+
+    const handleOptionToggle = (option: { value: string; label: string }) => {
+        const isSelected = selectedValues.includes(option.value)
+        let newSelectedValues: string[]
+
+        if (isSelected) {
+            newSelectedValues = selectedValues.filter((value) => value !== option.value)
+        } else {
+            newSelectedValues = [...selectedValues, option.value]
+        }
+
+        const selectedOptions = options.filter((opt) => newSelectedValues.includes(opt.value))
+        onChange(selectedOptions)
+    }
+
+    const handleRemoveOption = (valueToRemove: string) => {
+        const newSelectedValues = selectedValues.filter((value) => value !== valueToRemove)
+        const selectedOptions = options.filter((opt) => newSelectedValues.includes(opt.value))
+        onChange(selectedOptions)
+    }
+
+    return (
+        <div className={`relative ${className}`}>
+            <div
+                className='flex items-center justify-between px-2 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer min-h-[32px]'
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <div className='flex flex-wrap gap-1 flex-1'>
+                    {selectedValues.length === 0 ? (
+                        <span className='text-gray-500'>{placeholder}</span>
+                    ) : (
+                        selectedValues.map((value) => {
+                            const option = options.find((opt) => opt.value === value)
+                            return (
+                                <span
+                                    key={value}
+                                    className='inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full'
+                                >
+                                    {option?.label}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleRemoveOption(value)
+                                        }}
+                                        className='text-blue-600 hover:text-blue-800'
+                                    >
+                                        ×
+                                    </button>
+                                </span>
+                            )
+                        })
+                    )}
+                </div>
+                <span className='text-gray-400'>{isOpen ? '▲' : '▼'}</span>
+            </div>
+
+            {isOpen && (
+                <div className='absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                    <div className='p-2 border-b border-gray-200'>
+                        <input
+                            type='text'
+                            placeholder='Search options...'
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+                        />
+                    </div>
+                    <div className='max-h-40 overflow-y-auto'>
+                        {filteredOptions.map((option) => (
+                            <div
+                                key={option.value}
+                                className='flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-gray-100'
+                                onClick={() => handleOptionToggle(option)}
+                            >
+                                <input
+                                    type='checkbox'
+                                    checked={selectedValues.includes(option.value)}
+                                    onChange={() => {}} // Handled by parent onClick
+                                    className='mr-2'
+                                />
+                                <span>{option.label}</span>
+                            </div>
+                        ))}
+                        {filteredOptions.length === 0 && (
+                            <div className='px-3 py-2 text-sm text-gray-500'>No options found</div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
