@@ -10,7 +10,7 @@ export async function calculateALSC(data: Lead, tasks: Task[], created: number |
         if (openTasksWithSchedule.length > 0) {
             // Find the earliest task (smallest scheduled date)
             const earliestTask = openTasksWithSchedule.reduce((earliest, current) => {
-                return current.scheduledDate < earliest.scheduledDate ? current : earliest
+                return current.scheduledDate > earliest.scheduledDate ? current : earliest
             })
 
             // Compare and choose the smaller date between earliestTask.scheduledDate and lastModified

@@ -204,10 +204,10 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
             }
 
             const enquiryUpdateData = {
+                state: 'open',
                 leadStatus: leadStatus,
                 lastModified: currentTimestamp,
                 tag: formData.tag == '' ? null : formData.tag,
-                state: 'open',
                 ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                 ...(stage && { stage: stage }),
             }
@@ -239,6 +239,7 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
 
             // Determine lead update data based on remaining tasks
             let leadUpdateData = {
+                state: 'open',
                 leadStatus: leadStatus as
                     | 'interested'
                     | 'follow up'
@@ -256,7 +257,6 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 scheduledDate: scheduledTimestamp,
                 taskType: taskType,
                 tag: formData.tag == '' ? null : formData.tag,
-                state: 'open',
                 ...(stage && { stage: stage }),
                 ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
             }
@@ -268,12 +268,12 @@ const RescheduleEventModal: React.FC<RescheduleEventModalProps> = ({
                 if (earliestTask.added) {
                     // If another task has an earlier date, use its data for the lead
                     leadUpdateData = {
+                        state: 'open',
                         leadStatus: leadStatus as any,
                         lastModified: currentTimestamp,
                         taskType: earliestTask.taskType,
                         scheduledDate: earliestTask.taskId === taskId ? scheduledTimestamp : earliestTask.scheduledDate,
                         tag: formData.tag == '' ? null : formData.tag,
-                        state: 'open',
                         ...(stage && { stage: stage }),
                         ...(formData.reason === 'rnr' && { rnr: true, rnrCount: rnrCount }),
                     }

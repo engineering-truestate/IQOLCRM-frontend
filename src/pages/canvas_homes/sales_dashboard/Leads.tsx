@@ -352,7 +352,7 @@ const Leads = () => {
 
             return options
         },
-        [initialFacets],
+        [initialFacets, facets],
     )
 
     const handleRowSelect = (rowId: string, selected: boolean) => {
