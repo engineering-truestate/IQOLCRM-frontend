@@ -46,11 +46,11 @@ ${index + 1}. ${prop.propertyName || prop.area || 'Unknown Property'}
    Price: ${formatCurrency(prop.totalAskPrice)}
    Status: ${prop.status || 'Unknown'}
    Agent: ${prop.cpId || 'N/A'}
+   Link: https://acnonline.in/?propertyId%5Bquery%5D=${prop.propertyId || prop.id}
 `,
     )
     .join('\n')}
 
-Shared via Property Management System
         `.trim()
 
         navigator.clipboard
@@ -85,11 +85,11 @@ ${properties
    💰 *Price:* ${formatCurrency(prop.totalAskPrice)}
    📊 *Status:* ${prop.status || 'Unknown'}
    👤 *Agent:* ${prop.cpId || 'N/A'}
+   *Link:* https://acnonline.in/?propertyId%5Bquery%5D=${prop.propertyId || prop.id}
 `,
     )
     .join('\n\n')}
 
-_Shared via Property Management System_
         `.trim()
 
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`

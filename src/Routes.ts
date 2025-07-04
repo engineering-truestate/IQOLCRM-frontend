@@ -46,9 +46,9 @@ import PrimaryDetailsPage from './pages/restack/Primary/PrimaryDetails'
 import PostReraDetailsPage from './pages/restack/Stock/post-rera/PostReraDetailsPage'
 import PrimaryPage from './pages/restack/Primary/Primary'
 import ChoosePlatform from './ChoosePlatform'
-import Resale from './pages/restack/Resale/Resale'
-import ResalePage from './pages/restack/Resale/ResalePage'
-import { ResaleDetailsPage } from './pages/restack/Resale/ResalePageDetails'
+import Resale from './pages/restack/resale/Resale'
+import ResalePage from './pages/restack/resale/ResalePage'
+import { ResaleDetailsPage } from './pages/restack/resale/ResalePageDetails'
 import JunkLeads from './pages/canvas_homes/sales_dashboard/JunkLead'
 import PrimaryImages from './pages/restack/Primary/PrimaryImages'
 
@@ -199,11 +199,11 @@ export const protectedRoutes: RouteObject[] = [
         element: React.createElement(React.Suspense, null, React.createElement(PreReraDetailsPage, null)),
     },
     {
-        path: '/restack/stock/post-rera/:id/details',
+        path: '/restack/stock/:id/details',
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
     },
     {
-        path: '/restack/stock/post-rera/:id/documents',
+        path: '/restack/stock/:id/documents',
         element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
     },
     {
@@ -217,14 +217,6 @@ export const protectedRoutes: RouteObject[] = [
             null,
             React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
         ),
-    },
-    {
-        path: '/restack/stock/post-rera/:id/details',
-        element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
-    },
-    {
-        path: '/restack/stock/post-rera/:id/documents',
-        element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
     },
     {
         path: '/restack/stock/pre-rera/:id/details',
@@ -241,15 +233,6 @@ export const protectedRoutes: RouteObject[] = [
             null,
             React.createElement(React.Suspense, null, React.createElement(PropertiesPage, null)),
         ),
-    },
-
-    {
-        path: '/restack/stock/post-rera/:id/details',
-        element: React.createElement(React.Suspense, null, React.createElement(PostReraDetailsPage, null)),
-    },
-    {
-        path: '/restack/stock/post-rera/:id/documents',
-        element: React.createElement(React.Suspense, null, React.createElement(PostReraDocumentPage, null)),
     },
     {
         path: '/restack/stock/pre-rera/:id/details',

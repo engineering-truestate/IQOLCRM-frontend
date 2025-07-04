@@ -233,7 +233,7 @@ const LeadDetails: React.FC<LeadDetailProps> = ({ onClose }) => {
         if (onClose) {
             onClose()
         } else {
-            window.location.href = '/canvas-homes/sales'
+            window.history.back()
         }
     }
 

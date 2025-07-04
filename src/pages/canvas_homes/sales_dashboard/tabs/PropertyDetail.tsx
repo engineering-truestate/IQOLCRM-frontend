@@ -60,22 +60,7 @@ const PropertyDetail = ({
     // Load project data based on propertyId or propertyName
     useEffect(() => {
         const loadProperty = async () => {
-            if (propertyId) {
-                // First try to find in existing properties
-                const existingProperty = properties.find((prop: any) => prop.projectId === propertyId)
-                if (existingProperty) {
-                    setProjectDetails(existingProperty)
-                    onPropertyLoad?.(existingProperty)
-                } else {
-                    // If not found, fetch from API by ID
-                    try {
-                        await dispatch(getPreLaunchPropertyById(propertyId))
-                    } catch (err) {
-                        const errorMessage = err instanceof Error ? err.message : 'Failed to load property by ID'
-                        onError?.(errorMessage)
-                    }
-                }
-            } else if (propertyName) {
+            if (propertyName) {
                 // Try to find by name in existing properties first
                 const existingProperty = properties.find(
                     (prop: any) => prop.projectName?.toLowerCase() === propertyName.toLowerCase(),
@@ -89,6 +74,21 @@ const PropertyDetail = ({
                         await dispatch(getPreLaunchPropertyByName(propertyName))
                     } catch (err) {
                         const errorMessage = err instanceof Error ? err.message : 'Failed to load property by name'
+                        onError?.(errorMessage)
+                    }
+                }
+            } else if (propertyId) {
+                // First try to find in existing properties
+                const existingProperty = properties.find((prop: any) => prop.projectId === propertyId)
+                if (existingProperty) {
+                    setProjectDetails(existingProperty)
+                    onPropertyLoad?.(existingProperty)
+                } else {
+                    // If not found, fetch from API by ID
+                    try {
+                        await dispatch(getPreLaunchPropertyById(propertyId))
+                    } catch (err) {
+                        const errorMessage = err instanceof Error ? err.message : 'Failed to load property by ID'
                         onError?.(errorMessage)
                     }
                 }

@@ -90,11 +90,12 @@ const PreLaunchModal: React.FC<PreLaunchModalProps> = ({ isOpen, onClose, onSave
                 <div className='grid grid-cols-2 gap-4'>
                     {/* Project Name */}
                     <div>
-                        <label className='block text-sm font-medium mb-1'>Project Name</label>
+                        {/* <label className='block text-sm font-medium mb-1'>Project Name</label> */}
                         <StateBaseTextField
                             placeholder='Enter'
                             value={form.projectName}
                             onChange={(e) => handleField('projectName', e.target.value)}
+                            label='Project Name'
                             required={true}
                         />
                     </div>

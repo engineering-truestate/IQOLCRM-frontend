@@ -426,7 +426,7 @@ const PostReraDetailsPage = () => {
 
     const getPhaseColumns = (): TableColumn[] => [
         {
-            key: 'phaseName',
+            key: 'projectName',
             header: 'Phase Name',
             render: (value: any, row: any) =>
                 isEditing && editingRowId === row.id ? (
@@ -440,7 +440,7 @@ const PostReraDetailsPage = () => {
                 ),
         },
         {
-            key: 'viewDetails',
+            key: 'reraId',
             header: 'View Details',
             render: (value: any, row: any) =>
                 isEditing && editingRowId === row.id ? (
@@ -451,16 +451,18 @@ const PostReraDetailsPage = () => {
                         placeholder='Enter details URL'
                     />
                 ) : (
-                    <button
-                        onClick={() => navigate(`/restack/primary/${value}`)}
-                        className='px-3 py-1 bg-gray-800 text-white text-xs rounded hover:bg-gray-700'
-                    >
-                        View Details
-                    </button>
+                    <>
+                        <button
+                            onClick={() => navigate(`/restack/primary/${value.replace(/\//g, '_')}`)}
+                            className='px-3 py-1 bg-gray-800 text-white text-xs rounded hover:bg-gray-700'
+                        >
+                            View Details
+                        </button>
+                    </>
                 ),
         },
         {
-            key: 'constructionUpdate',
+            key: 'ActionID',
             header: 'Construction Update',
             render: (value: any, row: any) => {
                 if (isEditing && editingRowId === row.id) {

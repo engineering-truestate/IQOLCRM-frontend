@@ -1,13 +1,16 @@
 import { https, logger } from 'firebase-functions'
 import { getAuth } from 'firebase-admin/auth'
 import { initializeApp } from 'firebase-admin/app'
-import { getFirestore } from 'firebase-admin/firestore'
+import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { google } from 'googleapis'
 import { onRequest, onCall } from 'firebase-functions/v2/https'
 import axios from 'axios'
 import mime from 'mime-types'
 import cors from 'cors'
 import crypto from 'crypto'
+import { doc, increment } from 'firebase/firestore'
+
+import { addCampaginData } from './helper/addCampaginData.js'
 
 initializeApp()
 const db = getFirestore()
@@ -402,4 +405,224 @@ export const phonePeWebhook = onRequest(async (req, res) => {
         console.error('PhonePe Webhook Error:', error)
         res.status(500).json({ error: error.message })
     }
+})
+
+export const handleMultipleCampaignData = onRequest(async (req, res) => {
+    return corsHandler(req, res, async () => {
+        if (req.method !== 'POST') {
+            return res.status(405).send('Method Not Allowed')
+        }
+
+        const getUnixDateTime = () => {
+            return Math.floor(Date.now() / 1000)
+        }
+
+        const unixDateTime = getUnixDateTime()
+
+        try {
+            // Destructure required fields from the request body
+            const { phoneNumber, name, campaign, projectId, projectName, utmDetails, currentAgent } = req.body
+
+            // Validate required fields
+            if (!phoneNumber || !name || !campaign || !projectId || !projectName || !currentAgent) {
+                return res.status(400).json({
+                    error: 'Missing required fields: phonenumber, name, campaign, projectId, projectName, and currentAgent.',
+                })
+            }
+            // Get agent information
+            const agentSnapshot = await db.collection('internal-agents').where('name', '==', currentAgent).get()
+
+            let agentId = ''
+            if (!agentSnapshot.empty) {
+                const agentDoc = agentSnapshot.docs[0]
+                const agentData = agentDoc.data()
+                agentId = agentData.canvasHomes?.agentId || ''
+            }
+
+            // Create a new campaign data object
+            const newUserDataCampaign = {
+                phoneNumber,
+                name,
+                campaign,
+                projectId,
+                projectName,
+                utmDetails: utmDetails || {},
+                currentAgent,
+                agentId,
+                added: unixDateTime,
+            }
+
+            // Add campaign meta data
+            const campaignDataWithMeta = addCampaginData(newUserDataCampaign, unixDateTime)
+
+            let newUserId = ''
+            let newLeadId = ''
+            let newEnquiryId = ''
+
+            // Transaction to create user
+            await db.runTransaction(async (transaction) => {
+                const counterRef1 = db.collection('canvashomesAdmin').doc('lastUser')
+                const counterDoc = await transaction.get(counterRef1)
+
+                let currentCount = 0
+                if (counterDoc.exists) {
+                    currentCount = counterDoc.data().count || 0
+                }
+
+                const newCount = currentCount + 1
+                newUserId = `user${newCount.toString().padStart(3, '0')}`
+
+                const newUser = {
+                    ...newUserDataCampaign,
+                    userId: newUserId,
+                    added: unixDateTime,
+                    lastModified: unixDateTime,
+                }
+
+                console.log('updated user', newUserId)
+
+                transaction.set(db.collection('canvashomesUsers').doc(newUserId), newUser)
+                transaction.update(counterRef1, {
+                    count: FieldValue.increment(1),
+                })
+            })
+            console.log('transaction 1 completed')
+
+            // Transaction to create lead
+            await db.runTransaction(async (transaction) => {
+                const counterRef = db.collection('canvashomesAdmin').doc('lastLead')
+                const counterDoc = await transaction.get(counterRef)
+
+                let currentNumber = 0
+                if (counterDoc.exists) {
+                    currentNumber = counterDoc.data().count || 0
+                }
+
+                const newNumber = currentNumber + 1
+                newLeadId = `lead${newNumber.toString().padStart(3, '0')}`
+
+                const newLead = {
+                    ...campaignDataWithMeta.leadData,
+                    userId: newUserId,
+                    leadId: newLeadId,
+                    added: unixDateTime,
+                    lastModified: unixDateTime,
+                }
+                console.log(newLeadId)
+
+                transaction.set(db.collection('canvashomesLeads').doc(newLeadId), newLead)
+                transaction.update(counterRef, {
+                    count: FieldValue.increment(1),
+                })
+            })
+            console.log('Transaction 2 completed')
+
+            // Transaction to create enquiry
+            await db.runTransaction(async (transaction) => {
+                const counterRef2 = db.collection('canvashomesAdmin').doc('lastEnquiry')
+                const counterDoc = await transaction.get(counterRef2)
+
+                let currentNumber = 0
+                if (counterDoc.exists) {
+                    currentNumber = counterDoc.data().count || 0
+                }
+
+                const newNumber = currentNumber + 1
+                newEnquiryId = `enq${newNumber.toString().padStart(3, '0')}`
+
+                const newEnquiry = {
+                    ...campaignDataWithMeta.enquiryData,
+                    leadId: newLeadId,
+                    userId: newUserId,
+                    enquiryId: newEnquiryId,
+                    added: unixDateTime,
+                    lastModified: unixDateTime,
+                }
+
+                transaction.set(db.collection('canvashomesEnquiries').doc(newEnquiryId), newEnquiry)
+                transaction.update(counterRef2, {
+                    count: FieldValue.increment(1),
+                })
+            })
+            console.log('Transaction 3 completed')
+            return res.status(200).json({
+                success: 'Successful',
+            })
+
+            // Check for existing user in new_users collection and handle history
+            //   const userSnapshot = await db
+            //     .collection("new_users")
+            //     .where("phonenumber", "==", phonenumber)
+            //     .get();
+
+            //   if (!userSnapshot.empty) {
+            //     const userDoc = userSnapshot.docs[0];
+            //     const userData = userDoc.data();
+            //     const history = userData.history || [];
+
+            //     // Prepare a new history entry with previous user data
+            //     const newHistoryEntry = {
+            //       projectId: userData.projectId || null,
+            //       taskHistory: userData.taskHistory || [],
+            //       notesHistory: userData.notesHistory || [],
+            //       property_requirement_formHistory: userData.property_requirement_form || [],
+            //       sharedPropertiesHistory: userData.sharedProperties || [],
+            //       agentChangeHistory: userData.agentChange || [],
+            //       timestamp: unixDateTime,
+            //     };
+
+            //     // Push new history entry only if the user has a projectId
+            //     if (userData.projectId) {
+            //       history.push(newHistoryEntry);
+            //     }
+
+            //     // Merge new campaign data and updated history into the existing document
+            //     await userDoc.ref.set(
+            //       {
+            //         ...campaignDataWithMeta,
+            //         userId: newUserId,
+            //         leadId: newLeadId,
+            //         enquiryId: newEnquiryId,
+            //         history,
+            //       },
+            //       { merge: true }
+            //     );
+
+            //     return res.status(200).json({
+            //       message: "Existing document updated with new campaign data and history.",
+            //       data: {
+            //         userId: newUserId,
+            //         leadId: newLeadId,
+            //         enquiryId: newEnquiryId,
+            //       }
+            //     });
+            //   } else {
+            //     // If no existing user, create a new document with the campaign data
+            //     const newUserDoc = {
+            //       ...campaignDataWithMeta,
+            //       userId: newUserId,
+            //       leadId: newLeadId,
+            //       enquiryId: newEnquiryId,
+            //       history: []
+            //     };
+
+            //     await db.collection("new_users").add(newUserDoc);
+
+            //     return res.status(201).json({
+            //       message: "New document created.",
+            //       data: {
+            //         userId: newUserId,
+            //         leadId: newLeadId,
+            //         enquiryId: newEnquiryId,
+            //       }
+            //     });
+            //   }
+        } catch (error) {
+            console.error('Error processing the request:', error)
+            return res.status(500).json({
+                error: 'Internal server error',
+                details: error.message,
+            })
+        }
+    })
 })
